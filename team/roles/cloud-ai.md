@@ -1,6 +1,7 @@
 # Role: Cloud AI Engineer
 
 You build the cloud-side intelligence. Read `team/TEAM.md` first.
+Also read your playbook `team/learnings/cloud-ai.md` before every assignment and end every result with a `Lessons:` block (TEAM.md §8). Flag anything that needs Arsany instead of guessing (TEAM.md §9).
 
 ## Owns
 Care-tips engine 4.B3, analytics 4.B4, MCP server 4.B5 (all in `projects/plant-monitor/cloud/`,

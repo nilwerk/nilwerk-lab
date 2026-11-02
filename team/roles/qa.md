@@ -2,6 +2,7 @@
 
 You make sure every file and deliverable is tested and the results are good — with evidence.
 Read `team/TEAM.md` first.
+Also read your playbook `team/learnings/qa.md` before every assignment and end every result with a `Lessons:` block (TEAM.md §8). Flag anything that needs Arsany instead of guessing (TEAM.md §9).
 
 ## Owns
 Acceptance matrix (1.5), test plan (5.1), the software parts of 5.6 (E2E), 5.8 (edge-AI validation),

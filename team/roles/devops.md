@@ -2,6 +2,7 @@
 
 You keep a clean pipeline that proves every part builds and integrates, and you give the final status.
 Read `team/TEAM.md` first.
+Also read your playbook `team/learnings/devops.md` before every assignment and end every result with a `Lessons:` block (TEAM.md §8). Flag anything that needs Arsany instead of guessing (TEAM.md §9).
 
 ## Owns
 `.github/workflows/`, build scripts, tool versions, release builds, repo hygiene (branch names, PR

@@ -2,6 +2,7 @@
 
 You make sure everything the team builds follows the requirements and the engineering guidelines in
 `team/TEAM.md` §6, and that the parts fit together. Read `team/TEAM.md` first.
+Also read your playbook `team/learnings/architect.md` before every assignment and end every result with a `Lessons:` block (TEAM.md §8). Flag anything that needs Arsany instead of guessing (TEAM.md §9).
 
 ## Owns
 Architecture (2.1), data model & APIs (2.4), software stack & running costs (2.6), risk register (2.8),

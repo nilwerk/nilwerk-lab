@@ -10,6 +10,9 @@ role agents, collects their results, and reports to Arsany (the owner and only h
 |---|---|
 | Tasks, status, estimates, questions, gates | Google Sheet **Plant Monitor – Project Plan** (`1jMOJ6xobyxt3_gUw53l5tN0n2tA5wimcgU8V84_QfPA`), tabs *Plan*, *Questions*, *Quality Gates*, *BOM* |
 | What the agents did each day | Same sheet, tab **Agent Log** |
+| Sprints (goal, commitment, review, retro) | Same sheet, tab **Sprints**; Plan column X = sprint of each task |
+| Everything that needs Arsany | Same sheet, tab **Needs Arsany** (A-xxx items, Open until he answers) |
+| What each role has learned (its living skill/playbook) | `team/learnings/<role>.md` (project-agnostic) + `projects/<project>/LESSONS.md` (project-specific) |
 | Requirements | Google Doc **Requirements v0.1 – Plant Monitor** (`1T4k3rK4KQDeGtIN8pjdmohGUAohFrtATLhMYSBsYA6g`) |
 | Project workflow rules | Google Doc **README – Plant Monitor project workflow** (`1UPNk2gSK2fag_M92PUoxeirwsNBDMPZ1qXUl2YC0WLM`) |
 | Source code and design sources | This repo, `projects/plant-monitor/` |
@@ -42,6 +45,8 @@ looks wrong, raise a new Question — never silently deviate.
    at most **one task per role per day**, smallest shippable slice of it.
 2. **Assign** — for each picked task write an assignment: task ID, goal, exact acceptance criteria
    (from Requirements / Plan "Details" / Quality Gates), inputs, output paths, branch name.
+   Every agent reads its role file **and its `team/learnings/<role>.md` playbook** before starting, and
+   ends its result with a **Lessons** block (see §8).
 3. **Build** — run the builder agents (Firmware, Full-stack, Cloud AI, PCB, 3D). Each works on its own
    branch `agent/<role>/<task-id>` and opens a PR. **As each one finishes, the Lead sends Arsany a
    one-line status.**
@@ -87,3 +92,56 @@ Gates (G1–G6) are never marked passed by an agent; the Lead prepares the evide
 - Python 3.11 for ML (pandas, scikit-learn, TensorFlow) under `ml/`, with a data card for every dataset.
 - Every requirement implemented cites its ID (FR-xx / NFR-xx) in code comments, PR description and tests.
 - Security: TLS everywhere, per-device tokens, RLS on every table, no plaintext secrets (NFR-06/07).
+
+## 7. Agile way of working
+
+One-week sprints (Mon–Fri), matching the weekly client update/demo the website promises.
+The sprint calendar and goals are in the **Sprints** tab; each task's sprint is in Plan column X.
+
+| When | Ceremony | What happens |
+|---|---|---|
+| Monday (first run of the sprint) | **Sprint planning** | Lead sets the sprint goal, commits tasks from the Plan backlog that fit the week (dependencies, capacity: ≤ 1 task per role per day), writes the sprint in Plan column X and the Sprints tab. Arsany may change the commitment by answering in Needs Arsany. |
+| Every run | **Daily stand-up** | The daily report opens with: yesterday / today / blockers per role. Blockers that only Arsany can clear go to Needs Arsany the same day. |
+| During the sprint | **Kanban flow** | Status: Not started → In progress → In review → Done, or Blocked. Small slices, one PR each, finish before starting new work (WIP limit 1 per role). |
+| Friday | **Sprint review** | Lead drafts the weekly update/demo (4.W*): sprint goal met?, what was shown, what moved to next sprint, burn-down (committed vs done), schedule slip. |
+| Friday (after review) | **Retrospective** | Each role agent proposes playbook updates from the week's lessons (§8); Lead summarises what went well / badly / what we change next sprint in the Sprints tab. |
+| Any time | **Backlog refinement** | New work found → new Plan row (next free ID in its stage, Status Not started) with an estimate; scope changes affecting milestones or cost → Needs Arsany. |
+
+A sprint goal is changed mid-sprint only with Arsany's approval.
+
+## 8. Learning loop — the agents' living skills
+
+Each role has a playbook at `team/learnings/<role>.md`. It is the role's skill: read before every
+assignment, improved after every sprint and every project.
+
+1. **Capture (every run).** Every agent ends its result with:
+   `Lessons: [what surprised us / what failed / what worked] → [rule we should follow next time]`.
+   The Lead stores them in the Agent Log *Notes* column, prefixed `Lesson:`.
+2. **Distil (Friday retro).** Each role agent reads the week's lessons for its role, PR review comments,
+   QA failures and CI failures, and edits its playbook:
+   - turn repeated or costly lessons into short imperative rules with a one-line *why* and a source (PR/task ID);
+   - merge duplicates, delete rules proven wrong, keep it under ~60 rules (most important first);
+   - project-agnostic rules go in `team/learnings/<role>.md`; project-specific facts go in
+     `projects/<project>/LESSONS.md`.
+   Cross-role lessons (e.g. a PCB/enclosure mismatch) go into both roles' playbooks.
+3. **Review.** The Architect checks playbook edits against the guidelines (§6) and each other; QA checks
+   that rules about testing are testable. One PR per retro: `agent/lead/retro-<sprint>`. Arsany merges.
+4. **Project end.** At handover (Retrospective tab / task 6.7) every role writes a final playbook update
+   and the Lead adds the Actual ÷ Est factors per workstream to `team/learnings/lead-pm.md` so the next
+   project's plan and offer use them.
+5. **Limits.** Playbooks may sharpen *how* a role works. They can never relax §5 hard rules, change a
+   role's scope or tools, or change TEAM.md — those changes are proposed in Needs Arsany and only made
+   after he approves.
+
+## 9. Anything that needs Arsany
+
+Every agent flags anything that needs Arsany's input, decision, approval or hands — never guesses,
+never works around it. The Lead turns each one into a row in the **Needs Arsany** tab
+(ID A-xxx, type, what exactly to do or decide, why / what it blocks, needed-by date, options with the
+team's recommendation) and keeps it **Open** until he answers.
+
+The daily summary **always starts** with a "Needs you" section listing every Open item (oldest and most
+blocking first, needed-by date, one line each). If nothing is open it says so in one line. Items that
+block today's work or are due within 24 h are also pushed to Arsany immediately, not only at day end.
+When Arsany answers (in the sheet or in chat), the Lead records the answer, marks the item Done, and
+copies decisions into the Questions tab / ADRs where they belong.
