@@ -175,3 +175,18 @@ never guessed.
   Lead writes the agent-assisted estimation factors (agent minutes and human-equivalent hours per workstream vs
   Est. hours) into `team/learnings/lead-pm.md` and the Retrospective tab, ready for real customer quotes.
 - Agent time never goes into the *Time Log* tab — that stays Arsany's real working hours.
+
+## 11. GitHub access in agent sessions
+
+`gh` commands that use GitHub's GraphQL API (`gh pr list`, `gh pr create`, `gh pr checks`, `gh pr view`) are
+blocked in these sessions. Use the REST API through `gh api` instead:
+
+| Need | Command |
+|---|---|
+| List open PRs | `gh api repos/nilwerk/nilwerk-lab/pulls --jq '.[] \| [.number,.head.ref,.title] \| @tsv'` |
+| Open a PR | `gh api repos/nilwerk/nilwerk-lab/pulls -f title='[4.F1] …' -f head=agent/firmware/4.F1 -f base=main -f body="$(cat body.md)"` |
+| Comment on a PR (review verdicts) | `gh api repos/nilwerk/nilwerk-lab/issues/<n>/comments -f body="$(cat verdict.md)"` |
+| CI status of a branch/commit | `gh api repos/nilwerk/nilwerk-lab/commits/<sha>/check-runs --jq '.check_runs[] \| [.name,.status,.conclusion] \| @tsv'` |
+| Latest CI runs | `gh run list -R nilwerk/nilwerk-lab --limit 5` (REST, works) · failed logs: `gh run view <id> -R nilwerk/nilwerk-lab --log-failed` |
+
+Before pushing from a shallow clone, run `git fetch origin main` first so the push stays small.
