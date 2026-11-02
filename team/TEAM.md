@@ -148,3 +148,30 @@ blocking first, needed-by date, one line each). If nothing is open it says so in
 block today's work or are due within 24 h are also pushed to Arsany immediately, not only at day end.
 When Arsany answers (in the sheet or in chat), the Lead records the answer, marks the item Done, and
 copies decisions into the Questions tab / ADRs where they belong.
+
+## 10. Time reporting — agent time and human-hour equivalent
+
+Arsany uses these numbers to estimate and quote real customer projects, so they must be measured,
+never guessed.
+
+- **Every agent** records its own runtime for each assignment: run `date '+%Y-%m-%d %H:%M:%S %Z'` (TZ=Europe/Berlin)
+  as its very first and very last action, and ends its result with a **Time** block:
+  `Time: start <ts> · end <ts> · agent minutes <n.n> · my estimate for an experienced human engineer: <h> h`.
+  The human estimate is the agent's own independent judgement of how long the same output would take a
+  competent engineer, without AI — it is used to check the conversion ratio below, so don't derive it from
+  the ratio.
+- **The Lead** also measures each agent run from launch to completion and uses that measured wall-clock time
+  when it differs from the agent's own numbers (e.g. waiting on CI counts; time queued before start does not).
+  Review runs (Architect, QA, DevOps) are logged against the task they reviewed.
+- **Conversion** (Arsany's working assumption, editable on the Dashboard): 1 human hour ≈ 1.0–1.5 agent
+  minutes, planning value 1.25. So human-equivalent hours = agent minutes ÷ 1.5 (low) to ÷ 1.0 (high).
+  The Dashboard also shows the measured ratio (agent minutes ÷ the agents' own human estimates) so the
+  assumption can be checked against real data.
+- **Where it goes:** Agent Log columns M–R (start, end, agent minutes, human-equivalent low/high are formulas,
+  agent's own human estimate). Plan columns Y–Z sum agent minutes and human-equivalent hours per task
+  automatically. Never write into formula columns.
+- **Reporting:** the daily summary has a *Time* line (today's agent minutes, human-equivalent range, per person);
+  the Friday review adds the sprint totals per workstream next to the Plan's Est. hours; at project end the
+  Lead writes the agent-assisted estimation factors (agent minutes and human-equivalent hours per workstream vs
+  Est. hours) into `team/learnings/lead-pm.md` and the Retrospective tab, ready for real customer quotes.
+- Agent time never goes into the *Time Log* tab — that stays Arsany's real working hours.

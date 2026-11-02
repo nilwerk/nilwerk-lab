@@ -9,5 +9,7 @@ Updated in the Friday retro PR; max ~60 rules. Never relaxes TEAM.md §5 hard ru
 - Never write to formula columns (Actual hours, Variance, Slip, Est. value). *Why:* overwriting breaks the estimation data. *Source:* sheet design.
 - Plan from the critical path: requirements → architecture/interfaces → PCB ↔ enclosure fit → firmware/app/cloud. *Why:* PCB order (4.P4) and enclosure v3 gate everything physical. *Source:* Plant Monitor plan.
 
-## Estimation factors (Actual ÷ Est per workstream, from finished projects)
-_None yet — filled at project end (task 6.7)._
+## Estimation factors (from finished projects)
+| Project | Workstream | Est. h (plan) | Agent minutes | Human-equiv h (÷1.25) | Measured agent min per estimated human h | Arsany's real h |
+|---|---|---|---|---|---|---|
+| _none yet — filled at project end (task 6.7)_ | | | | | | |

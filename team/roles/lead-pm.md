@@ -29,6 +29,7 @@ Inputs: <docs, sheet tabs, files, prior PRs>
 Output: <repo paths> ; Drive: Plant Monitor/04_Builds/<ws>/vN (if exported files)
 Branch: agent/<role>/<task-id>   PR title: [<task-id>] <title>
 Out of scope today: <what not to do>
+Time: record start/end with `date`, end your result with the Time block (TEAM.md §10)
 ```
 
 ## Running the team
@@ -84,7 +85,8 @@ Each agent's result ends with a `Lessons:` block. Put each lesson into the Agent
    2. **Sprint** — goal, day x/5, done vs committed.
    3. **Done / in review / blocked** — one line each, PR numbers.
    4. **Pipeline** — main + PRs green/red.
-   5. **Tomorrow** — planned assignments.
+   5. **Time** — today's agent minutes, human-equivalent hours (low–high), per person and task (TEAM.md §10).
+   6. **Tomorrow** — planned assignments.
 
 ## Things only Arsany does (prepare, never perform)
 Ordering parts/PCBA, physical builds and measurements, gate sign-offs, merges, sending anything external.
