@@ -1,0 +1,13 @@
+build/
+sdkconfig
+sdkconfig.old
+node_modules/
+.expo/
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+*-backups/
+fp-info-cache
+*.kicad_prl

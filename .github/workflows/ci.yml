@@ -1,0 +1,264 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  P: projects/plant-monitor
+
+jobs:
+  detect:
+    name: Detect workstreams
+    runs-on: ubuntu-latest
+    outputs:
+      firmware: ${{ steps.d.outputs.firmware }}
+      app: ${{ steps.d.outputs.app }}
+      cloud: ${{ steps.d.outputs.cloud }}
+      ml: ${{ steps.d.outputs.ml }}
+      pcb: ${{ steps.d.outputs.pcb }}
+      sim: ${{ steps.d.outputs.sim }}
+      mechanical: ${{ steps.d.outputs.mechanical }}
+      interfaces: ${{ steps.d.outputs.interfaces }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: d
+        run: |
+          has() { if eval "$1" >/dev/null 2>&1; then echo "$2=true" >> "$GITHUB_OUTPUT"; else echo "$2=false" >> "$GITHUB_OUTPUT"; fi; }
+          has "test -f $P/firmware/CMakeLists.txt" firmware
+          has "test -f $P/app/package.json" app
+          has "test -f $P/cloud/package.json" cloud
+          has "ls $P/ml/*.py $P/ml/**/*.py" ml
+          has "ls $P/pcb/*.kicad_pro" pcb
+          has "ls $P/pcb/sim/*.cir $P/pcb/sim/*.sp" sim
+          has "ls $P/mechanical/*.py" mechanical
+          has "ls $P/docs/interfaces/*.json" interfaces
+          cat "$GITHUB_OUTPUT"
+
+  firmware:
+    needs: detect
+    if: needs.detect.outputs.firmware == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ESP-IDF build (esp32c3)
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.4
+          target: esp32c3
+          path: projects/plant-monitor/firmware
+          command: idf.py build && idf.py size
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-esp32c3
+          path: projects/plant-monitor/firmware/build/*.bin
+          if-no-files-found: warn
+      - name: Host unit tests
+        working-directory: projects/plant-monitor/firmware
+        run: |
+          if [ -f test/host/CMakeLists.txt ]; then
+            cmake -S test/host -B build-host && cmake --build build-host && ctest --test-dir build-host --output-on-failure
+          else
+            echo "No host tests yet (test/host/)."
+          fi
+
+  app:
+    needs: detect
+    if: needs.detect.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/plant-monitor/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci || npm install
+      - run: npm run lint --if-present
+      - run: npx tsc --noEmit
+      - run: npm test --if-present -- --ci
+
+  cloud:
+    needs: detect
+    if: needs.detect.outputs.cloud == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: projects/plant-monitor/cloud
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci || npm install
+      - name: Apply SQL migrations to a fresh Postgres
+        run: |
+          if ls supabase/migrations/*.sql >/dev/null 2>&1; then
+            for f in supabase/migrations/*.sql; do echo "== $f"; psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
+          else
+            echo "No migrations yet."
+          fi
+      - run: npm run lint --if-present
+      - run: npm run typecheck --if-present
+      - run: npm test --if-present
+
+  ml:
+    needs: detect
+    if: needs.detect.outputs.ml == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/plant-monitor/ml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+        if: hashFiles('projects/plant-monitor/ml/requirements.txt') != ''
+      - run: pip install pytest && pytest -q
+      - name: Model budget check
+        run: |
+          for m in $(ls models/*.tflite 2>/dev/null); do
+            s=$(stat -c%s "$m"); echo "$m: $s bytes"; [ "$s" -le 30720 ] || { echo "::error::$m exceeds 30 KB budget (FR-E04)"; exit 1; }
+          done
+
+  pcb:
+    needs: detect
+    if: needs.detect.outputs.pcb == 'true'
+    runs-on: ubuntu-latest
+    container: kicad/kicad:9.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: ERC / DRC and fabrication exports
+        working-directory: projects/plant-monitor/pcb
+        run: |
+          set -e
+          mkdir -p out
+          for s in *.kicad_sch; do kicad-cli sch erc --severity-error --exit-code-violations -o out/erc.rpt "$s" || { cat out/erc.rpt; exit 1; }; break; done
+          for b in *.kicad_pcb; do
+            kicad-cli pcb drc --severity-error --exit-code-violations -o out/drc.rpt "$b" || { cat out/drc.rpt; exit 1; }
+            kicad-cli pcb export gerbers -o out/gerbers/ "$b"
+            kicad-cli pcb export drill -o out/gerbers/ "$b"
+            kicad-cli pcb export pos --format csv --units mm -o out/cpl.csv "$b"
+            kicad-cli pcb export step -o out/board.step "$b" || true
+          done
+          for s in *.kicad_sch; do kicad-cli sch export pdf -o out/schematic.pdf "$s"; kicad-cli sch export bom -o out/bom.csv "$s"; break; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pcb-fab
+          path: projects/plant-monitor/pcb/out
+
+  sim:
+    needs: detect
+    if: needs.detect.outputs.sim == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ngspice
+      - name: Run simulations (each check script must exit non-zero on failure)
+        working-directory: projects/plant-monitor/pcb/sim
+        run: |
+          set -e
+          if [ -f run_all.sh ]; then bash run_all.sh; else for c in *.cir *.sp; do [ -f "$c" ] && ngspice -b "$c"; done; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-results
+          path: projects/plant-monitor/pcb/sim/out
+          if-no-files-found: ignore
+
+  mechanical:
+    needs: detect
+    if: needs.detect.outputs.mechanical == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/plant-monitor/mechanical
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install cadquery trimesh pytest
+      - name: Regenerate models
+        run: |
+          if [ -f build.py ]; then python build.py; else echo "No build.py yet."; fi
+      - name: Geometry checks
+        run: |
+          if ls test_*.py >/dev/null 2>&1; then pytest -q; else echo "No geometry tests yet."; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: enclosure
+          path: projects/plant-monitor/mechanical/out
+          if-no-files-found: ignore
+
+  interfaces:
+    needs: detect
+    if: needs.detect.outputs.interfaces == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install jsonschema
+      - name: Validate schemas and fixtures
+        working-directory: projects/plant-monitor/docs/interfaces
+        run: |
+          python - <<'PY'
+          import json, glob, sys, os
+          from jsonschema import Draft202012Validator
+          ok = True
+          for f in glob.glob("*.schema.json"):
+              schema = json.load(open(f)); Draft202012Validator.check_schema(schema)
+              print("schema ok:", f)
+              base = f[:-len(".schema.json")]
+              for fx in glob.glob(f"fixtures/{base}*.json"):
+                  errs = list(Draft202012Validator(schema).iter_errors(json.load(open(fx))))
+                  print(("FAIL " if errs else "ok   ") + fx)
+                  for e in errs: print("   ", e.message)
+                  ok &= not errs
+          sys.exit(0 if ok else 1)
+          PY
+
+  summary:
+    name: Final status
+    needs: [detect, firmware, app, cloud, ml, pcb, sim, mechanical, interfaces]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write pipeline summary
+        run: |
+          {
+            echo "## Pipeline status"
+            echo "| Job | Result |"
+            echo "|---|---|"
+            echo "| firmware | ${{ needs.firmware.result }} |"
+            echo "| app | ${{ needs.app.result }} |"
+            echo "| cloud | ${{ needs.cloud.result }} |"
+            echo "| ml | ${{ needs.ml.result }} |"
+            echo "| pcb | ${{ needs.pcb.result }} |"
+            echo "| sim | ${{ needs.sim.result }} |"
+            echo "| mechanical | ${{ needs.mechanical.result }} |"
+            echo "| interfaces | ${{ needs.interfaces.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}"; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "Pipeline RED"; exit 1; fi
+          done
+          echo "Pipeline GREEN (skipped = workstream not started yet)"
