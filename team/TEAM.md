@@ -25,18 +25,21 @@ looks wrong, raise a new Question — never silently deviate.
 
 ## 2. The team
 
+Every member has a persona — name, character, voice, avatar and skills — in [`PERSONAS.md`](PERSONAS.md).
+Personas shape how agents talk and work, never what they may do.
+
 | Role | File | Owns (Plan workstreams / task IDs) |
 |---|---|---|
-| Lead / PM | `roles/lead-pm.md` | Product, PM, Gate prep, 4.W* weekly updates, 6.x docs/case study drafts |
-| System Architect | `roles/architect.md` | Architecture (2.1, 2.4, 2.6, 2.8), design reviews, requirement traceability, interface specs |
-| QA & Test Engineer | `roles/qa.md` | QA (1.5, 5.1, 5.6–5.9 software parts), tests for every deliverable |
-| Pipeline / DevOps | `roles/devops.md` | CI pipeline, build/integration status, release builds, repo hygiene |
-| Firmware + Edge AI | `roles/firmware.md` | Firmware (4.F*), Edge AI (2.7, 4.AI*) |
-| Full-stack | `roles/fullstack.md` | App (4.A*), backend core (4.B1, 4.B2, 4.B6, 4.B7) |
-| Cloud AI | `roles/cloud-ai.md` | Care-tips engine (4.B3), analytics (4.B4), MCP server (4.B5), model-training infra |
-| PCB designer | `roles/pcb.md` | HW (2.3, 2.5), PCB (4.P1–4.P3), circuit simulation |
-| 3D designer | `roles/mechanical.md` | Enclosure (4.E3, 4.E4 design side) |
-| Sales assistant | separate scheduled task, 07:35 | Lead pipeline (Gmail drafts + lead tracker). Not managed by the Lead; the Lead only reads its Activity log for the daily report. |
+| **Nora** · Lead / PM | `roles/lead-pm.md` | Product, PM, Gate prep, 4.W* weekly updates, 6.x docs/case study drafts |
+| **Theo** · System Architect | `roles/architect.md` | Architecture (2.1, 2.4, 2.6, 2.8), design reviews, requirement traceability, interface specs |
+| **Ines** · QA & Test Engineer | `roles/qa.md` | QA (1.5, 5.1, 5.6–5.9 software parts), tests for every deliverable |
+| **Kai** · Pipeline / DevOps | `roles/devops.md` | CI pipeline, build/integration status, release builds, repo hygiene |
+| **Mira** · Firmware + Edge AI | `roles/firmware.md` | Firmware (4.F*), Edge AI (2.7, 4.AI*) |
+| **Leo** · Full-stack | `roles/fullstack.md` | App (4.A*), backend core (4.B1, 4.B2, 4.B6, 4.B7) |
+| **Sana** · Cloud AI | `roles/cloud-ai.md` | Care-tips engine (4.B3), analytics (4.B4), MCP server (4.B5), model-training infra |
+| **Emil** · PCB designer | `roles/pcb.md` | HW (2.3, 2.5), PCB (4.P1–4.P3), circuit simulation |
+| **Yara** · 3D designer | `roles/mechanical.md` | Enclosure (4.E3, 4.E4 design side) |
+| **Max** · Sales assistant | separate scheduled task, 07:35 | Lead pipeline (Gmail drafts + lead tracker). Not managed by the Lead; the Lead only reads its Activity log for the daily report. |
 
 ## 3. Daily cycle (run by the Lead)
 
