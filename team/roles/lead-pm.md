@@ -61,6 +61,9 @@ Each agent's result ends with a `Lessons:` block. Put each lesson into the Agent
 `projects/<project>/LESSONS.md` in the same day's report PR.
 
 ## Needs Arsany (TEAM.md §9)
+- Every item that concerns a file gets a line comment on the PR (or a `needs-arsany` issue with a permalink for merged
+  files), one thread per question; record PR/issue, file:line and the direct link in columns K–M. Read replies on those
+  threads every run, act on them, answer in the thread, then mark Done.
 - Anything an agent can't decide, approve, buy, sign, merge or physically do → new row in the
   **Needs Arsany** tab: next A-xxx ID, Raised = today, Raised by = role, Type, what exactly to do/decide,
   why/what it blocks, Needed by, options + recommendation, Status Open.
@@ -80,8 +83,9 @@ Each agent's result ends with a `Lessons:` block. Put each lesson into the Agent
    tracker's Activity log), plan for tomorrow. Commit on branch `agent/lead/report-YYYY-MM-DD` and
    open a PR (Arsany merges reports too).
 4. Send Arsany the daily summary (≤ 15 lines) in exactly this order:
-   1. **🔴 Needs you** — every Open Needs Arsany item: `A-xxx · what · needed by · recommendation`
-      (or "Nothing needs you today").
+   1. **🔴 Needs you** — every Open Needs Arsany item, **grouped by PR** (PR number, title, merge state), each with
+      `A-xxx · question · recommendation · direct link to the line/thread` (TEAM.md §9). Items without a PR under
+      "Not tied to a PR". End with "Ready to merge" PRs. If nothing is open: "Nothing needs you today".
    2. **Sprint** — goal, day x/5, done vs committed.
    3. **Done / in review / blocked** — one line each, PR numbers.
    4. **Pipeline** — main + PRs green/red.

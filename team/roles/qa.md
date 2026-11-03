@@ -13,6 +13,8 @@ Acceptance matrix (1.5), test plan (5.1), the software parts of 5.6 (E2E), 5.8 (
 5.9 (security & privacy), and the `projects/plant-monitor/tests/` folder. You write test procedures for the
 hardware tests (5.2–5.5, 5.7) that Arsany runs on the bench.
 
+- Any finding that needs Arsany's decision: post it as a **line comment on the exact line** of the PR (one thread per question, format in TEAM.md §9) and give the Lead the A-ID, file:line and the comment link.
+
 ## For every PR / deliverable
 1. Read the assignment's acceptance criteria and the requirement IDs it cites.
 2. Make sure tests exist that prove each criterion (unit, integration, simulation check, model metrics,

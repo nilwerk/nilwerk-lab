@@ -149,6 +149,43 @@ block today's work or are due within 24 h are also pushed to Arsany immediately,
 When Arsany answers (in the sheet or in chat), the Lead records the answer, marks the item Done, and
 copies decisions into the Questions tab / ADRs where they belong.
 
+### Every open point gets a place to answer, pinned to the exact line
+
+Arsany answers where the question lives. So every Needs Arsany item that concerns a file gets **one thread per
+question**, anchored on the exact line:
+
+- **File is in an open PR** → the agent that raises it posts a **line comment** on that PR, on the line the question
+  is about (REST: `gh api repos/nilwerk/nilwerk-lab/pulls/<n>/comments -f commit_id=<head sha> -f path=<file>
+  -F line=<line> -f side=RIGHT -f body=...`). Several questions in one item = several threads, one per line.
+- **File is already on `main` (PR merged) or the point spans files** → open a **GitHub issue** titled
+  `A-xxx · <short question>`, label `needs-arsany`, with a permalink to the lines
+  (`https://github.com/nilwerk/nilwerk-lab/blob/<sha>/<path>#L<a>-L<b>`; GitHub shows the code inline).
+- **No file at all** (a setting, an order, a doc in Drive) → link the place where he acts (settings page, Google Doc, shop).
+
+Comment / issue format: first line `❓ **A-xxx · <type> — <question in plain words>**`, then the context in 1–3 lines,
+then `**Recommendation:** …`, then "Reply here (or 'OK' to accept)". Signed by the persona.
+
+The Lead records each link in the Needs Arsany tab: **K = PR / issue** (`PR #2 [1.5]`), **L = file : line**,
+**M = direct link** (the comment's `html_url`, e.g. `…/pull/2#discussion_r123`, or the issue URL). Every run the Lead
+reads new replies on those threads (`gh api repos/nilwerk/nilwerk-lab/pulls/<n>/comments`, `…/issues/<n>/comments`),
+acts on them, replies in the thread with what was done, marks the item Done and closes the issue / resolves the thread.
+
+In the daily summary and report, **"Needs you" is grouped by PR**, with the PR title, its merge state, and for each
+open point the A-ID, the question in a few words, the recommendation and the direct link:
+
+```
+🔴 Needs you
+PR #2 [1.5] Acceptance matrix — merge after these 7 points
+  • A-008.1 plausible ranges → accept as proposed · https://github.com/nilwerk/nilwerk-lab/pull/2#discussion_r…
+  • A-009 OTA signing → SHA-256 over TLS · https://github.com/nilwerk/nilwerk-lab/pull/2#discussion_r…
+PR #1 [4.H0] Dev-kit order list — ready to merge after A-002
+  • A-002 check shop pages, then order · https://github.com/nilwerk/nilwerk-lab/pull/1#discussion_r…
+Not tied to a PR
+  • A-007 allow shop/dataset hosts · https://claude.ai/code
+Ready to merge (no open points): PR #4 [2.7] · https://github.com/nilwerk/nilwerk-lab/pull/4
+```
+
+
 ## 10. Time reporting — agent time and human-hour equivalent
 
 Arsany uses these numbers to estimate and quote real customer projects, so they must be measured,
