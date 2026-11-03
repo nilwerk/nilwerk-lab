@@ -1,6 +1,6 @@
 # Edge AI concept and dataset plan (task 2.7)
 
-Author: Mira (Firmware + Edge AI) · Status: draft for G2 review · Date: 2026-11-03
+Author: Mira (Firmware + Edge AI) · Status: draft for G2 review, owner answers of PR #4 recorded (rev 2) · Date: 2026-11-03
 Traces to: Requirements v0.1 section 5 and FR-E01..FR-E04; also FR-D02, FR-D04, FR-D05, FR-A07, UC-08, NFR-01.
 Scope approved in Q-16: thirst forecast, watering/rain event detection, sensor-fault detection.
 
@@ -11,7 +11,7 @@ No model has been trained and no dataset has been downloaded for this note. Ever
 - Two small int8 TFLite Micro models run every 15 min on the ESP32-C3 with Wi-Fi off:
   **Model A** (thirst forecast, regression) and **Model B** (event and fault classifier).
 - Both consume calibrated **relative moisture (0-100 %)** and its slopes, never raw ADC counts. This closes most of the domain gap to public data.
-- Training data: Mendeley precision-irrigation dataset (primary), synthetic faults, our own cloud data later. ISMN is research-only per its terms (unverified) and is **not part of the plan**, see 3.2. ProjectPlant is evaluation-only.
+- Training data: Mendeley precision-irrigation dataset (primary), ISMN (secondary, in scope for research/demo only), synthetic faults, our own cloud data later. ISMN as a secondary source (research and demo use only, owner decision, see 3.2). ProjectPlant is evaluation-only.
 - Evaluation: blocked split by calendar weeks with a 3-day gap (no leakage across the 72 h horizon), plus held-out sector/station. Baseline is the average watering interval.
 - Fallback if accuracy is weak: closed-form drying-curve extrapolation for A, deterministic rules for faults in B, coarse "water in" buckets in the app, retraining on our own cloud data and shipping via OTA (FR-D05).
 
@@ -43,7 +43,7 @@ Slopes over 1 h / 6 h / 24 h and time of day are the features the Requirements a
 | RAM budget | tensor arena **estimate** under 2 KB; with history buffers and interpreter state still far below 20 KB |
 | Latency | about 700 MACs, **estimate** well under 1 ms on a 160 MHz RISC-V core; limit 50 ms. To be measured on the board (FR-E04) |
 | Metric | Mean absolute error in hours on held-out ticks whose true label is within 72 h; also reported per horizon bucket (0-12, 12-24, 24-48, 48-72 h) and as MAE by soil type |
-| Target | MAE <= 12 h overall (FR-E01) **and** MAE below the baseline. Proposed stricter internal target: at least 20 % lower MAE than baseline, so "beats" is not a coin toss |
+| Target | MAE <= 12 h overall (FR-E01) **and** MAE below the baseline. Internal target (confirmed by Arsany): at least 20 % lower MAE than baseline, so "beats" is not a coin toss |
 | Baseline | "Average watering interval": per sector or plant, mean time between wetting events in the training weeks; prediction at time `t` = max(0, mean interval - time since last wetting event), clipped to 72 h. Evaluated on exactly the same ticks as the model |
 
 ### 2.3 Model B: event and fault classifier (FR-E02, FR-E03, FR-A07)
@@ -65,9 +65,9 @@ Slopes over 1 h / 6 h / 24 h and time of day are the features the Requirements a
 
 ### 2.4 Cross-cutting
 
-- **Critical events** [proposed, for Arsany / G1 to confirm]. A critical event wakes Wi-Fi at once and sends an immediate report (FR-E03, FR-A07). Everything else rides along with the hourly report (FR-D02). When Wi-Fi is down, results are stored with the readings (FR-D04). The set, so that FR-A07 is testable:
+- **Critical events** (confirmed by Arsany, PR #4, open item 8). A critical event wakes Wi-Fi at once and sends an immediate report (FR-E03, FR-A07). Everything else rides along with the hourly report (FR-D02). When Wi-Fi is down, results are stored with the readings (FR-D04). The set, so that FR-A07 is testable:
 
-  | Model B class | Critical? [proposed] | Condition | Decision path | App alert |
+  | Model B class | Critical? | Condition | Decision path | App alert |
   |---|---|---|---|---|
   | 0 normal | no | n/a | n/a | none |
   | 1 wetting | **only if unexpected**, defined as: `m` after the rise is >= 95, **or** the rise starts while `m` was already >= 80 (watering a wet pot / flood / leak). A normal watering of a dry plant (`m` before < 80 and after < 95) is **not** critical | single tick | `wetting_unexpected` |
@@ -77,11 +77,11 @@ Slopes over 1 h / 6 h / 24 h and time of day are the features the Requirements a
   | 4 sensor out of soil | yes | class 4 | single tick | `sensor_out_of_soil` |
   | 5 sensor fault | yes | class 5 (flatline, spike, dropout) | single tick | `sensor_fault` |
 
-  Rate limit [proposed]: at most one critical wake per class per 6 h per unit, so a repeating fault cannot drain the battery (NFR-01); further occurrences go into the hourly report. The alert names above are proposals; Theo defines the final enums in the device report schema. FR-A07 test: feed a scripted `m` sequence per row, assert alert yes/no and alert name. "Unexpected" is thus a numeric condition, not a judgement.
+  Rate limit (confirmed): at most one critical wake per class per 6 h per unit, so a repeating fault cannot drain the battery (NFR-01); further occurrences go into the hourly report. The alert names above are still proposals; Theo defines the final enums in the device report schema. FR-A07 test: feed a scripted `m` sequence per row, assert alert yes/no and alert name. "Unexpected" is thus a numeric condition, not a judgement.
 - **FR-E03 latency (worst case, arithmetic).** FR-E03: phone alert <= 15 min after the event. The device only looks every 15 min, so the budget is consumed by the tick spacing alone.
-  - Debounce 2 of 3 as first written: event just after tick `k`; first observed at tick `k+1` (<= 15 min); confirmed at `k+2` (<= 30 min); plus connect and send. **Worst case about 30 min + connect. This breaks FR-E03, so the single-tick fast path above is required** for wetting, out of soil and fault. Debounce is kept only for fast drying and waterlogged, which are slow phenomena and are **not** claimed to meet FR-E03 (waterlogged is defined over >= 6 h anyway). To be confirmed by Arsany: FR-E03 applies to the fast-path classes only.
+  - Debounce 2 of 3 as first written: event just after tick `k`; first observed at tick `k+1` (<= 15 min); confirmed at `k+2` (<= 30 min); plus connect and send. **Worst case about 30 min + connect. This breaks FR-E03, so the single-tick fast path above is required** for wetting, out of soil and fault. Debounce is kept only for fast drying and waterlogged, which are slow phenomena and are **not** claimed to meet FR-E03 (waterlogged is defined over >= 6 h anyway). Confirmed by Arsany (item 7): FR-E03 applies to the fast-path classes (wetting, out of soil, sensor fault) only.
   - Fast path: event just after tick `k` -> observed at tick `k+1`: <= 15 min. Then, per wake, estimates to be measured in 4.AI3: sensor warm-up and samples about 2-3 s, feature and Invoke() a few ms, Wi-Fi association plus TLS plus POST about 3-10 s. **Worst case about 15 min + 5-13 s (estimate).**
-  - So **<= 15 min cannot be met literally** if the event starts right after a tick, by those few seconds, with a 15-min cadence. Raised as a Question (open item 7): relax FR-E03 to "<= 15 min after the first tick that observes the event" (equivalent to about 15 min + 15 s), or to "<= 16 min". The alternative, a 10-min tick, costs about 50 % more wake-ups and fails NFR-01 margins; not proposed. Not a silent change: until Arsany answers, the test for FR-E03 uses the strict 15-min limit and is expected to fail by the connect time in the worst case.
+  - So **<= 15 min cannot be met literally** if the event starts right after a tick, by those few seconds, with a 15-min cadence. **Decided by Arsany (PR #4, item 7):** FR-E03 is relaxed to "<= 15 min after the first tick that observes the event" for wetting, out of soil and sensor fault (about 15 min + 15 s measured from the event). The FR-E03 test uses exactly this wording: the clock starts at the first tick where the event is observed. The 10-min tick alternative costs about 50 % more wake-ups and fails NFR-01 margins; not adopted. **The Requirements text still says "<= 15 min after the event" and must be corrected before v1.0** (Lead / Requirements owner); until then this note and the test are the reference.
   - Note that a wetting ramp may be only partly visible at the first tick; the fast path acts on the first tick where `p >= p_fast`, so the latency is counted from the first tick that shows the rise, and the recall number in 2.3 must be measured for that first tick.
 - **Model update** ships as a separate OTA image part with rollback (FR-D05). Model version goes into the report.
 - **Size counting rule** (adopted from the Architect's review of PR #4; QA's FR-E04 row uses the same rule):
@@ -93,31 +93,32 @@ Slopes over 1 h / 6 h / 24 h and time of day are the features the Requirements a
 
 ## 3. Datasets
 
-Licence rows say how each licence was checked. The session network blocked `data.mendeley.com`, `ismn.bafg.de` and direct GitHub API access, so two licences could not be read on their own pages.
+Licence rows say how each licence was checked. The session network blocked `data.mendeley.com`, `ismn.bafg.de` and direct GitHub API access, so two licences could not be read on their own pages by the team. For both, the owner has since quoted the terms (below); these quotes are **quoted by Arsany, not verified by the team**.
 
 ### 3.1 Mendeley: Soil Moisture, Irrigation Actuator and Weather Dataset (primary)
 
 | Item | Detail |
 |---|---|
 | Source | https://data.mendeley.com/datasets/c837v6p8ph (version 2: https://data.mendeley.com/datasets/c837v6p8ph/2), DOI 10.17632/c837v6p8ph.2 |
-| Licence | **CC BY 4.0 per Requirements v0.1 and per a third-party project citing this DOI. Not verified on the Mendeley page** (host blocked in this session; the search snippet of the page did not show the licence line). **Action: open the page and read the licence line before any download or release.** Attribution is required; cite DOI and authors in the data card |
+| Licence | **Partially verified.** (a) CC BY 4.0 per Requirements v0.1 and per a third-party project citing this DOI; **the CC BY 4.0 line itself has still not been read from the Mendeley page** (host blocked; the search snippet did not show it). (b) Arsany quoted the Mendeley terms of use (PR #4, quoted by Arsany, not verified by the team): "We hereby grant to you a non-exclusive, personal, non-transferable license, in accordance with these Terms of Use, to [download, install and use the Software]". Owner's reading: usable for our research and demo products. Attribution is required if CC BY 4.0 holds; cite DOI and authors in the data card. **Action remains: someone with network access reads the licence line on the dataset page before any release (open item 2)** |
 | Content | IoT farm in Arnesano (Lecce), Apulia, Italy; season Feb-Sep 2025; five sectors, including a potted-tomato sector; three layers (raw, processed, analysis-ready). From the page description: raw layer 486,894 sensor measurements and 3,055,944 valve-state records; processed layer 789 reconstructed irrigation/fertigation events and five per-sector series on a 10-min grid with 33,259 rows each; ERA5 reanalysis weather. Version 2 is dated 2026-09-14 per the search result; pin the version |
 | Size | ZIP size **not found** (not shown in search results). Per-sector series are 33,259 rows, so analysis-ready tables are small; the raw valve records are the large part. Check on download; fetch only the layers we need |
 | Use | Model A (drying curves, 789 events define the watering interval baseline), Model B (wetting labels; fault labels from raw-layer anomalies; fast-drying and waterlogged derived labels) |
 | Risks | (1) Drip-irrigated farm sectors, not houseplants; intervals are short and regular, so the baseline may look strong or weak for the wrong reason. (2) Moisture units and sensor depth not confirmed from the page (unit, depth and calibration to be read from the data description); relative scaling handles offsets, not different physics. (3) One season, one site, so held-out days still share climate; seasonal drift is not tested. (4) Fault labels are derived from raw-vs-processed differences and will be noisy. (5) Valve telemetry is not available on our device; must not leak into features |
 
-### 3.2 ISMN: International Soil Moisture Network (research-only per its terms (unverified); **not used in the plan**)
+### 3.2 ISMN: International Soil Moisture Network (secondary source; research and demo use only, owner decision)
 
 | Item | Detail |
 |---|---|
 | Source | https://ismn.bafg.de ; terms at https://ismn.bafg.de/terms-and-conditions |
-| Licence | **Treated as research-only and not usable commercially per its terms, which we have not read.** Not an open licence. Not verified on the page itself (host blocked). Note that Requirements v0.1 lists ISMN as an open source ("free account") and does not mention this restriction, so the Requirements text and this finding disagree (Question raised, open item 1). A search summary of the Terms and Conditions page reports: registration required before download, **use restricted to research, commercial use prohibited**, citation of the ISMN papers required. Individual networks may add their own conditions. We cannot claim an open licence for ISMN |
+| Licence | **Not an open licence.** A search summary of the Terms and Conditions page reports: registration required before download, **use restricted to research, commercial use prohibited**, citation of the ISMN papers required; individual networks may add their own conditions. Not read by the team (host blocked). **Owner decision (Arsany, PR #4, item 1/2):** ISMN may be used because we are research only and build demo products. He quoted the terms (quoted by Arsany, not verified by the team): "The copyright is always with the respective ISMN agency." Requirements v0.1 lists ISMN as an open source ("free account") without this restriction; the Requirements text should say "research/demo use, terms apply" |
+| Constraints (binding on this plan) | (1) **No redistribution of ISMN data**: nothing from ISMN is committed to the repo, shipped to customers or included in a demo package; only the data card and the manual fetch steps are committed. (2) **No commercial reuse of any model trained on ISMN** without re-checking the terms first; models whose training set includes ISMN are labelled as such in the model card and report. (3) Cite the ISMN papers and the data agencies as the terms require. (4) Keep a Mendeley-only variant of each model reproducible, so a commercial path never depends on ISMN |
 | Content | About 3,000 stations (figure from Requirements v0.1; not re-verified), mostly hourly, soil moisture at several depths, soil temperature, some precipitation |
 | Size | Depends on the stations chosen; selection is made in the portal. Plan: 20-40 stations, surface layer (0-5 cm), 2-3 years, expected tens of MB. Not downloaded |
-| Use | Drying curves by soil type and rain-driven wetting events for Model A and B (garden/balcony cases). Hourly resolution only, so Model B channels beyond 1 h are used when training on ISMN |
-| Risks | (1) **Licence**: a model trained on research-only data and shipped in a commercial-style demo product may breach the terms. Needs a decision (below). (2) Free account must be created by Arsany; agents may not sign up or accept terms (TEAM.md section 5). (3) Volumetric soil moisture of field stations, not pot substrates. (4) Hourly data cannot support 15-min targets. (5) Raw data must not be redistributed or committed |
+| Use | Drying curves by soil type and rain-driven wetting events for Model A and B (garden/balcony cases). Hourly resolution only, so Model B channels beyond 1 h are used when training on ISMN. Secondary: it adds garden/balcony and rain cases, but no FR-E target is defined on it alone |
+| Risks | (1) **Licence**: terms not read by the team; see constraints above, especially commercial reuse of trained models. (2) Free account must be created by Arsany; agents may not sign up or accept terms (TEAM.md section 5). (3) Volumetric soil moisture of field stations, not pot substrates. (4) Hourly data cannot support 15-min targets. (5) Raw data must not be redistributed or committed |
 
-**Needs Arsany (A-xxx to be created by the Lead):** (a) decide whether ISMN may be used at all, given the research-only wording; (b) if yes, register a free account at ismn.bafg.de, read the terms himself, and tell us whether training a shipped model is allowed. Recommendation: **plan without ISMN**. Use Mendeley, synthetic data and (from week 2) our own cloud data. **Plan without ISMN:** no task, target or schedule in this concept depends on it. At most it is an optional offline experiment that does not gate any FR-E target, and no model whose training set includes it is shipped unless Arsany has read the terms and confirmed in writing that training a shipped model is allowed.
+**Needs Arsany (the only action; A-xxx to be created by the Lead):** register the free account at ismn.bafg.de himself and download the station selection (or hand the files over to CI storage outside the repo). Agents do not register, accept terms or handle credentials. Everything else in this concept proceeds on Mendeley first; ISMN training runs start once the data is available and never gate a FR-E target.
 
 ### 3.3 ProjectPlant (evaluation only)
 
@@ -149,7 +150,7 @@ Python 3.11 in `projects/plant-monitor/ml/`, with a data card per dataset (TEAM.
 ml/
   data/<dataset>/DATA_CARD.md    source, version/DOI, retrieval date, licence line + how verified, SHA-256, rows, known issues
   scripts/fetch_mendeley.py      version-pinned download + checksum (run in CI, because the sandbox cannot download; Lead to flag)
-  scripts/fetch_ismn.md          manual steps for Arsany (account); no credentials in repo
+  scripts/fetch_ismn.md          manual steps for Arsany (account); no credentials, no ISMN data in repo
   src/prep.py                    steps below
   src/features.py                the same feature code as the device, kept in sync by a golden-vector test
 ```
@@ -169,7 +170,7 @@ Steps:
 
 - **Held-out days, not random rows.** Split by calendar week: every fifth week is test, the week after each test week is validation; the rest is train. Ticks within 3 days (72 h horizon) of a boundary are dropped from the neighbouring set to prevent leakage via the forecast window.
 - **Held-out sector.** Second test: train on four sectors, test on the potted-tomato sector (closest to our case) and vice versa. Report both; the potted-tomato number is the one used in the G2/G4 narrative.
-- **Held-out stations** for ISMN, if it is used at all: whole stations, never mixed.
+- **Held-out stations** for ISMN: whole stations, never mixed.
 - **ProjectPlant** and later **our own units**: evaluation only, reported separately.
 - Normalisation constants, thresholds and baseline interval come from the training weeks only.
 - The test set is opened once per model version, after hyper-parameters are fixed on validation. Metrics stored in `ml/reports/<model>-<version>.json` with the commit id.
@@ -181,11 +182,11 @@ Steps:
 |---|---|---|
 | FR-E01 | Model A vs average-interval baseline, MAE <= 12 h up to 72 h on held-out public data | `ml/reports`, test 5.8 |
 | FR-E02 | Model B recall targets on held-out data; debounce for <= 1 false alert per week per unit | `ml/reports`, unit test on bench (4.AI3, Arsany) |
-| FR-E03 | Fast path (single tick) for wetting, out of soil and fault; worst case about 15 min + connect time, see 2.4 and open item 7 | firmware test 5.8 with strict 15-min limit; latency measured in 4.AI3 |
+| FR-E03 | Fast path (single tick) for wetting, out of soil and fault; relaxed (owner-confirmed) to <= 15 min after the first tick that observes the event, see 2.4 and open item 7. Requirements text to be corrected before v1.0 | firmware test 5.8 with the relaxed wording; latency measured in 4.AI3 |
 | FR-E04 | Budgets in 2.2 and 2.3 are estimates; flatbuffer size, arena size and latency measured on the board | size report in CI; bench procedure in `tests/procedures/` for Arsany |
 | FR-D02, FR-D04 | Forecast rides on hourly report; results buffered offline | firmware tests |
 | FR-D05 | Model delivered as OTA part with rollback | firmware tests |
-| FR-A07, UC-08 | App alerts read the critical-event table in 2.4 [proposed]; "water in ~X days" reads Model A | scripted-sequence test per table row; app tests |
+| FR-A07, UC-08 | App alerts read the critical-event table in 2.4 (confirmed); "water in ~X days" reads Model A | scripted-sequence test per table row; app tests |
 
 ## 7. Risks and fallback
 
@@ -195,19 +196,22 @@ Steps:
 | Model B misses wetting >= 95 % or fault >= 90 % | recall below target on test | Ship the rule detector for faults and wetting (it is deterministic and tiny), keep the model only for fast-drying and waterlogging if it adds value. Tune thresholds on validation, not on test |
 | Too many false alerts on our units | more than 1 per week in week 4 | Raise `p_fast` and the debounce of the weak classes (3 of 4),  per-device quiet period after a wetting event |
 | Domain gap to real pots and our probe | week-4 check on 3 units deviates | Retrain with own cloud data and ship by OTA (FR-D05); recalibrate dry/wet points |
-| ISMN not allowed | Arsany decision or terms | Skip it. FR-E targets are defined on "held-out public data", which Mendeley alone provides; say so at G2 |
-| Mendeley licence differs from CC BY 4.0 on the page | licence line read | Stop, raise a Question; do not train or ship until resolved |
+| ISMN terms turn out to forbid our use, or the account is not available | terms read by the team, or Arsany cannot register | Drop ISMN from training. FR-E targets are defined on "held-out public data", which Mendeley alone provides, so nothing gates on it. Any model already trained on ISMN is withdrawn from demos until re-checked |
+| Model trained on ISMN reused commercially | any move from demo to product | Re-check ISMN terms first; fall back to the Mendeley-only variant (3.2 constraint 4) |
+| Mendeley licence differs from CC BY 4.0 on the page (grant text quoted by Arsany is consistent with research/demo use, the CC BY line is unread) | licence line read | Stop, raise a Question; do not release until resolved |
 | Labels are weak (derived fast-drying, waterlogged, faults) | hand check shows many wrong labels | Report their metrics as "weak-label" only; keep FR-E02 claims to wetting and fault classes |
 | Fixed-point mismatch between Python and C features | golden-vector test fails | Port the feature code first, test before training |
 | Interpreter flash cost larger than expected | size report | Trim ops, or ask the Architect to widen the budget with evidence |
 
 ## 8. Open items and decisions for G2
 
-1. **Question for Arsany** (also: Requirements text to be corrected): ISMN is listed as an open source in Requirements v0.1, but its terms are reported (unverified) as research-only, no commercial use. Decide whether ISMN may be used at all and have the Requirements corrected. Recommendation: plan without it (3.2).
-2. Someone with unrestricted network access (Lead, CI or Arsany): read the licence line on the Mendeley page and the ISMN terms page, and record the ZIP size. Until then the "CC BY 4.0" in this note is only as good as the Requirements document.
-3. Size counting rule: confirmed by Theo in the PR #4 review and written into 2.4. No open question.
-4. Confirm the dry threshold `T` default (25 relative points) with the care-tips rules (Sana, FR-P02) so the app and the device agree on "dry".
-5. Confirm proposed internal targets: 20 % lower MAE than baseline; int8 degradation limits (section 5).
-6. Data for tasks: 4.AI1 uses sections 4 and 5; 4.AI2 uses sections 2 and 7; 4.AI3 and the bench procedure use FR-E03/E04.
-7. **Question for Arsany (FR-E03):** with a 15-min wake cadence, a phone alert within 15 min of an event cannot hold literally, because the event can start right after a tick (2.4). Relax FR-E03 to "<= 15 min after the first tick that observes the event" (about 15 min + 15 s), or to "<= 16 min"? And confirm that FR-E03 applies to the fast-path classes (wetting, out of soil, sensor fault), not to waterlogged and fast drying. Recommendation: yes to both.
-8. **Arsany / G1:** confirm the critical-event set and the "unexpected wetting" rule in 2.4 (all marked [proposed]), and the one-wake-per-class-per-6-h rate limit.
+Owner answers from Arsany's inline comment on PR #4 are recorded below (quotes are as given by him, not verified by the team).
+
+1. **ISMN: answered, may be used for research/demo only.** Arsany: "we can use it, as we are research only, demo products"; terms quoted by him: "The copyright is always with the respective ISMN agency." Constraints in 3.2 apply (no redistribution, no commercial reuse of trained models without re-checking). His only action: register the free account himself. Open follow-up: correct the Requirements text.
+2. **Licences: partially verified.** Mendeley grant text quoted by Arsany (3.1); the CC BY 4.0 line itself is still not read from the page, and the ISMN terms page is not read by the team. Someone with unrestricted network access (Lead, CI or Arsany): read the Mendeley licence line and record the ZIP size.
+3. Size counting rule: confirmed by Theo in the PR #4 review, written into 2.4; **confirmed by Arsany (ok)**.
+4. Dry threshold `T` default (25 relative points) agreed with the care-tips rules (Sana, FR-P02): **confirmed by Arsany (ok)**. Sana to keep app and device aligned.
+5. Internal targets (20 % lower MAE than baseline; int8 degradation limits, section 5): **confirmed by Arsany (ok)**.
+6. Data for tasks: 4.AI1 uses sections 4 and 5; 4.AI2 uses sections 2 and 7; 4.AI3 and the bench procedure use FR-E03/E04. **Confirmed by Arsany (ok)**.
+7. **FR-E03: confirmed.** Arsany answered "yes to both": FR-E03 reads "<= 15 min after the first tick that observes the event", and applies to the fast-path classes (wetting, out of soil, sensor fault) only. The test uses this wording. **Requirements text still needs correction before v1.0.**
+8. **Critical-event set, "unexpected wetting" rule and rate limit (one critical wake per class per 6 h): confirmed by Arsany (ok).** [proposed] tags removed in 2.4; the alert names remain Theo's to finalise in the schema.
