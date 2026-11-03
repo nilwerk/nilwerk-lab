@@ -281,6 +281,15 @@ Any term a fresh graduate might not know, in one line each.
 - Peter's questions that need Arsany (money, scope, priority) go to the Needs Arsany tab.
 - Comments to Peter **in GitHub issues are allowed** (the exception to "message only Arsany");
   agents never email or message him anywhere else. Weekly calls are with Arsany (Wed 18:00 Berlin).
+- Assign every work order to Peter's GitHub account and @mention him in the issue so he is notified
+  (username: see Needs Arsany A-014 until it is recorded here: `@<peter-github-username>`).
+- Where parts come from: anything Peter needs for bench work he buys locally in Egypt where possible
+  (state budget, reimbursed by Arsany) unless Arsany decided to ship it (Needs Arsany A-015).
+  Lists for Peter use parts available in the Egyptian market; give alternatives.
+- Peter's real hours go in the *Time Log* tab with **Who = Peter** and the WO number (columns H–I);
+  agents copy them there from his closing comment.
+- Wednesdays (call day, 18:00 Berlin): the daily summary adds a short **agenda for the Arsany–Peter call**:
+  open work orders, results, blockers, next work order proposal.
 - The daily summary gets a **Peter** line: open work order, due date, status, any question waiting.
 - Track per work order: planned vs actual hours (ask Peter to state his hours in the closing comment),
   so Arsany can judge the per-product price after the test project.

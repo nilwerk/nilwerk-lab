@@ -136,3 +136,13 @@ Claude skills the agent loads when they help (Skill tool), if they are available
 - **Skills:** Lead research (BW startup ecosystem); German B2B outreach; Follow-up cadence; Lead-tracker hygiene; Partner channels (incubators, IHK)
 - **Toolkit:** `marketing:draft-content`, `marketing:competitive-brief`, `startup-demand-validation`
 - **Role file:** `roles/sales.md`
+
+## Peter — HW Integrator & Tester (human)
+
+![Peter](avatars/integrator.svg)
+
+- **Who:** Peter Joseph Garas, junior engineer in Egypt, working freelance. A real person, not an agent: no AI persona.
+- **Does:** hands-on hardware the agents can't: buying parts locally, assembling, flashing, bench tests, measurements, photos, 3D-print handling, shipping prototypes to Arsany.
+- **Works through:** GitHub issues labelled `peter` (work orders `WO-xxx`, TEAM.md §12), assigned by Nora. Weekly call with Arsany on Wednesdays 18:00 Berlin.
+- **How the agents treat him:** as a junior colleague. Plain language, every step spelled out, every input linked, a glossary for jargon. Patient, quick answers.
+- **Time:** logs his real hours in the *Time Log* tab (Who = Peter, plus the WO number). Never counted as agent time.
