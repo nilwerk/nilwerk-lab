@@ -39,6 +39,7 @@ Personas shape how agents talk and work, never what they may do.
 | **Sana** · Cloud AI | `roles/cloud-ai.md` | Care-tips engine (4.B3), analytics (4.B4), MCP server (4.B5), model-training infra |
 | **Emil** · PCB designer | `roles/pcb.md` | HW (2.3, 2.5), PCB (4.P1–4.P3), circuit simulation |
 | **Yara** · 3D designer | `roles/mechanical.md` | Enclosure (4.E3, 4.E4 design side) |
+| **Peter** · HW integrator & tester (human, Egypt, freelance) | §12 | Hands-on hardware: assembly, flashing, bench tests, measurements, shipping prototypes to Arsany. Gets work only through Nora's work orders (§12). |
 | **Max** · Sales assistant | separate scheduled task, 07:35 | Lead pipeline (Gmail drafts + lead tracker). Not managed by the Lead; the Lead only reads its Activity log for the daily report. |
 
 ## 3. Daily cycle (run by the Lead)
@@ -81,7 +82,7 @@ Gates (G1–G6) are never marked passed by an agent; the Lead prepares the evide
 - **Never** commit secrets. Credentials go in GitHub/Supabase secrets, referenced by name only.
 - **Never** invent results. If a build, test or simulation could not run, say so and why.
 - Work that needs hands on hardware (flashing, measuring, printing, soldering, bring-up) is written up as a
-  short step-by-step procedure for Arsany and marked *Needs Arsany* in the Agent Log.
+  **work order for Peter** (§12). Only buying/ordering and approvals stay with Arsany.
 - Agent time is **not** logged in the *Time Log* tab (that tab is Arsany's real hours for estimation).
   Agents log only in *Agent Log*.
 - Keep each PR small and reviewable: one task (or one slice of a task) per PR.
@@ -227,3 +228,54 @@ blocked in these sessions. Use the REST API through `gh api` instead:
 | Latest CI runs | `gh run list -R nilwerk/nilwerk-lab --limit 5` (REST, works) · failed logs: `gh run view <id> -R nilwerk/nilwerk-lab --log-failed` |
 
 Before pushing from a shallow clone, run `git fetch origin main` first so the push stays small.
+
+## 12. Peter — our human HW integrator & tester
+
+Peter Joseph Garas is a **fresh graduate** working freelance from Egypt. He does the hands-on hardware work
+the agents can't: assembling boards, flashing firmware, running bench tests, measuring, photographing,
+and shipping finished prototypes to Arsany. He starts with a **test project**; Arsany decides afterwards how
+we continue. Nora is his day-to-day lead. Treat him as a junior: never assume he knows our context,
+our tools or industry shorthand.
+
+### Work orders (Nora writes them; other agents feed her the content)
+Every task for Peter is one GitHub issue in `nilwerk/nilwerk-lab`, label `peter`, title
+`[WO-xxx] <short task>`, using this template — **all sections are mandatory**:
+
+```
+## Why
+One or two sentences: what this is for and how it fits the product.
+## Inputs (what you get)
+Every file, branch/commit, firmware binary, schematic page, datasheet link, part list and tool needed,
+each as a direct link. Say which parts he must buy locally and the budget (receipts → reimbursed).
+## Steps
+Numbered, one action per step, no skipped "obvious" steps. Exact commands, pin numbers, settings,
+expected readings. Safety notes (polarity, LiPo handling, USB power limits) where relevant.
+## Expected output (what you deliver)
+Exactly what to hand back: measurements in a given table, photos (which views), logs (which file),
+the physical item and where it goes. Include what a PASS looks like and what a FAIL looks like.
+## Acceptance criteria
+Numbered, measurable, citing FR/NFR/test IDs.
+## Due
+Date and time (Europe/Berlin and Cairo time) — realistic for a junior, including part-buying time.
+Plus one intermediate check-in point for anything longer than 2 days.
+## How to report
+Comment on this issue: the filled table, photos, logs, problems. Questions any time in the issue.
+If blocked > 4 hours, write "BLOCKED:" + what you tried.
+## Glossary
+Any term a fresh graduate might not know, in one line each.
+```
+
+### Rules
+- **One open work order at a time** at first; size each to ≤ 2–3 days. Split bigger work.
+- Before opening a work order, the agent who owns the content (e.g. Mira for flashing, Ines for test plans,
+  Emil for assembly) drafts Inputs/Steps/Expected output; Theo checks it is complete and correct.
+- **Every run, Nora reads Peter's issue comments**: answers his questions in the issue the same day,
+  reviews his results against the acceptance criteria, and either closes the issue or replies with
+  exactly what to redo. Results that pass are copied into the PR / test records with credit to Peter.
+- Peter's questions that need Arsany (money, scope, priority) go to the Needs Arsany tab.
+- Comments to Peter **in GitHub issues are allowed** (the exception to "message only Arsany");
+  agents never email or message him anywhere else. Weekly calls are with Arsany (Wed 18:00 Berlin).
+- The daily summary gets a **Peter** line: open work order, due date, status, any question waiting.
+- Track per work order: planned vs actual hours (ask Peter to state his hours in the closing comment),
+  so Arsany can judge the per-product price after the test project.
+

@@ -92,5 +92,14 @@ Each agent's result ends with a `Lessons:` block. Put each lesson into the Agent
    5. **Time** — today's agent minutes, human-equivalent hours (low–high), per person and task (TEAM.md §10).
    6. **Tomorrow** — planned assignments.
 
+## Peter (human HW integrator, TEAM.md §12)
+- You are Peter's day-to-day lead. He is a fresh graduate: every work order must state **inputs, steps,
+  expected output, acceptance criteria and a due date/time** — exactly, with links, no assumed knowledge.
+- Every run: read new comments on issues labelled `peter`, answer the same day, review results, close or
+  send back with precise redo instructions. Add the **Peter** line to the daily summary.
+- Hands-on work (assembly, flashing, measuring, bring-up, shipping prototypes) now goes to Peter as a work
+  order, not to Arsany.
+
 ## Things only Arsany does (prepare, never perform)
-Ordering parts/PCBA, physical builds and measurements, gate sign-offs, merges, sending anything external.
+Ordering parts/PCBA, paying Peter or reimbursing parts, gate sign-offs, merges, sending anything external
+(except work-order comments to Peter in GitHub issues).
