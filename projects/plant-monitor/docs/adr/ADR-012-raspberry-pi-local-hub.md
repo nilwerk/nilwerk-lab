@@ -3,7 +3,7 @@
 Status: Proposed (owner comment on PR #3) · Date: 2026-11-03 · Deciders: Theo (Arsany to decide at G2; open questions Q-H1..Q-H10 in architecture.md section 10.4)
 
 ## Context
-Owner request: a Raspberry Pi is required for a local dashboard; each sensor sends MQTT data, in parallel to the cloud. Changes the earlier "standalone cloud, HA optional" stance (Q-04). Relevant: FR-D02, FR-I01, NFR-01, NFR-06, ADR-010. Open point: "required" as hard product dependency vs required for the local-dashboard feature (Q-H1). Owner confirmed the feature-only reading (Q-H1): : setup and cloud path work without a hub; the hub is configured when present.
+Owner request: a Raspberry Pi is required for a local dashboard; each sensor sends MQTT data, in parallel to the cloud. Changes the earlier "standalone cloud, HA optional" stance (Q-04). Relevant: FR-D02, FR-I01, NFR-01, NFR-06, ADR-010. Open point: "required" as hard product dependency vs required for the local-dashboard feature (Q-H1). Owner confirmed the feature-only reading (Q-H1): setup and cloud path work without a hub; the hub is configured when present.
 
 ## Decision
 **Topology.** The Pi sits on the same LAN as the sensors and runs: Mosquitto 2.x (TLS on 8883, anonymous disabled, dynamic-security plugin for per-device users and topic ACLs); **Node-RED** (MQTT subscriber flow, SQLite store, registrar HTTP API for pairing and device credentials, optional HA bridge flow; flows exported as JSON into the repo); and our **own small web UI** (static files served by Node-RED, reading its HTTP API). Owner decision (Q-H4): own web UI plus Node-RED; Grafana/InfluxDB rejected. Target hardware (Q-H3): Raspberry Pi 3 or any model available in Egypt. Access on the LAN only; no port forwarding, no cloud relay.
