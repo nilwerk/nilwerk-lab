@@ -1,6 +1,6 @@
 # ADR-007: MCP server as an edge function with personal API keys
 
-Status: Accepted · Date: 2026-11-03 · Deciders: Theo, Sana
+Status: Accepted for G2 review · Date: 2026-11-03 · Deciders: Theo, Sana
 
 ## Context
 FR-P03: tools `list_plants`, `get_plant_status`, `get_history`, `get_tips`; revocable key; NFR-06.

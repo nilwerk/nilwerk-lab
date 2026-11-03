@@ -1,6 +1,6 @@
 # ADR-001: ESP32-C3-MINI-1, ESP-IDF, on-device TFLite Micro
 
-Status: Accepted (follows Q-02, Q-16) · Date: 2026-11-03 · Deciders: Arsany (Q-02/Q-16), Theo
+Status: Accepted for G2 review (follows Q-02, Q-16) · Date: 2026-11-03 · Deciders: Arsany (Q-02/Q-16), Theo
 
 ## Context
 Need BLE setup, Wi-Fi, deep sleep, OTA and two small models (thirst forecast, event/fault detection) on a battery device with a pre-certified module (NFR-08). Requirements: FR-D01..D07, FR-E01..E04, NFR-01.

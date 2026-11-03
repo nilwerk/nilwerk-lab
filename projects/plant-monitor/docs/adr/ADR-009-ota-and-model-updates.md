@@ -1,6 +1,6 @@
 # ADR-009: OTA via ingest manifest, dual slot, rollback; models in own partition
 
-Status: Accepted · Date: 2026-11-03 · Deciders: Theo, Mira
+Status: Accepted for G2 review · Date: 2026-11-03 · Deciders: Theo, Mira
 
 ## Context
 FR-D05 (update with automatic rollback), Req §5 (new models via OTA), NFR-06.

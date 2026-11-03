@@ -1,6 +1,6 @@
 # ADR-004: Per-device bearer token, stored hashed
 
-Status: Accepted · Date: 2026-11-03 · Deciders: Theo
+Status: Accepted for G2 review · Date: 2026-11-03 · Deciders: Theo
 
 ## Context
 NFR-06 requires per-device credentials over TLS; FR-A08 requires release/re-claim; secrets must not be in the repo.

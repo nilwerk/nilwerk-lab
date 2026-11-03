@@ -13,3 +13,6 @@ Device publishes MQTT directly: more battery, second credential on device. HA cu
 
 ## Consequences
 First item to cut under schedule pressure (risk O-11). Needs a reachable broker (e.g. user's HA instance); verify live state before design, not assumed (playbook rule about earlier unverified MQTT claims).
+
+## Amendment (proposed, see ADR-012)
+With a required Raspberry Pi hub running Mosquitto, the HA bridge no longer needs to live in the cloud: the hub service publishes HA MQTT-discovery entities from its local data, either to its own broker (HA connects to it) or bridged to the user's HA broker. This removes the cloud-side broker credentials from the design and keeps the integration working offline. Plan 4.B6 shrinks accordingly. Still Could, still the first item to cut. Device remains one publisher (to the hub); it never publishes to HA directly.
