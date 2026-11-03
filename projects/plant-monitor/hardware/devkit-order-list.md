@@ -57,3 +57,48 @@ Ordering, payment and terms stay with Arsany. Do not pay until every point holds
 8. Allow berrybase.de, galaxus.de, digikey.de in the session network (or let Emil re-run the check) if you want a pre-check.
 
 **Fallback (Theo):** if the DevKitM-1 is not orderable in DE at a sane price with delivery in time, buy **ESP32-C3-DevKitC-02** (qty 2) and tell Nora, who tells Mira. It carries an **ESP32-C3-WROOM-02** module, not MINI-1 (different module, antenna layout and pin breakout): fine for firmware bring-up (same silicon), not an exact replica of the production module. **Do not substitute silently**: Mira must know which board arrived so `board.h` matches. No third-party clones with unclear module markings.
+
+## 6. Arsany's links and Egypt availability (added 2026-11-03, answer to PR #1 review question)
+Arsany asked: are these the correct components, and can they be found easily in the Egyptian market? He already owns the breadboard, jumpers and USB cables, so **rows 7 and 8 are dropped from the order list** (nothing to buy there).
+
+### 6.1 His six amazon.de links
+**None of the six could be identified.** WebFetch to www.amazon.de fails (DNS, host not in the session's allowed domains) and web search for each ASIN returned nothing. So no verdict is possible from my side; I do not guess from the ASIN.
+
+| ASIN | Product | Verdict |
+|---|---|---|
+| B0GJXBW9PB | could not identify | UNKNOWN |
+| B0DMNBWTFD | could not identify | UNKNOWN |
+| B08GYG7FHP | could not identify | UNKNOWN |
+| B07VF15XJJ | could not identify | UNKNOWN |
+| B08GCRZVSR | could not identify | UNKNOWN |
+| B0GJD91CPW | could not identify | UNKNOWN |
+
+Full URLs: https://www.amazon.de/-/en/gp/product/<ASIN> (last one: https://www.amazon.de/gp/product/B0GJD91CPW).
+To get verdicts: allow www.amazon.de in the session network, or paste the six product titles. Check each title against these criteria:
+- Dev kit: reads **ESP32-C3-DevKitM-1** (MINI-1, not MINI-1U); a SuperMini or WROOM-02 board is a different module (see fallback in section 5).
+- AHT20: 3.3 V-capable I2C breakout (not AHT10, not a 5 V-only board).
+- BH1750: GY-302 I2C breakout.
+- Soil probe: **capacitive v1.2, 3.3-5.5 V** (not the resistive fork type).
+- Charger: TP4056 with **DW01 + FS8205 protection**, USB-C.
+- LiPo: 1S 3.7 V, >= 1000 mAh, with protection circuit; check connector/polarity.
+
+### 6.2 What a complete list needs (compare with his 6 links)
+Needed: ESP32-C3 dev kit x2, AHT20 x2, BH1750 x2, capacitive soil probe v1.2 x3, LiPo charger board x2, LiPo cell x2, 2x 100 kOhm 1 % resistors. That is 7 part types; his 6 links can cover at most 6 of them, so **at least one part type is missing** (most likely the resistors, or a separate AHT20/BH1750 etc.). Which one is missing cannot be said until the links are identified.
+
+### 6.3 Egypt availability (from web-search snippets 2026-11-03, undated, prices/stock NOT verified on the shop page)
+| Part | Egypt finding | Rating | Names to search for |
+|---|---|---|---|
+| ESP32 dev kits (classic) | Maamoon (Cairo, Heliopolis) lists an ESP32 CP2102 DevKit at EGP 350; Fruugo Egypt and Ubuy Egypt list several (EGP 459-976, high shipping on Fruugo) | common | "ESP32 DevKit", "ESP32 WROOM-32" |
+| ESP32-C3 | Makers Electronics lists **ESP32-C3 Super Mini** at EGP 550 (stock not checked); Abqari lists it too. **ESP32-C3-DevKitM-1 (MINI-1): no Egyptian listing found.** | C3 SuperMini common; DevKitM-1 not found (UNVERIFIED) | "ESP32-C3 Super Mini", "ESP32-C3-DevKitM-1", "ESP32-C3-DevKitC-02" |
+| AHT20 | no Egyptian listing found in search | UNVERIFIED | "AHT20", "AHT21", "AHT10" (AHT21 is a related part; check I2C 0x38 and 3.3 V) |
+| BH1750 / GY-302 | no Egyptian listing found in search | UNVERIFIED (generic module, likely stocked by local shops but not confirmed) | "BH1750", "GY-302", "GY-30" |
+| Capacitive soil sensor v1.2 | Makers Electronics EGP 85 (in stock per listing), Abqari EGP 85, Electrolik-EG EGP 95 (out of stock), Future Electronics EGP 320 | common | "Capacitive Soil Moisture Sensor V1.2" |
+| TP4056 charger | one site lists a TP4056 Type-C charging board with protection at EGP 55 | likely common (one source) | "TP4056 Type-C with protection" (DW01 + FS8205) |
+| LiPo cell 1S | nothing found in search | UNVERIFIED | "Li-Po 3.7V 1000mAh/2000mAh", "103450", "803860" (protected) |
+| 100 kOhm resistors | not searched | UNVERIFIED (any electronics shop normally) | "100K 1% resistor" |
+
+Shops confirmed by search (Egypt): Makers Electronics (makerselectronics.com), Abqari (abqari.space), Electrolik-EG, Future Electronics (store.fut-electronics.com), Maamoon, Spark e-shop; marketplaces Fruugo Egypt and Ubuy (import, expensive shipping). Cairo physical electronics markets: not covered by my search, unverified.
+
+**Raspberry Pi 3:** Makers Electronics lists Pi 3 Model B at EGP 2,100 (page shows out of stock); Spark e-shop Pi 3 Model B 1GB EGP 3,250 (in stock per snippet); Ubuy Egypt Pi 3 B EGP 3,032, B+ EGP 4,990. Available but pricey, snapshots only.
+
+Notes: the dev kit for the firmware bench must stay MINI-1 based (Q-02). If only the C3 Super Mini is found locally, it is the same silicon but a different board (no USB-UART, different pins, different antenna), so Mira must know before `board.h` is fixed; do not substitute silently. Sourcing in Egypt vs. Germany is Arsany's call.
