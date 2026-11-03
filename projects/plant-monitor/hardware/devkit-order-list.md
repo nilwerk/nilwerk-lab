@@ -1,6 +1,6 @@
 # Task 4.H0 - Dev-kit & sensor parts list (order list for Arsany)
 
-Author: Emil (PCB Designer) - 2026-11-03 - Status: DRAFT, needs Theo (Architect) approval before Arsany sees it.
+Author: Emil (PCB Designer) - 2026-11-03 - Status: REVISED after Theo's review (PR #1): approved with conditions, see section 5 'Check before click'.
 Needed on bench: 2026-11-05 (firmware 4.F1 starts 11-06). Supports: FR-D01 (all five measurements), FR-D06 (USB-C charging + LED), NFR-01 (battery life, current measurement on dev kit), NFR-02 (sensor accuracy/calibration), NFR-09 (cost reference), Q-02 (ESP32-C3-MINI-1).
 
 ## 0. Verification status - read first
@@ -29,18 +29,31 @@ Shop A = BerryBase (Germany, ships from DE; usually 1-3 working days - UNVERIFIE
 
 ## 3. Compatibility notes
 1. **Logic level:** ESP32-C3 GPIO is 3.3 V and not 5 V tolerant. Power all sensors from the dev kit 3V3 pin. AHT20 and BH1750 breakouts: confirm the board has no 5 V-only regulator/level-shifter quirk (Adafruit 4566 and GY-302 run from 3.3 V; GY-302 pull-ups are 3.3 V when powered from 3V3).
-2. **I2C addresses:** AHT20 = 0x38 (fixed). BH1750 = 0x23 (ADDR low/floating) or 0x5C (ADDR high). No conflict; both on one bus. Suggested pins (to be fixed by Mira/4.F1 and board.h): SDA = GPIO8, SCL = GPIO9 (the DevKitM-1 uses GPIO8 for the on-board RGB LED and GPIO9 for BOOT - Mira must confirm; alternative GPIO4/GPIO5). Note: several breakouts add their own pull-ups; two breakouts in parallel are fine.
-3. **Soil probe ADC:** ESP32-C3 ADC1 channels = GPIO0-GPIO4 (ADC2/GPIO5 is unusable with Wi-Fi active). Use e.g. **GPIO3 (ADC1_CH3)**, probe powered from a GPIO or 3V3, output 0..~3 V analog; set ADC attenuation 11 dB (ESP-IDF 5.x `ADC_ATTEN_DB_12`). Sensor output is nonlinear and board-dependent - per-unit dry/wet calibration is needed (NFR-02). Power the probe from a switched GPIO to save battery in deep sleep (NFR-01). Pin choice is a proposal for Mira/Theo, not a decision.
+2. **I2C addresses:** AHT20 = 0x38 (fixed). BH1750 = 0x23 (ADDR low/floating) or 0x5C (ADDR high). No conflict; both on one bus. Several breakouts add their own pull-ups; two breakouts in parallel are fine.
+   **I2C pins (proposal, final map is Mira's in `board.h`): SDA = GPIO6, SCL = GPIO7.** Do **not** use GPIO2, GPIO8 or GPIO9: these are the ESP32-C3 strapping pins (from the chip datasheet, my knowledge, not page-verified today); a sensor or pull-up there can disturb boot or force download mode. On the DevKitM-1, GPIO8 also drives the on-board RGB LED and GPIO9 is the BOOT button (per Theo's review and the Espressif board guide; **unverified on the actual board**). The USB-UART bridge uses UART0 (GPIO20/GPIO21 on the C3, **unverified for this board**), so keep those free too. GPIO4/GPIO5 is an acceptable alternative pair (GPIO4 then is no longer free as ADC1 input). Whatever is wired on the bench must match `board.h`.
+3. **Soil probe ADC:** ESP32-C3 ADC1 channels = GPIO0-GPIO4 (ADC2/GPIO5 is unusable with Wi-Fi active). Use e.g. **GPIO3 (ADC1_CH3)**, probe powered from a GPIO (suggest GPIO4) or 3V3, output 0..~3 V analog; set ADC attenuation 11 dB (ESP-IDF 5.x `ADC_ATTEN_DB_12`). Sensor output is nonlinear and board-dependent - per-unit dry/wet calibration is needed (NFR-02). Power the probe from a switched GPIO to save battery in deep sleep (NFR-01). Pin choice is a proposal for Mira/Theo, not a decision.
 4. **LiPo polarity warning:** JST-PH/JST-PH-2.0 LiPo cells from different sellers are **wired with opposite polarity** (Adafruit vs. generic). Check the red/black wire against the charger "B+/B-" pads with a multimeter before connecting; a reversed cell can destroy the charger module. Never buy a cell without protection circuit. TP4056 charges to 4.2 V at 1 A default (R_prog 1.2 kOhm) - for a 1000 mAh cell that is 1C, acceptable; use a cell >= 1000 mAh.
-5. **Power path:** the DevKitM-1 3V3 LDO input pin "5V" is not meant for 4.2 V LiPo-direct tuning of the regulator drop-out; feed LiPo (via charger OUT+/OUT-) to the 5V pin only after checking the LDO dropout at 3.5-4.2 V (Emil will simulate in 2.3/4.P1; for bench 11-05 powering over USB is the baseline, battery run is secondary). Battery-sense divider is not on the dev kit: add 2x 100 kOhm 1 % resistors (from stock) to a free ADC1 pin (e.g. GPIO2) for FR-D01 battery level.
+5. **Power path and battery sense:**
+   - **Do not feed the LiPo into the dev kit "5V" pin.** The on-board LDO needs roughly 1 V of headroom, so it drops out well above the cell's empty voltage; in addition the USB-UART bridge, LED and LDO quiescent current dominate the sleep current (LDO/bridge behaviour from my knowledge of the board, not measured).
+   - **Bench baseline is USB.** The dev kit therefore **cannot give a valid NFR-01 deep-sleep/battery-life number**; never quote a dev-kit sleep current as the product figure. Valid NFR-01 measurements (task 5.4) need the module powered at 3V3 from a regulated source with the bridge not drawing, or the custom board.
+   - **Battery-sense divider** (not on the dev kit): 2x 100 kOhm 1 % (own stock) from the cell/charger OUT+ to GND, midpoint to **GPIO0 (ADC1_CH0)** (alternative GPIO1). **Not GPIO2** (strapping). Midpoint max is about 2.1 V at 4.2 V, within range with 11 dB attenuation. Divider leakage is about 21 uA, which is acceptable on the bench but not for the product (Emil simulates the production divider in 2.3/4.P1). Final pin: Mira, `board.h`.
 6. **Module match:** DevKitM-1 uses the ESP32-C3-MINI-1 module (same as the custom board, Q-02); N4/N4X = 4 MB flash, enough for dual-OTA partitioning (FR-D05) - architect to confirm flash size.
 
-## 4. Open points for Theo (approval)
-- Approve variant ESP32-C3-DevKitM-1-N4X (or -N4) vs. an alternative with built-in LiPo charger (not researched here; none found in search).
-- Lifecycle: Mouser/GridConnect mark the DevKitM-1 obsolete/discontinued; confirm availability in DE before ordering; fallback is ESP32-C3-DevKitC-02 (MINI module variant not verified here).
-- Confirm I2C/ADC pin proposals with Mira (4.F1) so the wiring on the bench matches `board.h`.
+## 4. Open points (status after Theo's review)
+- Flash size: confirmed by Theo, 4 MB (N4 or N4X) is enough for dual OTA (FR-D05). Closed.
+- Pin proposals: replaced by non-strapping pins (sections 3.2, 3.3, 3.5); Mira confirms in `board.h` (4.F1).
+- Lifecycle: Mouser/GridConnect mark the DevKitM-1 obsolete/discontinued (from search snippets, unverified). Handled by the check list and fallback in section 5.
+- Alternative with built-in LiPo charger: Seeed XIAO ESP32C3 (Theo's note, from his knowledge, unverified). Optional extra for battery tests, not required for the bench, not in the cart.
 
-## 5. For Arsany (after Theo approves)
-1. Allow berrybase.de, galaxus.de, digikey.de in the session network (or let Emil re-run the check) - or open each link, confirm "in stock", price and delivery date <= 2026-11-05.
-2. Add the rows 1-7 to the cart at one shop if possible (BerryBase for all except dev kit if not listed). Ordering is done by Arsany only.
-3. Resistors 2x100 kOhm: check own stock.
+## 5. For Arsany: check before click
+Ordering, payment and terms stay with Arsany. Do not pay until every point holds.
+1. **Dev kit (row 1):** the page says `ESP32-C3-DevKitM-1` (N4 or N4X), is **in stock**, is **not** marked discontinued/obsolete/"no longer available", and delivery is **on or before 2026-11-05** (4.F1 starts 11-06).
+2. **Module:** photo/description shows **MINI-1 (PCB antenna), not MINI-1U** (u.FL), and pin headers are soldered.
+3. **Charger (row 2):** has **DW01 + FS8205** protection and USB-C. **LiPo (row 3):** has a protection circuit, 1000 mAh or larger. **Polarity:** before connecting any cell, check red/black against B+/B- with a multimeter. Charge on a non-flammable surface, attended, for the first cycles.
+4. **Breakouts (rows 4, 5):** pin headers included **and soldered**; if you cannot solder, take pre-soldered versions. Adafruit 4566 (STEMMA QT) ships with loose headers and needs a QT-to-male cable; GY-302 usually ships with loose headers; Seeed Grove AHT20 needs the Grove cable cut or an adapter (so Adafruit 4566 or a plain AHT20 breakout is easier).
+5. **Soil sensor (row 6):** listing says **v1.2 and 3.3 V-capable** (on-board regulator, TL555 variant). Order 3 as listed.
+6. **Resistors:** 2x 100 kOhm 1 % - confirm own stock, else add to the cart.
+7. **Cart total <= 80 EUR incl. shipping** (Theo's planning ceiling, a proposal from his knowledge, not a verified price). If the live cart is above, stop and ask Nora before paying.
+8. Allow berrybase.de, galaxus.de, digikey.de in the session network (or let Emil re-run the check) if you want a pre-check.
+
+**Fallback (Theo):** if the DevKitM-1 is not orderable in DE at a sane price with delivery in time, buy **ESP32-C3-DevKitC-02** (qty 2) and tell Nora, who tells Mira. It carries an **ESP32-C3-WROOM-02** module, not MINI-1 (different module, antenna layout and pin breakout): fine for firmware bring-up (same silicon), not an exact replica of the production module. **Do not substitute silently**: Mira must know which board arrived so `board.h` matches. No third-party clones with unclear module markings.
