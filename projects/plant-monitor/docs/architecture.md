@@ -1,13 +1,59 @@
 # Plant Monitor — System Architecture (task 2.1)
 
-Status: **draft v0.2 (PROPOSAL, revision after owner comment on PR #3) for the G2 design review (Fri 2026-11-06)** · Author: Theo (System Architect) · Date: 2026-11-03
-v0.2 adds (a) the BLE-only setup / Wi-Fi-only operation flow with encrypted credential provisioning (ADR-011) and (b) a required Raspberry Pi local hub fed by MQTT in parallel to the cloud path (ADR-012). Both are **Proposed** and change Requirements v0.1; section 10 lists the proposed requirement, Plan and BOM changes. Nothing in the Requirements doc has been edited.
+Status: **draft v0.3 (PROPOSAL; adds high-level design, Node-RED + own web UI on the Pi per owner answers on PR #3) for the G2 design review (Fri 2026-11-06)** · Author: Theo (System Architect) · Date: 2026-11-03
+v0.3 adds section 0 (high-level design of the final product) and applies the owner answers (Pi only for the local dashboard, Node-RED + own web UI, Pi 3 or any locally available model, +38 h accepted). v0.2 added (a) the BLE-only setup / Wi-Fi-only operation flow with encrypted credential provisioning (ADR-011) and (b) a required Raspberry Pi local hub fed by MQTT in parallel to the cloud path (ADR-012). Both are **Proposed** and change Requirements v0.1; section 10 lists the proposed requirement, Plan and BOM changes. Nothing in the Requirements doc has been edited.
 Synced with: Requirements v0.1 (Google Doc `1T4k3rK4KQDeGtIN8pjdmohGUAohFrtATLhMYSBsYA6g`) and Questions Q-01..Q-16.
 Out of scope here: DB schema and API spec (task 2.4), risk register (2.8), cost model (2.6). Open points for those are in section 8.
 
+## 0. High-level design (final product)
+
+This is the picture of the finished product, in plain words. The detailed design in sections 1-10 explains how each box is built.
+
+```mermaid
+flowchart LR
+  P["Plant sensor"]
+  A["Phone app"]
+  R["Home Wi-Fi router"]
+  C["Cloud: database, plant tips and analytics, AI access"]
+  H["Raspberry Pi at home: local data store, Node-RED, own web UI"]
+  U["Your AI assistant"]
+  P -- "1. one-time setup over Bluetooth" --> A
+  P -- "2. joins Wi-Fi" --> R
+  R -- "3. hourly report" --> C
+  R -- "4. same readings, locally" --> H
+  A -- "5. shows plants, tips, alerts" --> C
+  H -- "6. local dashboard on your network" --> A
+  U -- "7. asks about your plants" --> C
+  C -- "8. alerts and new software" --> P
+```
+
+**End-to-end flow**
+
+1. **Setup (once).** You power on the sensor. The app finds it over Bluetooth. Your home Wi-Fi name and password are handed to the sensor through an encrypted channel, and the sensor is linked ("claimed") to your profile in the same step. Afterwards Bluetooth is switched off for good. The Wi-Fi password is kept only on the sensor (and optionally in your phone's secure storage), never in the cloud.
+2. **Normal operation.** The sensor measures every 15 minutes and runs a tiny AI model on the device itself to forecast thirst and spot problems. Once an hour it switches Wi-Fi on and sends its readings to the cloud and, at the same moment, to the Raspberry Pi at home (MQTT). If something critical happens (for example the soil is bone dry), it does not wait for the hour and reports and raises an alert straight away.
+3. **Viewing.** The phone app shows your plants, charts and alerts from the cloud. On your home network you can also open the local dashboard on the Raspberry Pi, which keeps working when the internet is down.
+4. **Premium features.** The cloud adds care tips (weather and plant aware), longer analytics, and an access point for your own AI assistant (MCP) so you can ask "which of my plants needs water?".
+5. **Updates (OTA).** New sensor software or AI models are downloaded over Wi-Fi at the next report and installed safely, with automatic roll-back if something goes wrong.
+
+**Who talks to whom, over what**
+
+| From -> to | Over what | What is sent |
+|---|---|---|
+| Phone app -> sensor | Bluetooth, encrypted, setup only | Wi-Fi details, name, claim to your profile |
+| Sensor -> cloud | Wi-Fi, internet (HTTPS), hourly or on a critical event | Readings, forecast, events; receives settings and updates |
+| Sensor -> Raspberry Pi | Wi-Fi, home network (MQTT with TLS), hourly | Same readings |
+| Phone app / AI assistant -> cloud | Internet (HTTPS; MCP for the assistant) | Plants, charts, tips, alerts; read-only questions |
+| Browser or phone -> Raspberry Pi | Home network only | Local dashboard (own web UI), Node-RED flows |
+
+**Decided and unchanged vs still open**
+
+- *Decided by the owner (PR #3):* the Raspberry Pi is needed only for the local-dashboard feature (app and cloud work without it); no Wi-Fi password in the cloud; Pi 3 or any model sold in the Egyptian market; own web UI plus Node-RED on the Pi; about +38 h of extra work accepted.
+- *Unchanged:* the cloud (Supabase EU) stays the system of record; sensor hardware and BOM; on-device AI every 15 min; tips, analytics and MCP are premium and checked on the server.
+- *Still open (section 10.4):* Q-H6 encrypt the stored Wi-Fi data on the sensor or accept plain flash for the demo; Q-H7 TLS or plain MQTT on the home network (recommended: TLS); Q-H8 OTA signing, SHA-256 over TLS (recommended) or signed images (Plan 4.F4 says signed); Q-H9 remaining scope cuts if the schedule slips (the +38 h itself is accepted); Q-H10 local-only dashboard access, no remote access. Q-H5 (hourly local publish) is assumed hourly, matching the flow above.
+
 ## 1. Overview
 
-A battery device (ESP32-C3-MINI-1) samples soil moisture, air temperature, air humidity, light and battery every 15 min with Wi-Fi off, runs two tiny int8 models on the device (thirst forecast, event/fault detection) and reports to a standalone cloud once per hour, or immediately on a critical event. The cloud is Supabase (EU): Postgres with RLS, Auth, Storage, Edge Functions. A React Native (Expo) app talks to Supabase directly under RLS for plain reads/writes and to edge functions for anything that needs server logic. Premium features (tips engine, analytics, MCP server) are edge functions that check a per-user flag server-side. **v0.2:** each sensor additionally publishes the same readings over MQTT (on the same Wi-Fi wake) to a Raspberry Pi "hub" in the user's home, which runs the broker and a local dashboard and is a required part of the system (ADR-012). The cloud path is unchanged and remains the system of record for the app. A Home Assistant bridge stays optional and now hangs off the hub instead of the cloud (ADR-010 amended).
+A battery device (ESP32-C3-MINI-1) samples soil moisture, air temperature, air humidity, light and battery every 15 min with Wi-Fi off, runs two tiny int8 models on the device (thirst forecast, event/fault detection) and reports to a standalone cloud once per hour, or immediately on a critical event. The cloud is Supabase (EU): Postgres with RLS, Auth, Storage, Edge Functions. A React Native (Expo) app talks to Supabase directly under RLS for plain reads/writes and to edge functions for anything that needs server logic. Premium features (tips engine, analytics, MCP server) are edge functions that check a per-user flag server-side. **v0.2:** each sensor additionally publishes the same readings over MQTT (on the same Wi-Fi wake) to a Raspberry Pi "hub" in the user's home, which runs the broker, Node-RED and a local dashboard (own web UI) and is required for the local-dashboard feature only; app and cloud work without it (ADR-012). The cloud path is unchanged and remains the system of record for the app. A Home Assistant bridge stays optional and now hangs off the hub instead of the cloud (ADR-010 amended).
 
 ## 2. Diagram
 
@@ -35,10 +81,10 @@ flowchart LR
     MCP["C-11 MCP server (edge fn, TS)"]
   end
 
-  subgraph HUB["Home hub: Raspberry Pi (required, ADR-012)"]
+  subgraph HUB["Home hub: Raspberry Pi (local dashboard feature, ADR-012)"]
     BRK["C-14 Mosquitto broker\nTLS 8883, per-device ACL, mDNS advert"]
-    HSV["C-15 Hub service (TS)\nsubscriber, SQLite, registrar API"]
-    HUI["C-16 Local dashboard (web UI)"]
+    HSV["C-15 Node-RED flows\nMQTT subscriber, SQLite, registrar API"]
+    HUI["C-16 Own web UI (served by Node-RED)"]
     HAB["C-12 HA bridge (optional)\nHA discovery from hub"]
     BRK --> HSV
     HSV --> HUI
@@ -78,7 +124,7 @@ flowchart LR
   HAB -- "L-20 MQTT discovery + state (hub-local)" --> HA
 ```
 
-Text form of the data path: sensors -> firmware (15 min) -> AI features -> RAM/flash ring buffer -> hourly Wi-Fi wake -> (1) `POST /ingest` (batch of samples + forecast + events) -> Postgres -> app (Realtime or pull) / alert engine -> push, and in parallel (2) MQTT publish to the Pi hub -> SQLite -> local dashboard (v0.2). BLE is used only in setup mode; in normal operation the radio is Wi-Fi only.
+Text form of the data path: sensors -> firmware (15 min) -> AI features -> RAM/flash ring buffer -> hourly Wi-Fi wake -> (1) `POST /ingest` (batch of samples + forecast + events) -> Postgres -> app (Realtime or pull) / alert engine -> push, and in parallel (2) MQTT publish to the Pi hub -> Node-RED -> SQLite -> own web UI (v0.2). BLE is used only in setup mode; in normal operation the radio is Wi-Fi only.
 
 ## 3. Components
 
@@ -99,8 +145,8 @@ Owner = role that builds it (TEAM.md §2); Theo reviews every PR. Requirement ID
 | C-11 | MCP server (`list_plants`, `get_plant_status`, `get_history`, `get_tips`) | Sana (4.B5) | Personal API keys (hashed, revocable), read-only, premium-gated | FR-P03, FR-P04, NFR-06 |
 | C-12 | HA/MQTT bridge (optional, "Could") | Leo (Plan 4.B6, now hub-side) | Publish HA MQTT-discovery entities from the hub's local data (v0.2; was: from cloud state to a user broker) | FR-I01 |
 | C-14 | Hub broker: Mosquitto 2.x on Raspberry Pi, TLS, dynamic-security ACLs, mDNS advertisement | proposed 4.H1 (Mira firmware side, Leo hub side; Lead to assign) | Receive device MQTT; per-device auth and topic ACL | proposed FR-H01, FR-D08, NFR-06 |
-| C-15 | Hub service (TypeScript on Node): MQTT subscriber, SQLite store, registrar API (pairing, device credential issue/revoke), HA bridge host | proposed 4.H2 | Persist readings locally, issue broker credentials to the app during setup | proposed FR-H01, FR-H02 |
-| C-16 | Local dashboard (static web UI served by the hub): plant list, latest values, charts, battery/offline status | proposed 4.H3 | Dashboard that works without internet | proposed FR-H03, NFR-11 |
+| C-15 | Node-RED on the Pi (flows kept in the repo, JSON): MQTT subscriber, SQLite store, registrar HTTP API (pairing, device credential issue/revoke), HA bridge flow | proposed 4.H2 (Node-RED flows) | Persist readings locally, issue broker credentials to the app during setup | proposed FR-H01, FR-H02 |
+| C-16 | Own local web UI (small static TypeScript/JS app served by Node-RED, reading its HTTP API): plant list, latest values, charts, battery/offline status | proposed 4.H3 | Dashboard that works without internet | proposed FR-H03, NFR-11 |
 | C-13 | CI/CD, OTA release pipeline, secrets | Kai | Build/sign firmware and model artefacts, deploy functions, migrations | FR-D05, NFR-06 |
 | X-1..X-5 | External: weather API, Claude API, Expo Push, user's AI assistant, user's Home Assistant | — | Third-party; no secrets in repo | Q-13, FR-P03, FR-I01 |
 
@@ -128,7 +174,7 @@ Contracts are written in 2.4 (`docs/interfaces/`); this table fixes the style an
 | L-17 | AI assistant -> MCP | MCP, Streamable HTTP | `Bearer <personal API key>` (hash stored, revocable) | `interfaces/mcp-tools.json` | FR-P03, NFR-06 |
 | L-20 | Hub HA bridge -> HA | MQTT 3.1.1/5, HA discovery topics (broker is the hub's Mosquitto, or a bridge to the user's HA broker) | hub-local credentials | `interfaces/ha-discovery.md` | FR-I01 |
 | L-21 | Device -> hub broker | MQTT 3.1.1 over TLS (8883), topics `nilwerk/v1/<device_id>/{telemetry,event,status}`, JSON payload, QoS 1; payload and topics in ADR-012 | per-device username/password, topic ACL, pinned hub CA | `interfaces/hub-mqtt.md` (+ shared sample schema with `device-report.schema.json`) | proposed FR-D08, NFR-06 |
-| L-22 | Broker -> hub service | local MQTT subscribe `nilwerk/v1/+/#` | service account | same | proposed FR-H01 |
+| L-22 | Broker -> Node-RED | local MQTT subscribe `nilwerk/v1/+/#` | service account | same | proposed FR-H01 |
 | L-23 | Browser -> dashboard | HTTP(S) on LAN, no port forwarding | admin password set at install (open question) | `interfaces/hub-api.md` | proposed FR-H03 |
 | L-24 | App -> hub (setup only) | HTTPS on LAN, mDNS `_nilwerk-hub._tcp`; pair with code shown on hub, request device credential + CA | pairing code, then hub admin session | `interfaces/hub-api.md` | proposed FR-H02, FR-A03 |
 
@@ -150,7 +196,7 @@ What is encrypted, and where: Wi-Fi passphrase, claim token and MQTT credential 
 
 **OTA (FR-D05).** The ingest response carries the target firmware/model version. Device downloads to the inactive OTA slot, verifies SHA-256 (and signature, see open issue O-3), reboots, and marks the image valid only after a successful ingest call; otherwise ESP-IDF rollback restores the previous slot. Models live in their own partition so they can update without a firmware change.
 
-**Local dashboard (proposed FR-H03).** Hub service receives telemetry from Mosquitto, writes to SQLite (about 4 rows per device per hour), and serves the web UI on the LAN. Works with the internet down. Offline sensor (no publish for 2.5 h) is shown from the broker `status` LWT and a last-seen timer. See ADR-012.
+**Local dashboard (proposed FR-H03).** Node-RED receives telemetry from Mosquitto, writes to SQLite (about 4 rows per device per hour), and serves the web UI on the LAN. Works with the internet down. Offline sensor (no publish for 2.5 h) is shown from the broker `status` LWT and a last-seen timer. See ADR-012.
 
 **Tips (FR-P02).** App requests tips for a plant -> function checks premium flag -> loads plant, recent readings, place -> weather forecast -> builds prompt -> Claude returns structured JSON -> deterministic rule layer clamps or removes unsafe advice (e.g. no watering when soil is waterlogged, no fertilising in frost, no direct-sun advice during heat warnings) -> cached per plant for a few hours.
 
@@ -170,7 +216,7 @@ What is encrypted, and where: Wi-Fi passphrase, claim token and MQTT credential 
 | Premium | Server-side flag, no payments | ADR-008 |
 | OTA | Manifest in ingest response, dual slot + rollback | ADR-009 |
 | HA | Optional MQTT bridge, v0.2: hosted on the hub | ADR-010 (amended), ADR-012 |
-| Local hub | Raspberry Pi: Mosquitto + hub service + local dashboard, fed by device MQTT in parallel with the cloud path | ADR-012 (Proposed) |
+| Local hub | Raspberry Pi (Pi 3 or any locally available model): Mosquitto + Node-RED + own web UI, fed by device MQTT in parallel with the cloud path | ADR-012 (Proposed) |
 
 Security baseline (NFR-06/07): TLS everywhere (device -> cloud and device -> hub); RLS on every table; service role used only inside edge functions; secrets only in Supabase/GitHub secrets, referenced by name; EU region for DB and Storage; account deletion cascades through DB rows and Storage objects; export is a JSON + photos bundle.
 
@@ -245,12 +291,12 @@ Source: owner comment on PR #3: sensor is initialised and bound to the user's pr
 | FR-D02 | Changed | Report to the cloud once per hour **and** publish the same readings to the local hub in the same Wi-Fi session. |
 | FR-D04 | Clarify | Offline buffer feeds the cloud only; the hub is best effort (gaps accepted). |
 | FR-A08 | Changed | Release also revokes the device's hub credential. |
-| FR-I01 | Changed (C) | Home Assistant integration via MQTT discovery is served from the hub rather than the cloud. |
+| FR-I01 | Changed (C) | Home Assistant integration via MQTT discovery is served from the hub (Node-RED flow) rather than the cloud. |
 | NFR-01 | Clarified | 6 months at hourly reporting **including** the hub publish; to be proved in 5.4. |
 | NFR-03 | Changed | Setup <= 3 min measured with the hub already installed. Hub install is separate. |
 | NFR-06 | Extended | Also: Wi-Fi credentials never in plaintext over BLE; no Wi-Fi password in cloud storage; per-device broker credentials and topic ACL; TLS to the hub. |
 | NFR-07 | Extended | Wi-Fi credentials are not personal data we hold (not stored in cloud); data export/delete includes hub data guidance. |
-| Sec. 7 "Standalone cloud ... HA only optional (Q-04)" | Changed | Cloud remains the system of record; a Raspberry Pi hub is a required component for the local dashboard. |
+| Sec. 7 "Standalone cloud ... HA only optional (Q-04)" | Changed | Cloud remains the system of record; a Raspberry Pi hub is needed for the local dashboard only. |
 | FR-D08 (new, M) | Added | Publish readings to the hub over MQTT/TLS with per-device credentials. |
 | FR-D09 (new, M) | Added | In normal operation the device uses Wi-Fi only; BLE is active only in setup mode. |
 | FR-H01 (new, M) | Added | The hub runs an MQTT broker (TLS, per-device auth) and stores received readings locally. |
@@ -263,22 +309,27 @@ Source: owner comment on PR #3: sensor is initialised and bound to the user's pr
 ### 10.2 Plan impact (rough, hours added to the current Est.; Lead to refine)
 
 Existing rows: **4.F2** 8 -> 12 h (+4: security 2, custom endpoints, hub config storage, BLE-off in normal mode); **4.A3** 8 -> 12 h (+4: security 2 client, mDNS + hub pairing, dev build on both OSes); **4.B6** 3 -> 2 h (-1: bridge moves onto the hub; cloud bridge dropped); **2.4** +1 (MQTT topic/payload + hub API contracts); **2.3 / 5.4** +1.5 (power budget with second publish, measurement); **5.5** +2 (hub, MQTT, mDNS tests); **5.9** +1 (credential handling, ACL tests); **6.2** +1 (hub quick-start).
-New rows (IDs for the Lead to assign): **4.H1** hub broker setup (Mosquitto, private CA, dynamic-security, mDNS, install script) 5 h; **4.H2** hub service (subscriber, SQLite, registrar API) 6 h; **4.H3** local web dashboard 8 h; **4.F6** firmware MQTT client (TLS, cached-IP + mDNS, QoS 1, LWT, timeouts) 6 h; **4.B8** alert engine and push dispatch (C-08, QA finding 1; independent of v0.2) 4 h.
+New rows (IDs for the Lead to assign): **4.H1** hub broker setup (Mosquitto, private CA, dynamic-security, mDNS, install script) 5 h; **4.H2** Node-RED hub flows (subscriber, SQLite, registrar API) 6 h; **4.H3** local web dashboard 8 h; **4.F6** firmware MQTT client (TLS, cached-IP + mDNS, QoS 1, LWT, timeouts) 6 h; **4.B8** alert engine and push dispatch (C-08, QA finding 1; independent of v0.2) 4 h.
 Total v0.2 delta: about +38 h (without 4.B8), roughly +19 % on the ~200 h plan. These are my estimates, not measured. The HA bridge (4.B6) remains the first thing to cut; if schedule is fixed, FR-H03 can start as a plain table/chart page.
 
 ### 10.3 BOM impact (prices unverified, no ordering)
 
-Sensor BOM: no change (the ESP32-C3 has Wi-Fi and BLE on-chip). New, once per household (demo: 1 hub shared by the 3 units, plus optionally 1 dev hub): Raspberry Pi 4 Model B 2 GB (Zero 2 W as cheaper, Wi-Fi-only alternative to evaluate; Ethernet is preferred for a hub) roughly EUR 40-60 for a Pi 4 / EUR 20-30 for a Zero 2 W; microSD 32 GB A1/A2 about EUR 8-15; USB-C power supply about EUR 10-15; optional case EUR 5-10. Indicative hub total EUR 60-100. All figures are recollection-based and unverified; Emil/Arsany to check live prices and stock in 2.5.
+Sensor BOM: no change (the ESP32-C3 has Wi-Fi and BLE on-chip). New, once per household (demo: 1 hub shared by the 3 units, plus optionally 1 dev hub): Raspberry Pi 3 or any model available in the Egyptian market (owner answer; Node-RED + Mosquitto + SQLite run fine on a Pi 3, Ethernet preferred), price to be checked locally (a Pi 3/4 was roughly EUR 40-60 elsewhere); microSD 32 GB A1/A2 about EUR 8-15; USB-C power supply about EUR 10-15; optional case EUR 5-10. Indicative hub total EUR 60-100. All figures are recollection-based and unverified; Emil/Arsany to check live prices and stock in 2.5.
 
-### 10.4 Open questions for Arsany
+### 10.4 Questions for Arsany
 
-- Q-H1 Is the Pi required for the whole product (setup refuses without it) or required for the local-dashboard feature only, with app + cloud working without it? I assumed the latter; "required" as a hard dependency would make every customer buy a Pi.
-- Q-H2 Wi-Fi credentials in the user profile: I recommend **not** storing them in the cloud (the sensor keeps them in NVS; the phone may remember them in its keystore). If you want convenience re-use, I recommend a client-side-encrypted blob, never server-readable. OK?
-- Q-H3 Which Pi model, and how many hubs for the demo? Who installs the Pi software (SD image we prepare, or an install script)?
-- Q-H4 Dashboard technology: own small TypeScript web UI (recommended, same language as the rest, needed anyway for registrar) vs Grafana/InfluxDB or Node-RED (less code, heavier, more config). Choice affects 4.H3 only.
-- Q-H5 Local publish rate: hourly batch with the cloud report (recommended for battery) or more frequent live updates (costs battery)?
+Answered by the owner on PR #3 (Q-H1..Q-H5; Q-H9 also answered):
+
+- Q-H1 **Answered:** the Pi is required for the local-dashboard feature only; app and cloud work without it.
+- Q-H2 **Answered:** no Wi-Fi password in the cloud (stays on the sensor; phone keystore optional).
+- Q-H3 **Answered:** Raspberry Pi 3 or any model available in the Egyptian market. Still to settle in 4.H1: SD image vs install script.
+- Q-H4 **Answered:** own web UI plus Node-RED (ADR-012 updated; no Grafana/InfluxDB).
+- Q-H5 **Taken as hourly** (batch with the cloud report), as in his description of the flow; no live 15-min publishing.
+- Q-H9 **Answered:** about +38 h accepted. The HA bridge remains the first cut if the schedule slips.
+
+Still open:
+
 - Q-H6 NVS encryption of Wi-Fi credentials and device token on the device (needs eFuse burning, irreversible, needs your hands) or accept plaintext in flash for the demo?
 - Q-H7 Plain MQTT without TLS on the LAN (saves handshake time) or TLS (recommended)?
 - Q-H8 OTA signing (Plan 4.F4 "Signed images" vs ADR-009 defers secure boot): decision needed (QA finding 2). Recommendation: SHA-256 over TLS for the demo.
-- Q-H9 Schedule: accept about +38 h, or cut scope (HA bridge, analytics UI)?
 - Q-H10 Is local-only access to the dashboard fine (no remote access, no port forwarding)?
