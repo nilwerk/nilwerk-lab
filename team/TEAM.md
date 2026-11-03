@@ -266,7 +266,13 @@ Any term a fresh graduate might not know, in one line each.
 ```
 
 ### Rules
-- **One open work order at a time** at first; size each to ≤ 2–3 days. Split bigger work.
+- **One active hands-on work order at a time**; size each to ≤ 2–3 days of work. Sourcing/quote work orders
+  (where he mostly waits for shops) may run in parallel. Split bigger work.
+- **Test project (set by Arsany 2026-11-03):** WO-001 parts price list (#8), WO-002 enclosure v2 print (#9),
+  WO-003 local PCB fab + test print (#10), WO-004 integration (#11, label `queued`). Nora's follow-ups:
+  link Emil's Gerber/BOM/pick-and-place into #10 when ready (Part B); before #11 starts, link Mira's firmware
+  binary + flashing steps, Ines's test plan and the exact `board.h`, then remove `queued` and comment
+  "WO-004 ready". Quotes and purchases in #9/#10 wait for Arsany's approval in the issue.
 - Before opening a work order, the agent who owns the content (e.g. Mira for flashing, Ines for test plans,
   Emil for assembly) drafts Inputs/Steps/Expected output; Theo checks it is complete and correct.
 - **Every run, Nora reads Peter's issue comments**: answers his questions in the issue the same day,
