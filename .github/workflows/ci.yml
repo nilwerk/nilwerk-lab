@@ -25,6 +25,7 @@ jobs:
       sim: ${{ steps.d.outputs.sim }}
       mechanical: ${{ steps.d.outputs.mechanical }}
       interfaces: ${{ steps.d.outputs.interfaces }}
+      powerbudget: ${{ steps.d.outputs.powerbudget }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,14 +36,12 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          # Existence check: the workstream has a project yet.
-          has() { if eval "$1" >/dev/null 2>&1; then echo "$2=true" >> "$GITHUB_OUTPUT"; else echo "$2=false" >> "$GITHUB_OUTPUT"; fi; }
           # Change check: only on pull_request. Push to main / manual runs treat everything as changed.
           CHANGED=""
           ALL=true
           if [ "$EVENT" = "pull_request" ]; then
             ALL=false
-            CHANGED="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
+            CHANGED="$(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA")"
             echo "Changed files:"; echo "$CHANGED"
             # Shared build config: the workflow itself and tool-version files re-test every workstream.
             if echo "$CHANGED" | grep -Eq '^(\.github/workflows/ci\.yml|\.github/actions/|\.tool-versions$)'; then ALL=true; echo "Shared build config changed: running all workstreams"; fi
@@ -56,14 +55,17 @@ jobs:
             elif eval "$cmd" >/dev/null 2>&1; then echo "$n=false" >> "$GITHUB_OUTPUT"; echo "::notice::$n skipped: no changes under $*"
             else echo "$n=false" >> "$GITHUB_OUTPUT"; fi
           }
-          gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/"
-          gate app "test -f $P/app/package.json" "$P/app/"
-          gate cloud "test -f $P/cloud/package.json" "$P/cloud/"
-          gate ml "ls $P/ml/*.py $P/ml/**/*.py" "$P/ml/"
+          # Contracts and decisions (docs/interfaces, docs/adr) also re-test their consumers.
+          CT="$P/docs/interfaces/ $P/docs/adr/"
+          gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/" $CT
+          gate app "test -f $P/app/package.json" "$P/app/" $CT
+          gate cloud "test -f $P/cloud/package.json" "$P/cloud/" $CT
+          gate ml "find $P/ml -name '*.py' 2>/dev/null | grep -q ." "$P/ml/"
           gate pcb "ls $P/pcb/*.kicad_pro" "$P/pcb/"
-          gate sim "ls $P/pcb/sim/*.cir $P/pcb/sim/*.sp" "$P/pcb/"
+          gate sim "find $P/pcb/sim \\( -name '*.cir' -o -name '*.sp' \\) 2>/dev/null | grep -q ." "$P/pcb/"
           gate mechanical "ls $P/mechanical/*.py" "$P/mechanical/"
-          gate interfaces "ls $P/docs/interfaces/*.json" "$P/docs/interfaces/"
+          gate interfaces "find $P/docs/interfaces \\( -name '*.json' -o -name '*.yaml' -o -name '*.yml' \\) 2>/dev/null | grep -q ." "$P/docs/interfaces/"
+          gate powerbudget "find $P/hardware/power-budget -name '*.py' 2>/dev/null | grep -q ." "$P/hardware/power-budget/"
           cat "$GITHUB_OUTPUT"
 
   firmware:
@@ -243,7 +245,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install jsonschema
+      - run: pip install jsonschema pyyaml
       - name: Validate schemas and fixtures
         working-directory: projects/plant-monitor/docs/interfaces
         run: |
@@ -260,12 +262,34 @@ jobs:
                   print(("FAIL " if errs else "ok   ") + fx)
                   for e in errs: print("   ", e.message)
                   ok &= not errs
+          # Every JSON / YAML contract must at least parse (openapi.yaml, mcp-tools.json, ...)
+          import yaml
+          for f in sorted(glob.glob("**/*.json", recursive=True)):
+              try: json.load(open(f)); print("json ok:", f)
+              except Exception as e: print("FAIL json", f, e); ok = False
+          for f in sorted(glob.glob("**/*.y*ml", recursive=True)):
+              try: yaml.safe_load(open(f)); print("yaml ok:", f)
+              except Exception as e: print("FAIL yaml", f, e); ok = False
           sys.exit(0 if ok else 1)
           PY
 
+  powerbudget:
+    name: power-budget tests
+    needs: detect
+    if: needs.detect.outputs.powerbudget == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: unittest
+        working-directory: projects/plant-monitor/hardware/power-budget
+        run: python -m unittest discover -v
+
   summary:
     name: Final status
-    needs: [detect, firmware, app, cloud, ml, pcb, sim, mechanical, interfaces]
+    needs: [detect, firmware, app, cloud, ml, pcb, sim, mechanical, interfaces, powerbudget]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -275,6 +299,7 @@ jobs:
             echo "## Pipeline status"
             echo "| Job | Result |"
             echo "|---|---|"
+            echo "| detect | ${{ needs.detect.result }} |"
             echo "| firmware | ${{ needs.firmware.result }} |"
             echo "| app | ${{ needs.app.result }} |"
             echo "| cloud | ${{ needs.cloud.result }} |"
@@ -283,8 +308,11 @@ jobs:
             echo "| sim | ${{ needs.sim.result }} |"
             echo "| mechanical | ${{ needs.mechanical.result }} |"
             echo "| interfaces | ${{ needs.interfaces.result }} |"
+            echo "| powerbudget | ${{ needs.powerbudget.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
-          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}"; do
+          # Detect must succeed: if it fails, every job is skipped and that must not look green.
+          [ "${{ needs.detect.result }}" = "success" ] || { echo "Pipeline RED: Detect ${{ needs.detect.result }}"; exit 1; }
+          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "Pipeline RED"; exit 1; fi
           done
           echo "Pipeline GREEN (skipped = workstream not started yet)"
