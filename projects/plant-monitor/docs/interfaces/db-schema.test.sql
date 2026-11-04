@@ -90,6 +90,46 @@ do $$ declare n int; begin
   select count(*) into n from public.alerts where kind='device_offline' and resolved_at is null;
   if n <> 0 then raise exception 'offline alert not resolved'; end if; end $$;
 
+-- offline boundary (G1: 3 missed reports = 3 h + 10 min grace): 3 h 05 min -> no alert, 3 h 15 min -> alert
+update public.devices set last_seen_at = now() - interval '2 hours 50 minutes';
+select public.scan_offline();
+do $$ declare n int; begin
+  select count(*) into n from public.alerts where kind='device_offline' and resolved_at is null;
+  if n <> 0 then raise exception 'offline alert at 2 h 50 min (too early), got %', n; end if; end $$;
+update public.devices set last_seen_at = now() - interval '3 hours 5 minutes';
+select public.scan_offline();
+do $$ declare n int; begin
+  select count(*) into n from public.alerts where kind='device_offline' and resolved_at is null;
+  if n <> 0 then raise exception 'offline alert at 3 h 05 min (inside grace), got %', n; end if; end $$;
+update public.devices set last_seen_at = now() - interval '3 hours 15 minutes';
+select public.scan_offline();
+do $$ declare n int; begin
+  select count(*) into n from public.alerts where kind='device_offline' and resolved_at is null;
+  if n <> 1 then raise exception 'no offline alert at 3 h 15 min, got %', n; end if; end $$;
+update public.devices set last_seen_at = now();
+select public.evaluate_alerts('20000000-0000-0000-0000-00000000000a', now());
+
+-- low-battery hysteresis (G1 3.4 V, resolve at +100 mV [proposed]): 3399 opens, 3450 stays open, 3500 resolves
+update public.alerts set resolved_at = now() where kind='low_battery' and resolved_at is null;
+insert into public.readings(device_id,ts,owner_id,vbat_mv) values
+ ('20000000-0000-0000-0000-00000000000a', now() + interval '1 second','00000000-0000-0000-0000-00000000000a', 3399);
+select public.evaluate_alerts('20000000-0000-0000-0000-00000000000a', now());
+do $$ declare n int; begin
+  select count(*) into n from public.alerts where kind='low_battery' and resolved_at is null;
+  if n <> 1 then raise exception 'low_battery not opened at 3399 mV, got %', n; end if; end $$;
+insert into public.readings(device_id,ts,owner_id,vbat_mv) values
+ ('20000000-0000-0000-0000-00000000000a', now() + interval '2 seconds','00000000-0000-0000-0000-00000000000a', 3450);
+select public.evaluate_alerts('20000000-0000-0000-0000-00000000000a', now());
+do $$ declare n int; begin
+  select count(*) into n from public.alerts where kind='low_battery' and resolved_at is null;
+  if n <> 1 then raise exception 'low_battery resolved at 3450 mV (hysteresis broken), got %', n; end if; end $$;
+insert into public.readings(device_id,ts,owner_id,vbat_mv) values
+ ('20000000-0000-0000-0000-00000000000a', now() + interval '3 seconds','00000000-0000-0000-0000-00000000000a', 3500);
+select public.evaluate_alerts('20000000-0000-0000-0000-00000000000a', now());
+do $$ declare n int; begin
+  select count(*) into n from public.alerts where kind='low_battery' and resolved_at is null;
+  if n <> 0 then raise exception 'low_battery not resolved at 3500 mV, got %', n; end if; end $$;
+
 -- plausibility (G1 ranges)
 do $$ begin
   if not public.reading_is_plausible(21.5, 55, 1200, 3900, 40) then raise exception 'normal flagged'; end if;

@@ -35,7 +35,7 @@ The `cloud/` scaffold is empty (`.gitkeep`), so no migration is placed there; Le
 | Export JSON + CSV | `GET /export?format=json\|csv` |
 | FR-D02 = 24 +/- 1 reports per day | `/ingest` limit 6 requests/device/hour leaves room for critical + reconnect; cadence in `config.report_interval_s = 3600` |
 | OTA = SHA-256 over TLS, signing is a follow-up, FR-D05(c) dropped | `Artifact.sha256`, `firmware_releases.sha256`, `ota.status = hash_mismatch` in the report |
-| Alert thresholds dry < 25 %, wet > 85 %, low battery 3.4 V | `plants.dry/wet_threshold_pct` (defaults), `devices.low_battery_mv = 3400`, pushed in `config`; resolve with hysteresis 5 points / 100 mV [proposed] |
+| Alert thresholds dry < 25 %, wet > 85 %, low battery 3.4 V (**the 3.4 V value is Arsany's answer to A-008**) | `plants.dry/wet_threshold_pct` (defaults), `devices.low_battery_mv = 3400`, pushed in `config`; resolve with hysteresis 5 points / 100 mV [proposed] |
 | Plausible ranges temp -10..60 degC, RH 0..100, lux 0..100000, battery 3.0..4.25 V | `reading_is_plausible()`, `x-plausible` in the report schema, hub applies the same |
 | FR-E03 = <= 15 min after the first tick that observes the event (fast-path classes only) | `trigger = critical`; event enum and critical set from edge-ai-concept 2.4: `wetting_unexpected`, `waterlogged`, `sensor_out_of_soil`, `sensor_fault` critical; `wetting`, `fast_drying` not |
 | Dry threshold default 25 comes from the plant field, not the model | `config.dry_pct` |
@@ -55,5 +55,5 @@ The `cloud/` scaffold is empty (`.gitkeep`), so no migration is placed there; Le
 
 ## Verification (what was and was not run)
 - **Run:** `db-schema.sql` + `db-schema.test.sql` on a local PostgreSQL 16 with a stub `auth` schema: loads without error, test prints `ALL OK` (RLS everywhere, user B sees nothing of A, self-grant of premium refused, free = 7 rows of 31 / premium = 31, alert dedupe, offline at 3 h 10 min and cleared by a report, plausibility ranges, 12-month purge, account-delete cascade).
-- **Run:** `device-report.schema.json` is a valid Draft 2020-12 schema and accepts/rejects 1 valid + 4 invalid sample reports; `openapi.yaml` and `mcp-tools.json` parse and all local `$ref`s resolve.
+- **Run:** `device-report.schema.json` is a valid Draft 2020-12 schema and accepts/rejects 1 valid + 4 invalid sample reports (now committed in `fixtures/`, run `python3 validate_fixtures.py`; the CI `interfaces` job validates `fixtures/device-report*.json` as valid, `fixtures/invalid/` is only checked by the script; Kai is adding OpenAPI/JSON validation to CI); `openapi.yaml` and `mcp-tools.json` parse and all local `$ref`s resolve.
 - **Not run:** anything on a real Supabase project (`auth.uid()`, `storage` policies, pg_cron, the `current_user` role names used by the guard triggers are assumptions to confirm in 4.B1); OpenAPI linting with an external validator (not available here); BLE/MQTT on real devices; Edge Function limits for `/export` on large accounts.
