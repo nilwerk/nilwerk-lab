@@ -119,15 +119,21 @@ def _clean(n=300):
     return pd.DataFrame({"time": ts("2025-03-01", n, "15min"), "m": np.full(n, 60.0)})   # SYNTHETIC flat 60
 
 
-def test_inject_out_of_soil_and_offset_are_labelled_and_shaped():
-    out = prep.inject_faults(_clean(), np.random.default_rng(1), n_out_of_soil=1, n_offset=1, length_ticks=24)
-    oos, off = out[out["fault"] == prep.FAULT_OUT_OF_SOIL], out[out["fault"] == prep.FAULT_OFFSET]
-    assert len(oos) == 24 and len(off) == 24
-    assert oos["m"].iloc[-1] < 5.0 and oos["m"].iloc[0] > oos["m"].iloc[-1]    # decays to air floor
-    assert abs((off["m"] - off["m_clean"]).mean()) >= 15 - 1e-9                  # clearly offset
-    assert out.loc[out["fault"] == "none", "m"].eq(60.0).all()                   # rest untouched
-    assert out["synthetic"].sum() == 48 and (out["m_clean"] == 60.0).all()
-    assert out["m"].between(0, 100).all()
+def test_inject_fault_classes_are_labelled_and_shaped():
+    c = _clean()
+    c["temperature"] = 20.0
+    out = prep.inject_faults(c, np.random.default_rng(1), length_ticks=24)
+    assert set(out["fault"]) == {"none", *prep.FAULT_CLASSES} and "offset" not in set(out["fault"])
+    f = {k: out[out["fault"] == k] for k in prep.FAULT_CLASSES}
+    assert len(f["out_of_soil"]) == 24 and len(f["flatline"]) == 24 and len(f["dropout"]) == 24 and len(f["spike"]) == 1
+    assert f["out_of_soil"]["m"].iloc[-1] < 5.0 and f["out_of_soil"]["m"].iloc[0] > f["out_of_soil"]["m"].iloc[-1]
+    assert abs(out.loc[f["out_of_soil"].index[-1], "temperature"] - 20.0) >= 2.5           # temperature drifts
+    assert (f["flatline"]["m"] == 60.0).all()                                              # identical readings
+    assert abs(f["spike"]["m"].iloc[0] - 60.0) >= 40.0                                     # single-tick jump >= 40
+    assert f["dropout"]["m"].isna().sum() == 12 and (f["dropout"]["m"].dropna() == 60.0).all()   # missing, then held
+    assert out.loc[out["fault"] == "none", "m"].eq(60.0).all()                             # rest untouched
+    assert out["synthetic"].sum() == 24 * 3 + 1 and (out["m_clean"] == 60.0).all()
+    assert out["m"].dropna().between(0, 100).all()
 
 
 def test_fault_injection_is_reproducible_with_seed():
@@ -185,10 +191,126 @@ def test_preprocess_end_to_end_no_leak_of_calibration_or_synthetic_into_test():
     assert (te["fault"] == "none").all() and not te["synthetic"].any()           # test stays free of synthetic data
     assert tr["synthetic"].any()
     assert "z" not in set(tr["plant"]) | set(va["plant"])                         # held-out plant never trained on
-    assert tr["m"].between(0, 100).all() and te["m"].dropna().between(0, 100).all()
+    assert tr["m"].dropna().between(0, 100).all() and te["m"].dropna().between(0, 100).all()
     # calibration comes from train rows only: re-fit and compare for plant a
     dry, wet = prep.fit_dry_wet(tr[tr["plant"] == "a"]["moisture_raw"])
     c = cal.set_index("plant").loc["a"]
     assert (c["dry"], c["wet"]) == (dry, wet)
     counts = prep.split_counts(out)
     assert list(counts["split"]) == ["train", "val", "test"] and counts.loc[0, "ticks"] == len(tr)
+
+
+# ---------- refractory suppression (kills the refractory_ticks mutation)
+def _two_rises(second_at):
+    m = np.full(60, 30.0)
+    m[10:13] = 45.0                     # first rise visible at tick 10
+    m[second_at:second_at + 3] = 45.0   # second rise after a return to 30
+    return pd.DataFrame({"time": ts("2025-03-01", 60, "15min"), "m": m})
+
+
+def test_refractory_suppresses_second_onset_within_8_ticks_but_not_after():
+    assert list(prep.label_events(_two_rises(16)).query("event != 'none'").index) == [10]    # gap 6 -> one onset
+    assert list(prep.label_events(_two_rises(18)).query("event != 'none'").index) == [10]    # gap 8 -> still suppressed
+    assert list(prep.label_events(_two_rises(19)).query("event != 'none'").index) == [10, 19]  # gap 9 -> both
+    assert list(prep.label_events(_two_rises(16), refractory_ticks=0).query("event != 'none'").index) == [10, 16]
+
+
+# ---------- segments: nothing spans a join between non-contiguous data
+def _seg_frame():
+    # SYNTHETIC: two segments separated by a gap; segment 1 ends low (20), segment 2 starts high (60)
+    a = pd.DataFrame({"time": ts("2025-03-01", 40, "15min"), "m": np.full(40, 20.0)})
+    b = pd.DataFrame({"time": ts("2025-03-10", 40, "15min"), "m": np.full(40, 60.0)})
+    d = pd.concat([a, b], ignore_index=True)
+    d["segment"] = prep.add_segments(d)
+    return d
+
+
+def test_add_segments_breaks_at_gaps():
+    d = _seg_frame()
+    assert list(d["segment"].unique()) == [0, 1] and (d["segment"].iloc[:40] == 0).all()
+
+
+def test_no_event_invented_across_join_and_baseline_ignores_gap():
+    d = _seg_frame()
+    flat = pd.concat([prep.label_events(g.reset_index(drop=True)) for _, g in d.groupby("segment")], ignore_index=True)
+    assert (flat["event"] == "none").all()                          # a 20 -> 60 jump across the gap is not a rise
+    # shift over the concatenated frame WOULD invent one: shows why per-segment matters
+    assert (prep.label_events(d.drop(columns="segment"))["event"] != "none").any()
+    # baseline: events 10 h apart inside each segment; the 9-day join must not enter the mean
+    e = d.assign(event="none")
+    e.loc[[0, 40 - 1, 40, 79], "event"] = "wetting"
+    assert prep.mean_watering_interval_h(e) == pytest.approx(((39 * 0.25) + (39 * 0.25)) / 2)
+    assert prep.mean_watering_interval_h(e.drop(columns="segment")) > 24 * 3     # without segments the gap leaks in
+
+
+def test_preprocess_never_places_faults_or_events_across_segments():
+    out = prep.preprocess(_long_sawtooth(), seed=5)
+    for name in ("train", "val"):
+        for seg, g in out[name].groupby("segment"):
+            assert (g["time"].diff().dropna() <= pd.Timedelta("15min")).all()      # each segment is contiguous
+            f = g[g["fault"] != "none"]
+            assert f.groupby("fault")["time"].apply(lambda t: (t.diff().dropna() <= pd.Timedelta("15min")).all()).all()
+    assert out["train"]["segment"].nunique() > 1
+
+
+def _long_sawtooth(plants=(("a", 1.0, "mendeley"), ("b", 1.5, "mendeley")), weeks=12, start="2025-03-03", freq="10min"):
+    rows = []
+    for p, scale, src in plants:
+        t = ts(start, weeks * 7 * (144 if freq == "10min" else 24), freq)
+        saw = (np.arange(len(t)) % 600) / 600.0
+        rows.append(pd.DataFrame({"plant": p, "source": src, "time": t, "moisture_raw": 100 + 300 * scale * (1 - saw)}))
+    return pd.concat(rows, ignore_index=True)
+
+
+# ---------- global calendar-week split
+def test_split_uses_global_weeks_not_per_plant_counts():
+    # SYNTHETIC: plant b starts 3 days after plant a; with per-plant weeks their test weeks would be offset
+    a = pd.DataFrame({"plant": "a", "time": ts("2025-03-03", 12 * 28, "6h"), "moisture_raw": 1.0})
+    b = pd.DataFrame({"plant": "b", "time": ts("2025-03-06", 12 * 28, "6h"), "moisture_raw": 1.0})
+    df = pd.concat([a, b], ignore_index=True)
+    df["split"] = prep.assign_split(df)
+    df["wk"] = (df["time"].dt.normalize() - pd.Timestamp("2025-03-03")).dt.days // 7
+    kept = df[df["split"] != "drop"]
+    expect = lambda wk: "test" if wk % 5 == 4 else ("val" if wk % 5 == 0 and wk > 0 else "train")
+    assert all(sp == expect(wk) for wk, sp in zip(kept["wk"], kept["split"]))        # same rule, same week index for a and b
+    for sp in ("test", "val"):
+        assert {p: set(kept[(kept["plant"] == p) & (kept["split"] == sp)]["wk"]) for p in "ab"}["b"] <= {4, 9} | {5, 10}
+    # no calendar day is test for one plant and train/val for the other
+    assert (kept.groupby(kept["time"].dt.normalize())["split"].nunique() == 1).all()
+
+
+# ---------- source column and hourly flag
+def test_source_column_flows_to_outputs_and_mendeley_only_variant():
+    raw = pd.concat([_long_sawtooth(), _long_sawtooth(plants=(("i1", 1.2, "ismn"),))], ignore_index=True)
+    both = prep.preprocess(raw, seed=1)
+    only = prep.preprocess(raw, seed=1, sources=("mendeley",))
+    assert set(both["train"]["source"]) == {"mendeley", "ismn"}
+    assert set(only["train"]["source"]) == {"mendeley"} and "i1" not in set(only["_calibration"]["plant"])
+    assert set(only["_calibration"]["source"]) == {"mendeley"}
+    only2 = prep.preprocess(raw, seed=1, sources=("mendeley",))
+    pd.testing.assert_frame_equal(only["train"], only2["train"])                  # reproducible
+    assert "ISMN" in prep.model_label(both["train"]) and "ISMN" not in prep.model_label(only["train"])
+    assert "source_ismn" in prep.split_counts(both).columns
+
+
+def test_missing_source_defaults_to_unspecified_and_mixed_source_per_plant_rejected():
+    out = prep.preprocess(_long_sawtooth().drop(columns="source"), seed=1)
+    assert set(out["train"]["source"]) == {"unspecified"}
+    bad = pd.DataFrame({"plant": "p", "source": ["a", "b"], "time": ts("2025-03-01", 2, "1h"), "moisture_raw": [1.0, 2.0]})
+    with pytest.raises(ValueError):
+        prep.resample_15min(bad)
+
+
+def test_hourly_source_is_flagged_upsampled_and_fresh_marks_real_observations():
+    t = ts("2025-03-01", 5, "1h")
+    hourly = pd.DataFrame({"plant": "h", "source": "ismn", "time": t, "moisture_raw": [1, 2, 3, 4, 5.0]})
+    r = prep.resample_15min(hourly)
+    assert r["upsampled"].all() and len(r) == 17
+    assert r["fresh"].sum() == 5 and list(r["fresh"].iloc[:5]) == [True, False, False, False, True]
+    fine = pd.DataFrame({"plant": "f", "source": "mendeley", "time": ts("2025-03-01", 20, "10min"), "moisture_raw": 1.0})
+    assert not prep.resample_15min(fine)["upsampled"].any()
+
+
+def test_empty_split_warns():
+    with pytest.warns(UserWarning, match="empty"):
+        prep.preprocess(_long_sawtooth(weeks=3), seed=1, inject=False)

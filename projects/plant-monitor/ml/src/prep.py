@@ -8,6 +8,10 @@ Canonical input frame (one row per raw observation, any cadence):
     moisture_raw     float raw sensor value in the dataset's own unit
     irrigation       float optional, >0 while a valve is open (ground truth for "watering")
     rain             float optional, >0 when rain was recorded (ground truth for "rain")
+    temperature      float optional, deg C (used to make out-of-soil faults drift temperature)
+    source           str   optional dataset id ("mendeley", "ismn", "projectplant"); default "unspecified".
+                           Carried into every output frame so a Mendeley-only variant is reproducible
+                           (select_sources) and a model can be labelled "trained with ISMN data" (model_label).
 
 Loaders that turn a concrete dataset into this frame are NOT here: the Mendeley file layout
 has not been inspected (host unreachable from the sandbox, A-007). No numbers in this module
@@ -21,6 +25,8 @@ Rules from the owner (Arsany):
 """
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -31,7 +37,13 @@ DRY_PCT, WET_PCT = 2.0, 98.0        # percentiles mapped to 0 / 100 (concept 4, 
 HORIZON_DAYS = 3                    # 72 h forecast horizon (FR-E01) -> leakage gap
 
 EVENT_NONE, EVENT_WATERING, EVENT_RAIN, EVENT_WETTING = "none", "watering", "rain", "wetting"
-FAULT_NONE, FAULT_OUT_OF_SOIL, FAULT_OFFSET = "none", "out_of_soil", "offset"
+# Fault classes per concept 2.3 / 3.4: out of soil (class 4) and sensor fault (class 5: flatline, spike, dropout).
+# A calibration offset is NOT a fault class; it is an augmentation (offset_calibration, concept 3.4).
+FAULT_NONE, FAULT_OUT_OF_SOIL = "none", "out_of_soil"
+FAULT_FLATLINE, FAULT_SPIKE, FAULT_DROPOUT = "flatline", "spike", "dropout"
+FAULT_CLASSES = (FAULT_OUT_OF_SOIL, FAULT_FLATLINE, FAULT_SPIKE, FAULT_DROPOUT)
+DEFAULT_SOURCE = "unspecified"
+HOURLY_MIN_SPACING = pd.Timedelta("45min")   # median spacing at/above this = hourly-class source (ISMN)
 
 
 # --------------------------------------------------------------------------- 1. resample
@@ -41,16 +53,28 @@ def resample_15min(df: pd.DataFrame, plant: str | None = None) -> pd.DataFrame:
     Value at a tick = last observation at or before the tick (no interpolation, no look-ahead).
     If that observation is older than MAX_GAP the tick is masked: moisture is NaN, masked=True.
     Event columns (irrigation, rain) use the max over the interval (tick-15min, tick].
+    Provenance: `source` is carried through (one value per plant). `fresh` is True where a NEW observation
+    arrived in (tick-15min, tick]. `upsampled` is True for every row of a plant whose median observation
+    spacing is >= 45 min (hourly source such as ISMN): those 15-min rows are held values, not measurements
+    (concept 4: "kept hourly and flagged"), never silently unflagged.
     """
     d = df.sort_values("time").reset_index(drop=True)
     if d.empty:
         raise ValueError("no observations")
     grid = pd.DataFrame({"time": pd.date_range(d["time"].min().ceil(TICK), d["time"].max().floor(TICK), freq=TICK)})
-    obs = d[["time", "moisture_raw"]].assign(obs_time=d["time"])
+    extra = ["temperature"] if "temperature" in d.columns else []
+    obs = d[["time", "moisture_raw", *extra]].assign(obs_time=d["time"])
     out = pd.merge_asof(grid, obs, on="time", direction="backward")
     out["masked"] = (out["time"] - out["obs_time"] > MAX_GAP) | out["obs_time"].isna()
-    out.loc[out["masked"], "moisture_raw"] = np.nan
+    out.loc[out["masked"], ["moisture_raw", *extra]] = np.nan
+    out["fresh"] = (out["time"] - out["obs_time"] < pd.Timedelta(TICK)) & ~out["masked"]
     out = out.drop(columns="obs_time")
+    spacing = d["time"].diff().dropna()
+    out["upsampled"] = bool(len(spacing) and spacing.median() >= HOURLY_MIN_SPACING)
+    srcs = d["source"].dropna().unique() if "source" in d.columns else []
+    if len(srcs) > 1:
+        raise ValueError(f"plant {plant!r} mixes several sources {list(srcs)}; use distinct plant ids per source")
+    out["source"] = srcs[0] if len(srcs) else DEFAULT_SOURCE
     for col in ("irrigation", "rain"):
         if col in d.columns:
             ev = d.set_index("time")[col].resample(TICK, closed="right", label="right").max()
@@ -116,21 +140,31 @@ def label_events(d: pd.DataFrame, m_col: str = "m", rise_pts: float = 10.0, wind
 
 
 def mean_watering_interval_h(d: pd.DataFrame) -> float:
-    """Baseline: mean hours between watering/wetting events in the given (TRAINING) rows."""
-    t = d.loc[d["event"] != EVENT_NONE, "time"]
-    if len(t) < 2:
+    """Baseline: mean hours between watering/wetting events in the given (TRAINING) rows.
+
+    If a `segment` column is present, intervals are taken inside each contiguous segment only.
+    """
+    ev = d.loc[d["event"] != EVENT_NONE]
+    key = ev["segment"] if "segment" in ev.columns else pd.Series(0, index=ev.index)
+    gaps = ev.groupby(key)["time"].diff().dropna()      # never across a segment join (non-contiguous data)
+    if gaps.empty:
         return float("nan")
-    return float(t.diff().dropna().dt.total_seconds().mean() / 3600.0)
+    return float(gaps.dt.total_seconds().mean() / 3600.0)
 
 
 # --------------------------------------------------------------------------- 3.4 faults
 def inject_faults(d: pd.DataFrame, rng: np.random.Generator, m_col: str = "m", n_out_of_soil: int = 1,
-                  n_offset: int = 1, length_ticks: int = 24) -> pd.DataFrame:
-    """Synthetic fault injection on a normalised series (training/validation only).
+                  n_flatline: int = 1, n_spike: int = 1, n_dropout: int = 1, length_ticks: int = 24,
+                  temp_col: str = "temperature") -> pd.DataFrame:
+    """Synthetic fault injection on ONE contiguous segment of a normalised series (train/val only).
 
-    out_of_soil: m decays quickly to ~0 (air) with small noise, for length_ticks, then stays at the floor.
-    offset: constant +/-(15..30) point shift for length_ticks (stuck calibration/probe drift), clipped 0-100.
+    out_of_soil: m decays quickly to ~0 (air) with small noise for length_ticks; if a temperature column
+        exists it drifts by 3-8 deg C towards ambient over the same window.
+    flatline: m held at its value at the start for length_ticks (identical readings).
+    spike: one tick jumps by >= 40 points (towards the side with room) and reverts.
+    dropout: m missing (NaN) for the first half of length_ticks, then the last value held.
     Adds: fault (label), synthetic (bool), m_clean (original). Segments do not overlap.
+    A calibration offset is not a fault; see offset_calibration.
     """
     out = d.copy()
     out["m_clean"] = out[m_col]
@@ -138,25 +172,58 @@ def inject_faults(d: pd.DataFrame, rng: np.random.Generator, m_col: str = "m", n
     out["synthetic"] = False
     n = len(out)
     free = np.ones(n, dtype=bool)
-    plan = [FAULT_OUT_OF_SOIL] * n_out_of_soil + [FAULT_OFFSET] * n_offset
-    for kind in plan:
-        starts = [s for s in range(0, n - length_ticks) if free[s:s + length_ticks].all()]
+    plan = ([(FAULT_OUT_OF_SOIL, length_ticks)] * n_out_of_soil + [(FAULT_FLATLINE, length_ticks)] * n_flatline
+            + [(FAULT_SPIKE, 1)] * n_spike + [(FAULT_DROPOUT, length_ticks)] * n_dropout)
+    base = out[m_col].to_numpy(dtype=float).copy()
+    for kind, ln in plan:
+        starts = [s for s in range(0, n - ln) if free[s:s + ln].all() and not np.isnan(base[s])]
         if not starts:
             continue
         s = int(rng.choice(starts))
-        sl = slice(s, s + length_ticks)
-        free[max(0, s - 1):s + length_ticks + 1] = False
-        base = out[m_col].to_numpy(dtype=float)
+        sl = slice(s, s + ln)
+        free[max(0, s - 1):s + ln + 1] = False
+        mcol = out.columns.get_loc(m_col)
         if kind == FAULT_OUT_OF_SOIL:
             tau = rng.uniform(1.0, 3.0)                       # ticks
-            k = np.arange(length_ticks)
-            vals = base[s] * np.exp(-k / tau) + np.abs(rng.normal(0, 0.5, length_ticks))
+            k = np.arange(ln)
+            vals = base[s] * np.exp(-k / tau) + np.abs(rng.normal(0, 0.5, ln))
+            if temp_col in out.columns:
+                t0 = out[temp_col].iloc[s]
+                if not np.isnan(t0):
+                    drift = rng.choice([-1, 1]) * rng.uniform(3, 8) * (1 - np.exp(-k / tau))
+                    out.iloc[sl, out.columns.get_loc(temp_col)] = t0 + drift
+        elif kind == FAULT_FLATLINE:
+            vals = np.full(ln, base[s])
+        elif kind == FAULT_SPIKE:
+            sign = 1.0 if base[s] <= 50 else -1.0
+            vals = np.array([base[s] + sign * rng.uniform(40, 50)])
         else:
-            vals = base[sl] + rng.choice([-1, 1]) * rng.uniform(15, 30)
-        out.iloc[sl, out.columns.get_loc(m_col)] = np.clip(vals, 0, 100)
+            vals = np.full(ln, base[s])
+            vals[: max(1, ln // 2)] = np.nan
+        out.iloc[sl, mcol] = np.clip(vals, 0, 100)
         out.iloc[sl, out.columns.get_loc("fault")] = kind
         out.iloc[sl, out.columns.get_loc("synthetic")] = True
     return out
+
+
+def add_segments(g: pd.DataFrame) -> pd.Series:
+    """Segment id (0,1,...) of time-sorted rows of ONE plant+split: a new segment starts wherever the time
+    step is larger than one tick (weeks/days dropped or belonging to another split)."""
+    return (g["time"].diff() > pd.Timedelta(TICK)).cumsum()
+
+
+def select_sources(raw: pd.DataFrame, sources: tuple[str, ...]) -> pd.DataFrame:
+    """Keep only rows of the given dataset ids, e.g. ('mendeley',) for the Mendeley-only variant."""
+    if "source" not in raw.columns:
+        raise ValueError("raw frame has no 'source' column")
+    return raw[raw["source"].isin(sources)].copy()
+
+
+def model_label(train: pd.DataFrame) -> str:
+    """Provenance label for a model trained on this train split (ISMN constraint, concept 3.2)."""
+    src = sorted(set(train["source"]))
+    base = "trained with " + ", ".join(x.upper() if x == "ismn" else x.capitalize() for x in src) + " data"
+    return base + (" (ISMN: research/demo use only)" if "ismn" in src else "")
 
 
 # --------------------------------------------------------------------------- 5. split
@@ -164,18 +231,20 @@ def assign_split(df: pd.DataFrame, heldout_plants: tuple[str, ...] = (), test_ev
                  gap_days: int = HORIZON_DAYS) -> pd.Series:
     """Split label per row ('train'|'val'|'test'|'drop'); unit = (plant, calendar day).
 
-    Calendar weeks counted from the first day of each plant: week k with k % test_every == test_every-1 is test,
-    the week after it is val, the rest train. A day whose set differs from the set `gap_days` later is dropped,
+    GLOBAL calendar weeks (Monday-anchored, counted from the earliest day over ALL plants, so every plant uses the
+    same week index and sectors sharing weather/irrigation cannot straddle a boundary): week k with
+    k % test_every == test_every-1 is test, the week after it is val, the rest train. A day whose set differs from the set `gap_days` later is dropped,
     so no forecast window (72 h look-ahead) reaches into another set. heldout_plants go to test entirely.
     """
     day = df["time"].dt.normalize()
     label = pd.Series("train", index=df.index, dtype=object)
+    g0 = day.min()
+    g0 = g0 - pd.Timedelta(days=int(g0.weekday()))
     for plant, g in df.groupby("plant"):
         if plant in heldout_plants:
             label[g.index] = "test"
             continue
-        d0 = day[g.index].min()
-        wk = ((day[g.index] - d0).dt.days // 7)
+        wk = ((day[g.index] - g0).dt.days // 7)
         lab = np.where(wk % test_every == test_every - 1, "test", np.where((wk % test_every == 0) & (wk > 0), "val", "train"))
         per_day = pd.Series(lab, index=g.index).groupby(day[g.index]).first()
         later = per_day.copy()
@@ -187,12 +256,21 @@ def assign_split(df: pd.DataFrame, heldout_plants: tuple[str, ...] = (), test_ev
 
 
 # --------------------------------------------------------------------------- pipeline
-def preprocess(raw: pd.DataFrame, heldout_plants: tuple[str, ...] = (), seed: int = 0, inject: bool = True) -> dict[str, pd.DataFrame]:
-    """raw canonical frame -> {'train','val','test'} frames with m (0-100), event, fault, synthetic, masked.
+def preprocess(raw: pd.DataFrame, heldout_plants: tuple[str, ...] = (), seed: int = 0, inject: bool = True,
+               sources: tuple[str, ...] | None = None) -> dict[str, pd.DataFrame]:
+    """raw canonical frame -> {'train','val','test'} frames with m (0-100), event, fault, synthetic, masked,
+    source, upsampled, fresh, segment.
 
-    Order matters for leakage: resample -> split -> calibration fitted on train rows only -> normalise
-    -> events -> faults (train/val only; the test set stays free of synthetic data).
+    Order matters for leakage: resample -> split (global weeks) -> calibration fitted on train rows only ->
+    normalise -> per contiguous segment: events -> faults (train/val only; the test set stays free of synthetic
+    data). Events, baseline and fault injection never span a join between non-contiguous days/weeks.
+    `sources` restricts the input to those dataset ids (e.g. ('mendeley',)) for a reproducible variant.
+    Plant ids must be unique across datasets.
     """
+    if "source" not in raw.columns:
+        raw = raw.assign(source=DEFAULT_SOURCE)
+    if sources is not None:
+        raw = select_sources(raw, sources)
     rng = np.random.default_rng(seed)
     ticks = pd.concat([resample_15min(g, plant=p) for p, g in raw.groupby("plant")], ignore_index=True)
     ticks["split"] = assign_split(ticks, heldout_plants=heldout_plants)
@@ -209,15 +287,22 @@ def preprocess(raw: pd.DataFrame, heldout_plants: tuple[str, ...] = (), seed: in
         ticks.loc[sel, "m"] = normalise(ticks.loc[sel, "moisture_raw"], dry, wet)
     parts = []
     for (p, s), g in ticks.groupby(["plant", "split"]):
-        g = label_events(g.sort_values("time").reset_index(drop=True))
-        if inject and s in ("train", "val") and g["m"].notna().sum() > 48:
-            g = inject_faults(g, rng)
-        else:
-            g = g.assign(m_clean=g["m"], fault=FAULT_NONE, synthetic=False)
-        parts.append(g)
+        g = g.sort_values("time").reset_index(drop=True)
+        seg = add_segments(g)
+        for k, gs in g.groupby(seg):
+            gs = label_events(gs.reset_index(drop=True))
+            if inject and s in ("train", "val") and gs["m"].notna().sum() > 48:
+                gs = inject_faults(gs, rng)
+            else:
+                gs = gs.assign(m_clean=gs["m"], fault=FAULT_NONE, synthetic=False)
+            parts.append(gs.assign(segment=f"{p}|{s}|{k}"))
     allp = pd.concat(parts, ignore_index=True)
     out = {s: allp[allp["split"] == s].reset_index(drop=True) for s in ("train", "val", "test")}
-    out["_calibration"] = pd.DataFrame([{"plant": p, "dry": a, "wet": b} for p, (a, b) in calib.items()])
+    for s_, f in out.items():
+        if f.empty:
+            warnings.warn(f"split '{s_}' is empty: recording too short for the week-based split", stacklevel=2)
+    src = ticks.groupby("plant")["source"].first()
+    out["_calibration"] = pd.DataFrame([{"plant": p, "source": src[p], "dry": a, "wet": b} for p, (a, b) in calib.items()])
     return out
 
 
@@ -228,5 +313,7 @@ def split_counts(splits: dict[str, pd.DataFrame]) -> pd.DataFrame:
         g = splits[s]
         rows.append({"split": s, "ticks": len(g), "masked": int(g["masked"].sum()),
                      **{f"event_{k}": int((g["event"] == k).sum()) for k in (EVENT_WATERING, EVENT_RAIN, EVENT_WETTING)},
-                     **{f"fault_{k}": int((g["fault"] == k).sum()) for k in (FAULT_OUT_OF_SOIL, FAULT_OFFSET)}})
+                     **{f"fault_{k}": int((g["fault"] == k).sum()) for k in FAULT_CLASSES},
+                     "upsampled": int(g["upsampled"].sum()),
+                     **{f"source_{k}": int((g["source"] == k).sum()) for k in sorted(set(g["source"]))}})
     return pd.DataFrame(rows)
