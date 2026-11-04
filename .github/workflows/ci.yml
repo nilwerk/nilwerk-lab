@@ -27,17 +27,43 @@ jobs:
       interfaces: ${{ steps.d.outputs.interfaces }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # PRs diff against the base commit
       - id: d
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          # Existence check: the workstream has a project yet.
           has() { if eval "$1" >/dev/null 2>&1; then echo "$2=true" >> "$GITHUB_OUTPUT"; else echo "$2=false" >> "$GITHUB_OUTPUT"; fi; }
-          has "test -f $P/firmware/CMakeLists.txt" firmware
-          has "test -f $P/app/package.json" app
-          has "test -f $P/cloud/package.json" cloud
-          has "ls $P/ml/*.py $P/ml/**/*.py" ml
-          has "ls $P/pcb/*.kicad_pro" pcb
-          has "ls $P/pcb/sim/*.cir $P/pcb/sim/*.sp" sim
-          has "ls $P/mechanical/*.py" mechanical
-          has "ls $P/docs/interfaces/*.json" interfaces
+          # Change check: only on pull_request. Push to main / manual runs treat everything as changed.
+          CHANGED=""
+          ALL=true
+          if [ "$EVENT" = "pull_request" ]; then
+            ALL=false
+            CHANGED="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
+            echo "Changed files:"; echo "$CHANGED"
+            # Shared build config: the workflow itself and tool-version files re-test every workstream.
+            if echo "$CHANGED" | grep -Eq '^(\.github/workflows/ci\.yml|\.github/actions/|\.tool-versions$)'; then ALL=true; echo "Shared build config changed: running all workstreams"; fi
+          fi
+          # touched <name> <path-prefix...> -> true if running everything or a changed file is under a prefix
+          touched() { [ "$ALL" = true ] && return 0; shift; for pre in "$@"; do echo "$CHANGED" | grep -q "^$pre" && return 0; done; return 1; }
+          # gate <name> <exists-cmd> <path-prefix...>: output true only if project exists AND (not a PR OR files changed)
+          gate() {
+            n="$1"; cmd="$2"; shift 2
+            if eval "$cmd" >/dev/null 2>&1 && touched "$n" "$@"; then echo "$n=true" >> "$GITHUB_OUTPUT"
+            elif eval "$cmd" >/dev/null 2>&1; then echo "$n=false" >> "$GITHUB_OUTPUT"; echo "::notice::$n skipped: no changes under $*"
+            else echo "$n=false" >> "$GITHUB_OUTPUT"; fi
+          }
+          gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/"
+          gate app "test -f $P/app/package.json" "$P/app/"
+          gate cloud "test -f $P/cloud/package.json" "$P/cloud/"
+          gate ml "ls $P/ml/*.py $P/ml/**/*.py" "$P/ml/"
+          gate pcb "ls $P/pcb/*.kicad_pro" "$P/pcb/"
+          gate sim "ls $P/pcb/sim/*.cir $P/pcb/sim/*.sp" "$P/pcb/"
+          gate mechanical "ls $P/mechanical/*.py" "$P/mechanical/"
+          gate interfaces "ls $P/docs/interfaces/*.json" "$P/docs/interfaces/"
           cat "$GITHUB_OUTPUT"
 
   firmware:
