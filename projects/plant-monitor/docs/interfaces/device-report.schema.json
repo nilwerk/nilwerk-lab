@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nilwerk.github.io/plant-monitor/interfaces/device-report.schema.json",
+  "title": "Device report v1 (POST /ingest body)",
+  "description": "Task 2.4. One report = up to 192 timestamped 15-minute samples plus the latest forecast and events. Unit of record = the sample (FR-D04: 96 samples per 24 h). Ranges in x-plausible are the G1 plausible ranges (FR-D01): the server stores out-of-range samples with plausible=false instead of rejecting the batch, so the schema deliberately does not enforce them. Field names are shared with the MQTT telemetry payload (hub-mqtt.md).",
+  "type": "object",
+  "required": ["v", "sent_at", "trigger", "fw", "samples"],
+  "additionalProperties": false,
+  "properties": {
+    "v": { "const": 1, "description": "Schema version. A contract change needs an ADR (role file)." },
+    "sent_at": { "type": "integer", "minimum": 1700000000, "description": "Device clock, unix seconds, SNTP-synced before sending. The device must not send before a successful SNTP sync (it keeps buffering). Server skew = received_at - sent_at; ts of every sample is shifted by it if |skew| > 120 s." },
+    "trigger": { "enum": ["scheduled", "critical", "reconnect"], "description": "scheduled = hourly (FR-D02); critical = immediate report on a critical event (FR-E03); reconnect = first report after an offline period (FR-D04)." },
+    "fw": { "type": "string", "maxLength": 32, "description": "Running firmware version, e.g. 0.3.1." },
+    "model": { "type": "string", "maxLength": 32, "description": "Running model-set version (edge AI, FR-D05)." },
+    "forecast_h": { "type": ["number", "null"], "minimum": 0, "maximum": 72, "description": "Model A output, hours until the dry threshold; null = no forecast / more than 72 h (app shows '> 3 days'). FR-E01, UC-08." },
+    "cal": {
+      "type": "object", "additionalProperties": false, "required": ["dry_raw", "wet_raw"],
+      "description": "Device calibration points (raw ADC counts) used to compute moisture_pct. Sent whenever changed. FR-NEW-CAL in requirements-v1.0-delta.md.",
+      "properties": {
+        "dry_raw": { "type": "integer", "minimum": 0, "maximum": 4095 },
+        "wet_raw": { "type": "integer", "minimum": 0, "maximum": 4095 },
+        "at": { "type": "integer", "description": "Unix s of calibration" }
+      }
+    },
+    "ota": {
+      "type": "object", "additionalProperties": false, "required": ["version", "status"],
+      "description": "Result of the last OTA attempt, sent once (FR-D05).",
+      "properties": {
+        "version": { "type": "string", "maxLength": 32 },
+        "kind": { "enum": ["fw", "model"] },
+        "status": { "enum": ["ok", "rolled_back", "hash_mismatch", "download_failed", "battery_low"] }
+      }
+    },
+    "samples": {
+      "type": "array", "minItems": 1, "maxItems": 192,
+      "description": "Oldest first. 4 per scheduled report; up to 96 after 24 h offline (FR-D04); more than 192 are sent in several requests.",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["ts"],
+        "properties": {
+          "ts": { "type": "integer", "minimum": 1700000000, "description": "Sample time, unix seconds. (device_id, ts) is the idempotency key: resending a sample is harmless." },
+          "moisture_pct": { "type": ["number", "null"], "x-plausible": [0, 100], "description": "Relative soil moisture 0-100 % between the device's dry/wet points. null = sensor failed." },
+          "moisture_raw": { "type": ["integer", "null"], "minimum": 0, "maximum": 4095, "description": "Raw ADC counts (12 bit), kept for retraining." },
+          "temp_c": { "type": ["number", "null"], "x-plausible": [-10, 60], "description": "Air temperature, degC." },
+          "rh_pct": { "type": ["number", "null"], "x-plausible": [0, 100], "description": "Air relative humidity, %RH." },
+          "lux": { "type": ["number", "null"], "x-plausible": [0, 100000], "description": "Illuminance, lux." },
+          "vbat_mv": { "type": ["integer", "null"], "x-plausible": [3000, 4250], "description": "Battery voltage, millivolts (1S LiPo)." }
+        }
+      }
+    },
+    "events": {
+      "type": "array", "maxItems": 32,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["ts", "type"],
+        "properties": {
+          "ts": { "type": "integer", "minimum": 1700000000 },
+          "type": {
+            "enum": ["wetting", "wetting_unexpected", "fast_drying", "waterlogged", "sensor_out_of_soil", "sensor_fault"],
+            "description": "Critical (server sets events.critical, creates alert, pushes): wetting_unexpected, waterlogged, sensor_out_of_soil, sensor_fault. Not critical (stored, shown as 'watered' / used by tips): wetting, fast_drying. Source: edge-ai-concept 2.4 (FR-E02, FR-E03, FR-A07)."
+          }
+        }
+      }
+    }
+  }
+}
