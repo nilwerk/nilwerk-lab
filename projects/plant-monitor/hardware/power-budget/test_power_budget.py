@@ -1,5 +1,7 @@
 """Unit tests for power_budget.py (NFR-01).  Run: python3 -m unittest -v  (in this folder)."""
 import dataclasses
+import pathlib
+import re
 import unittest
 
 import power_budget as pb
@@ -47,14 +49,16 @@ class HandCalc(unittest.TestCase):
     def test_required_capacity_with_self_discharge(self):
         p = pb.with_(simple(), self_discharge_pct_month=2.0)                 # 12 % over 6 months
         load = pb.daily_budget(p)["total"] * 4380 / 24
-        self.assertAlmostEqual(pb.required_rated_mah(p), load / (0.8 - 0.12))
+        self.assertAlmostEqual(pb.required_rated_mah(p, with_self_discharge=True), load / (0.8 - 0.12))
+        self.assertAlmostEqual(pb.required_rated_mah(p), load / 0.8)        # the rule has no SD term
 
 
 class Consistency(unittest.TestCase):
     def test_required_capacity_reaches_exactly_six_months(self):
         for p in pb.SCENARIOS.values():
-            c = pb.required_rated_mah(p)
-            self.assertAlmostEqual(pb.life_days(p, c), 4380 / 24, delta=1.0)  # 182.5 d vs 6*30.4167
+            for sd in (False, True):
+                c = pb.required_rated_mah(p, with_self_discharge=sd)
+                self.assertAlmostEqual(pb.life_days(p, c, with_self_discharge=sd), 4380 / 24, delta=1.0)
 
     def test_sleep_limit_is_inverse_of_required_capacity(self):
         p = pb.TYPICAL
@@ -80,7 +84,80 @@ class Consistency(unittest.TestCase):
 
     def test_impossible_when_self_discharge_eats_derated_capacity(self):
         p = pb.with_(pb.TYPICAL, self_discharge_pct_month=15.0)              # 90 % over 6 months > 80 %
-        self.assertEqual(pb.required_rated_mah(p), float("inf"))
+        self.assertEqual(pb.required_rated_mah(p, with_self_discharge=True), float("inf"))
+
+
+class Rule(unittest.TestCase):
+    def test_headline_rule_is_derated_capacity_over_average_current(self):
+        p = pb.TYPICAL
+        i_avg = pb.avg_current_ma(p)
+        hours_1500 = 0.8 * 1500 / i_avg
+        self.assertAlmostEqual(pb.life_days(p, 1500) * 24, hours_1500, places=6)
+        self.assertGreaterEqual(hours_1500, 4380)                      # 1500 mAh passes by the rule
+        self.assertAlmostEqual(hours_1500 / 24 / pb.MONTH_DAYS, 6.7, delta=0.05)
+        self.assertLess(pb.life_days(p, 1500, with_self_discharge=True) * 24, 4380)   # extra line fails
+        self.assertAlmostEqual(pb.required_rated_mah(p), 4380 * i_avg / 0.8)
+
+    def test_light_sleep_lever_and_default_neutral(self):
+        base = pb.daily_budget(pb.TYPICAL)["sample"]
+        lever = pb.daily_budget(pb.with_(pb.TYPICAL, i_warmup_cpu_ma=0.5))["sample"]
+        # 96 wakes x 1.5 s x (20 - 0.5) mA / 3600
+        self.assertAlmostEqual(base - lever, 96 * 1.5 * 19.5 / 3600)
+        same = pb.with_(pb.TYPICAL, i_warmup_cpu_ma=pb.TYPICAL.i_cpu_ma)
+        self.assertAlmostEqual(pb.daily_budget(same)["sample"], base)
+
+    def test_hub_unreachable_costs_more_and_backoff_helps(self):
+        base = pb.daily_budget(pb.TYPICAL)["total"]
+        down = pb.daily_budget(pb.with_(pb.TYPICAL, t_hub_s=3.0))["total"]
+        back = pb.daily_budget(pb.with_(pb.TYPICAL, t_hub_s=3.0, hub_every_n=4))["total"]
+        self.assertGreater(down, base)
+        self.assertLess(back, base)
+
+    def test_typical_wifi_session_is_5_5_s(self):
+        self.assertAlmostEqual(pb.wifi_session_s(pb.TYPICAL), 5.5)
+        p = pb.with_(pb.TYPICAL, t_connect_s=1.0, hub_every_n=2)
+        self.assertAlmostEqual(pb.wifi_session_s(p), 3.5)              # the design target needs both levers
+
+
+DOC = pathlib.Path(__file__).with_name("power-budget.md").read_text(encoding="utf-8")
+
+
+class DocMatchesScript(unittest.TestCase):
+    def test_generated_blocks_are_identical_to_script_output(self):
+        for name, body in pb.report_sections().items():
+            m = re.search(rf"<!-- BEGIN:{name} -->\n(.*?)<!-- END:{name} -->", DOC, re.S)
+            self.assertIsNotNone(m, name)
+            self.assertEqual(m.group(1).strip(), body.strip(), f"{name} stale: run --update-doc")
+
+    def test_headline_numbers_in_section_1(self):
+        sec1 = DOC.split("## 2.")[0]
+        t = pb.TYPICAL
+        d = pb.daily_budget(t)
+        expect = [
+            f"**{d['total']:.1f} mAh/day**", f"{pb.avg_current_ma(t):.3f} mA",
+            f"**about {round(pb.required_rated_mah(t), -1):.0f} mAh rated**",
+            f"best **about {round(pb.required_rated_mah(pb.BEST), -1):.0f} mAh**",
+            f"worst **about {round(pb.required_rated_mah(pb.WORST), -1):.0f} mAh**",
+            f"**yes, {pb.life_days(t, 1500) / pb.MONTH_DAYS:.1f} months**",
+            f"typical **{pb.life_days(t, 2000) / pb.MONTH_DAYS:.1f} months**",
+            f"1500 mAh: **{pb.life_days(t, 1500, with_self_discharge=True) / pb.MONTH_DAYS:.1f} months**",
+            f"2000 mAh: **{pb.life_days(t, 2000, with_self_discharge=True) / pb.MONTH_DAYS:.1f} months**",
+            f"rated capacity needed {pb.required_rated_mah(t, with_self_discharge=True):.0f} mAh instead of {pb.required_rated_mah(t):.0f} mAh",
+            f"**{pb.max_sleep_current_ua(t, 2000):.0f} uA whole board for a 2000 mAh rated cell, {pb.max_sleep_current_ua(t, 1500):.0f} uA for 1500 mAh**",
+            f"(with self-discharge: {pb.max_sleep_current_ua(t, 2000, with_self_discharge=True):.0f} uA and {pb.max_sleep_current_ua(t, 1500, with_self_discharge=True):.0f} uA)",
+        ]
+        for e in expect:
+            self.assertIn(e, sec1)
+        light = pb.with_(t, i_warmup_cpu_ma=0.5)
+        self.assertIn(f"**-{d['total'] - pb.daily_budget(light)['total']:.2f} mAh/day", sec1)
+        down = pb.daily_budget(pb.with_(t, t_hub_s=3.0))["total"] - d["total"]
+        self.assertIn(f"costs **+{down:.1f} mAh/day**", sec1)
+
+    def test_doc_session_statement_and_references(self):
+        self.assertIn("5.5 s at about 99 mA", DOC)
+        self.assertNotIn("typical row; to be confirmed", DOC)
+        self.assertIn("A-008.2", DOC)
+        self.assertIn("Levers are in section 7".lower(), DOC.lower().replace("the levers are", "levers are"))
 
 
 class Provenance(unittest.TestCase):
@@ -94,7 +171,7 @@ class Provenance(unittest.TestCase):
     def test_constants_follow_owner_decisions(self):
         self.assertEqual(pb.DERATING, 0.8)           # PR #2 item 12
         self.assertEqual(pb.NFR01_HOURS, 4380.0)     # 6 months, acceptance matrix
-        self.assertEqual(pb.LOW_BATTERY_V, 3.4)
+        self.assertEqual(pb.LOW_BATTERY_V, 3.4)      # A-008.2 'ok' on PR #2
 
     def test_report_runs(self):
         text = pb.report()
