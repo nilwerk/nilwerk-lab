@@ -40,7 +40,7 @@ Personas shape how agents talk and work, never what they may do.
 | **Emil** · PCB designer | `roles/pcb.md` | HW (2.3, 2.5), PCB (4.P1–4.P3), circuit simulation |
 | **Yara** · 3D designer | `roles/mechanical.md` | Enclosure (4.E3, 4.E4 design side) |
 | **Peter** · HW integrator & tester (human, Egypt, freelance) | §12 | Hands-on hardware: assembly, flashing, bench tests, measurements, shipping prototypes to Arsany. Gets work only through Nora's work orders (§12). |
-| **Omar** · PR, Social & Awareness | `roles/pr-social.md` | Showcase library `showcase/`, team workflow definition, content plan, weekly content pack (drafts only), case-study drafts |
+| **Poppy** · PR, Social & Awareness | `roles/pr-social.md` | Showcase library `showcase/`, team workflow definition, content plan, weekly content pack (drafts only), case-study drafts |
 | **Max** · Sales assistant | separate scheduled task, 07:35 | Lead pipeline (Gmail drafts + lead tracker). Not managed by the Lead; the Lead only reads its Activity log for the daily report. |
 
 ## 3. Daily cycle (run by the Lead)
@@ -58,7 +58,7 @@ Personas shape how agents talk and work, never what they may do.
 4. **Review** — Architect reviews every PR against requirements and guidelines.
 5. **Test** — QA tests every PR / deliverable and records results.
 6. **Integrate** — DevOps checks the pipeline on every PR and on `main`, and gives the final green/red.
-7. **Showcase** — every builder saves its showcase item (§13) in its PR; Omar curates them into the
+7. **Showcase** — every builder saves its showcase item (§13) in its PR; Poppy curates them into the
    showcase library and content plan.
 8. **Close** — update the Plan (Status, Actual start/end, Notes), append Agent Log rows, write
    `team/reports/YYYY-MM-DD.md`, send Arsany the daily summary.
@@ -80,7 +80,7 @@ Gates (G1–G6) are never marked passed by an agent; the Lead prepares the evide
 - **Never** buy, order, pay, sign up for paid services, or accept terms. Orders (4.H0, 4.P4) are prepared
   as a ready-to-click cart/list for Arsany.
 - **Never** send emails or messages to anyone but Arsany. Never publish to the website or social media.
-  (Omar may create social posts as Metricool **drafts** only — Arsany reviews and publishes; see `roles/pr-social.md`.)
+  (Poppy may create social posts as Metricool **drafts** only — Arsany reviews and publishes; see `roles/pr-social.md`.)
 - **Never** push to `main`, force-push, delete branches you didn't create, or merge PRs. Arsany merges.
 - **Never** delete rows, files, Drive folders or older design versions. Never touch the sales lead tracker.
 - **Never** commit secrets. Credentials go in GitHub/Supabase secrets, referenced by name only.
@@ -315,7 +315,7 @@ we go, not afterwards.
   asks for 2–3 photos and one 10–20 s phone video of the result, plus his OK to use them publicly.
 - **Before/after** pairs are gold: when a task fixes or improves something, capture both states.
 - **Workflow definitions** live in `showcase/workflow/` (Mermaid diagrams + plain text, safe to publish);
-  Omar keeps them in sync with this charter.
+  Poppy keeps them in sync with this charter.
 - **Nothing confidential** in `showcase/` (§5, `roles/pr-social.md`): no secrets, customer data, lead
   tracker, prices, Needs-Arsany content. Theo checks this in review like any other file.
 - Nora's daily report lists today's new showcase items; the Friday review links the best three.

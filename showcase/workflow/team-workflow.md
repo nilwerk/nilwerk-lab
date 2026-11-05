@@ -16,7 +16,7 @@ engineer (Arsany) and supported by a human hardware integrator (Peter). This pag
 | Sana · Cloud AI | AI features in the cloud, with safety rules |
 | Emil · PCB designer | Circuit boards, simulated before anything is ordered |
 | Yara · 3D designer | Enclosures designed for printing and real use |
-| Omar · PR & Social | Shows the work, with proof |
+| Poppy · PR & Social | Shows the work, with proof |
 | Max · Sales | Finds and contacts companies who need prototypes |
 | **Arsany** (human) | Owner. Decides, approves, merges every change |
 | **Peter** (human) | Assembles, flashes and bench-tests the real hardware |
