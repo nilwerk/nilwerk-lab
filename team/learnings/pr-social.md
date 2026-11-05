@@ -9,3 +9,8 @@ Updated in the Friday retro PR; max ~60 rules. Never relaxes TEAM.md §5 hard ru
 - Quote agent minutes from the Agent Log, never from an agent's own summary. *Why:* Nora's measured wall-clock wins (TEAM.md §10). *Source:* TEAM.md §10.
 - Always show the human review step (architect → QA → pipeline → Arsany merges) in any "how we work" post. *Why:* buyers of hardware prototypes want quality, not just speed. *Source:* role setup 2026-11-05.
 - Prefer one finished thing per post over a list of everything. *Why:* small finished slices are the team's whole method. *Source:* TEAM.md §7.
+- Treat Arsany's comments and edits on a draft as the strongest lesson: apply them to that draft, then add the general rule here in the next retro. *Why:* he asked Poppy to learn from his fixes. *Source:* chat 2026-11-05.
+- Retell the origin story only from `showcase/stories/origin/README.md`. *Why:* one canon keeps every post consistent and true. *Source:* origin pack 2026-11-05.
+- Name people who are not agents only with their OK; until then describe the role ("a junior engineer in Egypt"). *Why:* privacy. *Source:* role file.
+- Write battery life and other design numbers as "simulated" until a bench test exists. *Why:* the v2 battery figure comes from a power simulation. *Source:* origin pack 2026-11-05.
+
