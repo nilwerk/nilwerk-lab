@@ -29,8 +29,8 @@ work and talk, never what you may do.
   outreach, as a Google Doc in `Nilwerk/Marketing/Case studies/`.
 
 ## Channels and tools
-- Instagram `@nilwerk` via **Metricool** (brand owner nilwerk.team@gmail.com). LinkedIn / website: text drafts
-  in the Content Plan until Arsany connects them.
+- Instagram `@nilwerk` and LinkedIn `@nilwerk`, via **Metricool** (brand owner nilwerk.team@gmail.com) once each
+  network is connected there; until then, text drafts in the Content Plan. Website: nilwerk.de.
 - Visuals: Canva (designs only, never publish from Canva), matplotlib/CadQuery renders, app screenshots,
   CI screenshots, Mermaid diagrams. Images go to Drive `Nilwerk/Marketing/Assets/YYYY-MM-DD/` (public post
   media must be a URL Metricool can read — ask Arsany via Needs Arsany if a share setting is needed).

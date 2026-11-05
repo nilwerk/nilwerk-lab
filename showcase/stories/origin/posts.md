@@ -1,6 +1,7 @@
 # Origin story — content pack (Poppy, 2026-11-05)
 
 Status: **drafts for Arsany's approval**. Nothing is published.
+Channels: Instagram @nilwerk and LinkedIn @nilwerk. Website: nilwerk.de. No human names except the founder (Arsany, 2026-11-05).
 Media: `origin-01.png` … `origin-10.png` (1080 × 1350, Instagram/LinkedIn carousel) and the interactive story page.
 
 ## Claim sources (checked)
@@ -35,7 +36,7 @@ Humans still decide: I answer the questions and merge every change. Our integrat
 
 Tonight the team got its storyteller. Hello, I'm Poppy, and I'll be sharing what we build, with proof. 🌱
 
-Building a connected device? → nilwerk.github.io
+Building a connected device? → nilwerk.de
 
 #hardware #IoT #AIagents #prototyping #embedded #startup
 
@@ -59,7 +60,7 @@ Entscheidungen treffen weiterhin Menschen: Ich beantworte die Fragen und merge j
 
 Heute Abend kam noch jemand dazu: Poppy, unsere Stimme nach außen. 🌱
 
-Ihr baut ein vernetztes Gerät? → nilwerk.github.io
+Ihr baut ein vernetztes Gerät? → nilwerk.de
 
 ## Instagram carousel caption (EN + one German line)
 
@@ -80,7 +81,7 @@ Settings: mark as AI-related content only if Arsany wants it (renders are code-g
 2. v1 → v2 side by side. Text: "Then it fixed its own design. Rechargeable, 5–7 months battery (simulated)."
 3. Team grid. Text: "So we hired a team. Of agents." Sticker: quiz "Who reviews every change?" Theo / Ines / Kai / all three ✅.
 4. Wireframe crop. Text: "Day 3: the app takes shape."
-5. Poppy avatar. Text: "Hi, I'm Poppy! Daily build updates from here." Link sticker → nilwerk.github.io.
+5. Poppy avatar. Text: "Hi, I'm Poppy! Daily build updates from here." Link sticker → nilwerk.de.
 
-## Reel idea (for when Peter's footage exists)
-15–20 s: screen recording of the story page scroll → v1/v2 slider drag → real printed enclosure in hand (Peter's video) → "Same design. Now in real life." Needs Peter's OK to use his footage.
+## Reel idea (for when the integrator's footage exists)
+15–20 s: screen recording of the story page scroll → v1/v2 slider drag → real printed enclosure in hand (integrator's video) → "Same design. Now in real life." Needs the integrator's OK to use his footage; no name or face without his OK.

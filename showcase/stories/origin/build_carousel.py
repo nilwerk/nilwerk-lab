@@ -110,7 +110,7 @@ f"""<div class="s">
     f'<div class="m{(" "+c) if c else ""}"><img src="{AV}/{a}.svg"><b>{n}</b><span>{r}</span></div>'
     for a,n,r,c in [('lead-pm','Nora','Lead / PM',''),('architect','Theo','Architect',''),('qa','Ines','QA & Test',''),('devops','Kai','DevOps',''),
                      ('firmware','Mira','Firmware + Edge AI',''),('fullstack','Leo','Full-stack',''),('cloud-ai','Sana','Cloud AI',''),('pcb','Emil','PCB design',''),
-                     ('mechanical','Yara','3D design',''),('sales','Max','Sales',''),('pr-social','Poppy','PR & Social','new'),('integrator','+ humans','Arsany &amp; our HW integrator','human')]) + """
+                     ('mechanical','Yara','3D design',''),('sales','Max','Sales',''),('pr-social','Poppy','PR & Social','new'),('human','+ humans','Arsany &amp; our HW integrator','human')]) + """
   </div>""" + foot(4) + "</div>",
 # 5 day 1
 f"""<div class="s dark">
@@ -162,7 +162,7 @@ f"""<div class="s dark">
   <h2 style="font-size:88px">Building a connected device?</h2>
   <p style="font-size:38px">Nilwerk builds hardware prototypes for startups and SMEs. Firmware, edge AI, app, PCB and enclosure from one team, led by a human engineer in Reutlingen.</p>
   <div class="frame" style="flex:1;min-height:0"><img src="{IMG}/v2.png"></div>
-  <p style="font-family:'Mono';font-size:34px;color:#5fb08a">nilwerk.github.io</p>
+  <p style="font-family:'Mono';font-size:34px;color:#5fb08a">nilwerk.de · @nilwerk</p>
   {foot(10, True)}</div>""",
 ]
 

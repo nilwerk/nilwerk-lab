@@ -9,8 +9,10 @@ facts and no others. Interactive version: the "How Nilwerk Started" artifact pag
 - **Mon 2 Nov** — Arsany creates the agent team: job titles, personas, skills.
 - **Tue 3 Nov (day 1)** — Nora plans sprint 1 at 07:30; 4 PRs; Theo reviews all, Ines tests, Kai pipeline. Summary with
   questions for Arsany: about 1 h of his time (his statement).
-- **Wed 4 Nov (day 2)** — parts ordered; a junior engineer in Egypt joins as hardware integrator (name only with his OK).
+- **Wed 4 Nov (day 2)** — parts ordered; a junior engineer in Egypt joins as hardware integrator (no human names in public posts yet — Arsany, 2026-11-05).
 - **Thu 5 Nov (day 3)** — app wireframes (PR #19). Poppy hired the same evening.
 - **Numbers (3 days):** 15 PRs (8 merged), 99.2 agent-minutes; agents' own human estimates 144.5 h (an estimate, label it).
 
 Files: `origin-01…10.png` carousel (rebuild with `build_carousel.py`), `posts.md` LinkedIn EN/DE, Instagram caption, stories, Reel idea.
+
+Channels: Instagram @nilwerk and LinkedIn @nilwerk. Website: nilwerk.de. Public avatars: use `team/avatars/human-public.svg` for humans (no initials).

@@ -11,6 +11,7 @@ Updated in the Friday retro PR; max ~60 rules. Never relaxes TEAM.md §5 hard ru
 - Prefer one finished thing per post over a list of everything. *Why:* small finished slices are the team's whole method. *Source:* TEAM.md §7.
 - Treat Arsany's comments and edits on a draft as the strongest lesson: apply them to that draft, then add the general rule here in the next retro. *Why:* he asked Poppy to learn from his fixes. *Source:* chat 2026-11-05.
 - Retell the origin story only from `showcase/stories/origin/README.md`. *Why:* one canon keeps every post consistent and true. *Source:* origin pack 2026-11-05.
-- Name people who are not agents only with their OK; until then describe the role ("a junior engineer in Egypt"). *Why:* privacy. *Source:* role file.
+- Use no human names in public posts except the founder's; describe roles instead ("a junior engineer in Egypt"), and use `avatars/human-public.svg` (no initials). *Why:* Arsany's decision. *Source:* chat 2026-11-05.
+- Link to nilwerk.de and tag @nilwerk on Instagram and LinkedIn. *Why:* new domain and handles. *Source:* chat 2026-11-05.
 - Write battery life and other design numbers as "simulated" until a bench test exists. *Why:* the v2 battery figure comes from a power simulation. *Source:* origin pack 2026-11-05.
 
