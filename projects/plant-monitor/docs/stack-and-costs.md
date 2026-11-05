@@ -81,9 +81,10 @@ Source of truth: `costs/cost_model.py` (Python stdlib only, runs on 3.11) with `
 |---|---|---|
 | `devices_per_user` | 2 | typical household; 3 demo units are 1 demo user |
 | `premium_share` | 0.2 | planning guess, no data |
-| `reports_per_device_month` | 720 | hourly report, architecture section 5 |
+| `reports_per_device_month` | 720 | hourly upload = 1 POST/hour, counts function calls |
+| `samples_per_device_month` | 2880 | 15-min samples = DB rows, 96/day (PR #15 db-schema) |
 | `other_calls_per_user_month` | 600 | app, alerts, analytics, MCP |
-| `db_kb_per_report` | 0.3 | row plus index, rough |
+| `db_kb_per_sample` | 0.3 | row plus index, rough |
 | `retention_months` | 12 | history kept 12 months |
 | `photo_mb_per_device` | 0.5 | one compressed photo per plant |
 | `tips_per_premium_device_month` | 30 | one cached refresh a day (ADR-006) |
@@ -98,7 +99,7 @@ Source of truth: `costs/cost_model.py` (Python stdlib only, runs on 3.11) with `
 <!-- BEGIN:FORMULAS -->
 ```text
 fn_calls   = devices * reports_per_device_month + users * other_calls_per_user_month
-db_gb      = devices * reports_per_device_month * retention_months * db_kb_per_report / 1024^2
+db_gb      = devices * samples_per_device_month * retention_months * db_kb_per_sample / 1024^2
 storage_gb = devices * photo_mb_per_device / 1024
 tips_calls = premium_devices * tips_per_premium_device_month   (premium_devices = premium_users * devices_per_user)
 claude     = tips_calls * (tokens_in * price_in + tokens_out * price_out) / 1e6
@@ -117,14 +118,29 @@ per user   = total / users;  marginal premium = marginal free + one user's tips 
 | Users / devices / premium | 1 / 3 / 1 | 100 / 200 / 20 | 1000 / 2000 / 200 |
 | Supabase tier | free | pro | pro |
 | Supabase plan | 0.00 | 35.00 | 35.00 |
-| Supabase overage | 0.00 | 0.00 | 0.08 |
+| Supabase overage | 0.00 | 0.00 | 1.55 |
 | Claude API (tips) | 0.40 | 5.40 | 54.00 |
 | Expo push + EAS | 0.00 | 0.00 | 0.00 |
 | Weather API | 0.00 | 0.00 | 0.00 |
 | Store accounts | 0.00 | 8.94 | 8.94 |
-| **Total USD** | **0.40** | **49.34** | **98.02** |
-| **Total EUR** (FX 0.92) | **0.37** | **45.40** | **90.18** |
+| **Total USD** | **0.40** | **49.34** | **99.50** |
+| **Total EUR** (FX 0.92) | **0.37** | **45.40** | **91.54** |
 <!-- END:TOTALS -->
+
+### 4.4a Result: database size (corrected: 15-minute samples)
+
+The unit of record is one 15-minute sample, 96 per day = 2880 rows per device-month (PR #15, `db-schema.sql`, interface decision 1). Function calls stay hourly (one POST per hour). An earlier version of this model counted rows at the hourly rate, which understated DB size by 4x.
+
+<!-- BEGIN:DBSIZE -->
+| DB size (raw sample rows, 12 months kept) | 3 demo units | 100 users | 1000 users |
+|---|---|---|---|
+| Rows | 103,680 | 6,912,000 | 69,120,000 |
+| DB size GB | 0.03 | 1.98 | 19.78 |
+| Pro quota 8 GB: | within | within | OVER by 11.78 GB |
+| Max retention (months) that fits the Pro quota | >120 | 48.5 | 4.9 |
+<!-- END:DBSIZE -->
+
+**Consequence:** at 1000 users the raw 12-month history (19.78 GB) exceeds the 8 GB Pro quota (unverified). The model prices the excess as overage (0.125 USD per GB-month, about 1.5 USD), so the money is small; the real effects are a growing disk, slower history queries and backups, and the need to decide a retention policy before the first customers. 100 users (1.98 GB) fit with room. Options, not decided here: (a) keep 12 months raw and pay the overage; (b) keep raw samples about 4 months and roll older data up to hourly or daily min/avg/max (pg_cron job), which keeps the 12-month charts; (c) shorter raw retention only. This is a product/data decision (Q5), not a technical blocker.
 
 ### 4.5 Result: cost per user (free vs premium)
 
@@ -153,5 +169,8 @@ per user   = total / users;  marginal premium = marginal free + one user's tips 
 | Q2 | Weather provider (A-2): may we rely on DWD open data via Bright Sky for the demo and German customers, subject to someone reading the DWD terms? | accept / pay Open-Meteo commercial plan from day one | Accept DWD; a human reads the two URLs in section 3 before the first customer demo |
 | Q3 | Are the apps published in the App Store and Play Store, or is the first phase a demo with TestFlight/sideloaded builds? Store accounts need an Arsany sign-up and card, which agents may not do | stores now / demo builds only | Demo builds first; sign up for the Apple programme only when a customer needs iOS |
 | Q4 | Supabase tier for the first paying customers: Pro (backups, no pausing) from the first customer, or free tier until the demo is over | Pro from first customer / free for demo | Free for the 3-unit demo, Pro from the first customer |
+| Q5 | Retention of raw 15-minute sample history (see 4.4a): at 1000 users 12 months raw is 19.78 GB, over the 8 GB Pro quota | keep 12 months raw and pay overage / 4 months raw plus hourly or daily roll-up for older data / shorter history | Roll-up after about 4 months: charts keep their 12-month range, DB stays near the quota; decide before the first customers, not now |
+
+Note for Kai (DevOps): CI does not run `docs/costs/` (no workstream gate covers it), so the doc-drift test only protects the doc when someone runs it: `cd projects/plant-monitor/docs/costs && python3 -m unittest discover -v`. Please add a gate or step; `ci.yml` is not changed in this PR.
 
 Not decisions, but tasks for a human: tick every "Check here" URL in 4.1 and section 3 and replace `unverified` in `cost_model.py` with the verified date (Nora can list this as a work item).

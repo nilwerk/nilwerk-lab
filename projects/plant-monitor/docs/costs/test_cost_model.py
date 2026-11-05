@@ -45,6 +45,13 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(u["fn"], 200 * 720 + 100 * 600)
         self.assertEqual(u["tips_calls"], 20 * 2 * 30)
 
+    def test_db_rows_use_15min_samples(self):
+        self.assertEqual(A.samples_per_device_month, 2880)
+        self.assertEqual(A.reports_per_device_month, 720)
+        u = cm.usage(cm.scenarios()[2], A)
+        self.assertAlmostEqual(u["db_gb"], 2000 * 2880 * 12 * 0.3 / 1024 / 1024)
+        self.assertGreater(u["db_gb"], cm.LIMITS["pro"]["db_gb"])
+
     def test_overage_kicks_in_over_quota(self):
         big = cm.Scenario("big", 5000, 10000, 0, True)
         self.assertGreater(cm.monthly_costs(big)["Supabase overage"], 0)
@@ -74,10 +81,9 @@ class ModelTests(unittest.TestCase):
 
 class DocDriftTests(unittest.TestCase):
     def test_doc_tables_match_script(self):
-        if not DOC.exists():
-            self.skipTest("doc not present")
+        self.assertTrue(DOC.exists(), f"doc missing: {DOC}")
         text = DOC.read_text(encoding="utf-8")
-        for key in ("PRICES", "ASSUMPTIONS", "FORMULAS", "TOTALS", "PERUSER"):
+        for key in ("PRICES", "ASSUMPTIONS", "FORMULAS", "TOTALS", "DBSIZE", "PERUSER"):
             m = re.search(rf"<!-- BEGIN:{key} -->\n(.*?)\n<!-- END:{key} -->", text, re.S)
             self.assertIsNotNone(m, key)
             self.assertIn(f"<!-- BEGIN:{key} -->\n{m.group(1)}\n<!-- END:{key} -->", cm.markdown(), key)

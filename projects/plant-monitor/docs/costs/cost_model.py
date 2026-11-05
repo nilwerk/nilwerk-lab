@@ -49,9 +49,10 @@ class Assumptions:
     """Usage assumptions (ours, not provider data). Change and regenerate."""
     devices_per_user: float = 2.0
     premium_share: float = 0.20
-    reports_per_device_month: int = 24 * 30       # hourly report (architecture section 5)
+    reports_per_device_month: int = 24 * 30       # hourly upload = one POST per hour (function calls)
+    samples_per_device_month: int = 96 * 30       # 15-min samples = DB rows (PR #15 db-schema, 2880)
     other_calls_per_user_month: int = 600          # app, alerts, claim, analytics, MCP
-    db_kb_per_report: float = 0.3                  # row + index
+    db_kb_per_sample: float = 0.3                  # row + index
     retention_months: int = 12
     photo_mb_per_device: float = 0.5
     tips_per_premium_device_month: float = 30.0    # about one refresh per day, cached
@@ -85,7 +86,7 @@ def supabase_tier(sc: Scenario, a: Assumptions) -> str:
 
 def usage(sc: Scenario, a: Assumptions) -> dict:
     fn = sc.devices * a.reports_per_device_month + sc.users * a.other_calls_per_user_month
-    db_gb = sc.devices * a.reports_per_device_month * a.retention_months * a.db_kb_per_report / 1024 / 1024
+    db_gb = sc.devices * a.samples_per_device_month * a.retention_months * a.db_kb_per_sample / 1024 / 1024
     storage_gb = sc.devices * a.photo_mb_per_device / 1024
     pdev = sc.premium_devices if sc.premium_devices >= 0 else sc.premium_users * a.devices_per_user
     tips = pdev * a.tips_per_premium_device_month
@@ -175,9 +176,10 @@ def table_assumptions(a: Assumptions = Assumptions()) -> str:
     why = {
         "devices_per_user": "typical household; 3 demo units are 1 demo user",
         "premium_share": "planning guess, no data",
-        "reports_per_device_month": "hourly report, architecture section 5",
+        "reports_per_device_month": "hourly upload = 1 POST/hour, counts function calls",
+        "samples_per_device_month": "15-min samples = DB rows, 96/day (PR #15 db-schema)",
         "other_calls_per_user_month": "app, alerts, analytics, MCP",
-        "db_kb_per_report": "row plus index, rough",
+        "db_kb_per_sample": "row plus index, rough",
         "retention_months": "history kept 12 months",
         "photo_mb_per_device": "one compressed photo per plant",
         "tips_per_premium_device_month": "one cached refresh a day (ADR-006)",
@@ -220,11 +222,25 @@ def table_per_user(a: Assumptions = Assumptions()) -> str:
     return "\n".join(rows)
 
 
+def table_db(a: Assumptions = Assumptions()) -> str:
+    scs = scenarios(a)
+    q = LIMITS["pro"]["db_gb"]
+    rows = ["| DB size (raw sample rows, %d months kept) | " % a.retention_months + " | ".join(s.name for s in scs) + " |",
+            "|---|" + "---|" * len(scs)]
+    gb = [usage(s, a)["db_gb"] for s in scs]
+    rows.append("| Rows | " + " | ".join(f"{s.devices * a.samples_per_device_month * a.retention_months:,}" for s in scs) + " |")
+    rows.append("| DB size GB | " + " | ".join(_usd(g) for g in gb) + " |")
+    rows.append("| Pro quota %g GB: | " % q + " | ".join("OVER by %s GB" % _usd(g - q) if g > q else "within" for g in gb) + " |")
+    rows.append("| Max retention (months) that fits the Pro quota | " + " | ".join(
+        (">120" if q / (g / a.retention_months) > 120 else _usd(q / (g / a.retention_months), 1)) for g in gb) + " |")
+    return "\n".join(rows)
+
+
 def formulas() -> str:
     return "\n".join([
         "```text",
         "fn_calls   = devices * reports_per_device_month + users * other_calls_per_user_month",
-        "db_gb      = devices * reports_per_device_month * retention_months * db_kb_per_report / 1024^2",
+        "db_gb      = devices * samples_per_device_month * retention_months * db_kb_per_sample / 1024^2",
         "storage_gb = devices * photo_mb_per_device / 1024",
         "tips_calls = premium_devices * tips_per_premium_device_month   (premium_devices = premium_users * devices_per_user)",
         "claude     = tips_calls * (tokens_in * price_in + tokens_out * price_out) / 1e6",
@@ -239,7 +255,7 @@ def formulas() -> str:
 def markdown() -> str:
     parts = [
         ("PRICES", table_prices()), ("ASSUMPTIONS", table_assumptions()), ("FORMULAS", formulas()),
-        ("TOTALS", table_totals()), ("PERUSER", table_per_user()),
+        ("TOTALS", table_totals()), ("DBSIZE", table_db()), ("PERUSER", table_per_user()),
     ]
     return "\n\n".join(f"<!-- BEGIN:{k} -->\n{v}\n<!-- END:{k} -->" for k, v in parts)
 
