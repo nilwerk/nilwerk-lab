@@ -179,7 +179,7 @@ create policy plant_images_all_own on public.plant_images for all
 --     with check (bucket_id = 'plant-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ---------------------------------------------------------------- readings (FR-D01, FR-D02, FR-D04)
--- Unit of record = one 15-minute sample (decision 2.4; 96 per 24 h). Retention 12 months (G1).
+-- Unit of record = one 15-minute sample (decision 2.4; 96 per 24 h). Raw retention 3 months, then hourly roll-up (below) kept 12 months (NFR-13, A-028).
 -- owner_id / plant_id are stamped at ingest, so history stays with the owner who had the device
 -- when it was recorded (release + re-claim by another user never leaks history, FR-A08).
 create table public.readings (
@@ -207,6 +207,38 @@ alter table public.readings enable row level security;
 -- Enforced here, not only in the app, so direct supabase-js queries cannot bypass it (NFR-06, ADR-008).
 create policy readings_select_own on public.readings for select
   using (owner_id = auth.uid() and (ts > now() - interval '7 days' or public.is_premium()));
+
+-- Hourly roll-up of readings (NFR-13, A-028): raw 15-min rows are kept ~3 months, the roll-up 12 months.
+-- One row per device and UTC hour, built from PLAUSIBLE raw samples only. Written by rollup_readings()
+-- (service_role); users only read. Daily values are a view over this table (readings_daily).
+create table public.readings_hourly (
+  device_id     uuid not null references public.devices(id) on delete cascade,
+  hour          timestamptz not null check (hour = date_trunc('hour', hour)),   -- start of the UTC hour
+  owner_id      uuid not null references public.profiles(id) on delete cascade, -- same ownership rule as readings
+  plant_id      uuid references public.plants(id) on delete set null,
+  n             smallint not null check (n between 1 and 4),                    -- plausible samples in the hour
+  moisture_avg  real, moisture_min real, moisture_max real,
+  temp_avg      real, rh_avg real, lux_avg real,
+  vbat_min_mv   integer,
+  primary key (device_id, hour)
+);
+create index readings_hourly_plant_hour_idx on public.readings_hourly(plant_id, hour desc);
+create index readings_hourly_owner_hour_idx on public.readings_hourly(owner_id, hour desc);
+alter table public.readings_hourly enable row level security;
+create policy readings_hourly_select_own on public.readings_hourly for select
+  using (owner_id = auth.uid() and (hour > now() - interval '7 days' or public.is_premium()));
+
+-- Daily values for 30/90-day and 12-month charts (FR-P01): sample-weighted over the hourly rows.
+create view public.readings_daily with (security_invoker = true) as
+select device_id, owner_id, plant_id, (hour at time zone 'UTC')::date as day, sum(n)::int as n,
+       (sum(moisture_avg * n) / nullif(sum(n) filter (where moisture_avg is not null), 0))::real as moisture_avg,
+       min(moisture_min) as moisture_min, max(moisture_max) as moisture_max,
+       (sum(temp_avg * n) / nullif(sum(n) filter (where temp_avg is not null), 0))::real as temp_avg,
+       (sum(rh_avg * n)   / nullif(sum(n) filter (where rh_avg   is not null), 0))::real as rh_avg,
+       (sum(lux_avg * n)  / nullif(sum(n) filter (where lux_avg  is not null), 0))::real as lux_avg,
+       min(vbat_min_mv) as vbat_min_mv
+from public.readings_hourly
+group by device_id, owner_id, plant_id, (hour at time zone 'UTC')::date;
 
 -- Plausibility helper used by the ingest function and by tests (G1 ranges, FR-D01).
 create or replace function public.reading_is_plausible(
@@ -425,6 +457,7 @@ begin
   end if;
   select coalesce(array_agg(storage_path), '{}') into v_paths from public.plant_images where plant_id = p_plant;
   with d as (delete from public.readings where plant_id = p_plant and owner_id = v_uid returning 1) select count(*) into v_readings from d;
+  delete from public.readings_hourly where plant_id = p_plant and owner_id = v_uid;   -- roll-up rows (NFR-07)
   with d as (delete from public.events   where plant_id = p_plant and owner_id = v_uid returning 1) select count(*) into v_events   from d;
   with d as (delete from public.alerts   where plant_id = p_plant and owner_id = v_uid returning 1) select count(*) into v_alerts   from d;
   delete from public.plants where id = p_plant and owner_id = v_uid;   -- cascades plant_images, tips; devices.plant_id -> null
@@ -435,18 +468,53 @@ end $$;
 revoke all on function public.delete_plant(uuid) from public, anon;
 grant execute on function public.delete_plant(uuid) to authenticated;
 
--- Retention: 12 months of raw readings (G1, A-008 point 21).
-create or replace function public.purge_old_readings() returns bigint
+-- Retention (NFR-13, A-028): raw readings ~3 months, hourly roll-up 12 months. Replaces purge_old_readings().
+-- raw_months is the single knob (default 3). Order matters: complete hours are rolled up FIRST, then raw rows
+-- older than the cut-off are deleted, so no data is lost between the two steps. Idempotent (upsert).
+create or replace function public.rollup_readings(p_from timestamptz default null, p_to timestamptz default null) returns bigint
 language plpgsql security definer set search_path = public as $$
-declare n bigint;
+declare v_n bigint;
 begin
-  with del as (delete from public.readings where ts < now() - interval '12 months' returning 1)
-  select count(*) into n from del;
-  return n;
+  with agg as (
+    select device_id, date_trunc('hour', ts) as hour, owner_id, (array_agg(plant_id order by ts desc))[1] as plant_id,
+           count(*) as n, avg(moisture_pct) as m_avg, min(moisture_pct) as m_min, max(moisture_pct) as m_max,
+           avg(temp_c) as t_avg, avg(rh_pct) as rh_avg, avg(lux) as lux_avg, min(vbat_mv) as vbat_min
+    from public.readings
+    where plausible
+      and ts >= date_trunc('hour', coalesce(p_from, now() - interval '2 days'))
+      and ts <  least(date_trunc('hour', now()), coalesce(p_to, 'infinity'))   -- complete hours only
+    group by device_id, date_trunc('hour', ts), owner_id
+  ), up as (
+    insert into public.readings_hourly(device_id, hour, owner_id, plant_id, n, moisture_avg, moisture_min, moisture_max,
+                                       temp_avg, rh_avg, lux_avg, vbat_min_mv)
+    select device_id, hour, owner_id, plant_id, n, m_avg, m_min, m_max, t_avg, rh_avg, lux_avg, vbat_min from agg
+    on conflict (device_id, hour) do update set
+      owner_id = excluded.owner_id, plant_id = excluded.plant_id, n = excluded.n,
+      moisture_avg = excluded.moisture_avg, moisture_min = excluded.moisture_min, moisture_max = excluded.moisture_max,
+      temp_avg = excluded.temp_avg, rh_avg = excluded.rh_avg, lux_avg = excluded.lux_avg, vbat_min_mv = excluded.vbat_min_mv
+      where excluded.n >= public.readings_hourly.n          -- never overwrite with fewer samples (raw partly deleted)
+    returning 1)
+  select count(*) into v_n from up;
+  return v_n;
 end $$;
-revoke all on function public.purge_old_readings() from public, anon, authenticated;
-grant execute on function public.purge_old_readings() to service_role;
+revoke all on function public.rollup_readings(timestamptz, timestamptz) from public, anon, authenticated;
+grant execute on function public.rollup_readings(timestamptz, timestamptz) to service_role;
+
+create or replace function public.apply_retention(raw_months int default 3, rollup_months int default 12) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_rolled bigint; v_raw bigint; v_hourly bigint; v_cut timestamptz := date_trunc('hour', now() - make_interval(months => raw_months));  -- whole hours only
+begin
+  -- roll up every raw hour that is about to expire (oldest raw row .. cut-off + 1 day), so missed nights lose nothing
+  v_rolled := public.rollup_readings((select min(ts) from public.readings), v_cut + interval '1 day');
+  with d as (delete from public.readings where ts < v_cut returning 1) select count(*) into v_raw from d;
+  with d as (delete from public.readings_hourly where hour < now() - make_interval(months => rollup_months) returning 1)
+  select count(*) into v_hourly from d;
+  return jsonb_build_object('rolled_up', v_rolled, 'raw_deleted', v_raw, 'hourly_deleted', v_hourly);
+end $$;
+revoke all on function public.apply_retention(int, int) from public, anon, authenticated;
+grant execute on function public.apply_retention(int, int) to service_role;
 
 -- Schedules (Supabase pg_cron; enabled in 4.B1, not executed in the local syntax check):
 --   select cron.schedule('nw-offline-scan', '*/5 * * * *', 'select public.scan_offline()');
---   select cron.schedule('nw-retention',    '17 3 * * *',  'select public.purge_old_readings()');
+--   select cron.schedule('nw-rollup',       '5 * * * *',   'select public.rollup_readings()');        -- hourly, last 2 days
+--   select cron.schedule('nw-retention',    '17 3 * * *',  'select public.apply_retention()');       -- nightly: roll up, then delete

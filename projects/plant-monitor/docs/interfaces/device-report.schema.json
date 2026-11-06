@@ -12,7 +12,7 @@
     "trigger": { "enum": ["scheduled", "critical", "reconnect"], "description": "scheduled = hourly (FR-D02); critical = immediate report on a critical event (FR-E03); reconnect = first report after an offline period (FR-D04)." },
     "fw": { "type": "string", "maxLength": 32, "description": "Running firmware version, e.g. 0.3.1." },
     "model": { "type": "string", "maxLength": 32, "description": "Running model-set version (edge AI, FR-D05)." },
-    "forecast_h": { "type": ["number", "null"], "minimum": 0, "maximum": 72, "description": "Model A output, hours until the dry threshold; null = no forecast / more than 72 h (app shows '> 3 days'). FR-E01, UC-08." },
+    "forecast_h": { "type": ["number", "null"], "minimum": 0, "maximum": 72, "description": "Model A output, hours until the dry threshold; null = no forecast yet (model has not produced one); 72.0 = 72 h or more (app shows '> 3 days'). FR-E01, UC-08." },
     "cal": {
       "type": "object", "additionalProperties": false, "required": ["dry_raw", "wet_raw"],
       "description": "Device calibration points (raw ADC counts) used to compute moisture_pct. Sent whenever changed. FR-NEW-CAL in requirements-v1.0-delta.md.",

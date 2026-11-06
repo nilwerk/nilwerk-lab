@@ -8,7 +8,7 @@ do $$ declare t text; begin
     if t <> 'api_keys' then execute format('grant all on public.%I to authenticated, service_role', t); end if;
   end loop;
   grant usage on schema public to anon, authenticated, service_role;
-  grant select on public.plant_status to authenticated;
+  grant select on public.plant_status, public.readings_daily to authenticated;
   grant select (id, owner_id, name, prefix, created_at, last_used_at, revoked_at) on public.api_keys to authenticated;
   grant all on public.api_keys to service_role;
 end $$;
@@ -140,11 +140,66 @@ do $$ begin
   if public.reading_is_plausible(21, 55, 1200, 2900, 40) then raise exception 'vbat 2900 accepted'; end if;
 end $$;
 
--- retention: 13-month-old row is purged, 11-month-old stays (G1)
-insert into public.readings(device_id,ts,owner_id) values
- ('20000000-0000-0000-0000-00000000000a', now() - interval '13 months','00000000-0000-0000-0000-00000000000a'),
- ('20000000-0000-0000-0000-00000000000a', now() - interval '11 months','00000000-0000-0000-0000-00000000000a');
-do $$ declare n bigint; begin n := public.purge_old_readings(); if n <> 1 then raise exception 'purge expected 1, got %', n; end if; end $$;
+-- retention (NFR-13, A-028): raw 3 months, hourly roll-up 12 months. Fixture, all for device A:
+--  * 4 plausible samples 100 days ago in one hour (20,30,40,50 %) + 1 implausible (moisture 99, vbat 2900 -> excluded)
+--  * 1 raw sample 5 days ago (stays raw; rolled up only once its hour is complete, which it is)
+--  * 1 raw sample 11 months ago directly in readings_hourly (kept) and 13 months ago (deleted)
+reset role;
+insert into public.readings(device_id,ts,owner_id,plant_id,moisture_pct,temp_c,vbat_mv,plausible)
+select '20000000-0000-0000-0000-00000000000a', date_trunc('hour', now() - interval '100 days') + (g*15 || ' minutes')::interval,
+       '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a', 20 + 10*g, 20 + g, 3800, true from generate_series(0,3) g;
+insert into public.readings(device_id,ts,owner_id,plant_id,moisture_pct,vbat_mv,plausible) values
+ ('20000000-0000-0000-0000-00000000000a', date_trunc('hour', now() - interval '100 days') + interval '50 minutes',
+  '00000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-00000000000a', 99, 2900, false),
+ ('20000000-0000-0000-0000-00000000000a', now() - interval '5 days','00000000-0000-0000-0000-00000000000a',null,10,3700,true);
+insert into public.readings_hourly(device_id,hour,owner_id,n,moisture_avg) values
+ ('20000000-0000-0000-0000-00000000000a', date_trunc('hour', now() - interval '11 months'),'00000000-0000-0000-0000-00000000000a',4,33),
+ ('20000000-0000-0000-0000-00000000000a', date_trunc('hour', now() - interval '13 months'),'00000000-0000-0000-0000-00000000000a',4,33);
+do $$ declare r jsonb; n int; h record; begin
+  -- the 31 fixture rows from day 0..30 are younger than 3 months; apply_retention must delete exactly the 5 old raw rows
+  r := public.apply_retention();
+  if (r->>'raw_deleted')::int <> 5 then raise exception 'raw_deleted expected 5, got %', r; end if;
+  if (r->>'hourly_deleted')::int <> 1 then raise exception 'hourly_deleted expected 1 (13 months), got %', r; end if;
+  select count(*) into n from public.readings where ts < now() - interval '3 months'; if n <> 0 then raise exception 'raw older than 3 months survives'; end if;
+  select count(*) into n from public.readings where ts > now() - interval '3 months'; if n < 31 then raise exception 'young raw rows lost, got %', n; end if;
+  -- the 100-day-old hour is in the roll-up: 4 plausible samples, avg 35, min 20, max 50, vbat min 3800 (implausible row excluded)
+  select * into h from public.readings_hourly where device_id='20000000-0000-0000-0000-00000000000a'
+     and hour = date_trunc('hour', now() - interval '100 days');
+  if h.n is distinct from 4 or h.moisture_avg is distinct from 35::real or h.moisture_min <> 20 or h.moisture_max <> 50 or h.vbat_min_mv <> 3800
+     then raise exception 'roll-up wrong: %', h; end if;
+  select count(*) into n from public.readings_hourly where hour < now() - interval '12 months'; if n <> 0 then raise exception '13-month roll-up survives'; end if;
+  select count(*) into n from public.readings_hourly where hour = date_trunc('hour', now() - interval '11 months'); if n <> 1 then raise exception '11-month roll-up lost'; end if;
+  -- idempotent: second run changes nothing and a re-roll over the same hour never lowers n
+  r := public.apply_retention();
+  if (r->>'raw_deleted')::int <> 0 or (r->>'hourly_deleted')::int <> 0 then raise exception 'second run not a no-op: %', r; end if;
+  select hr.n into n from public.readings_hourly hr where hour = date_trunc('hour', now() - interval '100 days'); if n <> 4 then raise exception 'roll-up n lowered to %', n; end if;
+  -- daily view: one day row for the 100-day-old day, weighted average 35
+  select * into h from public.readings_daily where day = (date_trunc('hour', now() - interval '100 days') at time zone 'UTC')::date;
+  if h.n <> 4 or h.moisture_avg <> 35 then raise exception 'daily view wrong: %', h; end if;
+  -- a roll-up hour is never shrunk when part of its raw rows are gone: delete one of the 2 raw rows of a kept hour and re-roll
+  perform public.rollup_readings(now() - interval '6 days');
+  delete from public.readings where ts > now() - interval '5 days 1 hour' and ts < now() - interval '4 days 23 hours' and plant_id is null;   -- half of that hour
+  perform public.rollup_readings(now() - interval '6 days');
+  select hr.n into n from public.readings_hourly hr where hour = date_trunc('hour', now() - interval '5 days'); if n <> 2 then raise exception 'roll-up shrunk after raw delete, n=%', n; end if;  -- 2 = fixture day-5 row + the extra one (one raw row is left, a naive upsert would write 1)
+end $$;
+-- roll-up is owner-scoped by RLS: user B sees none, user A (free) sees only the last 7 days of it
+set role authenticated; set request.uid = '00000000-0000-0000-0000-00000000000b';
+do $$ declare n int; begin select count(*) into n from public.readings_hourly; if n <> 0 then raise exception 'B sees A roll-up (%)', n; end if;
+  select count(*) into n from public.readings_daily; if n <> 0 then raise exception 'B sees A daily'; end if; end $$;
+reset role; update public.profiles set is_premium = false where id = '00000000-0000-0000-0000-00000000000a';   -- A is premium from the earlier block
+set role authenticated; set request.uid = '00000000-0000-0000-0000-00000000000a';
+do $$ declare n int; begin select count(*) into n from public.readings_hourly where hour < now() - interval '7 days';
+  if n <> 0 then raise exception 'free user sees roll-up older than 7 days'; end if; end $$;
+reset role; update public.profiles set is_premium = true where id = '00000000-0000-0000-0000-00000000000a'; set role authenticated;
+-- users cannot call the retention functions or write the roll-up
+do $$ begin
+  begin perform public.apply_retention(); raise exception 'user ran apply_retention';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.readings_hourly(device_id,hour,owner_id,n) values ('20000000-0000-0000-0000-00000000000a', date_trunc('hour',now()),'00000000-0000-0000-0000-00000000000a',1);
+        raise exception 'user wrote roll-up';
+  exception when insufficient_privilege or sqlstate '42501' then null; end;
+end $$;
+reset role;
 
 -- delete_plant (FR-A08, NFR-07, A-022): photos + readings go, sensor stays claimed, foreign plant refused
 reset role;
@@ -159,6 +214,8 @@ insert into public.readings(device_id,ts,owner_id,plant_id,moisture_pct) values
   ('20000000-0000-0000-0000-0000000000a2', now() - interval '1 hour','00000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-0000000000a2', 40),
   ('20000000-0000-0000-0000-0000000000a2', now() - interval '2 hours','00000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-0000000000a2', 41),
   ('20000000-0000-0000-0000-0000000000a2', now() - interval '3 hours','00000000-0000-0000-0000-00000000000a',null, 42);  -- before assignment: kept
+insert into public.readings_hourly(device_id,hour,owner_id,plant_id,n) values
+  ('20000000-0000-0000-0000-0000000000a2', date_trunc('hour', now() - interval '30 days'),'00000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-0000000000a2',4);
 set role authenticated;
 -- user B cannot delete A's plant, and nothing changes
 set request.uid = '00000000-0000-0000-0000-00000000000b';
@@ -182,6 +239,7 @@ do $$ declare r jsonb; n int; begin
   select count(*) into n from public.plants where id = '10000000-0000-0000-0000-0000000000a2'; if n <> 0 then raise exception 'plant survives'; end if;
   select count(*) into n from public.plant_images where plant_id = '10000000-0000-0000-0000-0000000000a2'; if n <> 0 then raise exception 'photos survive'; end if;
   select count(*) into n from public.readings where device_id = '20000000-0000-0000-0000-0000000000a2' and plant_id is not null; if n <> 0 then raise exception 'plant readings survive'; end if;
+  select count(*) into n from public.readings_hourly where device_id = '20000000-0000-0000-0000-0000000000a2'; if n <> 0 then raise exception 'plant roll-up survives'; end if;
   select count(*) into n from public.readings where device_id = '20000000-0000-0000-0000-0000000000a2'; if n <> 1 then raise exception 'unassigned reading must stay, got %', n; end if;
   -- sensor stays claimed, only the plant link is gone
   select count(*) into n from public.devices where id = '20000000-0000-0000-0000-0000000000a2'

@@ -255,7 +255,7 @@ For **2.4 (DB schema + API spec)**:
 - D-8 Time: device RTC drifts in deep sleep; server stamps `received_at`, device sends `sample_age_s` plus SNTP-synced `ts`.
 
 For **2.8 (risk register)**:
-- O-1 Battery (NFR-01): 15-min wakes plus hourly TLS handshakes (v0.2: two of them, cloud and hub) may break the 6-month target; needs an early current budget (task 5.4) and a fallback (30-min sampling, or longer Wi-Fi interval when no event). Owner Mira/Emil.
+- O-1 Battery (NFR-01): 15-min wakes plus hourly TLS handshakes (v0.2: two of them, cloud and hub) may break the 3-month target (A-020; was 6 months); needs an early current budget (task 5.4) and a fallback (30-min sampling, or longer Wi-Fi interval when no event). Owner Mira/Emil.
 - O-2 Latency (FR-E03 <= 15 min): an immediate Wi-Fi wake on a critical event costs a TLS session; false events drain battery. Limit wakes per day. QA (PR #3 finding 3) notes that with a 15-min cadence the strict 15 min cannot hold literally (about 15 min + connect time); the critical-event set from the 2.4 work (PR #4) becomes the event enum in the report schema; waterlogged/fast-drying are debounced and outside the FR-E03 claim.
 - O-3 OTA integrity: ESP-IDF secure boot / signed images are not planned; decide whether SHA-256 over TLS is enough for the demo (recommended) and document the gap vs CE/RED later.
 - O-4 BLE provisioning on iOS and Android with Expo: the maintained ESP provisioning library needs a dev build (not Expo Go); verify on both platforms in week 1 (FR-D03, NFR-03).
@@ -294,7 +294,7 @@ Source: owner comment on PR #3: sensor is initialised and bound to the user's pr
 | FR-D04 | Clarify | Offline buffer feeds the cloud only; the hub is best effort (gaps accepted). |
 | FR-A08 | Changed | Release also revokes the device's hub credential. |
 | FR-I01 | Changed (C) | Home Assistant integration via MQTT discovery is served from the hub (Node-RED flow) rather than the cloud. |
-| NFR-01 | Clarified | 6 months at hourly reporting **including** the hub publish; to be proved in 5.4. |
+| NFR-01 | Clarified | **3 months** (A-020/A-021; 6 months is a stretch goal for a later version) at hourly reporting **including** the hub publish; to be proved in 5.4. |
 | NFR-03 | Changed | Setup <= 3 min measured with the hub already installed. Hub install is separate. |
 | NFR-06 | Extended | Also: Wi-Fi credentials never in plaintext over BLE; no Wi-Fi password in cloud storage; per-device broker credentials and topic ACL; TLS to the hub. |
 | NFR-07 | Extended | Wi-Fi credentials are not personal data we hold (not stored in cloud); data export/delete includes hub data guidance. |

@@ -45,7 +45,7 @@ only fire on a crash mid-session. So there is no LWT. Offline is decided by the 
 | `rh_pct` | number or null | 0 .. 100 %RH | FR-D01 |
 | `lux` | number or null | 0 .. 100000 | FR-D01 |
 | `vbat_mv` | int or null | 3000 .. 4250 mV | FR-D01, FR-D06 |
-| `forecast_h` | number or null | 0 .. 72 h (latest, same on all messages of the session) | FR-E01 |
+| `forecast_h` | number or null | 0 .. 72 h (latest, same on all messages of the session); null = no forecast yet, 72.0 = 72 h or more | FR-E01 |
 | `fw` | string | firmware version | |
 
 `event`: `{"v":1,"ts":1798999000,"type":"wetting_unexpected"}`; `type` is the enum from the report schema.

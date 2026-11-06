@@ -5,7 +5,7 @@ Builders code against these files. A change to any of them needs an ADR (role fi
 
 | File | Contract | Main consumers |
 |---|---|---|
-| `db-schema.sql` | Postgres tables, RLS on every table, alert/offline/retention functions | Leo (4.B1, 4.B2), Sana, Ines |
+| `db-schema.sql` | Postgres tables, RLS on every table, alert/offline/retention + roll-up functions | Leo (4.B1, 4.B2), Sana, Ines |
 | `db-schema.test.sql` | Smoke test of the above (RLS, premium window, alerts, retention, cascade) | Ines, Kai |
 | `openapi.yaml` + `device-report.schema.json` | `/claim-token`, `/device-claim`, `/ingest`, `/device-release`, `/plants/{id}` (delete), `/api-keys`, `/export`, `/account` | Mira (4.F2/4.F3), Leo (4.A*, 4.B2) |
 | `hub-mqtt.md` | Device -> Pi hub MQTT topics and payloads (ADR-012) | Mira (4.F6), hub tasks 4.H1/4.H2 |
@@ -31,7 +31,7 @@ The `cloud/` scaffold is empty (`.gitkeep`), so no migration is placed there; Le
 | Decision | Where |
 |---|---|
 | Offline = 3 missed hourly reports (replaces 2.5 h in D-6/ADR-012) | `scan_offline()`: last report older than 3 h + 10 min jitter grace [10 min grace decided, A-018]; hub: same rule |
-| Retention 12 months of raw readings | `purge_old_readings()`, daily pg_cron |
+| Retention: raw ~3 months, hourly/daily roll-up 12 months (NFR-13, A-028) | `rollup_readings()` hourly + `apply_retention()` nightly (pg_cron), table `readings_hourly`, view `readings_daily` |
 | Export JSON + CSV | `GET /export?format=json\|csv` |
 | FR-D02 = 24 +/- 1 reports per day | `/ingest` limit 6 requests/device/hour leaves room for critical + reconnect; cadence in `config.report_interval_s = 3600` |
 | OTA = SHA-256 over TLS, signing is a follow-up, FR-D05(c) dropped | `Artifact.sha256`, `firmware_releases.sha256`, `ota.status = hash_mismatch` in the report |
@@ -50,10 +50,10 @@ The `cloud/` scaffold is empty (`.gitkeep`), so no migration is placed there; Le
 - Switching the flag takes effect on the next request (no cached claim). Test (5.6): flip, repeat the same call, expect 200 vs 403.
 
 ## Cross-checks I could do (see "Verification")
-- Every table in `db-schema.sql` has RLS enabled, test fails otherwise (NFR-06). Tables: profiles, plants, devices, device_credentials, claim_tokens, firmware_releases, plant_images, readings, events, alerts, push_tokens, tips, api_keys. The Plan lists seven; the other six are required by FR-A07, FR-D03, FR-D05, FR-P03 and ADR-004.
+- Every table in `db-schema.sql` has RLS enabled, test fails otherwise (NFR-06). Tables: profiles, plants, devices, device_credentials, claim_tokens, firmware_releases, plant_images, readings, readings_hourly, readings_hourly, events, alerts, push_tokens, tips, api_keys. The Plan lists seven; the other six are required by FR-A07, FR-D03, FR-D05, FR-P03 and ADR-004.
 - Field names match across `device-report.schema.json`, `hub-mqtt.md`, `db-schema.sql` and `mcp-tools.json`.
 
 ## Verification (what was and was not run)
-- **Run:** `db-schema.sql` + `db-schema.test.sql` on a local PostgreSQL 16 with a stub `auth` schema: loads without error, test prints `ALL OK` (RLS everywhere, user B sees nothing of A, self-grant of premium refused, free = 7 rows of 31 / premium = 31, alert dedupe, offline at 3 h 10 min and cleared by a report, plausibility ranges, 12-month purge, account-delete cascade, `delete_plant`: removes photos+readings, refused for foreign user and anon, sensor stays claimed, readings without plant kept).
+- **Run:** `db-schema.sql` + `db-schema.test.sql` on a local PostgreSQL 16 with a stub `auth` schema: loads without error, test prints `ALL OK` (RLS everywhere, user B sees nothing of A, self-grant of premium refused, free = 7 rows of 31 / premium = 31, alert dedupe, offline at 3 h 10 min and cleared by a report, plausibility ranges, 3-month raw / 12-month roll-up retention (roll-up values, outdated-hour rule, implausible excluded, idempotent, owner/RLS scoped, user cannot call it; mutation-checked), account-delete cascade, `delete_plant`: removes photos+readings, refused for foreign user and anon, sensor stays claimed, readings without plant kept).
 - **Run:** `device-report.schema.json` is a valid Draft 2020-12 schema and accepts/rejects 1 valid + 4 invalid sample reports (now committed in `fixtures/`, run `python3 validate_fixtures.py`; the CI `interfaces` job validates `fixtures/device-report*.json` as valid, `fixtures/invalid/` is only checked by the script; Kai is adding OpenAPI/JSON validation to CI); `openapi.yaml` and `mcp-tools.json` parse and all local `$ref`s resolve.
 - **Not run:** anything on a real Supabase project (`auth.uid()`, `storage` policies, pg_cron, the `current_user` role names used by the guard triggers are assumptions to confirm in 4.B1); OpenAPI linting with an external validator (not available here); BLE/MQTT on real devices; Edge Function limits for `/export` on large accounts.
