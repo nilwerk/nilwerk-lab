@@ -4,9 +4,9 @@ Author: Ines (QA & Test Engineer) · against PR #15 head `c010fe3` · matrix: `a
 
 | # | File : line | Now | Change to | Why |
 |---|---|---|---|---|
-| 1 | delta : 28 (NFR-12) | `I_sleep_max = TBD` | keep TBD, add "[proposed 50 µA requirement / 25 µA target, pending A-021]" or leave TBD; matrix carries the proposal | A-021 is open; nobody decides the number |
+| 1 | delta : 28 (NFR-12) | `I_sleep_max = TBD` | keep TBD, add "[proposed 50 µA requirement / 25 µA target, pending A-021; SUPERSEDED: A-027 decided 50 µA, target 25 µA (2026-11-06)]" or leave TBD; matrix carries the proposal | A-021 is open; nobody decides the number |
 | 2 | delta : 28 (NFR-12, Test column) | `5.2 / 4.P5` | confirm the task ID with Nora; matrix says `5.2, 5.4` | I cannot see the Plan tab |
-| 3 | delta : 29 (NFR-13) | acceptance: "rows older than 12 months are absent after the nightly job" | add "rows younger than 12 months are untouched (boundary: 11 months 29 days kept)" and "the pg_cron job exists and last ran OK" | matrix NFR-13 tests both |
+| 3 | delta : 29 (NFR-13) | acceptance: "rows older than 12 months are absent after the nightly job" | add "rows younger than 12 months are untouched (boundary: 11 months 29 days kept)" and "the pg_cron job exists and last ran OK" | matrix NFR-13 tests both | SUPERSEDED by A-028 (2026-11-06): raw ~3 months, hourly/daily roll-ups 12 months.
 | 4 | delta : 27 (FR-D10) | "dry and wet references reads <= 5 points from 0 and 100" | say "a fresh (not the calibration) dry/wet sample of the same soil type" | otherwise the check is circular: calibration points read 0/100 by construction |
 | 5 | delta : 27 (FR-D10) | "repeatable per soil type" | add "points stored per soil type" or drop the per-soil-type storage claim; the schema has only one `cal_dry_raw/cal_wet_raw` per device | `db-schema.sql` lines 100-101 hold one pair; matrix row (d) tests two soil types |
 | 6 | delta : 12 (FR-D04) | OK (96 samples) | no change; note the 7-day stretch (672 samples) needs more than one 192-sample report | A-017; `device-report.schema.json` maxItems 192 |
