@@ -15,6 +15,7 @@ Contracts in `docs/interfaces/` need a few decisions the earlier ADRs left open 
 7. **Retention 12 months** of raw readings, nightly purge; no roll-up tables. (G1)
 8. **OTA integrity = SHA-256 over TLS**; image signing is a follow-up and needs its own ADR. (G1, A-009; ADR-009 unchanged)
 9. **No MQTT Last-Will** on the device-to-hub link; the hub derives offline from silence, because clean disconnects never fire a LWT. Hub identity is `hw_id`. (ADR-012 amended)
+10. **Deleting a plant deletes its photos, readings, events, alerts and tips** after a warning with JSON/CSV export first; the sensor stays claimed and is released separately (`delete_plant()`, `DELETE /plants/{id}`). Arsany A-022. (FR-A08, NFR-07)
 
 ## Alternatives
 - Reject out-of-range samples: loses the rest of the batch and breaks FR-D04. Rejected.

@@ -406,6 +406,35 @@ end $$;
 revoke all on function public.scan_offline() from public, anon, authenticated;
 grant execute on function public.scan_offline() to service_role;
 
+-- Delete a plant (FR-A08, NFR-07; Arsany A-022): removes the plant, its photos (rows) and its readings,
+-- events, alerts and tips. The sensor stays CLAIMED (devices.plant_id is set null by the FK) and is released
+-- separately via POST /device-release. The app must warn first and offer the JSON/CSV export (GET /export).
+-- Returns the storage paths of the deleted photos: the caller (edge function or app) must delete those
+-- objects from bucket 'plant-photos', because SQL cannot remove Storage objects safely.
+-- Readings recorded before the sensor was assigned to this plant have plant_id null and are NOT touched.
+create or replace function public.delete_plant(p_plant uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_paths   text[];
+  v_readings bigint; v_events bigint; v_alerts bigint;
+begin
+  if v_uid is null then raise exception 'not authenticated' using errcode = '28000'; end if;
+  if not exists (select 1 from public.plants where id = p_plant and owner_id = v_uid) then
+    raise exception 'plant not found' using errcode = 'P0002';   -- same answer for unknown and foreign ids
+  end if;
+  select coalesce(array_agg(storage_path), '{}') into v_paths from public.plant_images where plant_id = p_plant;
+  with d as (delete from public.readings where plant_id = p_plant and owner_id = v_uid returning 1) select count(*) into v_readings from d;
+  with d as (delete from public.events   where plant_id = p_plant and owner_id = v_uid returning 1) select count(*) into v_events   from d;
+  with d as (delete from public.alerts   where plant_id = p_plant and owner_id = v_uid returning 1) select count(*) into v_alerts   from d;
+  delete from public.plants where id = p_plant and owner_id = v_uid;   -- cascades plant_images, tips; devices.plant_id -> null
+  return jsonb_build_object('plant_id', p_plant, 'photo_paths', to_jsonb(v_paths),
+                            'deleted', jsonb_build_object('readings', v_readings, 'events', v_events, 'alerts', v_alerts,
+                                                          'photos', coalesce(array_length(v_paths, 1), 0)));
+end $$;
+revoke all on function public.delete_plant(uuid) from public, anon;
+grant execute on function public.delete_plant(uuid) to authenticated;
+
 -- Retention: 12 months of raw readings (G1, A-008 point 21).
 create or replace function public.purge_old_readings() returns bigint
 language plpgsql security definer set search_path = public as $$

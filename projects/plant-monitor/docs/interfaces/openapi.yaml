@@ -153,6 +153,33 @@ paths:
         "204": { description: Released }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { description: "Not your device (indistinguishable from unknown id)" }
+  /plants/{id}:
+    delete:
+      tags: [app]
+      summary: Delete a plant together with its photos and readings
+      x-requirements: [FR-A08, NFR-07]
+      description: |
+        Calls the database function `delete_plant(p_plant)` (db-schema.sql). Deletes the plant, its photos,
+        readings, events, alerts and tips. The sensor stays claimed (plant_id becomes null) and is released
+        separately with POST /device-release. The app MUST show a warning first and offer the JSON/CSV export
+        (GET /export); there is no undo. Photo objects in Storage bucket 'plant-photos' are removed by the caller
+        from the returned `photo_paths`. Readings recorded before the sensor was assigned to this plant are kept.
+      security: [{ userJwt: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [plant_id, photo_paths, deleted]
+                properties:
+                  plant_id: { type: string, format: uuid }
+                  photo_paths: { type: array, items: { type: string } }
+                  deleted: { type: object, properties: { readings: { type: integer }, events: { type: integer }, alerts: { type: integer }, photos: { type: integer } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: "Not your plant (indistinguishable from unknown id)" }
   /api-keys:
     post:
       tags: [app]

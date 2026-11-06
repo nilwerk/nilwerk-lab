@@ -284,6 +284,8 @@ Source: owner comment on PR #3: sensor is initialised and bound to the user's pr
 
 ### 10.1 Requirements v0.1: items that change or are added (Requirements doc not edited)
 
+> **Update 2026-11-06 (Arsany, A-023): the Raspberry Pi hub is not part of v1.** FR-H01..H03, FR-D08, FR-D09 and the pairing screen S17 move to v1.1; 4.A3 does not wait for them. The hub rows below stay as the v1.1 design. Consequence: the v1 NFR-01 budget does not need the hub publish (it is a saving, see power-budget.md section 7).
+
 | ID | Change | Proposed wording / note |
 |---|---|---|
 | FR-D03 | Changed | Setup mode (first boot or button): over BLE, using an encrypted, authenticated channel (protocomm security 2), receive Wi-Fi credentials, device name, claim token and hub configuration. |

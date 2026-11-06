@@ -146,6 +146,52 @@ insert into public.readings(device_id,ts,owner_id) values
  ('20000000-0000-0000-0000-00000000000a', now() - interval '11 months','00000000-0000-0000-0000-00000000000a');
 do $$ declare n bigint; begin n := public.purge_old_readings(); if n <> 1 then raise exception 'purge expected 1, got %', n; end if; end $$;
 
+-- delete_plant (FR-A08, NFR-07, A-022): photos + readings go, sensor stays claimed, foreign plant refused
+reset role;
+insert into public.plants(id,owner_id,name,location_type,soil_type) values
+  ('10000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-00000000000a','Mint','house','potting');
+insert into public.plant_images(plant_id,owner_id,storage_path) values
+  ('10000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-00000000000a','a/mint/1.jpg'),
+  ('10000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-00000000000a','a/mint/2.jpg');
+insert into public.devices(id,hw_id,owner_id,plant_id,claimed_at,last_seen_at) values
+  ('20000000-0000-0000-0000-0000000000a2','nw-a1b2c3d4e5f7','00000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-0000000000a2',now(),now());
+insert into public.readings(device_id,ts,owner_id,plant_id,moisture_pct) values
+  ('20000000-0000-0000-0000-0000000000a2', now() - interval '1 hour','00000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-0000000000a2', 40),
+  ('20000000-0000-0000-0000-0000000000a2', now() - interval '2 hours','00000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-0000000000a2', 41),
+  ('20000000-0000-0000-0000-0000000000a2', now() - interval '3 hours','00000000-0000-0000-0000-00000000000a',null, 42);  -- before assignment: kept
+set role authenticated;
+-- user B cannot delete A's plant, and nothing changes
+set request.uid = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  begin perform public.delete_plant('10000000-0000-0000-0000-0000000000a2');
+        raise exception 'foreign delete_plant allowed';
+  exception when sqlstate 'P0002' then null; end;
+end $$;
+-- anon cannot call it at all
+reset role; set role anon;
+do $$ begin
+  begin perform public.delete_plant('10000000-0000-0000-0000-0000000000a2');
+        raise exception 'anon delete_plant allowed';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role; set role authenticated; set request.uid = '00000000-0000-0000-0000-00000000000a';
+do $$ declare r jsonb; n int; begin
+  r := public.delete_plant('10000000-0000-0000-0000-0000000000a2');
+  if (r->'deleted'->>'readings')::int <> 2 then raise exception 'expected 2 readings deleted, got %', r; end if;
+  if (r->'deleted'->>'photos')::int <> 2 or jsonb_array_length(r->'photo_paths') <> 2 then raise exception 'photo paths %', r; end if;
+  select count(*) into n from public.plants where id = '10000000-0000-0000-0000-0000000000a2'; if n <> 0 then raise exception 'plant survives'; end if;
+  select count(*) into n from public.plant_images where plant_id = '10000000-0000-0000-0000-0000000000a2'; if n <> 0 then raise exception 'photos survive'; end if;
+  select count(*) into n from public.readings where device_id = '20000000-0000-0000-0000-0000000000a2' and plant_id is not null; if n <> 0 then raise exception 'plant readings survive'; end if;
+  select count(*) into n from public.readings where device_id = '20000000-0000-0000-0000-0000000000a2'; if n <> 1 then raise exception 'unassigned reading must stay, got %', n; end if;
+  -- sensor stays claimed, only the plant link is gone
+  select count(*) into n from public.devices where id = '20000000-0000-0000-0000-0000000000a2'
+     and owner_id = '00000000-0000-0000-0000-00000000000a' and plant_id is null;
+  if n <> 1 then raise exception 'device must stay claimed with plant_id null'; end if;
+  -- the other plant (Basil) is untouched
+  select count(*) into n from public.plants; if n <> 1 then raise exception 'other plant affected'; end if;
+end $$;
+reset role;
+
 -- account deletion cascades (FR-A01, NFR-07)
 delete from auth.users where id = '00000000-0000-0000-0000-00000000000a';
 do $$ declare n int; begin
