@@ -23,3 +23,13 @@ dataset to the canonical frame in `src/prep.py` are written only after someone h
 - Every output row carries `source` (dataset id); `select_sources` builds a Mendeley-only variant, `model_label` yields the "trained with ISMN data" label.
 - Hourly sources (ISMN) are resampled to 15 min only with `upsampled=True` on every row (`fresh` marks real observations).
 - Deliberate fallback: a held-out plant (no training rows) is normalised with pooled raw-value percentiles from all training plants. Different sensors have different raw units, so this is approximate and only used for held-out evaluation.
+
+## Slice 3 contract updates (Architect C1-C6 on PR #13, 2026-11-06)
+Status: Mendeley still unreachable from the sandbox (HTTP 000 on 2026-11-06, A-007 open). Synthetic only; no real counts, no metric.
+- C1: `EventTracker.to_rtc/from_rtc` (11 B image: layout version, CRC8, state). Cold boot, bad CRC or other version gives since = 288 (72 h or unknown) and empty history; `forecast_ready` is False until 96 samples. A failed sensor read (`valid=False`) still advances the counter. Host tests per rule.
+- C2: capped forecast is `forecast_h = 72.0` ("72 h or more"); `null` only means "no forecast yet". `forecast_h_from_model`.
+- C3: public datasets have no light, so `light_known=False` pins the feature to the placeholder (zero point 128), likewise `temp_known=False` (20 degC). A retrain is needed before real values are used. `lux_to_light_u8 = min(255, round(16*log2(1+lux)))` is the proposed mapping, unverified on a real sensor; the C port needs a literal table.
+- C4: `soil_code(soil_type)`: potting/peat/other = 1, garden/sand/clay = 2, 0 = unknown. Hour of day is plant-local: `local_minute_of_day(utc_min, config.utc_offset_min)`; training uses dataset local time. The `DeviceConfig` fields come with PR #15 (Theo).
+- C5: acceptance for 4.AI2: converted model input scale 1.0, zero point 0 (`FEATURE_INPUT_SCALE/ZERO_POINT`), else the port applies the converter's affine map and the golden test covers it.
+- C6: `export.event_agreement(segment)` reports label-vs-device event agreement (+-1 tick). Only synthetic value so far (full agreement on a clean sawtooth); the real-data rate goes here once data exists. Number: not measured.
+- QA note: `tests/test_contracts.py` also checks that `features_golden.json` equals the output of `make_golden.py` (drift test).

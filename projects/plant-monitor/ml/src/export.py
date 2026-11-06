@@ -47,7 +47,7 @@ def build_features(seg: pd.DataFrame, T: float = prep.DEFAULT_DRY_THRESHOLD, soi
     light_u8 = d["light"].to_numpy(dtype=np.int64) if light_known else np.full(n, 128, dtype=np.int64)
     since = F.ticks_since_event_series(m_u8, m_valid)
     minute = (d["time"].dt.hour * 60 + d["time"].dt.minute).to_numpy()
-    soil_code = F.SOIL_CODES[soil]
+    soil_code = F.soil_code(soil)  # db soil_type or device code name (C4)
     T_u8 = F.clip(int(np.floor(T + 0.5)), 0, 100)
     rows = np.zeros((n, len(F.FEATURE_NAMES)), dtype=np.int64)
     ok = np.zeros(n, dtype=bool)
@@ -65,6 +65,20 @@ def build_features(seg: pd.DataFrame, T: float = prep.DEFAULT_DRY_THRESHOLD, soi
     out["temp_known"] = bool(temp_known)
     out["light_known"] = bool(light_known)
     return out
+
+
+def event_agreement(seg: pd.DataFrame) -> dict:
+    """C6: agreement of label events (float prep.label_events) and device events (EventTracker on rounded m_u8) on ONE
+    segment. Returns counts and rate = matched / max(1, union), matching onsets within +-1 tick. FR-E01."""
+    f = build_features(seg)
+    d = f.reset_index(drop=True)
+    lab = np.flatnonzero((prep.label_events(d)["event"] != prep.EVENT_NONE).to_numpy())
+    tr = F.EventTracker()
+    dev = np.array([i for i, (m, ok) in enumerate(zip(d["m_u8"], d["m"].notna())) if tr.step(int(m), bool(ok))], dtype=int)
+    matched = sum(1 for i in lab if len(dev) and np.abs(dev - i).min() <= 1)
+    union = len(lab) + len(dev) - matched
+    return {"label_events": int(len(lab)), "device_events": int(len(dev)), "matched": int(matched),
+            "agreement_rate": matched / max(1, union)}
 
 
 def build_dataset(splits: dict[str, pd.DataFrame], T: float = prep.DEFAULT_DRY_THRESHOLD, soil: str = "pot") -> dict:

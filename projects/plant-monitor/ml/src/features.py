@@ -33,7 +33,12 @@ RISE_PTS = 10                # wetting detector: m[t] - m[t-RISE_WINDOW] >= RISE
 RISE_WINDOW = 2
 REFRACTORY = 8               # ticks; an onset within 8 ticks of the last onset is suppressed
 DEFAULT_T = 25               # default dry threshold, relative points (Arsany G1 answer 10); a DB field
-SOIL_CODES = {"house": 0, "pot": 1, "garden": 2}   # FR-A04 soil type, one value
+SOIL_CODES = {"unknown": 0, "pot": 1, "garden": 2}  # FR-A04 soil code, one value (0 = unknown/reserved)
+# Architect C4 (PR #13): the code is a function of db-schema plants.soil_type ONLY; the server computes it and
+# pushes config.soil_code. potting/peat/other -> 1 (pot), garden/sand/clay -> 2 (garden).
+SOIL_TYPE_TO_CODE = {"potting": 1, "peat": 1, "other": 1, "garden": 2, "sand": 2, "clay": 2}
+FORECAST_CAPPED_H = 72.0     # Architect C2: forecast_h = 72 means "72 h or more"; null = no forecast yet (never for capped)
+FEATURE_INPUT_SCALE, FEATURE_INPUT_ZERO_POINT = 1.0, 0   # Architect C5: required converter input quant for 4.AI2
 
 FEATURE_NAMES = ("m_now", "slope_1h", "slope_6h", "slope_24h", "m_min_24h", "m_max_24h", "temp_now",
                  "temp_mean_24h", "light_mean_6h", "sin_hour", "cos_hour", "T", "hours_since_event", "soil")
@@ -78,6 +83,33 @@ def quantise_temp(deg_c: float) -> int:
     return clip(int(np.floor(deg_c + 0.5)) + TEMP_OFFSET, 0, 255)
 
 
+def soil_code(soil_type: str) -> int:
+    """db-schema soil_type -> device soil code (C4). Unknown strings give 0. FR-A04."""
+    return SOIL_TYPE_TO_CODE.get(soil_type, SOIL_CODES.get(soil_type, 0))
+
+
+def local_minute_of_day(utc_minute_of_day: int, utc_offset_min: int) -> int:
+    """Plant-local minute of day from UTC minute and config.utc_offset_min (C4; device has no timezone). FR-E01."""
+    return (utc_minute_of_day + utc_offset_min) % 1440
+
+
+def lux_to_light_u8(lux: float) -> int:
+    """Light level uint8 = min(255, round(16*log2(1+lux))) (C3, Theo's proposal; lux 0..100000). Host-side float
+    reference; the C port needs a literal lookup table (no libm). Unverified on real sensor data. FR-E01."""
+    import math
+    return clip(int(math.floor(16.0 * math.log2(1.0 + max(0.0, lux)) + 0.5)), 0, 255)
+
+
+def forecast_h_from_model(raw_h: float) -> float:
+    """Clip model output to [0, 72]. 72.0 = '72 h or more' and is emitted as 72.0, never null (C2). FR-E01."""
+    return min(FORECAST_CAPPED_H, max(0.0, float(raw_h)))
+
+
+def forecast_ready(samples_since_cold_boot: int) -> bool:
+    """C1(a): no forecast until HIST (96) samples exist after a cold boot; device twin of export `feat_valid`."""
+    return samples_since_cold_boot >= HIST
+
+
 # --------------------------------------------------------------------------- slope
 def slope_x64(y: list[int] | np.ndarray) -> int:
     """Least-squares slope of the samples y (oldest first, 15-min spacing) in pp/h * 64, integer only.
@@ -112,6 +144,40 @@ class EventTracker:
         self.prev_rise = False
         self.since = HORIZON_TICKS                 # unknown / none yet = saturated
         self.since_refractory = 10**9              # ticks since last kept onset (for suppression)
+
+    RTC_LAYOUT_VERSION = 1
+
+    @staticmethod
+    def _crc8(data: bytes) -> int:
+        crc = 0
+        for b in data:
+            crc ^= b
+            for _ in range(8):
+                crc = ((crc << 1) ^ 0x07) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+        return crc
+
+    def to_rtc(self) -> bytes:
+        """RTC image: version, CRC8, then state (C1b). Layout is the contract for the C port; changes bump the version."""
+        h = [(m, int(v)) for m, v in self.hist] + [(0, 0)] * (RISE_WINDOW - len(self.hist))
+        body = bytes([len(self.hist), h[0][0], h[0][1], h[1][0], h[1][1], int(self.prev_rise),
+                      self.since & 0xFF, self.since >> 8, min(self.since_refractory, 255)])
+        return bytes([self.RTC_LAYOUT_VERSION, self._crc8(body)]) + body
+
+    @classmethod
+    def from_rtc(cls, blob: bytes | None) -> "EventTracker":
+        """Restore from RTC image; wrong length, version or CRC (cold boot, brown-out, OTA layout change) gives a
+        cold-boot tracker: since = 288 (72 h or unknown), empty history (C1a, C1b)."""
+        tr = cls()
+        if blob is None or len(blob) != 11 or blob[0] != cls.RTC_LAYOUT_VERSION or cls._crc8(blob[2:]) != blob[1]:
+            return tr
+        b = blob[2:]
+        if b[0] > RISE_WINDOW or b[5] > 1 or (b[6] | b[7] << 8) > HORIZON_TICKS:
+            return tr
+        tr.hist = [(b[1], bool(b[2])), (b[3], bool(b[4]))][:b[0]]
+        tr.prev_rise = bool(b[5])
+        tr.since = b[6] | b[7] << 8
+        tr.since_refractory = b[8] if b[8] < 255 else 10**9
+        return tr
 
     def step(self, m: int, valid: bool = True) -> bool:
         """Feed one 15-min sample; returns True when a wetting onset is detected at this tick."""
