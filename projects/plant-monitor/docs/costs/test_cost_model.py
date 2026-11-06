@@ -19,24 +19,38 @@ class ModelTests(unittest.TestCase):
         # 2000*1 + 500*5 = 4500 / 1e6 USD
         self.assertAlmostEqual(cm.claude_cost_per_call(A), 0.0045)
 
-    def test_demo_is_free_tier_and_costs_only_claude(self):
+    def test_demo_costs_zero(self):
+        # A-025: demo = free tier, one DB, DWD weather, no store accounts, no live Claude tips
         sc = cm.scenarios()[0]
         lines = cm.monthly_costs(sc)
         self.assertEqual(lines["_tier"], "free")
-        self.assertEqual(lines["Supabase plan"], 0)
-        self.assertEqual(lines["Store accounts"], 0)
-        # 3 demo devices, 30 tips each
-        self.assertAlmostEqual(lines["Claude API (tips)"], 90 * 0.0045)
+        self.assertEqual(cm.total(lines), 0.0)
+        self.assertEqual(lines["Claude API (tips)"], 0)
+        self.assertTrue(sc.demo)
 
-    def test_pro_from_100_users_with_separate_profile_db(self):
+    def test_demo_with_live_tips_costs_only_claude(self):
+        sc = cm.scenarios()[0]
+        a = cm.Assumptions(demo_tips_per_device_month=30.0)
+        lines = cm.monthly_costs(sc, a)
+        self.assertAlmostEqual(cm.total(lines), 90 * 0.0045)
+
+    def test_demo_fits_free_quotas(self):
+        u = cm.usage(cm.scenarios()[0], A)
+        free = cm.LIMITS["free"]
+        self.assertLess(u["db_gb"], free["db_gb"])
+        self.assertLess(u["storage_gb"], free["storage_gb"])
+        self.assertLess(u["fn"], free["fn_invocations"])
+
+    def test_one_database_by_default(self):
+        self.assertEqual(A.profile_db_projects, 0)
         lines = cm.monthly_costs(cm.scenarios()[1])
         self.assertEqual(lines["_tier"], "pro")
-        self.assertAlmostEqual(lines["Supabase plan"], 25 + 10)  # A-011 second project
+        self.assertAlmostEqual(lines["Supabase plan"], 25)   # A-025: no second project
 
-    def test_no_profile_db_is_cheaper(self):
+    def test_second_project_would_add_ten(self):
         sc = cm.scenarios()[1]
-        a0 = cm.Assumptions(profile_db_projects=0)
-        self.assertAlmostEqual(cm.monthly_costs(sc)["Supabase plan"] - cm.monthly_costs(sc, a0)["Supabase plan"], 10)
+        a1 = cm.Assumptions(profile_db_projects=1)
+        self.assertAlmostEqual(cm.monthly_costs(sc, a1)["Supabase plan"] - cm.monthly_costs(sc)["Supabase plan"], 10)
 
     def test_usage_numbers_100_users(self):
         sc = cm.scenarios()[1]
@@ -48,9 +62,17 @@ class ModelTests(unittest.TestCase):
     def test_db_rows_use_15min_samples(self):
         self.assertEqual(A.samples_per_device_month, 2880)
         self.assertEqual(A.reports_per_device_month, 720)
+
+    def test_rollup_after_three_months_raw(self):
+        self.assertEqual(A.raw_months, 3)
         u = cm.usage(cm.scenarios()[2], A)
-        self.assertAlmostEqual(u["db_gb"], 2000 * 2880 * 12 * 0.3 / 1024 / 1024)
-        self.assertGreater(u["db_gb"], cm.LIMITS["pro"]["db_gb"])
+        raw = 2000 * 2880 * 3 * 0.3
+        roll = 2000 * 720 * 9 * 0.3
+        self.assertAlmostEqual(u["db_gb"], (raw + roll) / 1024 / 1024)
+        # all-raw for 12 months would be 19.78 GB (old model), roll-up is less than half
+        all_raw = cm.db_gb_for(2000, A, raw_only=True)
+        self.assertAlmostEqual(all_raw, 2000 * 2880 * 12 * 0.3 / 1024 / 1024)
+        self.assertLess(u["db_gb"], all_raw / 2)
 
     def test_overage_kicks_in_over_quota(self):
         big = cm.Scenario("big", 5000, 10000, 0, True)

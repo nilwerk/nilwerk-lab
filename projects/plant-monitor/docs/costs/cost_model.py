@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Running-cost model for the Plant Monitor cloud (task 2.6, FR-P01..P04, NFR-04, NFR-07).
 
+Decisions applied: A-025 (one free Supabase DB for the demo, ~3 months raw then roll-up, demo costs zero).
+
 Stdlib only. Every price/limit below is UNVERIFIED: network access was blocked when this
 was written and nothing was checked against the provider's page. Each entry carries the
 URL a human must check. Change a number here, run `python cost_model.py --markdown`, and
@@ -53,12 +55,16 @@ class Assumptions:
     samples_per_device_month: int = 96 * 30       # 15-min samples = DB rows (PR #15 db-schema, 2880)
     other_calls_per_user_month: int = 600          # app, alerts, claim, analytics, MCP
     db_kb_per_sample: float = 0.3                  # row + index
-    retention_months: int = 12
+    retention_months: int = 12                     # total history visible (raw + roll-up)
+    raw_months: int = 3                            # A-025: ~3 months of raw 15-min samples, then roll-up
+    rollup_rows_per_device_month: int = 720        # hourly min/avg/max row per device (24 * 30)
+    db_kb_per_rollup: float = 0.3                  # roll-up row plus index, rough (same as a sample)
     photo_mb_per_device: float = 0.5
     tips_per_premium_device_month: float = 30.0    # about one refresh per day, cached
+    demo_tips_per_device_month: float = 0.0        # A-025: demo costs nothing -> no live Claude tips in the demo (canned rule-layer tips)
     tips_tokens_in: int = 2000
     tips_tokens_out: int = 500
-    profile_db_projects: int = 1                   # A-011: user profiles in a separate DB
+    profile_db_projects: int = 0                   # A-025: ONE database (supersedes the separate profile DB of A-011)
     min_users_for_pro: int = 100                   # free tier pauses/has no backups: not for customers
 
 
@@ -71,6 +77,7 @@ class Scenario:
     store_accounts: bool  # App Store / Play fees apply
     weather: str = "dwd_brightsky"
     premium_devices: float = -1  # devices owned by premium users; -1 = premium_users * devices_per_user
+    demo: bool = False           # demo units: live LLM tips off (a.demo_tips_per_device_month per device)
 
 
 def supabase_tier(sc: Scenario, a: Assumptions) -> str:
@@ -84,12 +91,21 @@ def supabase_tier(sc: Scenario, a: Assumptions) -> str:
     return "free"
 
 
+def db_gb_for(devices: float, a: Assumptions, raw_only: bool = False) -> float:
+    """DB size: raw 15-min samples for raw_months, then hourly roll-up rows for the rest of retention_months.
+    raw_only=True gives the old model (everything raw for retention_months) for comparison."""
+    raw_m = a.retention_months if raw_only else min(a.raw_months, a.retention_months)
+    roll_m = 0 if raw_only else max(0, a.retention_months - a.raw_months)
+    kb = a.samples_per_device_month * raw_m * a.db_kb_per_sample + a.rollup_rows_per_device_month * roll_m * a.db_kb_per_rollup
+    return devices * kb / 1024 / 1024
+
+
 def usage(sc: Scenario, a: Assumptions) -> dict:
     fn = sc.devices * a.reports_per_device_month + sc.users * a.other_calls_per_user_month
-    db_gb = sc.devices * a.samples_per_device_month * a.retention_months * a.db_kb_per_sample / 1024 / 1024
+    db_gb = db_gb_for(sc.devices, a)
     storage_gb = sc.devices * a.photo_mb_per_device / 1024
     pdev = sc.premium_devices if sc.premium_devices >= 0 else sc.premium_users * a.devices_per_user
-    tips = pdev * a.tips_per_premium_device_month
+    tips = sc.devices * a.demo_tips_per_device_month if sc.demo else pdev * a.tips_per_premium_device_month
     return {"fn": fn, "db_gb": db_gb, "storage_gb": storage_gb, "tips_calls": tips}
 
 
@@ -150,7 +166,7 @@ def scenarios(a: Assumptions = Assumptions()) -> list:
         prem = round(users * a.premium_share)
         return Scenario(name, users, round(users * a.devices_per_user), prem, store)
     return [
-        Scenario("3 demo units", 1, 3, 1, False, premium_devices=3),
+        Scenario("3 demo units", 1, 3, 1, False, premium_devices=3, demo=True),
         mk("100 users", 100, True),
         mk("1000 users", 1000, True),
     ]
@@ -180,12 +196,16 @@ def table_assumptions(a: Assumptions = Assumptions()) -> str:
         "samples_per_device_month": "15-min samples = DB rows, 96/day (PR #15 db-schema)",
         "other_calls_per_user_month": "app, alerts, analytics, MCP",
         "db_kb_per_sample": "row plus index, rough",
-        "retention_months": "history kept 12 months",
+        "retention_months": "total history kept 12 months (raw + roll-up)",
+        "raw_months": "A-025: about 3 months raw 15-min samples, older data rolled up",
+        "rollup_rows_per_device_month": "hourly min/avg/max, 24 * 30",
+        "db_kb_per_rollup": "roll-up row plus index, rough",
+        "demo_tips_per_device_month": "A-025: demo must cost zero, so no live Claude tips in the demo",
         "photo_mb_per_device": "one compressed photo per plant",
         "tips_per_premium_device_month": "one cached refresh a day (ADR-006)",
         "tips_tokens_in": "plant, readings, forecast, instructions",
         "tips_tokens_out": "schema-constrained JSON",
-        "profile_db_projects": "A-011: user profiles in a separate DB",
+        "profile_db_projects": "A-025: one database for profiles and sensor data (no second project)",
         "min_users_for_pro": "free tier is for the demo only",
     }
     for k, v in a.__dict__.items():
@@ -225,14 +245,18 @@ def table_per_user(a: Assumptions = Assumptions()) -> str:
 def table_db(a: Assumptions = Assumptions()) -> str:
     scs = scenarios(a)
     q = LIMITS["pro"]["db_gb"]
-    rows = ["| DB size (raw sample rows, %d months kept) | " % a.retention_months + " | ".join(s.name for s in scs) + " |",
-            "|---|" + "---|" * len(scs)]
+    rows = ["| DB size (%d months raw, then hourly roll-up to %d months) | " % (a.raw_months, a.retention_months)
+            + " | ".join(s.name for s in scs) + " |", "|---|" + "---|" * len(scs)]
     gb = [usage(s, a)["db_gb"] for s in scs]
-    rows.append("| Rows | " + " | ".join(f"{s.devices * a.samples_per_device_month * a.retention_months:,}" for s in scs) + " |")
+    raw12 = [db_gb_for(s.devices, a, raw_only=True) for s in scs]
+    rows.append("| Rows (raw + roll-up) | " + " | ".join(
+        f"{s.devices * (a.samples_per_device_month * a.raw_months + a.rollup_rows_per_device_month * (a.retention_months - a.raw_months)):,}"
+        for s in scs) + " |")
     rows.append("| DB size GB | " + " | ".join(_usd(g) for g in gb) + " |")
     rows.append("| Pro quota %g GB: | " % q + " | ".join("OVER by %s GB" % _usd(g - q) if g > q else "within" for g in gb) + " |")
-    rows.append("| Max retention (months) that fits the Pro quota | " + " | ".join(
-        (">120" if q / (g / a.retention_months) > 120 else _usd(q / (g / a.retention_months), 1)) for g in gb) + " |")
+    rows.append("| For comparison: all %d months raw, GB | " % a.retention_months + " | ".join(_usd(g) for g in raw12) + " |")
+    rows.append("| For comparison: free quota %g GB: | " % LIMITS["free"]["db_gb"] + " | ".join(
+        "OVER" if g > LIMITS["free"]["db_gb"] else "within" for g in gb) + " |")
     return "\n".join(rows)
 
 
@@ -240,7 +264,7 @@ def formulas() -> str:
     return "\n".join([
         "```text",
         "fn_calls   = devices * reports_per_device_month + users * other_calls_per_user_month",
-        "db_gb      = devices * samples_per_device_month * retention_months * db_kb_per_sample / 1024^2",
+        "db_gb      = devices * (samples_per_device_month * raw_months * kb_sample + rollup_rows_per_device_month * (retention_months - raw_months) * kb_rollup) / 1024^2",
         "storage_gb = devices * photo_mb_per_device / 1024",
         "tips_calls = premium_devices * tips_per_premium_device_month   (premium_devices = premium_users * devices_per_user)",
         "claude     = tips_calls * (tokens_in * price_in + tokens_out * price_out) / 1e6",
