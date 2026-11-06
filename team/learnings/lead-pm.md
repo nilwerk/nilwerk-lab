@@ -18,6 +18,7 @@ Updated in the Friday retro PR; max ~60 rules. Never relaxes TEAM.md §5 hard ru
 
 ## Sprint S1 planning accuracy
 Committed 20; Arsany/agent tasks reached In review quickly (agents: ~1–10 min per slice, own human estimates 1–15 h per slice). Human tasks (2.5, 2.8→draft, 2.9, 3.x) are the sprint risk, not agent work.
+- Work 7 days a week and run extra same-day rounds when Arsany asks (TEAM.md §7). Weekend runs: no ceremonies, still stand-up + report; Monday planning counts Sat/Sun capacity. *Why:* owner decision 2026-11-06. *Source:* chat.
 
 ## Estimation factors (from finished projects)
 | Project | Workstream | Est. h (plan) | Agent minutes | Human-equiv h (÷1.25) | Measured agent min per estimated human h | Arsany's real h |
