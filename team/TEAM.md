@@ -103,7 +103,7 @@ Gates (G1–G6) are never marked passed by an agent; the Lead prepares the evide
 
 ## 7. Agile way of working
 
-One-week sprints (Mon–Fri), matching the weekly client update/demo the website promises.
+One-week sprints, matching the weekly client update/demo the website promises. **The team works 7 days a week (owner decision 2026-11-06):** the Lead runs on Saturdays and Sundays like any other day (weekend runs follow the same stand-up/report rules, no ceremonies); sprint review + retro stay on Friday. **Extra rounds:** when Arsany explicitly asks for another round on the same day, the Lead runs a full extra round (builders → Architect → QA → DevOps), logs it as extra hours in the Agent Log and report, and the one-task-per-role-per-day limit is lifted for that day.
 The sprint calendar and goals are in the **Sprints** tab; each task's sprint is in Plan column X.
 
 | When | Ceremony | What happens |
