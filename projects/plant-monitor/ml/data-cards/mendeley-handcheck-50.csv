@@ -1,0 +1,51 @@
+plant,split,time,m,moisture_raw,event,irrigation,rain,m_m3h,m_p3h,irrigation_within_3h,verdict,note
+mendeley_s5,train,2025-07-09 15:00:00,100.0,99.0,watering,0.0,0.0,100.0,,True,ok,valve open within 45 min
+mendeley_s2,train,2025-03-26 06:00:00,77.77777777777777,50.0,wetting,0.0,0.0,60.0,,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,train,2025-03-05 16:30:00,82.82828282828282,82.0,wetting,0.0,0.0,81.81818181818181,,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s1,train,2025-06-02 07:45:00,58.333333333333336,47.0,wetting,0.0,0.0,,52.083333333333336,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,train,2025-08-15 09:15:00,98.98989898989899,98.0,wetting,0.0,0.0,72.72727272727273,76.76767676767676,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,train,2025-08-20 04:00:00,100.0,100.0,wetting,0.0,0.0,61.61616161616162,72.72727272727273,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,test,2025-06-25 10:00:00,84.84848484848484,84.0,wetting,0.0,0.0,,,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,train,2025-03-01 06:15:00,84.84848484848484,84.0,wetting,0.0,0.0,,76.76767676767676,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,train,2025-03-04 11:00:00,78.78787878787878,78.0,wetting,0.0,0.0,84.84848484848484,70.70707070707071,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s4,train,2025-06-17 04:45:00,65.9090909090909,84.0,wetting,0.0,0.0,,70.45454545454545,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s4,val,2025-08-05 04:30:00,77.27272727272727,89.0,watering,6.0,0.0,50.0,70.45454545454545,True,ok,valve open within 45 min
+mendeley_s1,train,2025-06-13 12:00:00,91.66666666666667,63.0,wetting,0.0,0.0,72.91666666666667,75.0,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s4,train,2025-07-15 10:45:00,79.54545454545455,90.0,wetting,0.0,0.0,81.81818181818181,56.81818181818182,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s1,val,2025-07-01 04:45:00,83.33333333333333,59.0,wetting,0.0,0.0,,100.0,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,train,2025-07-11 13:30:00,98.98989898989899,98.0,wetting,0.0,0.0,69.6969696969697,70.70707070707071,True,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s4,train,2025-08-15 03:15:00,38.63636363636363,72.0,rain,0.0,0.24500000000000002,43.18181818181818,65.9090909090909,False,ok,ERA5 rain at tick
+mendeley_s4,train,2025-08-16 14:30:00,79.54545454545455,90.0,wetting,0.0,0.0,56.81818181818182,54.54545454545455,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s1,val,2025-07-01 07:30:00,100.0,70.0,wetting,0.0,0.0,83.33333333333333,89.58333333333333,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s1,test,2025-06-25 12:45:00,75.0,55.0,wetting,0.0,0.0,56.25,58.333333333333336,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,test,2025-03-12 15:00:00,81.81818181818181,81.0,wetting,0.0,0.0,69.6969696969697,71.71717171717172,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s1,train,2025-05-03 18:00:00,18.75,28.0,wetting,0.0,0.0,,,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s1,test,2025-05-21 13:15:00,58.333333333333336,47.0,wetting,0.0,0.0,,,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s4,val,2025-08-05 10:00:00,79.54545454545455,90.0,watering,3.0,0.0,70.45454545454545,,True,ok,valve open within 45 min
+mendeley_s2,test,2025-03-12 10:15:00,100.0,64.0,watering,5.0,0.0,88.88888888888889,,True,ok,valve open within 45 min
+mendeley_s5,train,2025-07-18 14:00:00,97.97979797979798,97.0,wetting,0.0,0.0,69.6969696969697,67.67676767676768,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s2,train,2025-02-17 16:30:00,100.0,65.0,rain,0.0,0.059166666666666666,88.88888888888889,82.22222222222223,False,ok,ERA5 rain at tick
+mendeley_s2,train,2025-04-06 05:00:00,95.55555555555556,58.0,watering,4.0,0.0,,95.55555555555556,True,ok,valve open within 45 min
+mendeley_s5,val,2025-05-27 13:45:00,93.93939393939394,93.0,wetting,0.0,0.0,70.70707070707071,,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s5,train,2025-05-11 16:45:00,72.72727272727273,72.0,rain,0.0,0.37416666666666665,75.75757575757575,,False,ok,ERA5 rain at tick
+mendeley_s5,train,2025-07-24 06:45:00,97.97979797979798,97.0,wetting,0.0,0.0,61.61616161616162,74.74747474747475,False,unexplained,"rise with no valve/rain signal: probe jump, unrecorded irrigation or rain on an uncovered plot"
+mendeley_s2,test,2025-09-02 21:30:00,2.2222222222222223,16.0,none,0.0,0.0,2.2222222222222223,2.2222222222222223,False,ok,"quiet window, no event"
+mendeley_s2,train,2025-09-17 19:15:00,2.2222222222222223,16.0,none,0.0,0.0,2.2222222222222223,2.2222222222222223,False,ok,"quiet window, no event"
+mendeley_s2,train,2025-08-19 07:15:00,4.444444444444445,17.0,none,0.0,0.0,4.444444444444445,4.444444444444445,False,ok,"quiet window, no event"
+mendeley_s4,test,2025-06-26 15:45:00,56.81818181818182,80.0,none,10.0,0.0,84.0909090909091,,True,check,valve open at this tick but no event: probe lag or valve on another plot
+mendeley_s5,train,2025-03-01 16:30:00,80.8080808080808,80.0,none,0.0,0.0,77.77777777777777,,False,ok,"quiet window, no event"
+mendeley_s5,train,2025-08-12 01:45:00,55.55555555555556,55.0,none,0.0,0.0,55.55555555555556,71.71717171717172,False,check,m moves >= 10 points within 3 h but no event
+mendeley_s5,train,2025-06-06 11:30:00,76.76767676767676,76.0,none,0.0,0.0,75.75757575757575,74.74747474747475,False,ok,"quiet window, no event"
+mendeley_s5,test,2025-05-20 15:45:00,77.77777777777777,77.0,none,0.0,0.0,89.8989898989899,,False,check,m moves >= 10 points within 3 h but no event
+mendeley_s5,train,2025-08-22 16:00:00,74.74747474747475,74.0,none,0.0,0.018333333333333333,75.75757575757575,62.62626262626262,True,check,m moves >= 10 points within 3 h but no event
+mendeley_s5,train,2025-08-27 00:15:00,60.60606060606061,60.0,none,0.0,0.0,61.61616161616162,60.60606060606061,False,ok,"quiet window, no event"
+mendeley_s2,train,2025-03-25 22:00:00,66.66666666666667,45.0,none,0.0,0.0,73.33333333333333,,False,ok,"quiet window, no event"
+mendeley_s5,val,2025-08-07 21:45:00,62.62626262626262,62.0,none,0.0,0.0,63.63636363636363,,False,ok,"quiet window, no event"
+mendeley_s5,train,2025-08-21 03:00:00,61.61616161616162,61.0,none,0.0,0.0,61.61616161616162,77.77777777777777,False,check,m moves >= 10 points within 3 h but no event
+mendeley_s1,train,2025-04-03 14:15:00,54.166666666666664,45.0,none,0.0,0.0,,,False,ok,"quiet window, no event"
+mendeley_s5,train,2025-05-08 08:00:00,76.76767676767676,76.0,none,10.0,0.0,76.76767676767676,76.76767676767676,True,check,valve open at this tick but no event: probe lag or valve on another plot
+mendeley_s1,train,2025-07-12 15:00:00,100.0,68.0,none,0.0,0.0,70.83333333333333,77.08333333333333,True,check,m moves >= 10 points within 3 h but no event
+mendeley_s1,test,2025-07-30 06:30:00,8.333333333333334,23.0,none,0.0,0.0,8.333333333333334,8.333333333333334,False,ok,"quiet window, no event"
+mendeley_s4,train,2025-09-24 07:15:00,0.0,55.0,none,0.0,0.0,0.0,0.0,False,check,m clipped at 0: end-of-data flatline or calibration floor
+mendeley_s2,val,2025-08-06 04:00:00,8.88888888888889,19.0,none,0.0,0.0,8.88888888888889,8.88888888888889,False,ok,"quiet window, no event"
+mendeley_s1,train,2025-06-07 07:30:00,54.166666666666664,45.0,none,0.0,0.0,52.083333333333336,50.0,False,ok,"quiet window, no event"

@@ -13,7 +13,7 @@ Canonical input frame (one row per raw observation, any cadence):
                            Carried into every output frame so a Mendeley-only variant is reproducible
                            (select_sources) and a model can be labelled "trained with ISMN data" (model_label).
 
-Loaders that turn a concrete dataset into this frame are NOT here: the Mendeley file layout
+Loaders that turn a concrete dataset into this frame live in loaders.py (Mendeley: inspected 2026-11-06). Earlier note: the Mendeley file layout
 has not been inspected (host unreachable from the sandbox, A-007). No numbers in this module
 are results; they are parameters.
 
