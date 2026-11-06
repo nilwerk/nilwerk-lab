@@ -25,19 +25,49 @@ jobs:
       sim: ${{ steps.d.outputs.sim }}
       mechanical: ${{ steps.d.outputs.mechanical }}
       interfaces: ${{ steps.d.outputs.interfaces }}
+      powerbudget: ${{ steps.d.outputs.powerbudget }}
+      costs: ${{ steps.d.outputs.costs }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # PRs diff against the base commit
       - id: d
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          has() { if eval "$1" >/dev/null 2>&1; then echo "$2=true" >> "$GITHUB_OUTPUT"; else echo "$2=false" >> "$GITHUB_OUTPUT"; fi; }
-          has "test -f $P/firmware/CMakeLists.txt" firmware
-          has "test -f $P/app/package.json" app
-          has "test -f $P/cloud/package.json" cloud
-          has "ls $P/ml/*.py $P/ml/**/*.py" ml
-          has "ls $P/pcb/*.kicad_pro" pcb
-          has "ls $P/pcb/sim/*.cir $P/pcb/sim/*.sp" sim
-          has "ls $P/mechanical/*.py" mechanical
-          has "ls $P/docs/interfaces/*.json" interfaces
+          # Change check: only on pull_request. Push to main / manual runs treat everything as changed.
+          CHANGED=""
+          ALL=true
+          if [ "$EVENT" = "pull_request" ]; then
+            ALL=false
+            CHANGED="$(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA")"
+            echo "Changed files:"; echo "$CHANGED"
+            # Shared build config: the workflow itself and tool-version files re-test every workstream.
+            if echo "$CHANGED" | grep -Eq '^(\.github/workflows/ci\.yml|\.github/actions/|\.tool-versions$)'; then ALL=true; echo "Shared build config changed: running all workstreams"; fi
+          fi
+          # touched <name> <path-prefix...> -> true if running everything or a changed file is under a prefix
+          touched() { [ "$ALL" = true ] && return 0; shift; for pre in "$@"; do echo "$CHANGED" | grep -q "^$pre" && return 0; done; return 1; }
+          # gate <name> <exists-cmd> <path-prefix...>: output true only if project exists AND (not a PR OR files changed)
+          gate() {
+            n="$1"; cmd="$2"; shift 2
+            if eval "$cmd" >/dev/null 2>&1 && touched "$n" "$@"; then echo "$n=true" >> "$GITHUB_OUTPUT"
+            elif eval "$cmd" >/dev/null 2>&1; then echo "$n=false" >> "$GITHUB_OUTPUT"; echo "::notice::$n skipped: no changes under $*"
+            else echo "$n=false" >> "$GITHUB_OUTPUT"; fi
+          }
+          # Contracts and decisions (docs/interfaces, docs/adr) also re-test their consumers.
+          CT="$P/docs/interfaces/ $P/docs/adr/"
+          gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/" $CT
+          gate app "test -f $P/app/package.json" "$P/app/" $CT
+          gate cloud "test -f $P/cloud/package.json" "$P/cloud/" $CT
+          gate ml "find $P/ml -name '*.py' 2>/dev/null | grep -q ." "$P/ml/"
+          gate pcb "ls $P/pcb/*.kicad_pro" "$P/pcb/"
+          gate sim "find $P/pcb/sim \\( -name '*.cir' -o -name '*.sp' \\) 2>/dev/null | grep -q ." "$P/pcb/"
+          gate mechanical "ls $P/mechanical/*.py" "$P/mechanical/"
+          gate interfaces "find $P/docs/interfaces \\( -name '*.json' -o -name '*.yaml' -o -name '*.yml' \\) 2>/dev/null | grep -q ." "$P/docs/interfaces/"
+          gate powerbudget "find $P/hardware/power-budget -name '*.py' 2>/dev/null | grep -q ." "$P/hardware/power-budget/"
+          gate costs "find $P/docs/costs -name 'test_*.py' 2>/dev/null | grep -q ." "$P/docs/costs/"
           cat "$GITHUB_OUTPUT"
 
   firmware:
@@ -217,7 +247,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install jsonschema
+      - run: pip install jsonschema pyyaml
       - name: Validate schemas and fixtures
         working-directory: projects/plant-monitor/docs/interfaces
         run: |
@@ -234,12 +264,48 @@ jobs:
                   print(("FAIL " if errs else "ok   ") + fx)
                   for e in errs: print("   ", e.message)
                   ok &= not errs
+          # Every JSON / YAML contract must at least parse (openapi.yaml, mcp-tools.json, ...)
+          import yaml
+          for f in sorted(glob.glob("**/*.json", recursive=True)):
+              try: json.load(open(f)); print("json ok:", f)
+              except Exception as e: print("FAIL json", f, e); ok = False
+          for f in sorted(glob.glob("**/*.y*ml", recursive=True)):
+              try: yaml.safe_load(open(f)); print("yaml ok:", f)
+              except Exception as e: print("FAIL yaml", f, e); ok = False
           sys.exit(0 if ok else 1)
           PY
 
+  powerbudget:
+    name: power-budget tests
+    needs: detect
+    if: needs.detect.outputs.powerbudget == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: unittest
+        working-directory: projects/plant-monitor/hardware/power-budget
+        run: python -m unittest discover -v
+
+  costs:
+    name: cost-model tests
+    needs: detect
+    if: needs.detect.outputs.costs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: unittest
+        working-directory: projects/plant-monitor/docs/costs
+        run: python -m unittest discover -v
+
   summary:
     name: Final status
-    needs: [detect, firmware, app, cloud, ml, pcb, sim, mechanical, interfaces]
+    needs: [detect, firmware, app, cloud, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -249,6 +315,7 @@ jobs:
             echo "## Pipeline status"
             echo "| Job | Result |"
             echo "|---|---|"
+            echo "| detect | ${{ needs.detect.result }} |"
             echo "| firmware | ${{ needs.firmware.result }} |"
             echo "| app | ${{ needs.app.result }} |"
             echo "| cloud | ${{ needs.cloud.result }} |"
@@ -257,8 +324,12 @@ jobs:
             echo "| sim | ${{ needs.sim.result }} |"
             echo "| mechanical | ${{ needs.mechanical.result }} |"
             echo "| interfaces | ${{ needs.interfaces.result }} |"
+            echo "| powerbudget | ${{ needs.powerbudget.result }} |"
+            echo "| costs | ${{ needs.costs.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
-          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}"; do
+          # Detect must succeed: if it fails, every job is skipped and that must not look green.
+          [ "${{ needs.detect.result }}" = "success" ] || { echo "Pipeline RED: Detect ${{ needs.detect.result }}"; exit 1; }
+          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "Pipeline RED"; exit 1; fi
           done
           echo "Pipeline GREEN (skipped = workstream not started yet)"
