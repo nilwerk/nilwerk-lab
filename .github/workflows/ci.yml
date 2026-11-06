@@ -26,6 +26,7 @@ jobs:
       mechanical: ${{ steps.d.outputs.mechanical }}
       interfaces: ${{ steps.d.outputs.interfaces }}
       powerbudget: ${{ steps.d.outputs.powerbudget }}
+      costs: ${{ steps.d.outputs.costs }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,6 +67,7 @@ jobs:
           gate mechanical "ls $P/mechanical/*.py" "$P/mechanical/"
           gate interfaces "find $P/docs/interfaces \\( -name '*.json' -o -name '*.yaml' -o -name '*.yml' \\) 2>/dev/null | grep -q ." "$P/docs/interfaces/"
           gate powerbudget "find $P/hardware/power-budget -name '*.py' 2>/dev/null | grep -q ." "$P/hardware/power-budget/"
+          gate costs "find $P/docs/costs -name 'test_*.py' 2>/dev/null | grep -q ." "$P/docs/costs/"
           cat "$GITHUB_OUTPUT"
 
   firmware:
@@ -287,9 +289,23 @@ jobs:
         working-directory: projects/plant-monitor/hardware/power-budget
         run: python -m unittest discover -v
 
+  costs:
+    name: cost-model tests
+    needs: detect
+    if: needs.detect.outputs.costs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: unittest
+        working-directory: projects/plant-monitor/docs/costs
+        run: python -m unittest discover -v
+
   summary:
     name: Final status
-    needs: [detect, firmware, app, cloud, ml, pcb, sim, mechanical, interfaces, powerbudget]
+    needs: [detect, firmware, app, cloud, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -309,10 +325,11 @@ jobs:
             echo "| mechanical | ${{ needs.mechanical.result }} |"
             echo "| interfaces | ${{ needs.interfaces.result }} |"
             echo "| powerbudget | ${{ needs.powerbudget.result }} |"
+            echo "| costs | ${{ needs.costs.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
           # Detect must succeed: if it fails, every job is skipped and that must not look green.
           [ "${{ needs.detect.result }}" = "success" ] || { echo "Pipeline RED: Detect ${{ needs.detect.result }}"; exit 1; }
-          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}"; do
+          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "Pipeline RED"; exit 1; fi
           done
           echo "Pipeline GREEN (skipped = workstream not started yet)"
