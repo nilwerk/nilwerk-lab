@@ -14,4 +14,6 @@ Updated in the Friday retro PR; max ~60 rules. Never relaxes TEAM.md §5 hard ru
 - Use no human names in public posts except the founder's; describe roles instead ("a junior engineer in Egypt"), and use `avatars/human-public.svg` (no initials). *Why:* Arsany's decision. *Source:* chat 2026-11-05.
 - Link to nilwerk.de and tag @nilwerk on Instagram and LinkedIn. *Why:* new domain and handles. *Source:* chat 2026-11-05.
 - Write battery life and other design numbers as "simulated" until a bench test exists. *Why:* the v2 battery figure comes from a power simulation. *Source:* origin pack 2026-11-05.
+- Simplify the words, never the truth: "our computer test says about half a year", not "lasts half a year"; a wireframe is a "first sketch", not "an app". *Why:* Everyone-track wording drifts into promises. *Source:* episode 1 review 2026-11-06.
+- Build Reels from still frames with a slow zoom and 0.5 s crossfades, captions in the frame, silent file; music is added in the Instagram app from its licensed library. *Why:* most viewers watch muted, and platform music avoids licence problems. *Source:* episode 1, 2026-11-06.
 

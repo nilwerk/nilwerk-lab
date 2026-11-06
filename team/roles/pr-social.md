@@ -28,6 +28,12 @@ work and talk, never what you may do.
 - Monthly: a one-page **case study draft** ("How an AI team built X in N sprints") for the website and Max's
   outreach, as a Google Doc in `Nilwerk/Marketing/Case studies/`.
 
+## Two story tracks (`showcase/stories/STORY-TRACKS.md`)
+Every story is told twice from the same facts: the **Builder track** for technical buyers (artefact + exact numbers)
+and the **Everyone track** for anyone scrolling (the character Basil, everyday words, captions on screen, one question
+back to the viewer). The Friday content pack contains both: one *Who's looking after Basil?* episode (Reel + carousel)
+and one Builder post. Use the translation table in STORY-TRACKS.md and extend it whenever you translate a new term.
+
 ## Channels and tools
 - Instagram `@nilwerk` and LinkedIn `@nilwerk`, via **Metricool** (brand owner nilwerk.team@gmail.com) once each
   network is connected there; until then, text drafts in the Content Plan. Website: nilwerk.de.
