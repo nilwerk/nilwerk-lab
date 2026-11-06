@@ -185,18 +185,18 @@ Contracts are written in 2.4 (`docs/interfaces/`); this table fixes the style an
 2. The user powers the sensor, or holds the button: setup mode, BLE advertising (the only time BLE is on).
 3. The app connects over BLE and runs the protocomm **security 2** handshake (SRP6a using the PoP from the label/QR as password; the device holds a per-unit salt and verifier, so the PoP itself is never sent). All following traffic is AES-GCM encrypted with the session key.
 4. Over that encrypted channel the app sends: Wi-Fi SSID and passphrase, device name, claim token, hub host/port/CA certificate/MQTT credential.
-5. The device stores the Wi-Fi credentials, the hub config and later its device token in NVS, turns BLE off, joins Wi-Fi and calls `/ingest` once with the claim token; the function creates the device row, issues the per-device token (returned once), and consumes the claim token. The device also makes a test publish to the hub. The app sees the device via Realtime; plant details and first photo are saved by the app.
+5. The device stores the Wi-Fi credentials, the hub config and later its device token in NVS, turns BLE off, joins Wi-Fi and calls `/device-claim` once with the claim token (ADR-013; was `/ingest` in v0.3); the function creates the device row, issues the per-device token (returned once), and consumes the claim token. The device also makes a test publish to the hub. The app sees the device via Realtime; plant details and first photo are saved by the app.
 6. From now on the sensor never uses BLE again in normal operation. Factory reset (FR-D07) wipes NVS and re-enters setup mode; release (FR-A08) revokes the cloud token and the hub credential and clears `owner`.
 
 What is encrypted, and where: Wi-Fi passphrase, claim token and MQTT credential are encrypted in transit over BLE (security 2). The BLE advertisement (device name prefix, address) is not. On the phone the Wi-Fi password is held only in the OS keystore, if the user chooses to remember it. In the cloud profile: **no Wi-Fi password** (recommended; see ADR-011 for the trade-off versus an end-to-end-encrypted copy). On the device: NVS, plaintext unless NVS encryption is enabled (risk O-3, open question Q-H6).
 
 **Reporting (FR-D01/D02/D04).** Every 15 min: wake, sample, calibrate to 0-100 % relative moisture, update features, run models, append to ring buffer in flash, sleep. Every 4th wake (or on critical event, FR-E03): Wi-Fi on, SNTP, POST all unsent samples with the latest forecast and event flags; delete only after HTTP 2xx. **v0.2:** in the same Wi-Fi session the device also publishes the new samples to the hub (L-21, QoS 1, short timeout, connect-publish-disconnect); a hub failure never blocks or delays the cloud POST and is not retried from the buffer (the cloud copy is complete; the hub shows a gap). Order: cloud POST first, hub publish second, so the OTA/ingest rollback logic is unchanged. Without Wi-Fi the buffer keeps >= 24 h (96 samples) and is sent on reconnect; backoff avoids draining the battery.
 
-**Alerts (FR-A07).** Ingest writes readings; a trigger evaluates thresholds from the plant (too dry/wet), battery threshold, and device event flags; a cron job marks a device offline after 2.5 missed hours. Each alert has a state row so it fires once until resolved. Push goes through Expo Push (L-10).
+**Alerts (FR-A07).** Ingest writes readings; a trigger evaluates thresholds from the plant (too dry/wet), battery threshold, and device event flags; a cron job marks a device offline after 3 missed hourly reports (G1). Each alert has a state row so it fires once until resolved. Push goes through Expo Push (L-10).
 
 **OTA (FR-D05).** The ingest response carries the target firmware/model version. Device downloads to the inactive OTA slot, verifies SHA-256 (and signature, see open issue O-3), reboots, and marks the image valid only after a successful ingest call; otherwise ESP-IDF rollback restores the previous slot. Models live in their own partition so they can update without a firmware change.
 
-**Local dashboard (proposed FR-H03).** Node-RED receives telemetry from Mosquitto, writes to SQLite (about 4 rows per device per hour), and serves the web UI on the LAN. Works with the internet down. Offline sensor (no publish for 2.5 h) is shown from the broker `status` LWT and a last-seen timer. See ADR-012.
+**Local dashboard (proposed FR-H03).** Node-RED receives telemetry from Mosquitto, writes to SQLite (about 4 rows per device per hour), and serves the web UI on the LAN. Works with the internet down. Offline sensor (no publish for 3 missed hourly reports) is shown from the broker `status` LWT and a last-seen timer. See ADR-012.
 
 **Tips (FR-P02).** App requests tips for a plant -> function checks premium flag -> loads plant, recent readings, place -> weather forecast -> builds prompt -> Claude returns structured JSON -> deterministic rule layer clamps or removes unsafe advice (e.g. no watering when soil is waterlogged, no fertilising in frost, no direct-sun advice during heat warnings) -> cached per plant for a few hours.
 
@@ -250,12 +250,12 @@ For **2.4 (DB schema + API spec)**:
 - D-3 RLS on all tables incl. `devices`, `device_tokens`, `api_keys`, `alerts`, `tips`; ingest uses service role only inside the function; MCP must not hold a broad service-role path (use RPC keyed by API-key hash).
 - D-4 Claim/release state machine (token TTL, single use, release revokes device token, re-claim by a second account, FR-A08).
 - D-5 Plant thresholds: per plant (dry/wet points for calibration and alert) pushed to device in the manifest `config`.
-- D-6 Alert state table and dedupe rules; offline = 2.5 missed hours (proposal, confirm).
+- D-6 Alert state table and dedupe rules; offline = 3 missed hourly reports (decided at G1, see ADR-013).
 - D-7 Account deletion cascade including Storage objects and API keys (FR-A01, NFR-07); export format.
 - D-8 Time: device RTC drifts in deep sleep; server stamps `received_at`, device sends `sample_age_s` plus SNTP-synced `ts`.
 
 For **2.8 (risk register)**:
-- O-1 Battery (NFR-01): 15-min wakes plus hourly TLS handshakes (v0.2: two of them, cloud and hub) may break the 6-month target; needs an early current budget (task 5.4) and a fallback (30-min sampling, or longer Wi-Fi interval when no event). Owner Mira/Emil.
+- O-1 Battery (NFR-01): 15-min wakes plus hourly TLS handshakes (v0.2: two of them, cloud and hub) may break the 3-month target (A-020; was 6 months); needs an early current budget (task 5.4) and a fallback (30-min sampling, or longer Wi-Fi interval when no event). Owner Mira/Emil.
 - O-2 Latency (FR-E03 <= 15 min): an immediate Wi-Fi wake on a critical event costs a TLS session; false events drain battery. Limit wakes per day. QA (PR #3 finding 3) notes that with a 15-min cadence the strict 15 min cannot hold literally (about 15 min + connect time); the critical-event set from the 2.4 work (PR #4) becomes the event enum in the report schema; waterlogged/fast-drying are debounced and outside the FR-E03 claim.
 - O-3 OTA integrity: ESP-IDF secure boot / signed images are not planned; decide whether SHA-256 over TLS is enough for the demo (recommended) and document the gap vs CE/RED later.
 - O-4 BLE provisioning on iOS and Android with Expo: the maintained ESP provisioning library needs a dev build (not Expo Go); verify on both platforms in week 1 (FR-D03, NFR-03).
@@ -284,6 +284,8 @@ Source: owner comment on PR #3: sensor is initialised and bound to the user's pr
 
 ### 10.1 Requirements v0.1: items that change or are added (Requirements doc not edited)
 
+> **Update 2026-11-06 (Arsany, A-023): the Raspberry Pi hub is not part of v1.** FR-H01..H03, FR-D08, FR-D09 and the pairing screen S17 move to v1.1; 4.A3 does not wait for them. The hub rows below stay as the v1.1 design. Consequence: the v1 NFR-01 budget does not need the hub publish (it is a saving, see power-budget.md section 7).
+
 | ID | Change | Proposed wording / note |
 |---|---|---|
 | FR-D03 | Changed | Setup mode (first boot or button): over BLE, using an encrypted, authenticated channel (protocomm security 2), receive Wi-Fi credentials, device name, claim token and hub configuration. |
@@ -292,7 +294,7 @@ Source: owner comment on PR #3: sensor is initialised and bound to the user's pr
 | FR-D04 | Clarify | Offline buffer feeds the cloud only; the hub is best effort (gaps accepted). |
 | FR-A08 | Changed | Release also revokes the device's hub credential. |
 | FR-I01 | Changed (C) | Home Assistant integration via MQTT discovery is served from the hub (Node-RED flow) rather than the cloud. |
-| NFR-01 | Clarified | 6 months at hourly reporting **including** the hub publish; to be proved in 5.4. |
+| NFR-01 | Clarified | **3 months** (A-020/A-021; 6 months is a stretch goal for a later version) at hourly reporting **including** the hub publish; to be proved in 5.4. |
 | NFR-03 | Changed | Setup <= 3 min measured with the hub already installed. Hub install is separate. |
 | NFR-06 | Extended | Also: Wi-Fi credentials never in plaintext over BLE; no Wi-Fi password in cloud storage; per-device broker credentials and topic ACL; TLS to the hub. |
 | NFR-07 | Extended | Wi-Fi credentials are not personal data we hold (not stored in cloud); data export/delete includes hub data guidance. |

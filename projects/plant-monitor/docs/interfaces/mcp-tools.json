@@ -1,0 +1,136 @@
+{
+  "$comment": "Task 2.4 MCP tool contract (FR-P03, ADR-007). Streamable HTTP, header 'Authorization: Bearer nwk_<key>'. All tools are read-only. Every call: sha256(key) -> mcp_resolve_key() (db-schema.sql) -> owner id; unknown/revoked key => HTTP 401 key_revoked_or_unknown; free user => tool error premium_required (FR-P04). Data is read through RPCs keyed by that owner id, never with an unscoped service-role query. Rate limit 60 calls/min per key [proposed, ADR-007 left it to 2.4]. Draft: not run against an MCP client.",
+  "server": { "name": "nilwerk-plant-monitor", "version": "0.1.0" },
+  "tools": [
+    {
+      "name": "list_plants",
+      "description": "List the user's plants with current moisture, status and hours until the soil is dry. Use it to answer which plant needs water first (sort by hours_to_dry, then moisture_pct).",
+      "annotations": { "readOnlyHint": true, "idempotentHint": true, "openWorldHint": false },
+      "x-requirements": ["FR-P03", "FR-P04", "FR-A06"],
+      "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false },
+      "outputSchema": {
+        "type": "object", "required": ["plants"],
+        "properties": {
+          "plants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["plant_id", "name", "status"],
+              "properties": {
+                "plant_id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string" },
+                "location_type": { "enum": ["house", "balcony", "garden", "farm", "greenhouse"] },
+                "area": { "type": ["string", "null"] },
+                "moisture_pct": { "type": ["number", "null"], "description": "Latest plausible reading, relative 0-100" },
+                "hours_to_dry": { "type": ["number", "null"], "description": "Device forecast (edge AI), null if none or more than 72 h" },
+                "status": { "enum": ["ok", "dry", "wet", "low_battery", "offline", "no_device"], "description": "From open alerts; dry = too_dry, wet = too_wet" },
+                "last_reading_at": { "type": ["string", "null"], "format": "date-time" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "get_plant_status",
+      "description": "Current state of one plant: latest values, thresholds, open alerts, forecast.",
+      "annotations": { "readOnlyHint": true, "idempotentHint": true, "openWorldHint": false },
+      "x-requirements": ["FR-P03", "FR-A06", "FR-A07", "FR-E01"],
+      "inputSchema": {
+        "type": "object", "required": ["plant_id"], "additionalProperties": false,
+        "properties": { "plant_id": { "type": "string", "format": "uuid" } }
+      },
+      "outputSchema": {
+        "type": "object", "required": ["plant_id", "name", "status"],
+        "properties": {
+          "plant_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "species": { "type": ["string", "null"] },
+          "soil_type": { "type": "string" },
+          "city": { "type": ["string", "null"] },
+          "status": { "enum": ["ok", "dry", "wet", "low_battery", "offline", "no_device"] },
+          "reading_at": { "type": ["string", "null"], "format": "date-time" },
+          "moisture_pct": { "type": ["number", "null"] },
+          "temp_c": { "type": ["number", "null"] },
+          "rh_pct": { "type": ["number", "null"] },
+          "lux": { "type": ["number", "null"] },
+          "battery_mv": { "type": ["integer", "null"] },
+          "dry_threshold_pct": { "type": "number" },
+          "wet_threshold_pct": { "type": "number" },
+          "hours_to_dry": { "type": ["number", "null"] },
+          "open_alerts": { "type": "array", "items": { "enum": ["too_dry", "too_wet", "low_battery", "device_offline", "wetting_unexpected", "waterlogged", "sensor_out_of_soil", "sensor_fault"] } }
+        }
+      }
+    },
+    {
+      "name": "get_history",
+      "description": "Sensor history of one plant for charts and trends (up to 90 days, FR-P01). Plausible readings only.",
+      "annotations": { "readOnlyHint": true, "idempotentHint": true, "openWorldHint": false },
+      "x-requirements": ["FR-P03", "FR-P01"],
+      "inputSchema": {
+        "type": "object", "required": ["plant_id"], "additionalProperties": false,
+        "properties": {
+          "plant_id": { "type": "string", "format": "uuid" },
+          "days": { "type": "integer", "minimum": 1, "maximum": 90, "default": 7 },
+          "resolution": { "enum": ["raw", "hourly", "daily"], "default": "hourly", "description": "raw = 15-min samples. The server downsamples so that at most 2000 points are returned" }
+        }
+      },
+      "outputSchema": {
+        "type": "object", "required": ["plant_id", "resolution", "points"],
+        "properties": {
+          "plant_id": { "type": "string", "format": "uuid" },
+          "resolution": { "enum": ["raw", "hourly", "daily"] },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object", "required": ["ts"],
+              "properties": {
+                "ts": { "type": "string", "format": "date-time" },
+                "moisture_pct": { "type": ["number", "null"], "description": "mean for hourly/daily" },
+                "temp_c": { "type": ["number", "null"] },
+                "rh_pct": { "type": ["number", "null"] },
+                "lux": { "type": ["number", "null"] },
+                "battery_mv": { "type": ["integer", "null"] }
+              }
+            }
+          },
+          "watering_events": { "type": "array", "description": "Detected wetting events in the window", "items": { "type": "string", "format": "date-time" } }
+        }
+      }
+    },
+    {
+      "name": "get_tips",
+      "description": "Current care tips for one plant (weather, season, plant and soil aware, passed through the safety rule layer). Returns cached tips if newer than their expiry, otherwise generates new ones.",
+      "annotations": { "readOnlyHint": true, "idempotentHint": false, "openWorldHint": false },
+      "x-requirements": ["FR-P03", "FR-P02", "FR-P04"],
+      "inputSchema": {
+        "type": "object", "required": ["plant_id"], "additionalProperties": false,
+        "properties": { "plant_id": { "type": "string", "format": "uuid" } }
+      },
+      "outputSchema": {
+        "type": "object", "required": ["plant_id", "generated_at", "items"],
+        "properties": {
+          "plant_id": { "type": "string", "format": "uuid" },
+          "generated_at": { "type": "string", "format": "date-time" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object", "required": ["id", "category", "text"],
+              "properties": {
+                "id": { "type": "string" },
+                "category": { "enum": ["watering", "light", "temperature", "feeding", "safety", "other"] },
+                "text": { "type": "string", "maxLength": 400 }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "errors": [
+    { "code": "premium_required", "when": "user has no premium flag (FR-P04)" },
+    { "code": "key_revoked_or_unknown", "when": "key hash not found or revoked_at set (FR-P03: revoked key stops working)" },
+    { "code": "not_found", "when": "plant_id is not the key owner's plant (indistinguishable from unknown)" },
+    { "code": "rate_limited", "when": "more than 60 calls per minute per key [proposed]" }
+  ]
+}
