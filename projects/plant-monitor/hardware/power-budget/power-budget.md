@@ -17,7 +17,7 @@ Traces to: NFR-01 (relaxed from 6 to **3 months**, A-020), FR-D01 (15-min sampli
 | Rated capacity needed for 3 months (2190 h), per the rule | Typical **about 670 mAh rated** (0.8 x 668 = 534 mAh derated = the 2190 h load); best **about 240 mAh**; worst **about 2180 mAh**. The 1000 mAh minimum cell covers the typical case with a factor 1.5 |
 | Extra margin line (not the rule): with cell self-discharge, assumed 2 %/month | 1000 mAh: **4.0 months** (still passes); rated capacity needed 722 mAh instead of 668 mAh |
 | What dominates | Wi-Fi sessions are **65 %** of the budget, sample wakes 30 %, deep sleep only **5 %** |
-| Deep-sleep limit for the requirement (PR #2 item 19) | Per the rule, typical Wi-Fi and sampling terms, 1000 mAh minimum cell: **134 uA whole board** (with self-discharge: 107 uA). **Derived proposal for NFR-12: <= 100 uA** (0.75 x 134 rounded down to a multiple of 25 uA), design target <= 25 uA; derivation in section 6. **Needs Arsany's approval** |
+| Deep-sleep limit for the requirement (PR #2 item 19) | Per the rule, typical Wi-Fi and sampling terms, 1000 mAh minimum cell: **134 uA whole board** (with self-discharge: 107 uA). **Recommended NFR-12: <= 50 uA** (0.4 x 134 rounded down to a multiple of 25 uA; 1.6x the worst sleep estimate, 3.8x typical), design target <= 25 uA; 100 uA is only the absolute ceiling; derivation in section 6. **Needs Arsany's approval** |
 | Cases that still pass at 1000 mAh (rule) | Hub unreachable every hour (needs 825 mAh rated), critical wakes at the cap of 16/day (927 mAh): both pass, the second only barely; see section 7 |
 | Biggest levers (section 7) | Light sleep during the soil warm-up: **-0.78 mAh/day (-13 %)**; fast connect + hub every 2nd report: **-1.4 mAh/day**; hub unreachable every hour costs **+1.4 mAh/day** |
 | Verdict on NFR-01 | **Not provable yet.** By the rule the typical case passes with the 1000 mAh minimum cell (4.5 months >= 3 months); the worst-case stack fails (1.4 months). Everything hinges on Wi-Fi connect time and current, which only 5.4 can settle. All currents are unverified datasheet recollections or assumptions. The levers are in section 7 |
@@ -35,7 +35,7 @@ Verdict table for the A-020 cell (generated):
 | 1100 mAh typical (info only) | worst | 880 | 797 | 1104 | 1.5 | FAIL | 1.4 |
 <!-- END:cell -->
 
-**Open for Arsany: the NFR-12 value** (section 6). The previous proposal of 50 uA was derived for a different cell and a 6-month target; the re-run gives 100 uA. Recommendation: approve **100 uA** (limit) and keep **25 uA** as design target.
+**Open for Arsany: the NFR-12 value** (section 6). The 50 uA value stays valid after the re-run: it is 0.4 x the 134 uA limit rounded down to 25 uA. Recommendation: approve **50 uA** (limit) and keep **25 uA** as design target. 100 uA is only the absolute ceiling the budget allows and is not recommended.
 
 ## 2. Inputs and decisions applied
 
@@ -154,9 +154,9 @@ Reading: connect time is the strongest lever (each extra second costs about 0.7 
 
 ## 6. Deep-sleep current limit for the requirement: derived NFR-12 (for Theo and Arsany)
 
-Definition to put in the requirement: **whole-board deep-sleep current measured at the battery terminal, USB unplugged, cell at 3.7 V, all sensors fitted and in their low-power state, soil oscillator off, radio off, RTC timer running.** The matrix currently carries this as "NFR-10 (new)" with 50 uA, proposed; this re-run supersedes that value (number to be aligned by Theo/Nora).
+Definition to put in the requirement: **whole-board deep-sleep current measured at the battery terminal, USB unplugged, cell at 3.7 V, all sensors fitted and in their low-power state, soil oscillator off, radio off, RTC timer running.** The ID is **NFR-12** (NFR-10 is provisioning security); the matrix row is renumbered accordingly and keeps 50 uA.
 
-**Derivation (nothing fixed beforehand).** Step 1: the largest sleep current for which the **1000 mAh minimum** cell still reaches 2190 h, with the typical sample and Wi-Fi terms: `limit = (0.8 x C / 91.25 d - (sample + Wi-Fi mAh/day)) / 24 h` = **134 uA** (`max_sleep_current_ua()`). Step 2: apply a margin of 0.75 so that the sleep limit does not consume the whole budget, and round down to a multiple of 25 uA: **100 uA** (`nfr12_limit_ua()`). The limit is 7.6x the typical estimate (13.2 uA), 3.2x the worst-case estimate (31.7 uA), and below the rule limit of 134 uA.
+**Derivation (nothing fixed beforehand).** Step 1: the largest sleep current for which the **1000 mAh minimum** cell still reaches 2190 h, with the typical sample and Wi-Fi terms: `limit = (0.8 x C / 91.25 d - (sample + Wi-Fi mAh/day)) / 24 h` = **134 uA** (`max_sleep_current_ua()`). Step 2: apply a margin of 0.4 so that the sleep limit leaves room for the other terms, and round down to a multiple of 25 uA: **50 uA** (`nfr12_limit_ua()`). 50 uA is 3.8x the typical estimate (13.2 uA) and 1.6x the worst-case estimate (31.7 uA), well below the rule limit of 134 uA. 100 uA (`NFR12_CEILING_UA`) is the absolute ceiling the budget would tolerate and is not recommended.
 
 <!-- BEGIN:nfr12 -->
 | case (other terms as in the case) | board sleep estimate uA | max sleep uA for 1000 mAh rated, 2190 h | limit / estimate |
@@ -164,10 +164,10 @@ Definition to put in the requirement: **whole-board deep-sleep current measured 
 | best | 8.3 | 288 | 34.7 |
 | typical | 13.2 | 134 | 10.2 |
 | worst | 31.7 | -400 | n/a (cannot reach) |
-| **proposed NFR-12 limit** = floor(0.75 x typical limit to 25 uA) |  | **100** | 7.6 |
+| **proposed NFR-12 limit** = floor(0.4 x typical limit to 25 uA) |  | **50** | 3.8 |
 <!-- END:nfr12 -->
 
-**Proposed NFR-12: whole-board deep sleep <= 100 uA, design target <= 25 uA. Pending Arsany's approval.** The requirement text must state that this limit does **not** prove NFR-01; NFR-01 is decided by the measured hourly average current (Wi-Fi is 65 %) and the named cell capacity. The previous 50 uA proposal is not wrong as a design aim but it was derived for the 6-month target; for 3 months it is stricter than the budget needs. The limit is a ceiling, not the expected value: at the 13 uA estimate deep sleep is 5 % of the load, and a board sitting exactly at 100 uA would use 2.4 mAh/day (versus 0.3 at the estimate) and still reach 2190 h only with the other terms at their typical values.
+**Recommended NFR-12: whole-board deep sleep <= 50 uA, design target <= 25 uA. Pending Arsany's approval.** The requirement text must state that this limit does **not** prove NFR-01; NFR-01 is decided by the measured hourly average current (Wi-Fi is 65 %) and the named cell capacity. 50 uA keeps the earlier proposal while 100 uA would only pass with every other term at its typical value. The limit is a ceiling, not the expected value: at the 13 uA estimate deep sleep is 5 % of the load, and a board at exactly 50 uA would use 1.2 mAh/day (versus 0.3 at the estimate).
 
 Deep-sleep limit by rated capacity (negative = cannot reach even at 0 uA). Rule columns use Arsany's formula; "+SD" columns are the extra-margin line.
 
@@ -193,7 +193,7 @@ Deep-sleep limit by rated capacity (negative = cannot reach even at 0 uA). Rule 
 | best | 8.3 | 288 | 34.7 |
 | typical | 13.2 | 134 | 10.2 |
 | worst | 31.7 | -400 | n/a (cannot reach) |
-| **proposed NFR-12 limit** = floor(0.75 x typical limit to 25 uA) |  | **100** | 7.6 |
+| **proposed NFR-12 limit** = floor(0.4 x typical limit to 25 uA) |  | **50** | 3.8 |
 <!-- END:levers -->
 
 - **Light sleep during the soil warm-up** is the largest single lever on the sample-wake side: the baseline holds the CPU active (20 mA) for the 1.5 s warm-up of every one of the 96 daily wakes. With the CPU in light sleep (assumed 0.5 mA including the RTC and timer; the true value is unverified and is measured in M3), the sample term falls from 1.76 to 0.98 mAh/day, **-0.78 mAh/day, 13 % of the total**. Cost: firmware must keep the soil oscillator supply and the I2C sensors alive across light sleep and wake on a timer (Mira's call); sensors are on their own supply gate. Together with fast connect and hub every 2nd report the typical load falls to 3.7 mAh/day.
@@ -213,7 +213,7 @@ Needs hands on hardware: Peter does these via a work order; the work order text 
 
 | # | Measure | On | Replaces | Pass/fail use |
 |---|---|---|---|---|
-| M1 | Deep-sleep current at 3.7 V, USB unplugged, sensors fitted, 10 min settle, mean over 60 s | dev kit, then PCB | section 4 sleep rows | <= NFR-12 limit (proposed 100 uA, section 6) |
+| M1 | Deep-sleep current at 3.7 V, USB unplugged, sensors fitted, 10 min settle, mean over 60 s | dev kit, then PCB | section 4 sleep rows | <= NFR-12 limit (proposed 50 uA, section 6) |
 | M2 | Same, at 3.3 V, 4.2 V and 3.0 V; at 0 C / 25 C / 40 C if a chamber is available | PCB | temperature and divider terms | trend only |
 | M3 | Current trace of one sample wake (boot, warm-up, AHT20, BH1750, inference): duration and charge in mA*s; once with CPU busy-wait and once with light sleep during warm-up (current in light sleep) | dev kit | t_boot, t_sense, I_cpu, I_periph | charge per wake |
 | M4 | Current trace of one hourly session: association, DHCP, SNTP, cloud TLS + POST, hub TLS + MQTT: time per phase, average mA, TX peak mA; 20 sessions, median and worst | dev kit on the real router | t_connect, t_cloud, t_hub, I_rx, I_tx, f_tx | charge per session |
@@ -229,11 +229,11 @@ After M1-M6 the script is run with the measured values (edit `TYPICAL`, tag each
 
 ## 10. Open points
 
-- **Needs Arsany (question):** approve the derived NFR-12 whole-board deep-sleep limit of **100 uA** (design target 25 uA) or choose another value (section 6). Recommendation: 100 uA.
+- **Needs Arsany (question):** approve the derived NFR-12 whole-board deep-sleep limit of **50 uA** (design target 25 uA) or choose another value (section 6; 100 uA is the absolute ceiling). Recommendation: 50 uA.
 - **Answered, applied:** A-020 (cell 603449, 3-month life acceptable, NFR-01 relaxed to 2190 h) and A-021 (literal rule, derated rated capacity, 1000 mAh minimum, no self-discharge term). The acceptance matrix row NFR-01 still says 6 months / 4380 h and must be updated by the Lead/Theo.
 - **Needs Arsany / Peter:** a current meter for 5.4 (purchase is Arsany's); ordering the cell (Arsany orders, hard rule).
 - **Needs a person with network access:** read the five datasheet tables behind the D? rows (and the 603449 cell datasheet) and replace the tags with section and table numbers. **All currents here remain unverified datasheet values.**
-- **For Theo:** the NFR-12 text (section 6) and renumbering (matrix says NFR-10 (new)); whether the 3 months are counted to the 3.4 V warning (assumed here); please check the hub-unreachable figure (+1.4 vs your +0.2 mAh/day).
+- **For Theo:** the NFR-12 text (section 6) (matrix row renumbered to NFR-12); whether the 3 months are counted to the 3.4 V warning (assumed here); please check the hub-unreachable figure (+1.4 vs your +0.2 mAh/day).
 - **For Yara:** bay 51 x 34.5 x 6.3 mm plus swelling clearance (`docs/interfaces/pcb-enclosure-bay.md`).
 - **For Mira (firmware):** fast Wi-Fi connect (cached channel/BSSID, static IP or DHCP lease reuse), SNTP not on every session, hub publish every 2nd report if needed, hub back-off when unreachable, light sleep during the soil warm-up, critical-wake cap per day; each is a lever in section 7.
 - **For me, next in 4.P1/4.P3:** pick a low-Iq LDO and charger/protection (sum of their quiescent currents goes in section 4), battery divider with a switch, and the LDO dropout simulation at 3.4 V. The PCB outline must leave room for the cell bay or the cell sits outside the board; I announce any outline change to the Lead.

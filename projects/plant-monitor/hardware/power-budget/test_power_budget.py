@@ -114,13 +114,18 @@ class Rule(unittest.TestCase):
     def test_nfr12_limit_is_derived_from_the_rerun(self):
         lim = pb.max_sleep_current_ua(pb.TYPICAL, 1000)
         self.assertAlmostEqual(lim, 134.6, delta=0.5)
-        self.assertEqual(pb.nfr12_limit_ua(), 100.0)                   # floor(0.75 x 134.6 / 25) x 25
+        self.assertEqual(pb.nfr12_limit_ua(), 50.0)                    # floor(0.4 x 134.6 / 25) x 25
+        self.assertAlmostEqual(50.0 / pb.sleep_current_ua(pb.WORST), 1.6, delta=0.05)
+        self.assertAlmostEqual(50.0 / pb.sleep_current_ua(pb.TYPICAL), 3.8, delta=0.05)
+        self.assertEqual(pb.NFR12_CEILING_UA, 100.0)
+        self.assertLess(pb.nfr12_limit_ua(), pb.NFR12_CEILING_UA)
         self.assertLessEqual(pb.nfr12_limit_ua(), lim)
         # a board at exactly the limit, other terms typical, still meets the rule
-        p = pb.with_(pb.TYPICAL, i_mcu_sleep_ua=pb.TYPICAL.i_mcu_sleep_ua + 100 - pb.sleep_current_ua(pb.TYPICAL))
+        p = pb.with_(pb.TYPICAL, i_mcu_sleep_ua=pb.TYPICAL.i_mcu_sleep_ua + 50 - pb.sleep_current_ua(pb.TYPICAL))
         self.assertGreaterEqual(pb.derated_hours(p, 1000), pb.NFR01_HOURS)
         # a looser margin or step changes the proposal (the value is not hard-coded)
         self.assertEqual(pb.nfr12_limit_ua(margin=1.0, step_ua=25.0), 125.0)
+        self.assertEqual(pb.nfr12_limit_ua(margin=0.75), 100.0)
         # longer life target -> tighter limit
         self.assertLess(pb.max_sleep_current_ua(pb.TYPICAL, 1000, hours=4380.0), lim)
 

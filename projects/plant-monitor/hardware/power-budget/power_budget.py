@@ -45,8 +45,9 @@ NFR01_HOURS = NFR01_MONTHS * HOURS_PER_MONTH   # 2190 h (was 4380 h)
 CELL_RATED_TYP_MAH = 1100.0   # A-020: 603449 LiPo 3.7 V, typical capacity (maker's figure, datasheet not read here)
 CELL_RATED_MIN_MAH = 1000.0   # A-020: minimum capacity; the NFR-01 verdict uses this (A-021)
 BAY_MM = (51.0, 34.5, 6.3)    # A-020: cell envelope L x W x H, mm (input note for PCB outline / enclosure v3, 4.E3)
-NFR12_MARGIN = 0.75           # proposed NFR-12 limit = this share of the typical-case limit, rounded down ...
-NFR12_STEP_UA = 25.0          # ... to a multiple of this (uA)
+NFR12_MARGIN = 0.4            # proposed NFR-12 limit = this share of the typical-case limit (134 uA -> 53.8), rounded down ...
+NFR12_STEP_UA = 25.0          # ... to a multiple of this (uA) -> 50 uA
+NFR12_CEILING_UA = 100.0      # absolute upper ceiling the budget would still tolerate (not the recommendation)
 DERATING = 0.80               # Arsany, PR #2 item 12: rated capacity less 20 %
 LOW_BATTERY_V = 3.4           # low-battery warning threshold in volts (Arsany, Needs Arsany A-008.2 answered 'ok' on PR #2, 'low-battery 3.4 V')
 
