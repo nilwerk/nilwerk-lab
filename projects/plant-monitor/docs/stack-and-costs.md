@@ -91,7 +91,8 @@ Source of truth: `costs/cost_model.py` (Python stdlib only, runs on 3.11) with `
 | `db_kb_per_rollup` | 0.3 | roll-up row plus index, rough |
 | `photo_mb_per_device` | 0.5 | one compressed photo per plant |
 | `tips_per_premium_device_month` | 30 | one cached refresh a day (ADR-006) |
-| `demo_tips_per_device_month` | 0 | A-025: demo must cost zero, so no live Claude tips in the demo |
+| `demo_tips_mode` | rule_based | A-029: demo tips are canned/rule-based (cost 0); live Claude is a switchable option (feature flag TIPS_MODE=live) |
+| `demo_live_tips_per_device_month` | 30 | only when demo_tips_mode = live: one cached refresh a day per demo device |
 | `tips_tokens_in` | 2000 | plant, readings, forecast, instructions |
 | `tips_tokens_out` | 500 | schema-constrained JSON |
 | `profile_db_projects` | 0 | A-025: one database for profiles and sensor data (no second project) |
@@ -161,7 +162,7 @@ The unit of record is one 15-minute sample, 96 per day = 2880 rows per device-mo
 ### 4.6 Reading the numbers
 
 - The cloud is cheap per user once past the fixed Supabase fee: a free user costs a fraction of a cent in function calls; a premium user costs about 0.27 USD a month, almost all of it Claude tips. Under these unverified prices, a premium price above roughly 1 USD a month covers the variable cost, with the fixed fee as the real hurdle at 100 users.
-- The "100 users" column is dominated by fixed costs (Supabase Pro + store accounts); the 1000-user column by Claude. **The demo costs 0.00 USD**: free Supabase tier, free push/EAS/GitHub, DWD weather, no store accounts, and no live Claude calls (the demo shows canned tips from the rule layer). Live LLM tips in the demo would cost about 0.40 USD a month for 3 units (3 devices x 30 refreshes x 0.0045 USD, unverified token prices): question Q6.
+- The "100 users" column is dominated by fixed costs (Supabase Pro + store accounts); the 1000-user column by Claude. **The demo costs 0.00 USD**: free Supabase tier, free push/EAS/GitHub, DWD weather, no store accounts, and no live Claude calls (**A-029: the demo shows canned, rule-based tips; live Claude is a switchable option**, feature flag `TIPS_MODE=live`, default `rule_based`). Switching live tips on in the demo would cost about 0.40 USD a month for 3 units (3 devices x 30 refreshes x 0.0045 USD, unverified token prices): see Q6 (decided).
 - Open-Meteo's commercial plan would add a fixed fee that is large relative to the demo and the first customers; this is why the weather pick matters.
 - Sensitivity worth re-running once prices are verified: `tips_per_premium_device_month` (caching hit rate), the model tier (token price), `premium_share`, and the raw-retention length (`raw_months`). The separate profile project is gone (A-025); re-adding it costs 10 USD a month.
 - Not modelled: hardware, shipping, payment-provider fees (no payments yet, ADR-008), support time, VAT, a domain, e-mail sending for auth, Supabase compute add-ons if load grows, backups beyond the plan.
@@ -174,8 +175,8 @@ The unit of record is one 15-minute sample, 96 per day = 2880 rows per device-mo
 | Q2 / A-2 | Weather provider | **Decided (A-025):** DWD open data via Bright Sky. A human still reads the two terms pages in section 3 before the first customer demo (unverified) |
 | Q3 | Stores or demo builds | **Decided (A-025):** demo builds first; no Apple/Google account until a customer needs it |
 | Q4 | Supabase tier | **Decided (A-025):** free tier for the demo, Pro from the first paying customer |
-| Q5 | Raw retention | **Decided (A-025):** about 3 months raw, then hourly/daily roll-up. **Open consequence:** NFR-13 and `purge_old_readings()` in PR #15 say raw 12 months (G1 point 21). Recommendation: change NFR-13 to "raw 15-min samples 3 months, hourly roll-up to 12 months" and add the roll-up job to 2.4 / 4.B1. Reply OK to accept |
-| Q6 | Live Claude tips in the demo cost real money (about 0.40 USD a month for 3 units, unverified) although you want a zero-cost demo | Recommendation: no live LLM tips in the demo (canned tips from the rule layer); switch on for the first customer. Alternative: accept about 0.40 USD a month |
+| Q5 | Raw retention | **Decided (A-025, A-028):** about 3 months raw, then hourly/daily roll-up kept 12 months. NFR-13 changed accordingly; PR #15 implements it (`readings_hourly`, `apply_retention()`, replaces `purge_old_readings()`). The model's `raw_months = 3` matches |
+| Q6 | Live Claude tips in the demo | **Decided (A-029):** demo tips are canned / rule-based (cost 0). Live Claude stays as a switchable option: feature flag `TIPS_MODE` = `rule_based` (default) or `live`; the cost model has `demo_tips_mode` (live = about 0.40 USD a month for 3 units, unverified). Needed for any customer who pays for tips |
 
 Note for Kai (DevOps): CI does not run `docs/costs/` (no workstream gate covers it), so the doc-drift test only protects the doc when someone runs it: `cd projects/plant-monitor/docs/costs && python3 -m unittest discover -v`. Please add a gate or step; `ci.yml` is not changed in this PR.
 

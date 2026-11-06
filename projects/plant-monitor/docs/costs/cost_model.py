@@ -61,7 +61,8 @@ class Assumptions:
     db_kb_per_rollup: float = 0.3                  # roll-up row plus index, rough (same as a sample)
     photo_mb_per_device: float = 0.5
     tips_per_premium_device_month: float = 30.0    # about one refresh per day, cached
-    demo_tips_per_device_month: float = 0.0        # A-025: demo costs nothing -> no live Claude tips in the demo (canned rule-layer tips)
+    demo_tips_mode: str = "rule_based"             # A-029: demo tips are canned/rule-based (cost 0); "live" = feature flag TIPS_MODE=live
+    demo_live_tips_per_device_month: float = 30.0  # only used when demo_tips_mode == "live" (one cached refresh a day)
     tips_tokens_in: int = 2000
     tips_tokens_out: int = 500
     profile_db_projects: int = 0                   # A-025: ONE database (supersedes the separate profile DB of A-011)
@@ -77,7 +78,7 @@ class Scenario:
     store_accounts: bool  # App Store / Play fees apply
     weather: str = "dwd_brightsky"
     premium_devices: float = -1  # devices owned by premium users; -1 = premium_users * devices_per_user
-    demo: bool = False           # demo units: live LLM tips off (a.demo_tips_per_device_month per device)
+    demo: bool = False           # demo units: tips rule-based unless a.demo_tips_mode == 'live' (A-029)
 
 
 def supabase_tier(sc: Scenario, a: Assumptions) -> str:
@@ -105,7 +106,7 @@ def usage(sc: Scenario, a: Assumptions) -> dict:
     db_gb = db_gb_for(sc.devices, a)
     storage_gb = sc.devices * a.photo_mb_per_device / 1024
     pdev = sc.premium_devices if sc.premium_devices >= 0 else sc.premium_users * a.devices_per_user
-    tips = sc.devices * a.demo_tips_per_device_month if sc.demo else pdev * a.tips_per_premium_device_month
+    tips = (sc.devices * a.demo_live_tips_per_device_month if a.demo_tips_mode == "live" else 0.0) if sc.demo else pdev * a.tips_per_premium_device_month
     return {"fn": fn, "db_gb": db_gb, "storage_gb": storage_gb, "tips_calls": tips}
 
 
@@ -200,7 +201,8 @@ def table_assumptions(a: Assumptions = Assumptions()) -> str:
         "raw_months": "A-025: about 3 months raw 15-min samples, older data rolled up",
         "rollup_rows_per_device_month": "hourly min/avg/max, 24 * 30",
         "db_kb_per_rollup": "roll-up row plus index, rough",
-        "demo_tips_per_device_month": "A-025: demo must cost zero, so no live Claude tips in the demo",
+        "demo_tips_mode": "A-029: demo tips are canned/rule-based (cost 0); live Claude is a switchable option (feature flag TIPS_MODE=live)",
+        "demo_live_tips_per_device_month": "only when demo_tips_mode = live: one cached refresh a day per demo device",
         "photo_mb_per_device": "one compressed photo per plant",
         "tips_per_premium_device_month": "one cached refresh a day (ADR-006)",
         "tips_tokens_in": "plant, readings, forecast, instructions",
@@ -209,7 +211,7 @@ def table_assumptions(a: Assumptions = Assumptions()) -> str:
         "min_users_for_pro": "free tier is for the demo only",
     }
     for k, v in a.__dict__.items():
-        rows.append(f"| `{k}` | {v:g} | {why[k]} |")
+        rows.append(f"| `{k}` | {v if isinstance(v, str) else format(v, 'g')} | {why[k]} |")
     return "\n".join(rows)
 
 

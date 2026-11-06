@@ -20,17 +20,18 @@ class ModelTests(unittest.TestCase):
         self.assertAlmostEqual(cm.claude_cost_per_call(A), 0.0045)
 
     def test_demo_costs_zero(self):
-        # A-025: demo = free tier, one DB, DWD weather, no store accounts, no live Claude tips
+        # A-025/A-029: demo = free tier, one DB, DWD weather, no store accounts, rule-based tips (live Claude is off by default)
         sc = cm.scenarios()[0]
         lines = cm.monthly_costs(sc)
         self.assertEqual(lines["_tier"], "free")
         self.assertEqual(cm.total(lines), 0.0)
         self.assertEqual(lines["Claude API (tips)"], 0)
         self.assertTrue(sc.demo)
+        self.assertEqual(A.demo_tips_mode, "rule_based")
 
     def test_demo_with_live_tips_costs_only_claude(self):
         sc = cm.scenarios()[0]
-        a = cm.Assumptions(demo_tips_per_device_month=30.0)
+        a = cm.Assumptions(demo_tips_mode="live")  # A-029 flag on
         lines = cm.monthly_costs(sc, a)
         self.assertAlmostEqual(cm.total(lines), 90 * 0.0045)
 
