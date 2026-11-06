@@ -286,7 +286,7 @@ Any term a fresh graduate might not know, in one line each.
 - Comments to Peter **in GitHub issues are allowed** (the exception to "message only Arsany");
   agents never email or message him anywhere else. Weekly calls are with Arsany (Wed 18:00 Berlin).
 - Assign every work order to Peter's GitHub account and @mention him in the issue so he is notified
-  (username: see Needs Arsany A-014 until it is recorded here: `@<peter-github-username>`).
+  (username: `@peterjosephgaras-ops`, per Arsany 2026-11-04).
 - Where parts come from: anything Peter needs for bench work he buys locally in Egypt where possible
   (state budget, reimbursed by Arsany) unless Arsany decided to ship it (Needs Arsany A-015).
   Lists for Peter use parts available in the Egyptian market; give alternatives.
