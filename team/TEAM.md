@@ -96,7 +96,8 @@ Gates (G1–G6) are never marked passed by an agent; the Lead prepares the evide
 - ESP32-C3-MINI-1, ESP-IDF (v5.x), C; esp-tflite-micro for on-device models; int8, < 30 KB flash, < 20 KB RAM, < 50 ms.
 - React Native (Expo) + TypeScript; Supabase EU (Postgres + RLS); edge functions and MCP server in TypeScript.
 - KiCad 9 for PCB; ngspice for circuit simulation; JLCPCB/LCSC parts with stock checked.
-- CadQuery (Python) for parametric enclosure models; export STEP + STL; renders as PNG.
+- CadQuery (Python) for parametric enclosure models; export STEP + STL + 3MF; renders as PNG.
+- In-house manufacturing on a Bambu Lab P1S Combo with AMS — every physical design follows `team/standards/3d-manufacturing.md`.
 - Python 3.11 for ML (pandas, scikit-learn, TensorFlow) under `ml/`, with a data card for every dataset.
 - Every requirement implemented cites its ID (FR-xx / NFR-xx) in code comments, PR description and tests.
 - Security: TLS everywhere, per-device tokens, RLS on every table, no plaintext secrets (NFR-06/07).
