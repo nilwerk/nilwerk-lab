@@ -1,0 +1,56 @@
+# Requirements v0.1 -> v1.0: text changes derived in task 2.4
+
+Author: Theo (System Architect) · 2026-11-04 · Status: **PROPOSAL for the Requirements owner (Arsany / Lead); the Google Doc is not edited by this file.** Updated 2026-11-06 with Arsany's answers A-016..A-023 (marked *decided* below). Self-authored; needs independent review.
+Sources: Requirements v0.1 (Doc `1T4k3rK4KQDeGtIN8pjdmohGUAohFrtATLhMYSBsYA6g`), Arsany's G1 answers (PR #2 comments, "G1 answers"), PR #4 open items 7/8 (`edge-ai-concept.md`), Plan 4.F5, `architecture.md` section 10.1 (v0.2 items, not repeated here), `interfaces/`.
+IDs: new IDs continue after the proposed v0.2 ones (FR-D08/D09, FR-H01..H03, NFR-10/11 in architecture.md 10.1).
+
+## A. Changed requirements (old -> new)
+| ID | v0.1 text / criterion | Proposed v1.0 text / criterion | Source |
+|---|---|---|---|
+| FR-D01 | "All five values plausible and present in every report" | Keep. Add: "Plausible = temperature -10..60 degC, humidity 0..100 %RH, light 0..100,000 lux, battery 3.0..4.25 V, relative moisture 0..100 %. A sample outside a range is stored but flagged and excluded from alerts and charts." | G1 point A-008.1; `db-schema.sql reading_is_plausible` |
+| FR-D02 | Criterion: "24 +/- 1 reports per day over 3 days" | Criterion: "**24 +/- 1 reports on each of 3 days**" (per day, not the average). Each report carries the samples since the last report (4 per scheduled report). | G1 point 4 |
+| FR-D04 | "Store readings when Wi-Fi is unavailable and upload them later" / "24 h without Wi-Fi -> no data lost after reconnect" | "Store **15-minute samples** while Wi-Fi is unavailable, **for at least 24 h (96 samples)**, and upload them later." Criterion: "after 24 h without Wi-Fi and reconnect, all 96 samples (unit of record: the 15-min sample) are in the cloud, none duplicated, none missing." The hub copy is best effort (v0.2). **Decided (A-017): 24 h / 96 samples.** Plan 4.F3 says "up to 7 days" and **must be corrected** to "24 h (96 samples) of 15-minute samples" (Plan sheet, row 4.F3, Details; Lead to edit, the sheet is not in this repo). A longer buffer would be a separate change request. | Ines follow-up 1; `interfaces/README.md` decision 1; PR #3 note |
+| FR-D05 | "Over-the-air firmware and model updates with rollback" / "Update succeeds; a broken image rolls back automatically" | Add to the requirement: "The image is verified by SHA-256 (published over TLS) before it is activated; a hash mismatch aborts the update." **Do not add** "unsigned image refused" (FR-D05(c) dropped). Signed images = follow-up, own ADR. Plan 4.F4 "Signed images" should read "SHA-256-verified images". | G1 point 18, A-009; ADR-009 |
+| FR-D06 | "Low-battery warning below threshold" | "Low-battery warning when the battery voltage is **below 3.4 V**; cleared again at 3.5 V or above." **Decided (A-018).** | G1 thresholds; `devices.low_battery_mv` |
+| FR-A02 | "unlimited number of devices" | Keep. Criterion: "No hard-coded cap; tested with 3 devices on one account." | G1 point 7 |
+| FR-A07 | "Push alerts: too dry, too wet, low battery, device offline, edge-AI events" | Define the terms: **too dry** = relative moisture below the plant's dry threshold (default **25 %**); **too wet** = above the wet threshold (default **85 %**); **low battery** = below 3.4 V; **device offline** = **3 missed hourly reports** (no report for 3 h 10 min); **edge-AI events** = `wetting_unexpected`, `waterlogged`, `sensor_out_of_soil`, `sensor_fault` (critical set, `edge-ai-concept.md` 2.4). Each alert fires once until it clears. **Clear rules (decided, A-018):** low battery clears at >= 3.5 V; too dry / too wet clear when moisture is back inside the threshold by 5 points (dry clears at >= 30 %, wet at <= 80 % with the defaults); device offline fires at 3 h 10 min without a report (3 missed hourly reports + 10 min jitter grace) and clears with the next accepted report. | G1 point 21, thresholds, A-008; PR #4 item 8 |
+| FR-E03 | "Alert on the phone <= 15 min after the event" | "Alert on the phone **<= 15 min after the first 15-minute tick that observes the event**, for the fast-path classes only (unexpected wetting, sensor out of soil, sensor fault). Waterlogged and fast drying are debounced and are not covered by this limit." Measured from the observing tick to push receipt; includes connect and send. | PR #4 item 7 (Arsany "yes to both"); Ines follow-up 3 |
+| FR-E04 | "Model fits the budget" / "Size, RAM and inference time measured on the real board" | Put the numbers in the requirement: flash **< 30 KB** (model flatbuffer), RAM **< 20 KB** (tensor arena + model-specific persistent buffers + feature history; interpreter/kernels code reported separately), inference **< 50 ms** (one `Invoke()` on the board). | G1 point 11; PR #4 counting rule |
+| NFR-01 | "Battery life >= 6 months per charge at hourly reporting" / "Measured average current projects >= 6 months" | **Decided (A-020/A-021): target relaxed from 6 to 3 months (2190 h).** Criterion: "projected life >= **3 months** = 0.8 x rated capacity of the chosen 1S LiPo / average current >= 2190 h; **literal formula, no self-discharge term** (the 20 % derating covers self-discharge, temperature and ageing); both capacities stated in the report." Reference cell: **603449 LiPo, 1000 mAh minimum / 1100 mAh typical**, fitting the battery bay **51 x 34.5 x 6.3 mm**. Includes the hub publish (v0.2). The 6-month figure stays a stretch goal for a later version. | G1 point 12; A-020, A-021 |
+| NFR-02 | "Accuracy after calibration ..." | Criterion adds: "tested in real potting soil and one garden soil, gravimetric reference, **2-point dry/wet calibration per FR-D10**." | G1 point 13 |
+| NFR-07 | "EU hosting, data export and deletion on request" | "... **export as JSON and as CSV**; deletion removes all rows and photos. **Raw readings are kept 3 months and hourly/daily roll-ups 12 months (NFR-13, A-028)**, then deleted automatically." | G1 point 21; `GET /export`, `apply_retention()` |
+| Sec. 7 constraints | App: Expo + TS, iOS + Android | Add: "**Minimum iOS 16 and Android 10**, tested on the owner's phones." | G1 point 22 |
+
+## B. New requirements
+| ID | Prio | Text | Acceptance criterion | Test | Source |
+|---|---|---|---|---|---|
+| **FR-D10** | M | **Calibration procedure.** The device calibrates soil moisture with a 2-point procedure: a **dry point** (probe in air / dry soil of the chosen soil type) and a **wet point** (probe in saturated soil of that type); the raw ADC values are stored on the device, used to compute relative moisture 0-100 %, and reported to the cloud (`cal.dry_raw`, `cal.wet_raw`). The procedure is started from the app or by a documented button sequence and is repeatable per soil type. | After calibration, relative moisture of the dry and wet references reads <= 5 points from 0 and 100 respectively; the points survive reboot and OTA; the cloud shows them. Accuracy is then judged by NFR-02. | 5.3 | G1 point 20; Plan 4.F5 ("dry/wet calibration per soil type"); NFR-02; edge-ai-concept 2.1 |
+| **NFR-12** | M | **Deep-sleep current.** With Wi-Fi/BLE off, sensors powered down and RTC retained, the whole board draws at most **I_sleep_max = 50 uA** (design target 25 uA) at 3.7 V, measured at the battery terminal, USB unplugged. Decided by Arsany (A-027, 2026-11-06); derived from the 3-month NFR-01 budget (see below). The limit alone does not prove NFR-01. | Measured at the battery terminal on the assembled board; value <= 50 uA. | 5.2 / 4.P5 | G1 point 19; A-016, A-021, A-027; `power-budget.md` 6 |
+| **NFR-13** | M | **Data retention.** Raw 15-minute readings are kept about **3 months** and deleted automatically afterwards. Before deletion they are rolled up to hourly values (daily values derive from them); the **hourly/daily roll-up is kept 12 months** and deleted automatically afterwards. Decided by Arsany (A-028), consistent with the one-free-database budget of A-025. | After the nightly job: no raw row older than 3 months, no roll-up row older than 12 months, and every expired raw hour exists in the roll-up with correct count/avg/min/max (test with back-dated rows). | 5.9 | G1 point 21; A-025, A-028 |
+
+### NFR-12: how the value is derived (Emil's 2.3 budget, re-run for the 3-month target on 2026-11-06)
+Formula (unchanged): `I_sleep_max = (0.8 x C_rated / T - active share) `, with `T = 3 months = 2190 h` (A-020) and the active share = sample wakes + Wi-Fi sessions of the 2.3 model. Computed with `power_budget.max_sleep_current_ua(p, rated, hours=2190)` from `hardware/power-budget/power_budget.py` (estimates, not measurements; every input of 2.3 is an estimate, D? values unverified):
+
+| Cell (603449) | best | typical | worst |
+|---|---|---|---|
+| 1000 mAh (minimum) | 288 uA | **134 uA** | negative (cannot reach 3 months) |
+| 1100 mAh (typical) | 324 uA | **171 uA** | negative |
+
+Typical whole-board sleep estimate is 13.2 uA (best 8.3, worst 31.7). The decided **50 uA** is 3.8x the typical estimate, above the worst-case sleep estimate, and well below the 134 uA the minimum cell allows in the typical case. Life in months by the literal rule (typical): **4.5 at 1000 mAh, 4.9 at 1100 mAh** (>= 3: pass); worst-case stack: 1.4 / 1.5 months (fail; a stress bound, depends on Wi-Fi connect time, to be measured in 5.4). Not covered: the 603449 datasheet was not read, the cell and bay dimensions are Arsany's decision (A-021).
+
+## C. Items I checked and do NOT propose to change
+FR-A03/NFR-03 (timing rule = first-time users, median <= 180 s, none > 240 s, G1 point 6) and FR-E01/E02 test conditions (G1 points 8-10) are acceptance-matrix details owned by Ines (task 1.5), not requirement text. G1 point 15 (NFR-09) and points 16/17 (FR-P02/P03 test method) likewise. The v0.2 hub/BLE changes stay in `architecture.md` 10.1.
+
+## D. Decisions recorded and what is still open
+| Item | Status |
+|---|---|
+| A-016 FR-D10, NFR-12, NFR-13 | **Decided: accept.** |
+| A-027 NFR-12 = whole-board deep sleep <= 50 uA, design target 25 uA | **Decided (approved 2026-11-06).** Revisit after measurement 5.4 M1 |
+| A-028 NFR-13 = raw ~3 months, hourly/daily roll-up 12 months | **Decided (2026-11-06).** Matches A-025; implemented in `db-schema.sql` (`readings_hourly`, `apply_retention()`) |
+| A-017 FR-D04 = 24 h / 96 samples | **Decided.** Plan 4.F3 text to be corrected by the Lead |
+| A-018 clear rules (3.5 V, 5 points, 3 h 10 min) | **Decided** |
+| A-020 / A-021 NFR-01 = 3 months, literal formula, cell 603449 1000/1100 mAh, bay 51 x 34.5 x 6.3 mm | **Decided** |
+| A-022 delete a plant | **Decided**, implemented as `delete_plant()` (db-schema.sql), `DELETE /plants/{id}`, tested |
+| A-023 hub S17 not in v1; hub items v1.1 | **Decided**; FR-H01..H03 and FR-D08 are v1.1 (see architecture.md 10.1 note), hub MQTT stays a best-effort extra |
+
+**Open (Arsany):** nothing for this document.

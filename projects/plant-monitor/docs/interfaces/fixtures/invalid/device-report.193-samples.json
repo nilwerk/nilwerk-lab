@@ -1,0 +1,788 @@
+{
+  "v": 1,
+  "sent_at": 1767225600,
+  "trigger": "scheduled",
+  "fw": "0.3.1",
+  "model": "a-0.1",
+  "forecast_h": 41.5,
+  "samples": [
+    {
+      "ts": 1767222000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767222900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767223800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767224700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767225600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767226500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767227400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767228300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767229200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767230100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767231000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767231900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767232800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767233700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767234600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767235500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767236400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767237300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767238200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767239100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767240000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767240900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767241800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767242700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767243600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767244500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767245400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767246300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767247200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767248100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767249000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767249900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767250800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767251700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767252600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767253500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767254400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767255300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767256200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767257100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767258000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767258900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767259800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767260700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767261600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767262500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767263400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767264300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767265200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767266100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767267000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767267900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767268800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767269700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767270600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767271500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767272400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767273300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767274200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767275100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767276000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767276900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767277800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767278700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767279600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767280500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767281400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767282300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767283200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767284100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767285000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767285900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767286800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767287700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767288600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767289500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767290400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767291300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767292200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767293100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767294000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767294900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767295800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767296700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767297600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767298500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767299400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767300300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767301200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767302100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767303000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767303900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767304800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767305700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767306600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767307500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767308400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767309300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767310200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767311100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767312000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767312900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767313800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767314700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767315600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767316500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767317400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767318300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767319200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767320100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767321000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767321900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767322800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767323700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767324600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767325500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767326400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767327300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767328200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767329100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767330000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767330900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767331800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767332700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767333600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767334500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767335400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767336300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767337200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767338100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767339000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767339900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767340800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767341700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767342600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767343500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767344400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767345300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767346200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767347100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767348000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767348900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767349800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767350700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767351600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767352500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767353400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767354300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767355200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767356100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767357000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767357900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767358800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767359700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767360600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767361500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767362400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767363300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767364200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767365100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767366000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767366900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767367800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767368700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767369600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767370500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767371400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767372300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767373200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767374100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767375000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767375900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767376800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767377700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767378600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767379500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767380400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767381300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767382200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767383100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767384000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767384900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767385800,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767386700,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767387600,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767388500,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767389400,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767390300,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767391200,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767392100,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767393000,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767393900,
+      "moisture_pct": 40
+    },
+    {
+      "ts": 1767394800,
+      "moisture_pct": 40
+    }
+  ],
+  "events": [
+    {
+      "ts": 1767224000,
+      "type": "wetting"
+    }
+  ]
+}

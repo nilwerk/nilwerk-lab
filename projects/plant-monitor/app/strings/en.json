@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "locale": "en",
+    "note": "A-024: English only in v1. Every UI string lives here; add de.json later with the same keys. Use ICU-style {placeholders}.",
+    "source": "projects/plant-monitor/app/wireframes/index.html (v0.2)"
+  },
+  "app.name": "Plant Monitor",
+  "welcome.tagline": "Know when your plants are thirsty. Set up a sensor in under 3 minutes.",
+  "welcome.createAccount": "Create account",
+  "welcome.haveAccount": "I already have an account",
+  "welcome.privacy": "By continuing you accept the privacy notice (data stored in the EU).",
+  "profile.exportData": "Export my data (JSON / CSV)",
+  "profile.deleteAccount": "Delete account",
+  "setup.addSensor": "Add a sensor",
+  "setup.findSensor": "Find my sensor",
+  "setup.hubNotInV1": "Hub pairing is available in a later version.",
+  "plant.remove.title": "Remove {plantName}?",
+  "plant.remove.warning": "This permanently deletes the plant, all its readings, events, alerts, tips and photos. This cannot be undone.",
+  "plant.remove.exportFirst": "Export first (JSON / CSV)",
+  "plant.remove.confirmLabel": "Type the plant name to confirm",
+  "plant.remove.confirm": "Delete plant and all its data",
+  "plant.remove.cancel": "Cancel",
+  "plant.removed.title": "{plantName} was removed",
+  "plant.removed.body": "Readings and photos are deleted. Your sensor {sensorName} is still linked to your account.",
+  "plant.removed.keepSensor": "Keep sensor (set up a new plant later)",
+  "plant.removed.releaseSensor": "Release sensor",
+  "plant.removed.releaseHint": "Releasing unlinks it so anyone can set it up. It returns to setup mode after its next report. You can also do this later from the sensor list.",
+  "premium.title": "Premium",
+  "premium.cta": "Get Premium",
+  "premium.activatedByNilwerk": "Premium is activated by Nilwerk. Contact us and we switch it on for your account.",
+  "premium.contactUs": "Contact us",
+  "push.sender": "Plant Monitor"
+}
