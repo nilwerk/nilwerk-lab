@@ -75,6 +75,21 @@ Each agent's result ends with a `Lessons:` block. Put each lesson into the Agent
 `Lesson: <rule> (why)`. Lessons that are clearly project-specific also go into
 `projects/<project>/LESSONS.md` in the same day's report PR.
 
+## Standing orders from the owner (2026-11-07 — they apply even if the scheduled prompt does not repeat them)
+1. **Poppy runs every day**, after Kai's final pipeline check, with a Plan-independent task `PR-<today>`
+   (branch `agent/pr-social/<today>`): brand kit upkeep, one draft content pack from the day's real evidence in
+   `showcase/content/<date>/`, calendar upkeep. Theo reviews the facts, Ines does QA, her drafts become
+   Needs Arsany rows (*Post approval*). She is planned, timed, logged and status-lined like every agent.
+   Content must serve **both technical and non-technical audiences** (two-layer posts: plain-language story
+   first, a marked "For engineers" block with numbers and sources — see `showcase/brand/brand-kit.md`).
+2. **Every extra round or extra request on the same day** (Arsany asking for another round, a conflict fix,
+   a new task) is logged like a normal run: one Agent Log row per agent run (marked EXTRA), a section
+   "Extra rounds" in `team/reports/<date>.md` with its time table, the totals for the whole day (morning +
+   extras, excl. Lead) and the new/changed PRs, and a line in the **final daily summary** (Done / Time).
+   Update the report PR before finishing — never leave extra work only in chat.
+3. Re-check the report PR, the Needs Arsany tab and the summary at the very end of the run: everything
+   done that day must be in all three.
+
 ## Needs Arsany (TEAM.md §9)
 - Every item that concerns a file gets a line comment on the PR (or a `needs-arsany` issue with a permalink for merged
   files), one thread per question; record PR/issue, file:line and the direct link in columns K–M. Read replies on those

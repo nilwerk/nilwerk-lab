@@ -1,0 +1,57 @@
+/* Nilwerk brand tokens v0.1 - PROPOSAL, pending Arsany's approval.
+   Source: the values already live on nilwerk.de (CSS custom properties --bg, --ink, --accent ...),
+   renamed with an --nw- prefix. Fonts: Google Fonts, open licence (SIL OFL 1.1). Load them with
+   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+   or self-host the same files (privacy: nilwerk.de promises no external fonts, so self-host on the website). */
+
+:root {
+  /* colour - light (default) */
+  --nw-bg: #f6f4ef;          /* warm paper */
+  --nw-surface: #ffffff;     /* cards */
+  --nw-ink: #15181d;         /* text, logo plate */
+  --nw-muted: #5b616b;       /* secondary text */
+  --nw-line: #e2ded5;        /* hairlines */
+  --nw-accent: #0f7a5c;      /* Nilwerk green */
+  --nw-accent-ink: #ffffff;  /* text on accent */
+  --nw-accent-soft: #e3f2ec; /* chips, highlights */
+  --nw-warn: #b4541a;        /* caveats, "estimated", "not yet measured" */
+  --nw-trace: #c9c2b3;       /* PCB-trace decoration */
+  --nw-signal: #8fd9ff;      /* logo wave only, never text */
+
+  /* type */
+  --nw-font-display: "Space Grotesk", Inter, system-ui, sans-serif;
+  --nw-font-body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --nw-font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* scale (px) - social posts use the "post" column at 1080 px width */
+  --nw-fs-body: 16;  --nw-fs-body-post: 34;
+  --nw-fs-h1: 58;    --nw-fs-h1-post: 92;
+  --nw-fs-label: 13; --nw-fs-label-post: 24;
+
+  /* shape and space */
+  --nw-radius: 14px;
+  --nw-radius-chip: 999px;
+  --nw-gutter: 16px;
+  --nw-gutter-post: 72px;
+}
+
+:root[data-theme="dark"] {
+  --nw-bg: #101317;
+  --nw-surface: #181c22;
+  --nw-ink: #ecebe7;
+  --nw-muted: #a2a7af;
+  --nw-line: #2a3038;
+  --nw-accent: #3fc79a;
+  --nw-accent-ink: #0c1512;
+  --nw-accent-soft: #16302a;
+  --nw-warn: #e58a4f;
+  --nw-trace: #2f363f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --nw-bg: #101317; --nw-surface: #181c22; --nw-ink: #ecebe7; --nw-muted: #a2a7af;
+    --nw-line: #2a3038; --nw-accent: #3fc79a; --nw-accent-ink: #0c1512;
+    --nw-accent-soft: #16302a; --nw-warn: #e58a4f; --nw-trace: #2f363f;
+  }
+}

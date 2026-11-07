@@ -1,0 +1,4 @@
+# Raw datasets are never committed (licences; ISMN must not be redistributed). Fetch steps: data-cards/
+data/
+reports/*.csv
+out/
