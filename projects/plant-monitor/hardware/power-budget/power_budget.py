@@ -42,7 +42,13 @@ NFR01_HOURS = NFR01_MONTHS * HOURS_PER_MONTH
 STRETCH_HOURS = 6 * HOURS_PER_MONTH   # 6-month stretch goal, information line only
 CELL_RATED_TYP_MAH = 1100.0   # A-020: 603449 LiPo 3.7 V, typical capacity (EEMB LP603449 datasheet: 1100 nominal)
 CELL_RATED_MIN_MAH = 1000.0   # A-020: minimum capacity; the NFR-01 verdict uses this (A-021)
-BAY_MM = (51.0, 34.5, 6.3)    # A-020: cell envelope L x W x H, mm (input note for PCB outline / enclosure v3, 4.E3)
+# Cell candidates (A-034): name -> (typical mAh, MINIMUM mAh, envelope T x W x L mm, source).  The verdict uses the minimum.
+CELLS = {
+    "EEMB LP603449 bare cell (A-020)": (1100.0, 1000.0, (6.3, 34.5, 50.0), "EEMB datasheet, read 2026-11-07"),
+    "Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate)": (450.0, 430.0, (5.2, 30.0, 30.0), "Jauch datasheet LP503030JU v1.0; size from Jauch product list"),
+    "Jauch LP603443JU+PCM+2 wires (DigiKey alternative)": (900.0, 850.0, (6.5, 34.5, 45.0), "Jauch datasheet 246512 Rev 1.1; size from DigiKey"),
+}
+BAY_MM = (51.0, 34.5, 6.3)   # A-020: cell envelope L x W x H, mm (input note for PCB outline / enclosure v3, 4.E3)
 NFR12_MARGIN = 0.4            # NFR-12 limit = this share of the typical-case limit (134 uA -> 53.8), rounded down ...
 NFR12_STEP_UA = 25.0          # ... to a multiple of this (uA) -> 50 uA (accepted by Arsany, A-027)
 NFR12_CEILING_UA = 100.0      # absolute upper ceiling the budget would still tolerate (not the recommendation)
@@ -276,6 +282,7 @@ HEADINGS = {
     "life": "### Life in months per rated capacity (rule: 0.8 x rated / average current; +SD = extra-margin line with self-discharge)\n",
     "sleep_limit": "### Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (rule; +SD = extra-margin line)\n",
     "cell": f"### A-020 cell (603449, 1S LiPo): NFR-01 verdict at {NFR01_HOURS:.0f} h\n",
+    "cells": f"### Cell candidates against NFR-01 ({NFR01_HOURS:.0f} h), minimum rated capacity (A-021 rule)\n",
     "nfr12": "### Derived NFR-12 sleep-current limit (A-020 cell)\n",
     "sensitivity": "### Sensitivity, one parameter at a time around TYPICAL\n",
     "levers": "### What-if levers (TYPICAL as base)\n",
@@ -361,6 +368,15 @@ def report_sections() -> dict[str, str]:
                      f"{lim / sleep_current_ua(p):.1f}" if lim > 0 else "n/a (cannot reach)"])
     rows.append([f"**NFR-12 limit** = floor({NFR12_MARGIN:g} x typical limit to {NFR12_STEP_UA:g} uA)",
                  "", f"**{nfr12_limit_ua():.0f}**", f"{nfr12_limit_ua() / sleep_current_ua(TYPICAL):.1f}"])
+    rows = []
+    for name, (typ, mn, (t, w, l), _src) in CELLS.items():
+        ht, hb, hw = (derated_hours(p, mn) / HOURS_PER_MONTH for p in (TYPICAL, BEST, WORST))
+        fits = t <= BAY_MM[2] and w <= BAY_MM[1] and l <= BAY_MM[0]
+        rows.append([name, f"{typ:.0f}", f"{mn:.0f}", f"{t:g} x {w:g} x {l:g}", "yes" if fits else "NO (see note)",
+                     f"{hb:.1f}", f"{ht:.1f}", f"{hw:.1f}", "PASS" if ht * HOURS_PER_MONTH >= NFR01_HOURS else "FAIL",
+                     f"{max_sleep_current_ua(TYPICAL, mn):.0f}"])
+    sec["cells"] = _table(["cell", "typ mAh", "MIN mAh", "T x W x L mm", "fits 51 x 34.5 x 6.3", "months best",
+                           "months typical", "months worst", "NFR-01 typical", "max sleep uA (typical terms)"], rows)
     sec["nfr12"] = _table(["case (other terms as in the case)", "board sleep estimate uA",
                            f"max sleep uA for {CELL_RATED_MIN_MAH:.0f} mAh rated, {NFR01_HOURS:.0f} h",
                            "limit / estimate"], rows)

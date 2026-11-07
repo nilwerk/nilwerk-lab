@@ -113,6 +113,26 @@ class Rule(unittest.TestCase):
         self.assertEqual((pb.CELL_RATED_TYP_MAH, pb.CELL_RATED_MIN_MAH), (1100.0, 1000.0))
         self.assertEqual(pb.BAY_MM, (51.0, 34.5, 6.3))
 
+    def test_a034_cell_candidates(self):
+        """A-034: verdicts at each candidate's MINIMUM capacity (A-021 rule), plainly including the fail."""
+        names = list(pb.CELLS)
+        typ = pb.TYPICAL
+        by = {n: pb.derated_hours(typ, v[1]) for n, v in pb.CELLS.items()}
+        jauch_small = [n for n in names if "LP503030JU" in n][0]
+        jauch_big = [n for n in names if "LP603443JU" in n][0]
+        self.assertEqual(pb.CELLS[jauch_small][:2], (450.0, 430.0))      # Jauch datasheet v1.0: typ 450, min 430 mAh
+        self.assertEqual(pb.CELLS[jauch_big][:2], (900.0, 850.0))        # Jauch datasheet 246512 Rev 1.1
+        self.assertLess(by[jauch_small], pb.NFR01_HOURS)                 # 1.9 months: FAIL
+        self.assertAlmostEqual(by[jauch_small] / pb.HOURS_PER_MONTH, 1.93, delta=0.02)
+        self.assertGreaterEqual(by[jauch_big], pb.NFR01_HOURS)           # 3.8 months: PASS
+        self.assertGreater(pb.required_rated_mah(typ), pb.CELLS[jauch_small][1])    # 668 mAh needed > 430
+        self.assertLessEqual(pb.required_rated_mah(typ), pb.CELLS[jauch_big][1])
+        # envelope: LP503030 fits the A-020 bay, LP603443 is 0.2 mm too thick (DigiKey 6.5 mm vs 6.3 mm)
+        t, w, l = pb.CELLS[jauch_small][2]
+        self.assertTrue(t <= pb.BAY_MM[2] and w <= pb.BAY_MM[1] and l <= pb.BAY_MM[0])
+        t, w, l = pb.CELLS[jauch_big][2]
+        self.assertGreater(t, pb.BAY_MM[2])
+
     def test_nfr12_limit_is_derived(self):
         lim = pb.max_sleep_current_ua(pb.TYPICAL, 1000)
         self.assertAlmostEqual(lim, 134.6, delta=0.5)

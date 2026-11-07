@@ -45,7 +45,7 @@ def unit_1k(r, boards=1000):
 
 
 def priced(rows):
-    return [r for r in rows if r["status"] == "verified-live" and r["breaks"]]
+    return [r for r in rows if r["status"] == "verified-live" and r["breaks"] and r.get("alternative") != "yes"]
 
 
 def totals(rows):

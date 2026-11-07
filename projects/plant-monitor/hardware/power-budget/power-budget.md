@@ -165,10 +165,9 @@ Definition to put in the requirement: **whole-board deep-sleep current measured 
 <!-- BEGIN:nfr12 -->
 | case (other terms as in the case) | board sleep estimate uA | max sleep uA for 1000 mAh rated, 2190 h | limit / estimate |
 | --- | --- | --- | --- |
-| best | 8.3 | 288 | 34.7 |
-| typical | 13.2 | 134 | 10.2 |
-| worst | 31.7 | -400 | n/a (cannot reach) |
-| **NFR-12 limit** = floor(0.4 x typical limit to 25 uA) |  | **50** | 3.8 |
+| EEMB LP603449 bare cell (A-020) | 1100 | 1000 | 6.3 x 34.5 x 50 | yes | 12.8 | 4.5 | 1.4 | PASS | 134 |
+| Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate) | 450 | 430 | 5.2 x 30 x 30 | yes | 5.5 | 1.9 | 0.6 | FAIL | -74 |
+| Jauch LP603443JU+PCM+2 wires (DigiKey alternative) | 900 | 850 | 6.5 x 34.5 x 45 | NO (see note) | 10.8 | 3.8 | 1.2 | PASS | 80 |
 <!-- END:nfr12 -->
 
 
@@ -222,6 +221,17 @@ Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (negativ
 The cell is the **603449 LiPo, 3.7 V, 1100 mAh typical / 1000 mAh minimum, about 22 g, 51 x 34.5 x 6.3 mm (L x W x H)** (A-020). The EEMB LP603449 datasheet (read 2026-11-07, see `../bom/bom-draft.md`) gives <= 50 x 34.5 x 6.3 mm, 1000 mAh minimum, 1C maximum charge, bare cell with solder tabs; protection circuit and connector depend on the purchase spec. The envelope is recorded as the bay input for the PCB outline and enclosure v3 in [`../../docs/interfaces/pcb-enclosure-bay.md`](../../docs/interfaces/pcb-enclosure-bay.md).
 
 Capacity check against section 5: the typical case needs about 670 mAh rated by the rule and the 1000 mAh minimum gives 4.5 months, so the cell is sufficient with a factor 1.5; the worst-case stack (about 2180 mAh needed) cannot be met by any cell that fits this bay, so the levers in section 7 and the measurements in section 9 matter more than capacity.
+
+**A-034 (battery from DigiKey): candidates against NFR-01** (generated; details, datasheet pages and options in [`../bom/cell-decision-A034.md`](../bom/cell-decision-A034.md)). The Jauch LP503030JU candidate has only 430 mAh minimum and **fails** the 3-month rule in the typical case; "fits" compares the envelope with the A-020 bay and ignores swelling and wire clearance.
+
+<!-- BEGIN:cells -->
+| cell | typ mAh | MIN mAh | T x W x L mm | fits 51 x 34.5 x 6.3 | months best | months typical | months worst | NFR-01 typical | max sleep uA (typical terms) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| EEMB LP603449 bare cell (A-020) | 1100 | 1000 | 6.3 x 34.5 x 50 | yes | 12.8 | 4.5 | 1.4 | PASS | 134 |
+| Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate) | 450 | 430 | 5.2 x 30 x 30 | yes | 5.5 | 1.9 | 0.6 | FAIL | -74 |
+| Jauch LP603443JU+PCM+2 wires (DigiKey alternative) | 900 | 850 | 6.5 x 34.5 x 45 | NO (see note) | 10.8 | 3.8 | 1.2 | PASS | 80 |
+<!-- END:cells -->
+
 
 ## 9. To be measured in 5.4 (dev kit, then PCB) to replace estimates
 
