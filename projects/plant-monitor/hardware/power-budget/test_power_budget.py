@@ -99,6 +99,36 @@ class Rule(unittest.TestCase):
         self.assertLess(pb.life_days(p, 1000) * 24, pb.STRETCH_HOURS)       # 1000 mAh misses the 6-month stretch (information only)
         self.assertAlmostEqual(pb.required_rated_mah(p), pb.NFR01_HOURS * i_avg / 0.8)
 
+    def test_cell_verdict_uses_1000_mah_minimum(self):
+        """A-020 / A-021: 603449 cell, verdict on the 1000 mAh minimum, literal rule, no self-discharge term."""
+        t = pb.TYPICAL
+        hours = 0.8 * 1000 / pb.avg_current_ma(t)
+        self.assertAlmostEqual(pb.derated_hours(t, pb.CELL_RATED_MIN_MAH), hours, places=6)
+        self.assertGreaterEqual(hours, pb.NFR01_HOURS)                       # typical passes 3 months
+        self.assertAlmostEqual(hours / pb.HOURS_PER_MONTH, 4.5, delta=0.05)
+        self.assertLess(pb.derated_hours(pb.WORST, 1000), pb.NFR01_HOURS)    # stress bound fails
+        self.assertGreaterEqual(pb.derated_hours(pb.BEST, 1000), pb.NFR01_HOURS)
+        p = pb.with_(t, self_discharge_pct_month=50.0)                       # absurd value must not change the rule
+        self.assertAlmostEqual(pb.derated_hours(p, 1000), pb.derated_hours(t, 1000))
+        self.assertEqual((pb.CELL_RATED_TYP_MAH, pb.CELL_RATED_MIN_MAH), (1100.0, 1000.0))
+        self.assertEqual(pb.BAY_MM, (51.0, 34.5, 6.3))
+
+    def test_nfr12_limit_is_derived(self):
+        lim = pb.max_sleep_current_ua(pb.TYPICAL, 1000)
+        self.assertAlmostEqual(lim, 134.6, delta=0.5)
+        self.assertEqual(pb.nfr12_limit_ua(), 50.0)                          # floor(0.4 x 134.6 / 25) x 25, accepted A-027
+        self.assertAlmostEqual(50.0 / pb.sleep_current_ua(pb.WORST), 1.6, delta=0.05)
+        self.assertAlmostEqual(50.0 / pb.sleep_current_ua(pb.TYPICAL), 3.8, delta=0.05)
+        self.assertLess(pb.nfr12_limit_ua(), pb.NFR12_CEILING_UA)
+        self.assertLessEqual(pb.nfr12_limit_ua(), lim)
+        # a board at exactly the limit, other terms typical, still meets the rule
+        p = pb.with_(pb.TYPICAL, i_mcu_sleep_ua=pb.TYPICAL.i_mcu_sleep_ua + 50 - pb.sleep_current_ua(pb.TYPICAL))
+        self.assertGreaterEqual(pb.derated_hours(p, 1000), pb.NFR01_HOURS)
+        # not hard-coded: margin and step change the value
+        self.assertEqual(pb.nfr12_limit_ua(margin=1.0, step_ua=25.0), 125.0)
+        self.assertEqual(pb.nfr12_limit_ua(margin=0.75), 100.0)
+        self.assertLess(pb.max_sleep_current_ua(pb.TYPICAL, 1000, hours=4380.0), lim)   # 6-month stretch: tighter
+
     def test_light_sleep_lever_and_default_neutral(self):
         base = pb.daily_budget(pb.TYPICAL)["sample"]
         lever = pb.daily_budget(pb.with_(pb.TYPICAL, i_warmup_cpu_ma=0.5))["sample"]

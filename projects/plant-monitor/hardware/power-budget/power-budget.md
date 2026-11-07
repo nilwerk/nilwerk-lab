@@ -24,6 +24,21 @@ Headline figures apply **Arsany's NFR-01 rule literally** (PR #2 item 12, accept
 
 **Closed (A-020, acceptance matrix NFR-01):** NFR-01 is 3 months (2190 h) by the literal rule, no self-discharge term; "+SD" and the 6-month stretch goal (4380 h) are information lines only. A LiPo loses roughly 1-3 % per month by itself (assumption, no datasheet); at 2 %/month the typical 1000 mAh cell still reaches 4.0 months, the needed rated capacity rises from 668 to 722 mAh.
 
+Verdict table for the A-020 cell, 603449 (generated; the verdict uses the 1000 mAh minimum, A-021; the 1100 mAh typical value is information only):
+
+<!-- BEGIN:cell -->
+| cell capacity | case | derated mAh | average uA | life h (rule) | months (rule) | vs 2190 h | extra: months incl. SD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mAh minimum (verdict, A-021) | best | 800 | 86 | 9317 | 12.8 | PASS | 11.0 |
+| 1000 mAh minimum (verdict, A-021) | typical | 800 | 244 | 3278 | 4.5 | PASS | 4.0 |
+| 1000 mAh minimum (verdict, A-021) | worst | 800 | 797 | 1004 | 1.4 | FAIL | 1.3 |
+| 1100 mAh typical (info only) | best | 880 | 86 | 10249 | 14.0 | PASS | 11.9 |
+| 1100 mAh typical (info only) | typical | 880 | 244 | 3606 | 4.9 | PASS | 4.4 |
+| 1100 mAh typical (info only) | worst | 880 | 797 | 1104 | 1.5 | FAIL | 1.4 |
+<!-- END:cell -->
+
+The **NFR-12 value (50 uA, design target 25 uA) is accepted by Arsany (A-027)**; the derivation behind it is in section 6.
+
 ## 2. Inputs and decisions applied
 
 - **Capacity rule (Arsany, PR #2 item 12), applied literally:** use the **rated** capacity of the chosen 1S LiPo with **20 % derating**; projected life = derated capacity / average current >= 2190 h (NFR-01, 3 months); no self-discharge term. Both numbers are stated everywhere (rated and derated = 0.8 x rated).
@@ -100,6 +115,7 @@ Derated capacity = 0.8 x rated.
 | 500 | 400 | 6.4 | 2.2 | 0.7 | 5.9 | 2.1 | 0.7 |
 | 750 | 600 | 9.6 | 3.4 | 1.0 | 8.5 | 3.1 | 1.0 |
 | 1000 | 800 | 12.8 | 4.5 | 1.4 | 11.0 | 4.0 | 1.3 |
+| 1100 | 880 | 14.0 | 4.9 | 1.5 | 11.9 | 4.4 | 1.4 |
 | 1500 | 1200 | 19.1 | 6.7 | 2.1 | 15.4 | 5.8 | 1.9 |
 | 2000 | 1600 | 25.5 | 9.0 | 2.7 | 19.4 | 7.3 | 2.5 |
 | 2500 | 2000 | 31.9 | 11.2 | 3.4 | 22.8 | 8.8 | 3.0 |
@@ -144,6 +160,18 @@ Reading: connect time is the strongest lever (each extra second costs about 0.7 
 
 Definition to put in the requirement: **whole-board deep-sleep current measured at the battery terminal, USB unplugged, cell at 3.7 V, all sensors fitted and in their low-power state, soil oscillator off, radio off, RTC timer running.** Limit = the largest value for which the chosen cell still reaches NFR01_HOURS (2190 h) with the other terms as in the scenario.
 
+**Derivation of NFR-12 (nothing fixed beforehand; accepted by Arsany, A-027).** Step 1: the largest sleep current for which the **1000 mAh minimum** cell still reaches 2190 h with the typical sample and Wi-Fi terms: `limit = (0.8 x C / 91.25 d - (sample + Wi-Fi mAh/day)) / 24 h` = **134 uA** (`max_sleep_current_ua()`). Step 2: a margin of 0.4, so that the sleep limit leaves room for the other terms, rounded down to a multiple of 25 uA (`nfr12_limit_ua()`): floor(53.8 / 25) x 25 = **50 uA**; it is 1.6x the worst sleep estimate (31.7 uA) and 3.8x the typical (13.2 uA). Design target 25 uA. 100 uA is only the absolute ceiling the budget would tolerate with every other term typical, and is not recommended. The limit does **not** prove NFR-01; NFR-01 is decided by the measured hourly average current (Wi-Fi is 65 %) and the named cell. In the worst-case stack no sleep current reaches 2190 h (the limit is negative), which again shows that stack is a stress bound.
+
+<!-- BEGIN:nfr12 -->
+| case (other terms as in the case) | board sleep estimate uA | max sleep uA for 1000 mAh rated, 2190 h | limit / estimate |
+| --- | --- | --- | --- |
+| best | 8.3 | 288 | 34.7 |
+| typical | 13.2 | 134 | 10.2 |
+| worst | 31.7 | -400 | n/a (cannot reach) |
+| **NFR-12 limit** = floor(0.4 x typical limit to 25 uA) |  | **50** | 3.8 |
+<!-- END:nfr12 -->
+
+
 Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (negative = cannot reach even at 0 uA). Rule columns use Arsany's formula; "+SD" columns are the extra-margin line.
 
 <!-- BEGIN:sleep_limit -->
@@ -152,13 +180,14 @@ Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (negativ
 | 500 | 105 | -48 | -583 | 98 | -62 | -603 |
 | 750 | 196 | 43 | -491 | 186 | 23 | -522 |
 | 1000 | 288 | 134 | -400 | 274 | 107 | -441 |
+| 1100 | 324 | 171 | -364 | 309 | 141 | -409 |
 | 1500 | 470 | 317 | -217 | 450 | 276 | -279 |
 | 2000 | 653 | 500 | -35 | 626 | 445 | -117 |
 | 2500 | 836 | 682 | 148 | 801 | 614 | 45 |
 | 3000 | 1018 | 865 | 331 | 977 | 783 | 207 |
 <!-- END:sleep_limit -->
 
-Theo's independent derivation (review of this PR) gave the same limits for the earlier 6-month target: 134 uA / 43 uA (rule) and 80 uA / 2 uA (+SD) for 2000 / 1500 mAh typical; for the current 3 months the limits are 500 / 317 uA (rule) and 445 / 276 uA (+SD). Proposal (Theo accepted the numbers in his review, the requirement text is his):
+**Single source for NFR-12: the derivation at the top of this section (1000 mAh minimum cell, 134 uA limit, 50 uA); the figures in this paragraph are the older 6-month derivation, kept only for reference.** Theo's independent derivation (review of this PR) gave the same limits for the earlier 6-month target: 134 uA / 43 uA (rule) and 80 uA / 2 uA (+SD) for 2000 / 1500 mAh typical; for the current 3 months the limits are 500 / 317 uA (rule) and 445 / 276 uA (+SD). Proposal (Theo accepted the numbers in his review, the requirement text is his):
 - **Requirement value: whole-board deep sleep <= 50 uA**, design target <= 25 uA (estimate 13 uA, section 4). It is 3.8x the typical estimate and above the worst-case estimate (31.7 uA), and below the rule limit for a 2000 mAh cell (134 uA). The requirement text must state that this limit does **not** prove NFR-01; NFR-01 is decided by the measured hourly average current (Wi-Fi is 65 %) and the named cell capacity.
 - Formula (rule): `limit = (0.8 x C / 182.5 d - (sample + Wi-Fi mAh/day)) / 24 h`, implemented as `max_sleep_current_ua()`.
 - **Wi-Fi session, stated honestly:** the typical session in this model is **5.5 s at about 99 mA average** (2.5 s connect + 2.0 s cloud + 1.0 s hub), not 3.5 s. A session of **<= 3.5 s** is a **firmware design target, not the typical case**, and needs two levers together (fast connect to 1.0 s, hub publish every 2nd report; section 7). Whether it becomes a requirement waits for measurement M4 in 5.4; it is not to be written into the requirements before that.
@@ -188,14 +217,11 @@ Theo's independent derivation (review of this PR) gave the same limits for the e
 - The second MQTT publish (ADR-012) costs 0.69 mAh/day in this model (5.86 vs 5.17), 12 % of the budget; ADR-012 estimated 0.67 mAh/day, so the two agree (both unmeasured).
 - The 30-min sampling fallback does **not** change FR-E03 as it would double the latency to about 30 min, so it conflicts with the owner-confirmed wording; prefer the Wi-Fi levers (fast connect, hub every 2nd report) and the light-sleep warm-up. Critical wakes at the rate cap cost 39 % more than the base case, so the cap (or a daily limit) is a battery decision for Mira/Theo.
 
-## 8. Which LiPo capacities fit enclosure v2
+## 8. Cell and bay (A-020 answered)
 
-**Not answerable from the repo.** `projects/plant-monitor/mechanical/` holds only `.gitkeep`; enclosure v1/v2 live in Drive (`04_Builds/Enclosure/v1, v2`), which I could not reach, and WO-002 (#9) has no dimensions yet. I did not invent any. What is needed from Yara (or Arsany from the v2 STEP):
+The cell is the **603449 LiPo, 3.7 V, 1100 mAh typical / 1000 mAh minimum, about 22 g, 51 x 34.5 x 6.3 mm (L x W x H)** (A-020). The EEMB LP603449 datasheet (read 2026-11-07, see `../bom/bom-draft.md`) gives <= 50 x 34.5 x 6.3 mm, 1000 mAh minimum, 1C maximum charge, bare cell with solder tabs; protection circuit and connector depend on the purchase spec. The envelope is recorded as the bay input for the PCB outline and enclosure v3 in [`../../docs/interfaces/pcb-enclosure-bay.md`](../../docs/interfaces/pcb-enclosure-bay.md).
 
-1. Free battery bay inside enclosure v2: length x width x height in mm, including any cut-outs, and the PCB outline once 4.P2 fixes it (any outline change is announced to the Lead, playbook rule).
-2. Required clearance for the cell (swelling and wiring allowance; value to be set by Yara, not by me).
-
-Method then: pouch LiPo cells are usually coded by their envelope, for example `603450` = 6.0 mm x 34 mm x 50 mm (thickness x width x length, in mm; naming convention, **unverified from memory**). Take the maximum envelope that fits, find cells in that envelope on the shop pages (capacity, protection circuit, connector from the datasheet), and compare the **rated** capacity with section 5: **by the literal rule a rated capacity of about 670 mAh is needed for the typical case for 3 months (about 720 mAh if self-discharge is added); the BOM cell (1000 mAh minimum) gives 4.5 months, 2000 mAh 9.0 months**. If the bay cannot hold that, the levers in section 7 must bring the requirement down to what the bay holds. Cell candidates for the BOM are for 2.5 / 4.H0 (Arsany orders).
+Capacity check against section 5: the typical case needs about 670 mAh rated by the rule and the 1000 mAh minimum gives 4.5 months, so the cell is sufficient with a factor 1.5; the worst-case stack (about 2180 mAh needed) cannot be met by any cell that fits this bay, so the levers in section 7 and the measurements in section 9 matter more than capacity.
 
 ## 9. To be measured in 5.4 (dev kit, then PCB) to replace estimates
 
@@ -220,7 +246,7 @@ After M1-M6 the script is run with the measured values (edit `TYPICAL`, tag each
 ## 10. Open points
 
 - **Closed:** self-discharge in the NFR-01 rule: no (A-020, acceptance matrix); NFR-01 is 3 months, the 1000 mAh-minimum BOM cell passes the typical case (4.5 months).
-- **Needs Arsany / Yara:** enclosure v2 battery bay dimensions (section 8); cell choice and any order (Arsany orders, hard rule); a current meter for 5.4 (purchase is Arsany's).
+- **Needs Yara / Arsany:** only Yara's usable bay inside enclosure v3 (swelling and wire clearance) is still open, see [`../../docs/interfaces/pcb-enclosure-bay.md`](../../docs/interfaces/pcb-enclosure-bay.md); cell purchase and any order (Arsany orders, hard rule); a current meter for 5.4 (purchase is Arsany's).
 - **Datasheet tags:** the four ESP32-C3 rows are now **DR** (section 11). Still D?: Aosong AHT20, ROHM BH1750FVI, ESP32-C3-MINI-1 module datasheet (flash leakage).
 
 ## 11. Update 2026-11-07 (2.5 follow-up): datasheet read, cell 1000 mAh minimum
