@@ -1,4 +1,6 @@
-# Content calendar: Mon 9 Nov to Fri 20 Nov 2026 (next 14 days)
+# SUPERSEDED by `series.md` (Nilwerk Logbook, 14-day calendar from 9 Nov). Kept for its daily routine and rules.
+
+# Content calendar: Mon 9 Nov to Fri 20 Nov 2026 (next 14 days, earlier version)
 
 Author: Poppy · drafted 2026-11-07 · **plan only: nothing is scheduled or published; Arsany approves each post and publishes himself.** One post per weekday, LinkedIn plus Instagram unless noted. Weekends (14-15 Nov, 21 Nov): no post, optional Story from Arsany's phone if real hardware footage exists.
 

@@ -1,87 +1,68 @@
-# Origin story — content pack (Poppy, 2026-11-05)
+# Day 1: the Nilwerk story so far (origin story), content pack v2, re-rendered in the approved brand
 
-Status: **drafts for Arsany's approval**. Nothing is published.
-Channels: Instagram @nilwerk and LinkedIn @nilwerk. Website: nilwerk.de. No human names except the founder (Arsany, 2026-11-05).
-Media: `origin-01.png` … `origin-10.png` (1080 × 1350, Instagram/LinkedIn carousel) and the interactive story page.
-
-## Claim sources (checked)
-| Claim | Source |
-|---|---|
-| v1: 2×AAA, PCB blade probe, 34 × 84 × 19.8 mm head | Drive `Plant Monitor/…/v1/README.md`, 1 Nov 2026 |
-| v2: 400 mAh LiPo, USB-C (~2.8 h charge), capacitive probe, AHT20 + BH1750, 34 × 80.5 × 17 mm | Drive `…/v2/README.md`, 1 Nov 2026 |
-| Battery 150–226 days (simulated, fast Wi-Fi connect; ~half with slow connect) | `power_sim_results.json` |
-| Day 1: 4 PRs, reviewed / tested / pipeline | Report 2026-11-03, PRs #1–#4 |
-| 15 PRs in 3 days, 8 merged | GitHub, PRs #1–#5, #12–#21 |
-| 16.2 + 50.0 + 33.0 = 99.2 agent-minutes | Reports 3–5 Nov (time tables) |
-| ~145 h = 37 + 61.5 + 46 h, agents' own estimates | Same tables, column "agent's own estimate" |
-| "About an hour" to answer Nora's questions | Arsany, in chat 5 Nov |
+Drafts for Arsany's approval; nothing is published. Author: Poppy (PR & Social), 2026-11-07. Replaces the 2026-11-05 pack (the old carousel was off-brand and is removed; it stays in the history).
+Images (code-generated from the approved templates, so no AI flag; renders are real CAD renders from the first design, reused at native size):
+- Instagram / LinkedIn carousel 1080x1350: `slides/en/slide-01..10.png` and `slides/de/slide-01..10.png`
+- LinkedIn timeline cover 1200x627: `linkedin-cover-en.png`, `linkedin-cover-de.png`
+Alt texts: `alt-texts.md`. Claims and sources: `claim-check.md`. Texts of the slides: `story_content.py`. Rebuild: `build_story.py` (python3.13 with fontTools, `NW_FONT_DIR` set).
+Two layers: the plain story leads, the "For engineers" paragraph (and block on the slides) is short. German: plain German draft, to be checked by Theo or Nora, then Arsany. Suggested slot: Mon 9 Nov. Tag @nilwerk, link nilwerk.de.
 
 ## LinkedIn (EN)
 
-I asked an AI to draw a PCB. Five days later I have an engineering team.
+We asked an AI to draw a circuit board. A week later we are a team.
 
-Sunday: one curious prompt to Claude. "Can you design a simple 3D model and a PCB?" It could. Plant stake v1: a printable enclosure and a board plan, generated in code.
+On Sunday 1 November our founder, Arsany, asked Claude, an AI assistant: "Can you design a simple 3D model and a PCB?" It could. Out came plant stake v1: a printable enclosure and a plan for the circuit board. The same day he gave it requirements and asked it to review its own design. Version 2 came back rechargeable, with a replaceable moisture probe and more sensors.
 
-Same day I gave it requirements and asked it to review its own design. v2 came back rechargeable (400 mAh LiPo, USB-C), with a replaceable capacitive probe and a simulated battery life of 5 to 7 months.
+So he built a team: ten AI agents with job titles, personalities and skills (a lead, an architect, QA, DevOps, firmware, full-stack, cloud AI, PCB design, 3D design and sales). Every change goes through the same gate: the architect reviews it, QA tests it, the pipeline checks it, and only a human merges it.
 
-So I thought: I wish I had a team. On Monday I built one. Ten AI agents with job titles, personalities and skills: a lead, an architect, QA, DevOps, firmware, full-stack, cloud AI, PCB, 3D design and sales.
+The first week in short. Day 1: four proposals by the evening. Day 2: the first dev kits ordered, and a hardware integrator, a human engineer in Egypt, joins. Day 3: the first app screens. Friday: nine tasks waiting for a human review. Saturday: the team works too, and seven pull requests are merged.
 
-Day 1: Nora, our lead, planned the sprint at 07:30. Four pull requests by the evening, every one reviewed by the architect, tested by QA and checked by the pipeline. The summary had a few questions only I could answer. That took me about an hour.
-Day 2: parts ordered, and a junior engineer in Egypt joined to build and test the real hardware.
-Day 3: the app wireframes landed.
+Honest numbers: 99 minutes of agent time for the first three days (measured). The agents estimate that an experienced engineer would need about 145 hours for the same work (an estimate, and we are testing it).
 
-The first three days in numbers: 15 pull requests, 99 agent-minutes of work. The agents estimate an experienced engineer would need around 145 hours for the same work. That's their estimate, and we're testing it against real projects.
+For engineers: v2 = 400 mAh LiPo, USB-C, capacitive probe, AHT20 + BH1750. The battery life of 150-226 days is simulated, not measured. Day 1: 4 pull requests, each reviewed by the architect agent, tested by the QA agent and checked by the pipeline. Sources: daily reports 3-6 Nov, repo history.
 
-Humans still decide: I answer the questions and merge every change. Our integrator builds the boards.
+AI agents, led and reviewed by humans. From now on: one episode a day, the Nilwerk Logbook.
 
-Tonight the team got its storyteller. Hello, I'm Poppy, and I'll be sharing what we build, with proof. 🌱
+nilwerk.de · @nilwerk
 
-Building a connected device? → nilwerk.de
+#Hardware #IoT #AIAgents #Prototyping #Embedded #BuildInPublic #Startup
 
-#hardware #IoT #AIagents #prototyping #embedded #startup
+## LinkedIn (DE), to be checked by Theo/Nora
 
-## LinkedIn (DE)
+Wir haben eine KI gebeten, eine Platine zu zeichnen. Eine Woche später sind wir ein Team.
 
-Ich habe eine KI gebeten, eine Platine zu zeichnen. Fünf Tage später habe ich ein Engineering-Team.
+Am Sonntag, 1. November, fragte unser Gründer Arsany Claude, einen KI-Assistenten: „Kannst du ein einfaches 3D-Modell und eine Platine entwerfen?“ Es ging. Heraus kam Pflanzensensor v1: ein druckbares Gehäuse und ein Plan für die Platine. Am selben Tag gab er Anforderungen dazu und ließ die KI ihr eigenes Design prüfen. Version 2 kam wiederaufladbar zurück, mit austauschbarer Feuchtesonde und mehr Sensoren.
 
-Sonntag: ein neugieriger Prompt an Claude. „Kannst du ein einfaches 3D-Modell und eine Platine entwerfen?" Es ging. Pflanzensensor v1: ein druckbares Gehäuse und ein Platinenplan, komplett per Code erzeugt.
+Also baute er ein Team: zehn KI-Agenten mit Jobtitel, Persönlichkeit und Fähigkeiten (Leitung, Architekt, QA, DevOps, Firmware, Full-Stack, Cloud-KI, Platinen-Design, 3D-Design und Vertrieb). Jede Änderung geht durch dasselbe Tor: Der Architekt prüft sie, QA testet sie, die Pipeline kontrolliert sie, und nur ein Mensch mergt sie.
 
-Am selben Tag habe ich Anforderungen dazugegeben und die KI ihr eigenes Design prüfen lassen. v2: wiederaufladbar (400-mAh-LiPo, USB-C), austauschbare kapazitive Sonde und laut Simulation 5 bis 7 Monate Akkulaufzeit.
+Die erste Woche in Kürze. Tag 1: am Abend vier Vorschläge. Tag 2: die ersten Entwicklungs-Kits bestellt, und ein Hardware-Integrator, ein Ingenieur in Ägypten, stößt dazu. Tag 3: die ersten App-Bildschirme. Freitag: neun Aufgaben warten auf die Prüfung durch einen Menschen. Samstag: Das Team arbeitet auch dann, und sieben Pull Requests werden gemergt.
 
-Also dachte ich: Ich hätte gern ein Team. Am Montag habe ich eins aufgebaut. Zehn KI-Agenten mit Jobtitel, Persönlichkeit und Fähigkeiten: Lead, Architekt, QA, DevOps, Firmware, Full-Stack, Cloud-KI, Platine, 3D-Design und Vertrieb.
+Ehrliche Zahlen: 99 Minuten Agentenzeit in den ersten drei Tagen (gemessen). Die Agenten schätzen, dass ein erfahrener Ingenieur für dieselbe Arbeit etwa 145 Stunden bräuchte (eine Schätzung, die wir überprüfen).
 
-Tag 1: Nora, unsere Projektleitung, plant um 07:30 den Sprint. Am Abend vier Pull Requests, jeder vom Architekten geprüft, von QA getestet und durch die Pipeline gelaufen. Die Zusammenfassung enthielt ein paar Fragen, die nur ich beantworten konnte. Dafür brauchte ich etwa eine Stunde.
-Tag 2: Teile bestellt, und ein Junior-Ingenieur in Ägypten baut und testet ab jetzt die echte Hardware.
-Tag 3: die Wireframes der App.
+Für Ingenieure: v2 = 400-mAh-LiPo, USB-C, kapazitive Sonde, AHT20 + BH1750. Die Akkulaufzeit von 150-226 Tagen ist simuliert, nicht gemessen. Tag 1: 4 Pull Requests, jeder vom Architekten-Agenten geprüft, vom QA-Agenten getestet und von der Pipeline kontrolliert. Quellen: Tagesberichte 3.-6. Nov, Repo-Historie.
 
-Die ersten drei Tage in Zahlen: 15 Pull Requests, 99 Agenten-Minuten. Die Agenten schätzen, dass ein erfahrener Ingenieur ohne KI etwa 145 Stunden bräuchte. Das ist ihre Schätzung, und wir prüfen sie an echten Projekten.
+KI-Agenten, geleitet und geprüft von Menschen. Ab jetzt: jeden Tag eine Folge, das Nilwerk Logbuch.
 
-Entscheidungen treffen weiterhin Menschen: Ich beantworte die Fragen und merge jede Änderung. Unser Integrator baut die Platinen.
+nilwerk.de · @nilwerk
 
-Heute Abend kam noch jemand dazu: Poppy, unsere Stimme nach außen. 🌱
+#Hardware #IoT #KIAgenten #Prototyping #Embedded #BuildInPublic #Startup
 
-Ihr baut ein vernetztes Gerät? → nilwerk.de
-
-## Instagram carousel caption (EN + one German line)
+## Instagram (EN) caption
 
 One prompt. One plant sensor. A whole team. 🌱
 
-Swipe for how Nilwerk went from "can an AI draw a PCB?" to an engineering team of AI agents in five days, with the real renders, wireframes and numbers.
+Swipe for the first week of Nilwerk: an AI drew a plant sensor, checked its own homework, and our founder turned that into a team of AI agents. The humans decide and merge every change.
 
-Hi, I'm Poppy, the newest member. I'll show you what the team builds every day, and I'll always show the proof.
+Numbers with their labels: 99 minutes of agent time (measured), about 145 hours of human work (the agents' own estimate). Battery life is simulated.
 
-🇩🇪 Wie aus einem Prompt ein KI-Engineering-Team wurde. Mit echten Zahlen.
+I'm Poppy, the team's storyteller. From now on: one episode a day, the Nilwerk Logbook.
 
-#hardwarestartup #iot #aiagents #prototyping #pcbdesign #3dprinting #plantsensor #reutlingen
+nilwerk.de · @nilwerk
+Deutsch: Wie aus einem Prompt in einer Woche ein Team aus KI-Agenten wurde, geleitet und geprüft von Menschen.
 
-Settings: mark as AI-related content only if Arsany wants it (renders are code-generated, not AI images); avatars are illustrations.
+Hashtags: #nilwerk #hardwarestartup #iot #aiagents #prototyping #pcbdesign #3dprinting #plantsensor #buildinpublic #logbook
 
-## Instagram stories (5 frames, 9:16, reuse carousel visuals)
-1. "I asked an AI to draw a PCB 👀" + v1 render. Sticker: poll "Would you trust it?" Yes / Show me.
-2. v1 → v2 side by side. Text: "Then it fixed its own design. Rechargeable, 5–7 months battery (simulated)."
-3. Team grid. Text: "So we hired a team. Of agents." Sticker: quiz "Who reviews every change?" Theo / Ines / Kai / all three ✅.
-4. Wireframe crop. Text: "Day 3: the app takes shape."
-5. Poppy avatar. Text: "Hi, I'm Poppy! Daily build updates from here." Link sticker → nilwerk.de.
+AI flag: not needed (code-generated slides; the renders are CAD renders; Poppy's avatar is an illustration, not a photo). Alt text per slide: `alt-texts.md`.
 
-## Reel idea (for when the integrator's footage exists)
-15–20 s: screen recording of the story page scroll → v1/v2 slider drag → real printed enclosure in hand (integrator's video) → "Same design. Now in real life." Needs the integrator's OK to use his footage; no name or face without his OK.
+## Instagram Stories idea (not rendered yet; reuse slides 1, 4, 9 as 9:16 later)
+1. Slide 1 + poll "Would you trust an AI with a circuit board?" 2. Slide 4 (the team). 3. Slide 9 (measured vs estimated) + question box "What should we show next?". Needs no new facts.
