@@ -35,7 +35,7 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 |---|---|---|---|---|---|
 | 1 | Mon 9 Nov | The Nilwerk story so far (origin carousel, 10 slides) | A | `showcase/stories/origin/claim-check.md` | drafted |
 | 2 | Tue 10 Nov | Number of the day: Sprint 1, 3 done, 9 waiting for review | A | report 6 Nov | drafted (`content/2026-11-10`) |
-| 3 | Wed 11 Nov | Behind the scenes: a Saturday at Nilwerk, 7 merges | A | repo history 7 Nov, TEAM.md §7 | drafted (`content/2026-11-11`) |
+| 3 | Wed 11 Nov | Behind the scenes: a Saturday at Nilwerk, 10 merges as of 20:46 on 7 Nov (recount on posting day) | A | repo history 7 Nov, TEAM.md §7 | drafted (`content/2026-11-11`) |
 | 4 | Thu 12 Nov | We decided: your plant's data lives in the EU | both | ADR-003, stack and costs | drafted (`content/2026-11-12`) |
 | 5 | Fri 13 Nov | We caught a mistake: the charger resistor (from `content/2026-11-07` post 1) + what we learned this week | both | claim-check of post 1, retro | text exists, adapt to Logbook format |
 | 6-7 | Sat 14, Sun 15 Nov | no post (optional Story if real news) | | | |

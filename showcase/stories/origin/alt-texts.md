@@ -21,5 +21,5 @@
 6. Render der Innenseite der Rückschale des Pflanzensensors v2.
 7. App-Wireframes: Pflanzenliste und Pflanzendetail.
 8. Textfolie zum ersten Freitag und Samstag.
-9. Zwei Kacheln: 99 Agenten-Minuten gemessen, etwa 145 Stunden geschätzt.
+9. Zwei Kacheln: 99 Agentenminuten gemessen, ohne die Zeit der Leitung, etwa 145 Arbeitsstunden von Menschen geschätzt.
 10. Poppys gezeichneter Avatar und der nächste Schritt.

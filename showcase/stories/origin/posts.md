@@ -13,7 +13,7 @@ We asked an AI to draw a circuit board. A week later we are a team.
 
 On Sunday 1 November our founder, Arsany, asked Claude, an AI assistant: "Can you design a simple 3D model and a PCB?" It could. Out came plant stake v1: a printable enclosure and a plan for the circuit board. The same day he gave it requirements and asked it to review its own design. Version 2 came back rechargeable, with a replaceable moisture probe and more sensors (a first draft; its battery life is not measured).
 
-So he built a team: ten AI agents with job titles, personalities and skills (a lead, an architect, QA, DevOps, firmware, full-stack, cloud AI, PCB design, 3D design and sales). Every change goes through the same gate: the architect reviews it, QA tests it, the pipeline checks it, and only a human merges it.
+So he built a team: ten AI agents with job titles, personalities and skills (a lead, an architect, QA, DevOps, firmware, full-stack, cloud AI, PCB design, 3D design and sales). Every code change goes through the same gate: the architect reviews it, QA tests it, the pipeline checks it, and a human merges it; reports and docs go through the human merge.
 
 The first week in short. First working day (Tue 3 Nov): four proposals by the evening; that week Arsany orders the first dev kits after checking the list himself. Second working day: a hardware integrator, a human engineer in Egypt, joins. Third working day: the first app screens. Friday: nine tasks waiting for a human review. Saturday: the team works too, and ten pull requests were merged by 20:46.
 
@@ -33,7 +33,7 @@ Wir haben eine KI gebeten, eine Platine zu zeichnen. Eine Woche später sind wir
 
 Am Sonntag, 1. November, fragte unser Gründer Arsany Claude, einen KI-Assistenten: „Kannst du ein einfaches 3D-Modell und eine Platine entwerfen?“ Das klappte. Heraus kam Pflanzensensor v1: ein druckbares Gehäuse und ein Plan für die Platine. Am selben Tag gab er Anforderungen dazu und ließ die KI ihr eigenes Design prüfen. Version 2 kam wiederaufladbar zurück, mit austauschbarer Feuchtesonde und mehr Sensoren (ein erster Entwurf; die Akkulaufzeit ist nicht gemessen).
 
-Also baute er ein Team: zehn KI-Agenten mit Jobtitel, Persönlichkeit und Fähigkeiten (Leitung, Architekt, QA, DevOps, Firmware, Full-Stack, Cloud-KI, Platinen-Design, 3D-Design und Vertrieb). Jede Änderung geht durch dasselbe Tor: Der Architekt prüft sie, QA testet sie, die Pipeline kontrolliert sie, und nur ein Mensch mergt sie.
+Also baute er ein Team: zehn KI-Agenten mit Jobtitel, Persönlichkeit und Fähigkeiten (Leitung, Architekt, QA, DevOps, Firmware, Full-Stack, Cloud-KI, Platinen-Design, 3D-Design und Vertrieb). Jede Codeänderung geht durch dasselbe Tor: Der Architekt prüft sie, QA testet sie, die Pipeline kontrolliert sie, und ein Mensch mergt sie; Berichte und Dokumente gehen durch den Merge eines Menschen.
 
 Die erste Woche in Kürze. Erster Arbeitstag (Di 3. Nov): am Abend vier Vorschläge; in dieser Woche bestellt Arsany die ersten Entwicklungs-Kits, nachdem er die Liste selbst geprüft hat. Zweiter Arbeitstag: ein Hardware-Integrator, ein Ingenieur in Ägypten, stößt dazu. Dritter Arbeitstag: die ersten App-Bildschirme. Freitag: neun Aufgaben warten auf die Prüfung durch einen Menschen. Samstag: Auch am Wochenende arbeitet das Team; bis 20:46 Uhr wurden zehn Pull Requests gemergt.
 

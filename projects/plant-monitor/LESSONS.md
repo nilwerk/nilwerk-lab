@@ -34,4 +34,5 @@ Added by the Lead from each day's `Lesson:` notes; reviewed in the Friday retro.
 - Time numbers: "99 min of agent time on 3-5 Nov, without the lead" (measured, day totals 16.2 + 50.0 + 33.0) next to "about 145 working hours of a human without AI" (agents' own estimate) was easy to read as "X times faster"; the report of 5 Nov also shows 103.1 for sprint to date, a different sum.
 - Canon drift: the origin canon said parts were ordered on Wed 4 Nov; the daily reports say Tue 3 Nov. Fixed in `showcase/stories/origin/README.md`.
 - Counts grow: Saturday 7 Nov had 7 merges in the morning and 10 by 20:46.
+- Outdated simulation: the 1 Nov simulation gave a battery life of 150-226 days; the later calculation gives about 4.5 months typical and 1.4 months worst case. Posts must not repeat the old figure.
 

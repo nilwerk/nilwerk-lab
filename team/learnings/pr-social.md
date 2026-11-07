@@ -23,7 +23,7 @@ Updated in the Friday retro PR; max ~60 rules. Never relaxes TEAM.md §5 hard ru
 - Look at every rendered PNG, including the German one (it runs longer). *Why:* overlaps showed only in German. *Source:* origin story build 2026-11-07.
 - Check advertising labelling, alt text and the Impressum link before a post is approved; legal points go to a professional. *Why:* UWG section 5 and media-authority guidance apply to company posts. *Source:* `showcase/learning/pr-skills-plan.md`.
 - Use `anthropic-skills:social` for structure only; never use the `raazmor-*` skills for Nilwerk. *Why:* generic playbook; other brand's context. *Source:* checked 2026-11-07.
-- Put an "as of <date and time>" label on every count that changes (merges, tasks done) and recount on the day of posting. *Why:* the Saturday merge count grew from 7 to 10 within a day. *Source:* Theo's review of PR #40.
+- Put an "as of <date and time>" label on every count that changes (merges, tasks done) and recount on the day of posting. *Why:* such counts grow within a day. *Source:* Theo's review of PR #40; example in `projects/plant-monitor/LESSONS.md`.
 - Never write "every" or "each" about reviews without a verdict per PR; say "every code change" and what happens to docs. *Why:* report and docs PRs have no architect verdict. *Source:* Theo's review of PR #40.
 - A region claim lists the non-EU helper services and says whether it is a decision or live. *Why:* "in the EU" is half the story when the AI service runs elsewhere. *Source:* Theo's review of PR #40, stack-and-costs.
-- Do not repeat an old simulated figure once a newer calculation exists (battery: 150-226 days vs 4.5 months typical). *Why:* the old figure is outdated. *Source:* Theo's review of PR #40, power-budget.
+- Do not repeat an old simulated figure once a newer calculation exists. *Why:* the old figure is outdated. *Source:* Theo's review of PR #40; example in `projects/plant-monitor/LESSONS.md`, PR/social section.

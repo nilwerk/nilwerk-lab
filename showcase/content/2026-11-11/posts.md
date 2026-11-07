@@ -10,7 +10,7 @@ On 6 November our founder decided that the team works seven days a week. Our AI 
 
 What did not change: every code change was reviewed by the architect agent, tested by QA and checked by the automatic pipeline. Reports and documents go through the human merge. A person merged all of them. Seven days a week means seven days of checked work, not seven days of unchecked work.
 
-Time, with its labels: on Friday 6 November the agents worked about 48 minutes in total (measured). They estimate that an experienced engineer would have needed about 70 hours for the same work. That is their estimate, not a promise, and we are still testing it.
+Time, with its labels: on Friday 6 November the agents worked about 48 minutes in total, excluding the lead (measured). They estimate that an experienced engineer would have needed about 70 hours for the same work. That is their estimate, not a promise, and we are still testing it.
 
 For engineers: 10 pull requests merged on 7 Nov as of 20:46 (#13, #24, #27, #29, #30, #34, #33, #35, #36, #38; repo history; recount on the day of posting). TEAM.md section 7 (seven-day week, weekend runs without ceremonies). Time figures are from the 6 Nov report (Friday morning and extra round, excl. lead); no time figures exist yet for Saturday.
 
