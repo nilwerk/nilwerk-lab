@@ -38,7 +38,7 @@ POSTS = {
         TILE_B_SUB1="A tries to read, change,", TILE_B_SUB2="delete or forge rows of B:", TILE_B_SUB3="none succeeded",
         TONE_B_TOKEN="accent",
         STATUS="TESTED ON LOCAL POSTGRES 16 · NOT YET LIVE",
-        SRC1="Local PostgreSQL 16 run, 7 Nov 2026: RLS + retention tests", SRC2="Auth, scheduler, storage stubbed locally; not on live Supabase",
+        SRC1="Local PostgreSQL 16 run: RLS + retention tests", SRC2="Auth, scheduler, storage stubbed locally; not on live Supabase",
         **COMMON)),
 }
 SIZES = {"portrait-1080x1350": "post-portrait-1080x1350", "linkedin-1200x627": "post-linkedin-1200x627", "square-1080x1080": "post-square-1080x1080"}

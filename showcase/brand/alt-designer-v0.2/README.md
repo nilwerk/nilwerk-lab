@@ -27,7 +27,7 @@ Known trade-offs: JetBrains Mono's default zero has a dot inside, which reads te
 | `make_board.py` / `comparison-board.png` | the A/B board |
 | `../../content/2026-11-07/alt/` | posts 1 and 2 re-rendered in v0.2 (6 PNG + SVG), `build_alt_images.py` reads the texts from `../build_images.py` |
 
-Rebuild everything: `export NW_FONT_DIR=<node_modules>/@fontsource` (from `npm i @fontsource/space-grotesk @fontsource/inter @fontsource/jetbrains-mono`), then `python3 -I make_templates.py && python3 -I make_logos.py && python3 -I build_alt.py --previews previews && python3 -I ../../content/2026-11-07/alt/build_alt_images.py && python3 -I make_board.py`.
+Rebuild everything: `export NW_FONT_DIR=<node_modules>/@fontsource` (from `npm i @fontsource/space-grotesk @fontsource/inter @fontsource/jetbrains-mono`), then `python3 -I make_templates.py && python3.13 -I make_logos.py` (make_logos.py needs a Python with fontTools, e.g. a python3.13 venv with `pip install fonttools`; the other scripts run on plain python3) ` && python3 -I build_alt.py --previews previews && python3 -I ../../content/2026-11-07/alt/build_alt_images.py && python3 -I make_board.py`.
 
 ## How to switch to v0.2 (if Arsany chooses it)
 

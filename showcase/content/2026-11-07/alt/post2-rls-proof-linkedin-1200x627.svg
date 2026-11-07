@@ -30,7 +30,7 @@
   <rect x="680" y="459" width="10" height="10" fill="#e58a4f"/>
   <text x="698" y="470" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="14" letter-spacing="0.8" fill="#ecebe7">TESTED ON LOCAL POSTGRES 16 · NOT YET LIVE</text>
   <text x="56" y="554" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="13" letter-spacing="1.4" fill="#3fc79a">FOR ENGINEERS</text>
-  <g font-family="'JetBrains Mono', monospace" font-size="13" fill="#a2a7af"><text x="190" y="554">Local PostgreSQL 16 run, 7 Nov 2026: RLS + retention tests</text><text x="190" y="574">Auth, scheduler, storage stubbed locally; not on live Supabase</text></g>
+  <g font-family="'JetBrains Mono', monospace" font-size="13" fill="#a2a7af"><text x="190" y="554">Local PostgreSQL 16 run: RLS + retention tests</text><text x="190" y="574">Auth, scheduler, storage stubbed locally; not on live Supabase</text></g>
   <line x1="56" y1="592" x2="1144" y2="592" stroke="#3a424c" stroke-width="1.5"/>
   <g font-family="'JetBrains Mono', monospace" font-size="13" fill="#a2a7af">
     <text x="56" y="616">@nilwerk · nilwerk.de</text>

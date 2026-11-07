@@ -55,7 +55,7 @@
 
   <text x="56" y="534" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="15" letter-spacing="1.2" fill="#3fc79a">FOR ENGINEERS</text>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#a2a7af">
-    <text x="56" y="556">Local PostgreSQL 16 run, 7 Nov 2026: RLS + retention tests</text>
+    <text x="56" y="556">Local PostgreSQL 16 run: RLS + retention tests</text>
     <text x="56" y="577">Auth, scheduler, storage stubbed locally; not on live Supabase</text>
   </g>
   <line x1="56" y1="594" x2="1144" y2="594" stroke="#2a3038" stroke-width="1.5"/>
