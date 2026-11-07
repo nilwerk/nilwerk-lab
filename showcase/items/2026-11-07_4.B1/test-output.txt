@@ -1,0 +1,51 @@
+ok  migration 1 == docs/interfaces/db-schema.sql (no drift)
+ok  PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.
+== RLS isolation (test/rls_isolation.sql)
+NOTICE:  database "nw_test_rls" does not exist, skipping
+    psql:migrations/20261107000002_schedules.sql:14: NOTICE:  pg_cron not available: schedules skipped (enable pg_cron on Supabase and re-run this file)
+    psql:migrations/20261107000003_storage.sql:17: NOTICE:  storage schema not present: buckets skipped
+ rollup_readings 
+NOTICE:  RLS enabled on all 14 public tables
+NOTICE:  read ok  profiles         : A sees 1 own, 0 foreign
+NOTICE:  read ok  plants           : A sees 1 own, 0 foreign
+NOTICE:  read ok  devices          : A sees 1 own, 0 foreign
+NOTICE:  read ok  plant_images     : A sees 1 own, 0 foreign
+NOTICE:  read ok  readings         : A sees 288 own, 0 foreign
+NOTICE:  read ok  readings_hourly  : A sees 71 own, 0 foreign
+NOTICE:  read ok  events           : A sees 1 own, 0 foreign
+NOTICE:  read ok  alerts           : A sees 1 own, 0 foreign
+NOTICE:  read ok  push_tokens      : A sees 1 own, 0 foreign
+NOTICE:  read ok  tips             : A sees 1 own, 0 foreign
+NOTICE:  read ok  api_keys         : A sees 1 own, 0 foreign
+NOTICE:  read ok  device_credentia : service-only, A sees 0
+NOTICE:  read ok  claim_tokens     : service-only, A sees 0
+NOTICE:  read ok  firmware_release : service-only, A sees 0
+NOTICE:  write ok profiles         : A cannot update/delete B rows
+NOTICE:  write ok plants           : A cannot update/delete B rows
+NOTICE:  write ok devices          : A cannot update/delete B rows
+NOTICE:  write ok plant_images     : A cannot update/delete B rows
+NOTICE:  write ok readings         : A cannot update/delete B rows
+NOTICE:  write ok readings_hourly  : A cannot update/delete B rows
+NOTICE:  write ok events           : A cannot update/delete B rows
+NOTICE:  write ok alerts           : A cannot update/delete B rows
+NOTICE:  write ok push_tokens      : A cannot update/delete B rows
+NOTICE:  write ok tips             : A cannot update/delete B rows
+NOTICE:  write ok api_keys         : A cannot update/delete B rows
+NOTICE:  write ok device_credentia : A cannot update/delete B rows
+NOTICE:  write ok claim_tokens     : A cannot update/delete B rows
+NOTICE:  write ok firmware_release : A cannot update/delete B rows
+NOTICE:  write ok  forged inserts refused on all 14 tables
+RLS ISOLATION OK
+== retention / roll-up (test/retention.sql)
+NOTICE:  database "nw_test_ret" does not exist, skipping
+    psql:migrations/20261107000002_schedules.sql:14: NOTICE:  pg_cron not available: schedules skipped (enable pg_cron on Supabase and re-run this file)
+    psql:migrations/20261107000003_storage.sql:17: NOTICE:  storage schema not present: buckets skipped
+NOTICE:  apply_retention #1 -> {"rolled_up": 1, "raw_deleted": 5, "hourly_deleted": 1}
+NOTICE:  apply_retention #2 -> {"rolled_up": 0, "raw_deleted": 0, "hourly_deleted": 0}
+RETENTION OK
+== 2.4 contract test (docs/interfaces/db-schema.test.sql) on the migrated DB
+NOTICE:  database "nw_test_contract" does not exist, skipping
+    psql:migrations/20261107000002_schedules.sql:14: NOTICE:  pg_cron not available: schedules skipped (enable pg_cron on Supabase and re-run this file)
+    psql:migrations/20261107000003_storage.sql:17: NOTICE:  storage schema not present: buckets skipped
+ALL OK
+ALL CLOUD TESTS PASSED
