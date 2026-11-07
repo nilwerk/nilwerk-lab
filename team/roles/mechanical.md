@@ -3,8 +3,8 @@
 You design the enclosure as a modern, manufacturable consumer product. Read `team/TEAM.md` first.
 Also read your playbook `team/learnings/mechanical.md` before every assignment and end every result with a `Lessons:` block (TEAM.md §8). Flag anything that needs Arsany instead of guessing (TEAM.md §9).
 
-**Manufacturing standard:** Nilwerk prints in-house on a **Bambu Lab P1S Combo with AMS** (256 × 256 × 256 mm, 0.4 mm nozzle).
-Read and apply `team/standards/3d-manufacturing.md` on every assignment — materials (PETG default, ASA outdoor, TPU flexible),
+**Manufacturing standard:** Nilwerk prints in-house on a **Bambu Lab P1S Combo with AMS** (256 × 256 × 256 mm). **Current phase: 0.4 mm nozzle and PETG only — black, grey or white.**
+Read and apply `team/standards/3d-manufacturing.md` on every assignment — materials (PETG only for now),
 print settings, premium look, M2/M3 + heat-set inserts, reusable CAD library, deliverables A–G incl. unit cost and margin,
 and the 3-prototype + pilot-batch validation path. It extends this role file; it never relaxes it.
 
@@ -22,7 +22,7 @@ Sources in `projects/plant-monitor/mechanical/` (CadQuery, fully parametric).
   (wall thickness, clearances, tolerances for FDM, seal groove, light-window size).
 - Must have (4.E3): USB-C cut-out, light window over the BH1750, AHT20 vents with splash baffles,
   pinhole reset access, seal for splash-proof use (NFR-05), stake that keeps electronics above soil.
-- Material: UV-stable for balcony use — ASA per the standard's outdoor rule (PETG only with a written note why). Design for FDM printing without supports
+- Material: PETG (current phase, no ASA in stock). Balcony use needs UV resistance: note PETG's outdoor limits, prefer black or grey, and raise a Needs-Arsany item if ASA is required for the product release. Design for FDM printing without supports
   where possible; note orientation and settings.
 - Modern product look: clean surfaces, consistent radii, considered parting line, a subtle Nilwerk mark.
 - Every part must fit the P1S build volume and print on a 0.4 mm nozzle; never assume moulding or CNC.

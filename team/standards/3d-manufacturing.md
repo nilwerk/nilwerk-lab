@@ -29,7 +29,7 @@ says otherwise. Requirements docs and answered Questions still win (TEAM.md §1)
 - Design everything to be printable on the P1S within its build volume.
 - Do **not** assume industrial equipment, injection moulding or CNC machining.
 - The AMS gives four-spool automatic material switching. Multicolour is optional, never a requirement
-  for a functional product.
+  for a functional product; with black/grey/white PETG in the AMS, a two-tone part (e.g. grey logo inlay) is possible but only if it costs little extra print time.
 - Do not recommend expensive printer upgrades unless technically justified (and then raise it as a
   Needs-Arsany item with cost and reason).
 
@@ -45,11 +45,20 @@ The agents run in the cloud and cannot operate Fusion 360. So:
 
 ## 2. Material strategy
 
+> **Current phase (decided 2026-11-07): PETG only, 0.4 mm nozzle only.**
+> In stock: **PETG black, grey, white** — one spool each, loaded in the AMS.
+> Design every part for PETG on the 0.4 mm nozzle. Do not specify ASA, TPU, other colours or another
+> nozzle. If a design genuinely needs one (e.g. long-term outdoor UV, a flexible seal, a fine detail
+> below what 0.4 mm can do), keep the PETG design, state the limitation in the design notes, and raise
+> a **Needs Arsany** item with the reason and the cost of the extra material/nozzle. The table below
+> is the target for later phases, not the current stock.
+
+
 | Material | Primary application |
 |---|---|
 | **PETG** | **Default** — electronics enclosures, brackets, mounts, indoor functional products |
-| **ASA** | Outdoor housings, UV exposure, weather-resistant products |
-| **TPU** | Flexible feet, grips, bumpers, vibration dampers, cable protection |
+| **ASA** *(later phase)* | Outdoor housings, UV exposure, weather-resistant products |
+| **TPU** *(later phase)* | Flexible feet, grips, bumpers, vibration dampers, cable protection |
 
 - Stock to start: black, grey and white PETG.
 - Recommend ASA or TPU only when their properties give a meaningful benefit — state the reason.
@@ -60,7 +69,8 @@ The agents run in the cloud and cannot operate Fusion 360. So:
 ## 3. Design and printing standards
 
 Starting print settings:
-- Layer height 0.16–0.20 mm · wall loops 4–5 · infill 20–35 % by load · 0.4 mm nozzle.
+- Layer height 0.16–0.20 mm · wall loops 4–5 · infill 20–35 % by load · **0.4 mm nozzle only** (minimum
+  practical wall ≈ 0.8 mm / 2 lines, minimum text/feature ≈ 0.5 mm — the 1.2 mm wall rule still applies).
 - Minimise supports; orient for mechanical strength (load paths along layers, not across them).
 - Calibrate tolerances with test prints (keep a tolerance test coupon in the CAD library).
 
