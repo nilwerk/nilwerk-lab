@@ -65,61 +65,61 @@ Reading: labels that carry a valve or rain signal are consistent. **62 % of all 
 ## Model B event labels after decision A-032 (month x sector)
 
 Decision A-032 (Arsany, approved 2026-11-06), implemented in `src/labels.py::label_wetting_classes` (FR-E02, FR-E01):
-- **Wetting positives** = valve-coincident watering + rain-coincident events only. **Generic/unexplained wetting** (no valve, no rain) is an **ignore mask**: never a positive, never a negative in training; kept only for evaluation reports. The mask covers each generic onset +-2 ticks (`IGNORE_PAD_TICKS`, my choice = the event-detection window; open for Theo).
+- **Wetting positives** = valve-coincident watering + rain-coincident events only. **Generic/unexplained wetting** (no valve, no rain) is an **ignore mask**: neither positive nor negative. Ignore ticks must be dropped from the training loss and from the positive/negative counts of every evaluation metric (only a separate 'unexplained wetting' report may use them); `label_wetting_classes` only sets the columns, consumers select `pos | neg`. The mask covers each generic onset +-4 ticks (+-1 h, `IGNORE_PAD_TICKS = 4`, Lead decision on Theo C1, see sensitivity below).
 - **Sector 5 is excluded** from wetting positives and from FR-E02 evidence: all of its ticks are ignore-mask (its 35 watering + 59 rain events are not positives either). Positives are therefore 219 + 125 = 344 minus sector 5's 94 = **250** (184 watering + 66 rain).
 - **FR-E02 claims cover wetting + sensor fault only.** Fast-drying and waterlogged stay weak labels, shown in the last two columns and **not** an FR-E02 claim. **No threshold re-tuning** after seeing zero train fast-drying positives: percentile constants are frozen (`FROZEN_WEAK_LABEL_RULE`, guarded by tests).
 - Real data, `scripts/run_mendeley.py`, seed 0, no synthetic faults, all splits pooled, months in UTC. Counts are data counts, not results. Ticks are 15-min ticks of the pipeline (masked ticks included).
 - Weak labels are not masked by sector: all 49 val fast-drying ticks sit in sector 5 (Aug) and the 14 test ones in sector 4 (Jul); train has 0. Waterlogged is 0 everywhere. Sensor-fault classes have 0 real positives (faults are synthetic only; not injected here).
 - **No fast-drying metric may be reported from val:** all 49 val fast-drying ticks lie in excluded sector 5, so they are outside any FR-E02 claim; fast-drying and waterlogged labels stay outside every FR-E02 claim.
 
-Per-split positive counts (real data, seed 0, pad 2; sector 5 excluded):
+Per-split positive counts (real data, seed 0, pad 4; **sector 5: all ticks ignore-mask, no positives**):
 
 | Split | Pos: watering | Pos: rain | Generic wetting events (ignored) | Ignore-mask ticks | Negative ticks |
 |---|---|---|---|---|---|
-| train | 126 | 52 | 386 | 12,999 | 33,538 |
-| val | 24 | 8 | 75 | 2,494 | 6,306 |
-| test | 34 | 6 | 95 | 2,589 | 6,682 |
-| total | 184 | 66 | 556 | 18,082 | 46,526 |
+| train | 126 | 52 | 386 | 13,871 | 32,666 |
+| val | 24 | 8 | 75 | 2,646 | 6,154 |
+| test | 34 | 6 | 95 | 2,817 | 6,454 |
+| total | 184 | 66 | 556 | 19,334 | 45,274 |
 
 (Generic events include sector 5's 243; sector 5's explained events are not positives.) Val has only 32 and test 40 positives: any per-split metric is very noisy.
 
-**Ignore-pad sensitivity (Theo C1), `IGNORE_PAD_TICKS` 2 vs 4.** Contaminated negative = negative tick within 2 h after a generic onset whose m is still >= 10 points above the pre-onset value (m two ticks before the onset). Pad 2: 46,526 negatives, 1,174 contaminated (2.52 %). Pad 4: 45,274 negatives, 681 contaminated (1.50 %). Pad 4 removes 1,252 negatives (2.7 %) and 493 contaminated ones. The effect is **not negligible**, so the default stays 2 only provisionally and the decision is open (reported to Nora/Theo; nothing changed silently). The definition of "contaminated" is my own proxy, not a ground truth.
+**Ignore-pad sensitivity (Theo C1), `IGNORE_PAD_TICKS` 2 vs 4: decision taken, pad 4.** Contaminated negative = negative tick within 2 h after a generic onset whose m is still >= 10 points above the pre-onset value (m two ticks before the onset); this is my own proxy, not ground truth. Pad 2: 46,526 negatives, 1,174 contaminated (2.52 %). Pad 4: 45,274 negatives, 681 contaminated (1.50 %). Pad 4 costs 1,252 negatives (2.7 %) and removes 493 contaminated ones. The Lead chose 4 because the contamination drop outweighs the small loss of negatives; all tables in this section and the counts above are regenerated at pad 4 (`scripts/run_mendeley.py`).
 
 | Month | Sector | Ticks | Pos: watering (valve) | Pos: rain | Generic wetting events | Ignore-mask ticks | Negative ticks | Weak fast-drying | Weak waterlogged |
 |---|---|---|---|---|---|---|---|---|---|
-| 2025-02 | s1 | 1772 | 0 | 1 | 4 | 20 | 1751 | 0 | 0 |
-| 2025-02 | s2 | 1772 | 6 | 7 | 12 | 60 | 1699 | 0 | 0 |
-| 2025-02 | s4 | 1772 | 0 | 1 | 2 | 10 | 1761 | 0 | 0 |
+| 2025-02 | s1 | 1772 | 0 | 1 | 4 | 36 | 1735 | 0 | 0 |
+| 2025-02 | s2 | 1772 | 6 | 7 | 12 | 108 | 1651 | 0 | 0 |
+| 2025-02 | s4 | 1772 | 0 | 1 | 2 | 18 | 1753 | 0 | 0 |
 | 2025-02 | s5 | 1772 | 0 | 0 | 1 | 1772 | 0 | 0 | 0 |
-| 2025-03 | s1 | 2112 | 1 | 3 | 4 | 20 | 2088 | 0 | 0 |
-| 2025-03 | s2 | 2112 | 11 | 12 | 15 | 75 | 2014 | 0 | 0 |
-| 2025-03 | s4 | 2112 | 2 | 3 | 2 | 10 | 2097 | 0 | 0 |
+| 2025-03 | s1 | 2112 | 1 | 3 | 4 | 36 | 2072 | 0 | 0 |
+| 2025-03 | s2 | 2112 | 11 | 12 | 15 | 135 | 1954 | 0 | 0 |
+| 2025-03 | s4 | 2112 | 2 | 3 | 2 | 18 | 2089 | 0 | 0 |
 | 2025-03 | s5 | 2112 | 0 | 0 | 35 | 2112 | 0 | 0 | 0 |
-| 2025-04 | s1 | 2016 | 1 | 1 | 6 | 30 | 1984 | 0 | 0 |
-| 2025-04 | s2 | 2016 | 13 | 4 | 17 | 85 | 1914 | 0 | 0 |
-| 2025-04 | s4 | 2016 | 5 | 4 | 12 | 60 | 1947 | 0 | 0 |
+| 2025-04 | s1 | 2016 | 1 | 1 | 6 | 54 | 1960 | 0 | 0 |
+| 2025-04 | s2 | 2016 | 13 | 4 | 17 | 153 | 1846 | 0 | 0 |
+| 2025-04 | s4 | 2016 | 5 | 4 | 12 | 108 | 1899 | 0 | 0 |
 | 2025-04 | s5 | 2016 | 0 | 0 | 14 | 2016 | 0 | 0 | 0 |
-| 2025-05 | s1 | 2208 | 9 | 2 | 15 | 75 | 2122 | 0 | 0 |
-| 2025-05 | s2 | 2208 | 10 | 6 | 22 | 110 | 2082 | 0 | 0 |
-| 2025-05 | s4 | 2208 | 4 | 0 | 9 | 45 | 2159 | 0 | 0 |
+| 2025-05 | s1 | 2208 | 9 | 2 | 15 | 135 | 2062 | 0 | 0 |
+| 2025-05 | s2 | 2208 | 10 | 6 | 22 | 198 | 1994 | 0 | 0 |
+| 2025-05 | s4 | 2208 | 4 | 0 | 9 | 81 | 2123 | 0 | 0 |
 | 2025-05 | s5 | 2208 | 0 | 0 | 24 | 2208 | 0 | 0 | 0 |
-| 2025-06 | s1 | 2208 | 21 | 0 | 50 | 250 | 1937 | 0 | 0 |
-| 2025-06 | s2 | 2208 | 12 | 0 | 5 | 25 | 2171 | 0 | 0 |
-| 2025-06 | s4 | 2208 | 35 | 1 | 22 | 110 | 2062 | 0 | 0 |
+| 2025-06 | s1 | 2208 | 21 | 0 | 50 | 450 | 1737 | 0 | 0 |
+| 2025-06 | s2 | 2208 | 12 | 0 | 5 | 45 | 2151 | 0 | 0 |
+| 2025-06 | s4 | 2208 | 35 | 1 | 22 | 198 | 1974 | 0 | 0 |
 | 2025-06 | s5 | 2208 | 0 | 0 | 21 | 2208 | 0 | 0 | 0 |
-| 2025-07 | s1 | 2400 | 9 | 0 | 21 | 105 | 2286 | 0 | 0 |
-| 2025-07 | s2 | 2400 | 0 | 0 | 6 | 30 | 2370 | 0 | 0 |
-| 2025-07 | s4 | 2400 | 31 | 3 | 41 | 205 | 2161 | 14 | 0 |
+| 2025-07 | s1 | 2400 | 9 | 0 | 21 | 189 | 2202 | 0 | 0 |
+| 2025-07 | s2 | 2400 | 0 | 0 | 6 | 54 | 2346 | 0 | 0 |
+| 2025-07 | s4 | 2400 | 31 | 3 | 41 | 369 | 1997 | 14 | 0 |
 | 2025-07 | s5 | 2400 | 0 | 0 | 72 | 2400 | 0 | 0 | 0 |
 | 2025-08 | s1 | 2112 | 0 | 0 | 0 | 0 | 2112 | 0 | 0 |
-| 2025-08 | s2 | 2112 | 0 | 0 | 3 | 15 | 2097 | 0 | 0 |
-| 2025-08 | s4 | 2112 | 14 | 15 | 40 | 200 | 1883 | 0 | 0 |
+| 2025-08 | s2 | 2112 | 0 | 0 | 3 | 27 | 2085 | 0 | 0 |
+| 2025-08 | s4 | 2112 | 14 | 15 | 40 | 360 | 1723 | 0 | 0 |
 | 2025-08 | s5 | 2112 | 0 | 0 | 73 | 2112 | 0 | 49 | 0 |
 | 2025-09 | s1 | 479 | 0 | 0 | 0 | 0 | 479 | 0 | 0 |
 | 2025-09 | s2 | 1689 | 0 | 0 | 0 | 0 | 1689 | 0 | 0 |
-| 2025-09 | s4 | 1689 | 0 | 3 | 5 | 25 | 1661 | 0 | 0 |
+| 2025-09 | s4 | 1689 | 0 | 3 | 5 | 45 | 1641 | 0 | 0 |
 | 2025-09 | s5 | 1689 | 0 | 0 | 3 | 1689 | 0 | 0 | 0 |
-| **Total** | s1,s2,s4,s5 | **64858** | **184** | **66** | **556** | **18082** | **46526** | **63** | **0** |
+| **Total** | s1,s2,s4,s5 | **64858** | **184** | **66** | **556** | **19334** | **45274** | **63** | **0** |
 
 ## Known risks
 - Drip-irrigated farm, not pots; one season, one site; probe depth unknown; valve telemetry must never be a feature; fault labels are derived and noisy; recording is dense only in Aug-Sep so train/val/test are mostly late-summer vs spring-sparse; ERA5 rain/temperature are site-wide proxies.

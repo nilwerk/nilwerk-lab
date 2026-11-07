@@ -54,8 +54,7 @@ def main(raw_dir: str, out_dir: str) -> None:
            "date_utc": [str(raw["time"].min()), str(raw["time"].max())],
            "ticks_after_split": {k: int(len(v)) for k, v in sp.items()},
            "events_by_class": ev["event"].value_counts().to_dict(),
-           "baseline_mean_watering_interval_h_train": base["train"],
-           "model_label": prep.model_label(sp["train"])}
+           "baseline_mean_watering_interval_h_train": base["train"]}   # no model exists: no model_label (Ines N4)
     # 50-window hand-check list: stratified over events and a random sample of non-event ticks
     rng = np.random.default_rng(0)
     pick = []
