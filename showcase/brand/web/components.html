@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nilwerk web components</title>
+<!-- Nilwerk web component kit, v0.1 brand. Self-contained: tokens + fonts are local files, no external requests. -->
+<link rel="stylesheet" href="../brand.css">
+<link rel="stylesheet" href="../brand-status.css">
+<link rel="stylesheet" href="components.css">
+</head>
+<body>
+<div class="themebar"><div class="wrap row">
+  <strong class="mono">nilwerk / components</strong>
+  <span style="flex:1"></span>
+  <button class="btn btn-secondary" type="button" id="t-light">Light</button>
+  <button class="btn btn-secondary" type="button" id="t-dark">Dark</button>
+  <button class="btn btn-ghost" type="button" id="t-auto">Auto</button>
+</div></div>
+
+<main class="wrap">
+  <section class="section" style="border-top:0">
+    <p class="label">Web component kit · v0.1 · proposal</p>
+    <h1>Plain words first.<br>Numbers for engineers.</h1>
+    <p class="muted" style="max-width:60ch">Buttons, cards, alerts, a table, a form, a code block and status badges, all built from the brand tokens. Switch light, dark or auto at the top; both themes are checked for WCAG AA.</p>
+  </section>
+
+  <section class="section">
+    <p class="label">Colour tokens</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+      <div class="sw"><i style="background:var(--nw-bg)"></i><span>bg</span></div>
+      <div class="sw"><i style="background:var(--nw-surface)"></i><span>surface</span></div>
+      <div class="sw"><i style="background:var(--nw-ink)"></i><span>ink</span></div>
+      <div class="sw"><i style="background:var(--nw-muted)"></i><span>muted</span></div>
+      <div class="sw"><i style="background:var(--nw-accent)"></i><span>accent</span></div>
+      <div class="sw"><i style="background:var(--nw-warn)"></i><span>warn</span></div>
+      <div class="sw"><i style="background:var(--nw-wet)"></i><span>wet</span></div>
+      <div class="sw"><i style="background:var(--nw-low)"></i><span>low battery</span></div>
+      <div class="sw"><i style="background:var(--nw-danger)"></i><span>danger</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="label">Buttons</p>
+    <div class="row">
+      <button class="btn btn-primary" type="button">Save changes</button>
+      <button class="btn btn-secondary" type="button">Cancel</button>
+      <button class="btn btn-ghost" type="button">Learn more</button>
+      <button class="btn btn-danger" type="button">Remove plant</button>
+      <button class="btn btn-primary" type="button" disabled>Disabled</button>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="label">Status badges (colour, shape and word)</p>
+    <div class="row">
+      <span class="badge badge-ok">OK</span>
+      <span class="badge badge-dry">DRY</span>
+      <span class="badge badge-wet">WET</span>
+      <span class="badge badge-low">LOW BATTERY</span>
+      <span class="badge badge-offline">OFFLINE</span>
+      <span class="badge badge-danger">ERROR</span>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="label">Cards</p>
+    <div class="grid">
+      <div class="card accent"><h3>Basil</h3><p class="muted">Kitchen window</p><div class="num">38 %</div><span class="badge badge-ok">OK</span></div>
+      <div class="card warn"><h3>Cactus</h3><p class="muted">Balcony</p><div class="num">12 %</div><span class="badge badge-dry">DRY</span></div>
+      <div class="card"><h3>Fern</h3><p class="muted">Bedroom</p><div class="num">3.4 V</div><span class="badge badge-low">LOW BATTERY</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="label">Alerts</p>
+    <div class="grid" style="grid-template-columns:1fr">
+      <div class="alert ok"><strong>Saved</strong><span>Your changes are stored.</span></div>
+      <div class="alert warn"><strong>Dry soon</strong><span>Basil will be dry in about 31 hours.</span></div>
+      <div class="alert low"><strong>Low battery</strong><span>Fern's sensor is at 3.4 V. Charge it this week.</span></div>
+      <div class="alert danger"><strong>Error</strong><span>We could not reach the sensor. Check that it is in range.</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="label">Table</p>
+    <table>
+      <thead><tr><th>Time</th><th>Soil</th><th>Temp</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Today 14:00</td><td class="num">38 %</td><td class="num">21.4 °C</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td>13:00</td><td class="num">26 %</td><td class="num">21.1 °C</td><td><span class="badge badge-dry">DRY</span></td></tr>
+        <tr><td>12:00</td><td class="num">—</td><td class="num">—</td><td><span class="badge badge-offline">OFFLINE</span></td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="font-size:.875rem">Sample values for layout only.</p>
+  </section>
+
+  <section class="section">
+    <p class="label">Form</p>
+    <form onsubmit="return false" style="max-width:420px">
+      <div class="field"><label for="n">Plant name</label><input id="n" type="text" placeholder="Basil"><span class="help">Shown in your plant list.</span></div>
+      <div class="field"><label for="e">Email</label><input id="e" type="email" aria-invalid="true" value="name@"><span class="err">Enter a complete email address.</span></div>
+      <div class="field"><label for="s">Soil type</label><select id="s"><option>Potting soil</option><option>Sandy</option></select></div>
+      <label class="check field"><input type="checkbox" checked> <span>Notify me when a plant is dry</span></label>
+      <button class="btn btn-primary" type="submit">Save</button>
+    </form>
+  </section>
+
+  <section class="section">
+    <p class="label">Code block</p>
+    <pre><code>-- user A cannot read user B's rows
+select count(*) from plants where user_id = :b;  -- 0 for user A</code></pre>
+    <p>Inline code looks like <code class="inline">brand-status.css</code>.</p>
+  </section>
+
+  <section class="section">
+    <p class="label">Fonts: self-host, no external requests</p>
+    <p>The fonts are in <code class="inline">./fonts</code> (woff2, latin subset; Space Grotesk 500/700, Inter 400/600, JetBrains Mono 400/600) and loaded with <code class="inline">@font-face</code> in <code class="inline">components.css</code>. All three are SIL Open Font License 1.1 (licence texts are in the same folder), so self-hosting and commercial use are allowed. nilwerk.de promises no external fonts: keep it that way, do not use the Google Fonts CDN link on the website.</p>
+  </section>
+</main>
+<script>
+  (function () {
+    var root = document.documentElement;
+    function set(t) { if (t) { root.setAttribute('data-theme', t); } else { root.removeAttribute('data-theme'); } }
+    var q = new URLSearchParams(location.search).get('theme');
+    if (q === 'dark' || q === 'light') set(q);
+    document.getElementById('t-light').onclick = function () { set('light'); };
+    document.getElementById('t-dark').onclick = function () { set('dark'); };
+    document.getElementById('t-auto').onclick = function () { set(null); };
+  })();
+</script>
+</body>
+</html>

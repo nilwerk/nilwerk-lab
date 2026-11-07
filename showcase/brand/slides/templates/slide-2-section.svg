@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="{{ALT}}">
+  <!-- Nilwerk v0.1 template: slide 16:9 1920x1080: section. Placeholders {{...}}; colours var(--nw-*) from brand.css / brand-status.css. -->
+  <defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="var(--nw-line)" stroke-width="1.5" opacity=".55"/></pattern></defs>
+  <rect width="1920" height="1080" fill="var(--nw-bg)"/>
+  <rect width="1920" height="1080" fill="url(#grid)"/>
+<g transform="translate(120 56) scale(1.9)"><rect x="1" y="1" width="30" height="30" rx="9" fill="#15181d" stroke="#ffffff" stroke-opacity=".12"/><path d="M10 22V9.5l12 12.5V9.5" fill="none" stroke="#3fc79a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="22" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/><circle cx="22" cy="9.5" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/><path d="M6.5 26.6c2.4-1.5 4.8-1.5 7.2 0s4.8 1.5 7.2 0 4.8-1.5 6.9-.1" fill="none" stroke="#8fd9ff" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/></g>
+  <text x="190" y="100" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="40" letter-spacing="-1.2" fill="var(--nw-ink)">nil<tspan fill="var(--nw-accent)">werk</tspan></text>
+  <line x1="120" y1="1004" x2="1800" y2="1004" stroke="var(--nw-line)" stroke-width="2"/>
+  <g font-family="'JetBrains Mono', monospace" font-size="22" fill="var(--nw-muted)"><text x="120" y="1044">{{FOOT_L}}</text><text x="1800" y="1044" text-anchor="end">{{FOOT_R}}</text></g>
+  <text x="110" y="640" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="380" letter-spacing="-12" fill="var(--nw-accent)">{{NUM}}</text>
+  <g font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="104" letter-spacing="-2.6" fill="var(--nw-ink)"><text x="740" y="330">{{H1}}</text><text x="740" y="450">{{H2}}</text></g>
+  <g font-family="Inter, sans-serif" font-size="40" fill="var(--nw-muted)"><text x="740" y="570">{{PLAIN1}}</text><text x="740" y="624">{{PLAIN2}}</text></g>
+  <line x1="740" y1="700" x2="1800" y2="700" stroke="var(--nw-line)" stroke-width="2"/>
+  <text x="740" y="760" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="26" letter-spacing="1.5" fill="var(--nw-accent)">FOR ENGINEERS</text>
+  <g font-family="'JetBrains Mono', monospace" font-size="26" fill="var(--nw-muted)">
+    <text x="740" y="802">{{SRC1}}</text>
+    <text x="740" y="844">{{SRC2}}</text>
+  </g>
+</svg>

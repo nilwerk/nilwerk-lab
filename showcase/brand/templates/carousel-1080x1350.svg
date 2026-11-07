@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-label="{{ALT}}">
+  <!-- Nilwerk v0.1 template: carousel slide 1080x1350 (LinkedIn document / Instagram carousel). Placeholders {{...}}; colours var(--nw-*) from brand.css / brand-status.css. -->
+  <defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="var(--nw-line)" stroke-width="1.5" opacity=".55"/></pattern></defs>
+  <rect width="1080" height="1350" fill="var(--nw-bg)"/>
+  <rect width="1080" height="1350" fill="url(#grid)"/>
+<g transform="translate(72 56) scale(1.75)"><rect x="1" y="1" width="30" height="30" rx="9" fill="#15181d" stroke="#ffffff" stroke-opacity=".12"/><path d="M10 22V9.5l12 12.5V9.5" fill="none" stroke="#3fc79a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="22" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/><circle cx="22" cy="9.5" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/><path d="M6.5 26.6c2.4-1.5 4.8-1.5 7.2 0s4.8 1.5 7.2 0 4.8-1.5 6.9-.1" fill="none" stroke="#8fd9ff" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/></g>
+  <text x="138" y="98" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="36" letter-spacing="-1.1" fill="var(--nw-ink)">nil<tspan fill="var(--nw-accent)">werk</tspan></text>
+  <text x="1008" y="96" text-anchor="end" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="26" fill="var(--nw-muted)">{{N}} / {{TOTAL}}</text>
+  <rect x="72" y="160" width="{{KICKER_W}}" height="48" rx="24.0" fill="var(--nw-accent-soft)" stroke="var(--nw-accent)" stroke-width="2"/>
+  <text x="94" y="192" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="21" letter-spacing="1.1" fill="var(--nw-accent)">{{KICKER}}</text>
+  <g font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="84" letter-spacing="-2.2">
+    <text x="72" y="330" fill="var(--nw-ink)">{{H1}}</text>
+    <text x="72" y="424" fill="var(--nw-accent)">{{H2}}</text>
+  </g>
+  <g font-family="Inter, sans-serif" font-size="38" fill="var(--nw-ink)">
+    <text x="72" y="520">{{P1}}</text>
+    <text x="72" y="578">{{P2}}</text>
+    <text x="72" y="636">{{P3}}</text>
+    <text x="72" y="694">{{P4}}</text>
+  </g>
+  <rect x="72" y="800" width="936" height="330" rx="18" fill="var(--nw-surface)" stroke="var(--nw-line)" stroke-width="2"/>
+  <rect x="72" y="800" width="10" height="330" rx="5" fill="var(--nw-accent)"/>
+  <text x="112" y="856" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="23" letter-spacing="1.5" fill="var(--nw-accent)">FOR ENGINEERS</text>
+  <g font-family="'JetBrains Mono', monospace" font-size="23" fill="var(--nw-muted)">
+    <text x="112" y="896">{{E1}}</text>
+    <text x="112" y="936">{{E2}}</text>
+    <text x="112" y="976">{{E3}}</text>
+    <text x="112" y="1016">{{E4}}</text>
+  </g>
+  <rect x="72" y="1160" width="{{STATUS_W}}" height="48" rx="8" fill="none" stroke="var(--nw-warn)" stroke-width="2"/>
+  <text x="91" y="1193" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="21" letter-spacing="1.1" fill="var(--nw-warn)">{{STATUS}}</text>
+  <g font-family="'JetBrains Mono', monospace" font-size="21" fill="var(--nw-muted)"><text x="72" y="1260">{{SRC1}}</text><text x="1008" y="1260" text-anchor="end">{{SWIPE}}</text></g>
+  <line x1="72" y1="1282" x2="1008" y2="1282" stroke="var(--nw-line)" stroke-width="2"/>
+  <g font-family="'JetBrains Mono', monospace" font-size="21" fill="var(--nw-muted)"><text x="72" y="1318">{{HANDLE}}</text><text x="1008" y="1318" text-anchor="end">{{FOOT_NOTE}}</text></g>
+</svg>
