@@ -1,0 +1,39 @@
+# Plant Monitor cloud backend - Supabase local config (task 4.B1).
+# Local development only: `supabase start` runs everything in Docker, no account, no cost.
+# Production = ONE free Supabase project in an EU region (A-025 zero-cost rule, NFR-07 EU data residency),
+# e.g. Frankfurt (eu-central-1). Creating it is Arsany's click, not an agent's; see ../README.md.
+# No secrets here. Secret NAMES used by later tasks (4.B2+): SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY,
+# SUPABASE_URL (GitHub/Supabase secrets, never committed).
+project_id = "plant-monitor"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15   # schema needs PG15+ (security_invoker views)
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+enabled = true
+site_url = "http://localhost:8081"
+enable_signup = true
+jwt_expiry = 3600
+[auth.email]
+enable_confirmations = false   # local only
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"      # plant photos (FR-A05) are compressed client-side
+
+[studio]
+enabled = true
+port = 54323
