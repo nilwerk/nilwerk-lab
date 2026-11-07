@@ -187,7 +187,7 @@ Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (negativ
 | 3000 | 1018 | 865 | 331 | 977 | 783 | 207 |
 <!-- END:sleep_limit -->
 
-Theo's independent derivation (review of this PR) gave the same limits for the earlier 6-month target: 134 uA / 43 uA (rule) and 80 uA / 2 uA (+SD) for 2000 / 1500 mAh typical; for the current 3 months the limits are 500 / 317 uA (rule) and 445 / 276 uA (+SD). Proposal (Theo accepted the numbers in his review, the requirement text is his):
+**Single source for NFR-12: the derivation at the top of this section (1000 mAh minimum cell, 134 uA limit, 50 uA); the figures in this paragraph are the older 6-month derivation, kept only for reference.** Theo's independent derivation (review of this PR) gave the same limits for the earlier 6-month target: 134 uA / 43 uA (rule) and 80 uA / 2 uA (+SD) for 2000 / 1500 mAh typical; for the current 3 months the limits are 500 / 317 uA (rule) and 445 / 276 uA (+SD). Proposal (Theo accepted the numbers in his review, the requirement text is his):
 - **Requirement value: whole-board deep sleep <= 50 uA**, design target <= 25 uA (estimate 13 uA, section 4). It is 3.8x the typical estimate and above the worst-case estimate (31.7 uA), and below the rule limit for a 2000 mAh cell (134 uA). The requirement text must state that this limit does **not** prove NFR-01; NFR-01 is decided by the measured hourly average current (Wi-Fi is 65 %) and the named cell capacity.
 - Formula (rule): `limit = (0.8 x C / 182.5 d - (sample + Wi-Fi mAh/day)) / 24 h`, implemented as `max_sleep_current_ua()`.
 - **Wi-Fi session, stated honestly:** the typical session in this model is **5.5 s at about 99 mA average** (2.5 s connect + 2.0 s cloud + 1.0 s hub), not 3.5 s. A session of **<= 3.5 s** is a **firmware design target, not the typical case**, and needs two levers together (fast connect to 1.0 s, hub publish every 2nd report; section 7). Whether it becomes a requirement waits for measurement M4 in 5.4; it is not to be written into the requirements before that.
@@ -246,7 +246,7 @@ After M1-M6 the script is run with the measured values (edit `TYPICAL`, tag each
 ## 10. Open points
 
 - **Closed:** self-discharge in the NFR-01 rule: no (A-020, acceptance matrix); NFR-01 is 3 months, the 1000 mAh-minimum BOM cell passes the typical case (4.5 months).
-- **Needs Arsany / Yara:** enclosure v2 battery bay dimensions (section 8); cell choice and any order (Arsany orders, hard rule); a current meter for 5.4 (purchase is Arsany's).
+- **Needs Yara / Arsany:** only Yara's usable bay inside enclosure v3 (swelling and wire clearance) is still open, see [`../../docs/interfaces/pcb-enclosure-bay.md`](../../docs/interfaces/pcb-enclosure-bay.md); cell purchase and any order (Arsany orders, hard rule); a current meter for 5.4 (purchase is Arsany's).
 - **Datasheet tags:** the four ESP32-C3 rows are now **DR** (section 11). Still D?: Aosong AHT20, ROHM BH1750FVI, ESP32-C3-MINI-1 module datasheet (flash leakage).
 
 ## 11. Update 2026-11-07 (2.5 follow-up): datasheet read, cell 1000 mAh minimum
