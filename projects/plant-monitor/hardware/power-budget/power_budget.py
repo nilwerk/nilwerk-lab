@@ -17,7 +17,7 @@ load current = battery current, no conversion gain or loss, only the LDO Iq):
 Sizing rule, applied LITERALLY for every headline figure (Arsany, PR #2 item 12
 and the NFR-01 row of the acceptance matrix):
 
-    projected life = (0.8 x RATED capacity) / average current   >= 4380 h
+    projected life = (0.8 x RATED capacity) / average current   >= NFR01_HOURS (2190 h = 3 months)
 
 There is NO self-discharge term in that rule.  Self-discharge (fraction of RATED
 capacity per month, an assumption) is computed only as a separately labelled
@@ -36,7 +36,10 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, replace
 
-NFR01_HOURS = 4380.0          # 6 months, as used in the acceptance matrix (5.4)
+NFR01_MONTHS = 3.0           # NFR-01 (A-020: 3 months; 6 months is an information-only stretch goal)
+HOURS_PER_MONTH = 730.0      # 4380 h = 6 months, 2190 h = 3 months (acceptance matrix, 5.4)
+NFR01_HOURS = NFR01_MONTHS * HOURS_PER_MONTH
+STRETCH_HOURS = 6 * HOURS_PER_MONTH   # 6-month stretch goal, information line only
 DERATING = 0.80               # Arsany, PR #2 item 12: rated capacity less 20 %
 LOW_BATTERY_V = 3.4           # low-battery warning threshold in volts (Arsany, Needs Arsany A-008.2 answered 'ok' on PR #2, 'low-battery 3.4 V')
 
@@ -250,7 +253,7 @@ LEVERS = [
 HEADINGS = {
     "scenarios": "### Scenario results\n",
     "life": "### Life in months per rated capacity (rule: 0.8 x rated / average current; +SD = extra-margin line with self-discharge)\n",
-    "sleep_limit": "### Deep-sleep limit (whole board) that still reaches 6 months, uA (rule; +SD = extra-margin line)\n",
+    "sleep_limit": "### Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (rule; +SD = extra-margin line)\n",
     "sensitivity": "### Sensitivity, one parameter at a time around TYPICAL\n",
     "levers": "### What-if levers (TYPICAL as base)\n",
 }
@@ -270,7 +273,7 @@ def report_sections() -> dict[str, str]:
                      f"{required_rated_mah(p, **SD):.0f}"])
     sec["scenarios"] = _table(
         ["case", "sleep uA", "sleep mAh/d", "sample mAh/d", "Wi-Fi mAh/d", "total mAh/d",
-         "load 4380 h mAh", "rated mAh needed (rule)", "extra: rated mAh incl. self-disch."], rows)
+         f"load {NFR01_HOURS:.0f} h mAh", "rated mAh needed (rule)", "extra: rated mAh incl. self-disch."], rows)
 
     rows = []
     for c in CAPACITIES:

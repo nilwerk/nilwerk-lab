@@ -43,22 +43,22 @@ class HandCalc(unittest.TestCase):
 
     def test_required_capacity_no_self_discharge(self):
         d = pb.daily_budget(simple())["total"]
-        expect = d * 4380 / 24 / 0.8                                         # derating 20 %
+        expect = d * pb.NFR01_HOURS / 24 / 0.8                                         # derating 20 %
         self.assertAlmostEqual(pb.required_rated_mah(simple()), expect)
 
     def test_required_capacity_with_self_discharge(self):
-        p = pb.with_(simple(), self_discharge_pct_month=2.0)                 # 12 % over 6 months
-        load = pb.daily_budget(p)["total"] * 4380 / 24
-        self.assertAlmostEqual(pb.required_rated_mah(p, with_self_discharge=True), load / (0.8 - 0.12))
+        p = pb.with_(simple(), self_discharge_pct_month=2.0)                 # 6 % over 3 months
+        load = pb.daily_budget(p)["total"] * pb.NFR01_HOURS / 24
+        self.assertAlmostEqual(pb.required_rated_mah(p, with_self_discharge=True), load / (0.8 - 0.06))
         self.assertAlmostEqual(pb.required_rated_mah(p), load / 0.8)        # the rule has no SD term
 
 
 class Consistency(unittest.TestCase):
-    def test_required_capacity_reaches_exactly_six_months(self):
+    def test_required_capacity_reaches_exactly_nfr01_hours(self):
         for p in pb.SCENARIOS.values():
             for sd in (False, True):
                 c = pb.required_rated_mah(p, with_self_discharge=sd)
-                self.assertAlmostEqual(pb.life_days(p, c, with_self_discharge=sd), 4380 / 24, delta=1.0)
+                self.assertAlmostEqual(pb.life_days(p, c, with_self_discharge=sd), pb.NFR01_HOURS / 24, delta=1.0)
 
     def test_sleep_limit_is_inverse_of_required_capacity(self):
         p = pb.TYPICAL
@@ -83,7 +83,7 @@ class Consistency(unittest.TestCase):
         self.assertLess(pb.life_days(pb.TYPICAL, 1000), pb.life_days(pb.TYPICAL, 2000))
 
     def test_impossible_when_self_discharge_eats_derated_capacity(self):
-        p = pb.with_(pb.TYPICAL, self_discharge_pct_month=15.0)              # 90 % over 6 months > 80 %
+        p = pb.with_(pb.TYPICAL, self_discharge_pct_month=30.0)              # 90 % over 3 months > 80 %
         self.assertEqual(pb.required_rated_mah(p, with_self_discharge=True), float("inf"))
 
 
@@ -93,10 +93,11 @@ class Rule(unittest.TestCase):
         i_avg = pb.avg_current_ma(p)
         hours_1500 = 0.8 * 1500 / i_avg
         self.assertAlmostEqual(pb.life_days(p, 1500) * 24, hours_1500, places=6)
-        self.assertGreaterEqual(hours_1500, 4380)                      # 1500 mAh passes by the rule
+        self.assertGreaterEqual(hours_1500, pb.NFR01_HOURS)                      # 1500 mAh passes by the rule
         self.assertAlmostEqual(hours_1500 / 24 / pb.MONTH_DAYS, 6.7, delta=0.05)
-        self.assertLess(pb.life_days(p, 1500, with_self_discharge=True) * 24, 4380)   # extra line fails
-        self.assertAlmostEqual(pb.required_rated_mah(p), 4380 * i_avg / 0.8)
+        self.assertGreaterEqual(pb.life_days(p, 1500, with_self_discharge=True) * 24, pb.NFR01_HOURS)   # SD line still passes 3 months
+        self.assertLess(pb.life_days(p, 1000) * 24, pb.STRETCH_HOURS)       # 1000 mAh misses the 6-month stretch (information only)
+        self.assertAlmostEqual(pb.required_rated_mah(p), pb.NFR01_HOURS * i_avg / 0.8)
 
     def test_light_sleep_lever_and_default_neutral(self):
         base = pb.daily_budget(pb.TYPICAL)["sample"]
@@ -170,7 +171,9 @@ class Provenance(unittest.TestCase):
 
     def test_constants_follow_owner_decisions(self):
         self.assertEqual(pb.DERATING, 0.8)           # PR #2 item 12
-        self.assertEqual(pb.NFR01_HOURS, 4380.0)     # 6 months, acceptance matrix
+        self.assertEqual(pb.NFR01_MONTHS, 3.0)       # A-020
+        self.assertEqual(pb.NFR01_HOURS, 2190.0)     # 3 months, acceptance matrix
+        self.assertEqual(pb.STRETCH_HOURS, 4380.0)   # 6 months stretch, information only
         self.assertEqual(pb.LOW_BATTERY_V, 3.4)      # A-008.2 'ok' on PR #2
 
     def test_report_runs(self):

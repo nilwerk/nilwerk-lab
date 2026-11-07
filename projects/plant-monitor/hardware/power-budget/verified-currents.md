@@ -21,13 +21,13 @@ All TX figures are 100 % duty at the RF port, so they are conservative for a ses
 
 What-if with the datasheet values (script: replace best/typical/worst by CPU 23/23/28, RX 84/84/87, TX 276/285/335, everything else unchanged), months by Arsany's rule (0.8 x rated / average current), `power_budget.py` functions `with_`, `life_days`, `required_rated_mah`:
 
-| Case | Model months @1000 mAh | Datasheet months @1000 | Model @1100 | Datasheet @1100 | Model @1500 | Datasheet @1500 | Rated mAh for 6 months, model / datasheet |
+| Case | Model months @1000 mAh | Datasheet months @1000 | Model @1100 | Datasheet @1100 | Model @1500 | Datasheet @1500 | Rated mAh for 3 months (NFR-01), model / datasheet |
 |---|---|---|---|---|---|---|---|
-| best | 12.76 | 9.89 | 14.04 | 10.87 | 19.14 | 14.83 | 470 / 607 |
-| typical | 4.49 | 4.29 | 4.94 | 4.72 | 6.74 | 6.44 | 1336 / 1398 |
-| worst | 1.37 | 1.49 | 1.51 | 1.64 | 2.06 | 2.24 | 4364 / 4025 |
+| best | 12.76 | 9.89 | 14.04 | 10.87 | 19.14 | 14.83 | 235 / 304 |
+| typical | 4.49 | 4.29 | 4.94 | 4.72 | 6.74 | 6.44 | 668 / 699 |
+| worst | 1.37 | 1.49 | 1.51 | 1.64 | 2.06 | 2.24 | 2182 / 2013 |
 
-(worst improves because the datasheet CPU 28 and TX 335 mA are below the model's 30 and 340 mA.) **Effect on the verdict:** typical moves by 4 % (1336 to 1398 mAh needed); with the BOM cell (1000 mAh minimum, 1100 nominal per the EEMB LP603449 datasheet) the typical case is **4.3-4.5 months at 1000 mAh and 4.7-4.9 at 1100 mAh: below NFR-01's 6 months**. A 1500 mAh cell passes (6.4-6.7 months).
+(worst improves because the datasheet CPU 28 and TX 335 mA are below the model's 30 and 340 mA.) **Effect on the verdict (NFR-01 = 3 months, A-020):** typical moves by 4 % (668 to 699 mAh rated needed for 3 months; 1336 to 1398 for the 6-month stretch, information only). With the BOM cell (1000 mAh minimum, 1100 nominal per the EEMB LP603449 datasheet) the typical case is **4.3-4.5 months at 1000 mAh and 4.7-4.9 at 1100 mAh: PASS for 3 months with about 1.4x margin**; a 1500 mAh cell gives 6.4-6.7 months. The worst-case stack (1.4-1.5 months at 1000 mAh) is a stress bound with every parameter at its worst at once; it is to be measured in 5.4.
 
 ---
 Older text below (2026-11-06) kept for history; its "unreachable" statements are superseded by the update above.
@@ -64,7 +64,7 @@ So **I could not read datasheet page/section numbers** for deep sleep, light sle
 
 ## What-if on the NFR-01 verdict
 
-NFR-01 in the repo is **6 months = 4380 h** (`NFR01_HOURS`); your brief said "3-month", so I show the 3-month column (2190 h) as well. Run with `power_budget.py` functions (`with_()` overrides of the typical/best/worst `Params`, nothing edited); "rated mAh needed" = smallest rated 1S LiPo that reaches the target by the literal rule (0.8 x rated / average current).
+NFR-01 is **3 months = 2190 h** (A-020, `NFR01_HOURS`); this older section was written when the repo still said 6 months (4380 h), so both columns are shown, and the 6-month figures are the information-only stretch goal. Run with `power_budget.py` functions (`with_()` overrides of the typical/best/worst `Params`, nothing edited); "rated mAh needed" = smallest rated 1S LiPo that reaches the target by the literal rule (0.8 x rated / average current).
 
 | What-if | Case | Whole-board sleep uA | mAh/day | Rated mAh needed, 6 mo | Rated mAh needed, 3 mo | Months @1500 mAh | Months @2000 mAh |
 |---|---|---|---|---|---|---|---|
@@ -86,7 +86,7 @@ NFR-01 in the repo is **6 months = 4380 h** (`NFR01_HOURS`); your brief said "3-
 
 (C overwrites the model's RX in all three cases, so best gets worse and worst better; it only shows sensitivity.)
 
-**Effect on the verdict:** none in kind. With the guide values the typical case moves by less than 2 % (1336 to 1335-1361 mAh rated needed for 6 months), the verdict stays "not provable yet; typical passes with a 1500 mAh-class cell for 6 months (6.6-6.7 months), worst-case stack fails with any plausible cell". For a **3-month** target the typical case needs only about 670-680 mAh rated and the worst stack about 1900-2200 mAh, so a 1500 mAh cell passes typical with large margin (6.6-6.7 months) and the worst stack only with a 2200 mAh+ cell. The model's remaining uncertainty is not the sleep or CPU term but the Wi-Fi session time and TX current, which the guide does not give and the datasheet was unreachable for. Deep sleep is a small term anyway (about 0.3 mAh/day of 5.9).
+**Effect on the verdict:** none in kind. With the guide values the typical case moves by less than 2 % (1336 to 1335-1361 mAh rated needed for 6 months), the verdict stays "typical passes; the worst-case stack is a stress bound". For the **3-month** NFR-01 the typical case needs about 670-680 mAh rated and the worst stack about 1900-2200 mAh (a stress bound, to be measured in 5.4), so the 1000 mAh-minimum BOM cell passes typical (4.5 months) with margin. The model's remaining uncertainty is not the sleep or CPU term but the Wi-Fi session time and TX current, which the guide does not give and the datasheet was unreachable for. Deep sleep is a small term anyway (about 0.3 mAh/day of 5.9).
 
 Reproduce (from this folder): import `power_budget as pb`, loop `pb.SCENARIOS`, `q = pb.with_(p, i_mcu_sleep_ua=4.8, i_cpu_ma=21.5)`, then `pb.daily_budget(q)`, `pb.required_rated_mah(q)` and `pb.required_rated_mah(q, hours=2190)`, `pb.life_days(q, 1500) / pb.MONTH_DAYS`.
 

@@ -3,14 +3,14 @@
 Author: Emil (PCB Designer). Branch `agent/pcb/2.5-followup`. CSV: [`bom-draft.csv`](bom-draft.csv) (rebuilt by [`refresh_live.py`](refresh_live.py)), cost tables from [`bom_calc.py`](bom_calc.py), tests in [`test_bom.py`](test_bom.py).
 Live data read **2026-11-07 06:52 UTC (07:52 Berlin)** from `lcsc.com/product-detail/<C#>.html` (stock, price breaks, sales status) and the public JLCPCB parts search (JLC stock, library type, preferred flag). Prices are **USD as shown on LCSC**; stock and prices change daily.
 
-> **No PCBA order and no purchase before the three G2 conditions are in the schematic and approved.** Nothing was ordered or bought (hard rule). The BOM now *has* the three lines (R9 corrected, cell + connector, soil front end), but (a) the cell has **no verified source, price or stock**, (b) the soil front end is a sized proposal that 4.P1 must draw and simulate, (c) the cell capacity does not meet NFR-01 (section "Cell"). The order stays blocked until 4.P1 has these in the schematic and Arsany has decided the cell.
+> **No PCBA order and no purchase before the three G2 conditions are in the schematic and approved.** Nothing was ordered or bought (hard rule). The BOM now *has* the three lines (R9 corrected, cell + connector, soil front end), but (a) the cell has **no verified source, price or stock**, (b) the soil front end is a sized proposal that 4.P1 must draw and simulate. The order stays blocked until 4.P1 has these in the schematic (with the 4.P1 conditions in "Checklist for 4.P1" below met), the cell is sourced and Arsany has approved the order.
 
 ## What changed against the G2 draft
 
 | G2 condition | Done in this revision | Still open |
 |---|---|---|
 | R9 wrong for a 1000 mAh cell (1.2k = about 0.9 A) | R9 = **2.4 kOhm** (C22940, Basic), 458 mA = 0.46C, formula from the TP4056 datasheet (section "R9") | thermal and cell-temperature behaviour in 4.P1 |
-| Missing cell + connector | B1 cell line (LP603449 class, **1000 mAh minimum**) with JST PH plug mating J2 (C295747); cell data from the EEMB datasheet | **cell price/stock/seller unverified**; polarity of the cell plug vs J2 must be checked on receipt; **NFR-01 not met at 1000 mAh** |
+| Missing cell + connector | B1 cell line (LP603449 class, **1000 mAh minimum**) with JST PH plug mating J2 (C295747); cell data from the EEMB datasheet | **cell price/stock/seller unverified**; polarity of the cell plug vs J2 must be checked on receipt; NFR-01 (3 months, A-020) is met in the typical case at 1000 mAh (4.5 months), see "Cell" |
 | Missing soil front end | U7 SN74LVC1G14 + R12 470k + 1 more 100 nF; Q3 (gate MOSFET) dropped, U7 powered from a GPIO; sizing script with pass/fail | probe capacitance range is an **assumption**; real sim/measurement in 4.P1/5.x |
 | Swap Extended for Basic where possible | D3 green LED to Basic KT-0805G; U3 TP4056 is Preferred (fee-exempt, newly readable); the rest has no Basic equivalent that I found | see "Variants" for 2 cost-down options that need a design decision |
 | 2.5 flag: JLC fee not read | Fee read from the JLC price page: **3.07 USD per Extended part** (Economic), 8.18 setup, 1.53 stencil | the quote in the JLC cart is still the final word |
@@ -63,7 +63,7 @@ Datasheet read: **TP4056 (NanJing Top Power ASIC), REV_2.4**, `https://datasheet
 | Mating side | The plug on the cell lead. Housing PHR-2 is C157955 (0.0135 USD, Extended, stock 184,920 on JLC) if a pigtail is made in-house; not added to the BOM | live |
 | Risk | Cells with a JST plug from the open market often have **reversed polarity** relative to the board header: check plug pin 1 against J2 before the first connection (a reversed cell destroys the board). No claim on a specific vendor | general hardware experience, no datasheet |
 
-**NFR-01 with this cell.** Using the model unchanged (power-budget.md section 11): typical case **4.5 months at 1000 mAh** (4.9 at 1100 mAh nominal), **below the 6 months of NFR-01**; datasheet-based currents make it 4.3 / 4.7. A 1500 mAh class cell passes (6.4-6.7 months) but may not fit the enclosure (envelope unknown, power-budget.md section 8). With the lever package of section 7 (not yet in firmware) a 1000 mAh cell would reach about 7.1 months. **Needs Arsany:** larger cell, commit the levers, or relax NFR-01.
+**NFR-01 with this cell (3 months, A-020).** Using the model (power-budget.md section 11): typical case **4.5 months at 1000 mAh** (4.9 at 1100 mAh nominal) = **PASS** with about 1.5x margin; with the datasheet-based currents 4.3 / 4.7 months. Rated capacity needed for 3 months: about **668 mAh** typical (699 with datasheet currents). The worst-case stack (every parameter at its worst at once) gives 1.4 months at 1000 mAh: a **stress bound to be measured in 5.4**, not a design point. The 6-month stretch goal (information only) is missed at 1000 mAh (4.5 months); a 1500 mAh cell would reach 6.4-6.7 months but may not fit the enclosure (envelope unknown, power-budget.md section 8).
 
 ## Soil front end (U7, R12)
 
@@ -121,7 +121,7 @@ Net: Extended parts on the board 11 (the first draft had 11: D3 swapped out, U7 
 
 ## Flags: unverifiable or open
 
-1. **Cell: no live price, stock or seller** (section "Cell"); capacity vs NFR-01 needs Arsany.
+1. **Cell: no live price, stock or seller** (section "Cell"); Arsany owns the purchase spec (with PCM, PH plug, polarity check) and the order. Capacity is not a blocker (NFR-01 typical passes).
 2. **EUR rate** 0.90 is an assumption.
 3. **JLC fee amounts** read from the price page via a summary tool, not from a quote in the cart; the preferred exemption is stated under Economic assembly only.
 4. **Lifecycle:** LCSC `productCycle` is "normal" for every priced line (LCSC sales status, not a manufacturer active/NRND/EOL statement); manufacturer status unverified (Espressif, ROHM, Aosong, Torex, TI).
@@ -131,5 +131,13 @@ Net: Extended parts on the board 11 (the first draft had 11: D3 swapped out, U7 
 8. **AHT20 variants** (C2757850 used; C503357 DFN-6, AHT20-F C3012622): pick one footprint in 4.P1.
 9. **Q2 AO3400A** now only the battery-divider switch; the strap pull-up count (R3-R6) still includes the former gate pull-up, 4.P1 adjusts.
 10. **Out of scope here:** schematic (4.P1), layout, enclosure and cell bay (Yara).
+
+## Checklist for 4.P1 (Theo's conditions, review of PR #30)
+
+- [ ] **Soil front end:** simulate (ngspice, probe C range and threshold corners) and later measure on the real stake; replace the assumed 5-50 pF with a measured range; check wet/salty soil (resistive load) and electrode ESD.
+- [ ] **U7 supply GPIO held low in deep sleep** (NFR-12: whole-board deep sleep <= 50 uA, target 25 uA): GPIO must hold level (RTC/hold) through deep sleep, or U7 floats/draws; verify in the schematic and measure in 5.2.
+- [ ] **TP4056 TEMP pin: NTC or not.** Grounding TEMP disables temperature sense (datasheet p. 7), but this cell may be charged only at 0 to 45 C; decide NTC (cell has no NTC wire) or accept the outdoor-winter risk, and document it.
+- [ ] **500 mA USB limit check:** 458 mA charge current plus board load against the USB 2.0 500 mA budget (and the CC 5.1k default-power advertisement); also TP4056 thermal foldback at 5 V in / 3.3 V cell.
+- [ ] R9 = 2.4k (C22940), J2 polarity vs the cell plug, DW01A/8205A and XC6220 datasheet reads (Iq, leakage, dropout) still open.
 
 Lessons: see the PR comment.
