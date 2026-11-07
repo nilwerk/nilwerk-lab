@@ -66,7 +66,7 @@ def stack(W, H, M, hy, hs, lh, iy, isz, ilh, trace_y, aux, hero, st, eng, foot, 
 def portrait():
     W, H, M = 1080, 1350, 72
     aux = (f'  <line x1="{M}" y1="716" x2="{W - M}" y2="716" stroke="var(--nw-rule)" stroke-width="1.5"/>\n'
-           f'  <text x="{M}" y="754" {FONT_M} font-weight="600" font-size="18" letter-spacing="1.4" fill="var(--nw-warn)">{{{{AUX_LABEL}}}}</text>\n'
+           f'  <text x="{M}" y="754" {FONT_M} font-weight="600" font-size="18" letter-spacing="1.4" fill="{{{{AUX_TONE}}}}">{{{{AUX_LABEL}}}}</text>\n'
            f'  <text x="{M}" y="814" {FONT_M} font-weight="600" font-size="56" letter-spacing="-1" fill="var(--nw-ink)">{{{{AUX_VALUE}}}}</text>\n'
            f'  <text x="{M}" y="850" {FONT_B} font-size="22" fill="var(--nw-muted)">{{{{AUX_SUB}}}}</text>\n')
     hero = (f'  <line x1="{M}" y1="882" x2="{W - M}" y2="882" stroke="var(--nw-rule)" stroke-width="1.5"/>\n'
@@ -80,7 +80,7 @@ def portrait():
 def square():
     W, H, M = 1080, 1080, 72
     aux = (f'  <line x1="{M}" y1="548" x2="{W - M}" y2="548" stroke="var(--nw-rule)" stroke-width="1.5"/>\n'
-           f'  <text x="{M}" y="582" {FONT_M} font-weight="600" font-size="17" letter-spacing="1.4" fill="var(--nw-warn)">{{{{AUX_LABEL}}}}</text>\n'
+           f'  <text x="{M}" y="582" {FONT_M} font-weight="600" font-size="17" letter-spacing="1.4" fill="{{{{AUX_TONE}}}}">{{{{AUX_LABEL}}}}</text>\n'
            f'  <text x="{M}" y="634" {FONT_M} font-weight="600" font-size="48" letter-spacing="-1" fill="var(--nw-ink)">{{{{AUX_VALUE}}}}</text>\n'
            f'  <text x="{M}" y="664" {FONT_B} font-size="21" fill="var(--nw-muted)">{{{{AUX_SUB}}}}</text>\n')
     hero = (f'  <line x1="{M}" y1="690" x2="{W - M}" y2="690" stroke="var(--nw-rule)" stroke-width="1.5"/>\n'
@@ -107,7 +107,7 @@ def linkedin():
     s += f'  <g {FONT_B} font-size="17" fill="var(--nw-muted)">\n    <text x="680" y="278">{{{{HERO_SUB1}}}}</text>\n    <text x="680" y="300">{{{{HERO_SUB2}}}}</text>\n    <text x="680" y="322">{{{{HERO_SUB3}}}}</text>\n  </g>\n'
     s += f'  <g transform="translate(0 372)">{{{{TRACE}}}}</g>\n'
     s += f'  <line x1="{M}" y1="436" x2="{W - M}" y2="436" stroke="var(--nw-rule)" stroke-width="1.5"/>\n'
-    s += (f'  <text x="{M}" y="466" {FONT_M} font-weight="600" font-size="13" letter-spacing="1.4" fill="var(--nw-warn)">{{{{AUX_LABEL}}}}</text>\n'
+    s += (f'  <text x="{M}" y="466" {FONT_M} font-weight="600" font-size="13" letter-spacing="1.4" fill="{{{{AUX_TONE}}}}">{{{{AUX_LABEL}}}}</text>\n'
           f'  <text x="{M}" y="506" {FONT_M} font-weight="600" font-size="38" letter-spacing="-1" fill="var(--nw-ink)">{{{{AUX_VALUE}}}}</text>\n'
           f'  <text x="{M}" y="530" {FONT_B} font-size="15" fill="var(--nw-muted)">{{{{AUX_SUB}}}}</text>\n')
     s += status(680, 470, 14)

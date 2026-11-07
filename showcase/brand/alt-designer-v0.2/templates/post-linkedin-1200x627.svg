@@ -24,7 +24,7 @@
   </g>
   <g transform="translate(0 372)">{{TRACE}}</g>
   <line x1="56" y1="436" x2="1144" y2="436" stroke="var(--nw-rule)" stroke-width="1.5"/>
-  <text x="56" y="466" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="13" letter-spacing="1.4" fill="var(--nw-warn)">{{AUX_LABEL}}</text>
+  <text x="56" y="466" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="13" letter-spacing="1.4" fill="{{AUX_TONE}}">{{AUX_LABEL}}</text>
   <text x="56" y="506" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="38" letter-spacing="-1" fill="var(--nw-ink)">{{AUX_VALUE}}</text>
   <text x="56" y="530" font-family="Inter, sans-serif" font-size="15" fill="var(--nw-muted)">{{AUX_SUB}}</text>
   <rect x="680" y="459" width="10" height="10" fill="var(--nw-warn)"/>

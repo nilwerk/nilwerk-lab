@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write the v0.2 logo options (logo/*.svg) and the comparison sheet (logo/logo-options-sheet.svg + .png).
 The v0.1 logo (../logo/nilwerk-mark.svg) is shown for reference and is not modified.
-Wordmarks are live text (Space Grotesk 700): install the font or use the PNG. Run with NW_FONT_DIR set.
+Logo SVGs in logo/ have the wordmark outlined (paths), so no font is needed. Run with NW_FONT_DIR set.
 """
 import pathlib
 import sys
@@ -16,6 +16,28 @@ FD = "font-family=\"'Space Grotesk', Inter, sans-serif\" font-weight=\"700\""
 FM = "font-family=\"'JetBrains Mono', monospace\""
 OLD = (HERE.parent / "logo" / "nilwerk-mark.svg").read_text()
 
+
+# ---- outlined wordmark: text converted to paths with fontTools (no font needed to open the SVGs) ----
+import os as _os
+from fontTools.ttLib import TTFont  # run this script with a Python that has fontTools (e.g. python3.13)
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.pens.transformPen import TransformPen
+
+_FONT = TTFont(_os.path.join(_os.environ["NW_FONT_DIR"], "space-grotesk", "files", "space-grotesk-latin-700-normal.woff"))
+_GS, _CMAP, _UPM = _FONT.getGlyphSet(), _FONT.getBestCmap(), _FONT["head"].unitsPerEm
+
+
+def word(text, x, y, size, ls, fill):
+    """Return (<path .../>, end_x) for `text` set in Space Grotesk 700 at baseline y (no kerning table applied)."""
+    sc = size / _UPM
+    pen = SVGPathPen(_GS)
+    cx = x
+    for ch in text:
+        g = _CMAP[ord(ch)]
+        _GS[g].draw(TransformPen(pen, (sc, 0, 0, -sc, cx, y)))
+        cx += _GS[g].width * sc + ls
+    return f'<path d="{pen.getCommands()}" fill="{fill}"/>', cx
+
 INK, PAPER, ACC, ACC_D, PLATE = "#15181d", "#f6f4ef", "#0f7a5c", "#3fc79a", "#15181d"
 
 
@@ -27,20 +49,18 @@ def mark(x, y, s, stroke, pad, sw=2.4):
 
 
 def lockup_a(ink, pad, werk=None):
-    werk = werk or ink
-    return (mark(0, 0, 1.7, ink, pad) +
-            f'<text x="62" y="39" {FD} font-size="44" letter-spacing="-2.4" fill="{ink}">nil<tspan fill="{werk}">werk</tspan></text>')
+    return mark(0, 0, 1.7, ink, pad) + word("nilwerk", 62, 39, 44, -2.4, ink)[0]
 
 
 def lockup_b(ink, pad):
     """Wordmark only: dotless i with the pad ring as its dot."""
-    return (f'<text x="0" y="39" {FD} font-size="44" letter-spacing="-2.4" fill="{ink}">nılwerk</text>'
+    return (word("n\u0131lwerk", 0, 39, 44, -2.4, ink)[0] +
             f'<circle cx="30.5" cy="8.4" r="4.1" fill="none" stroke="{pad}" stroke-width="2.6"/>')
 
 
 def lockup_c(ink, pad):
     """Wordmark with a single trace running under it: one 45-degree step, ending in a pad."""
-    return (f'<text x="0" y="36" {FD} font-size="44" letter-spacing="-2.4" fill="{ink}">nilwerk</text>'
+    return (word("nilwerk", 0, 36, 44, -2.4, ink)[0] +
             f'<path d="M0 50H70l6 -6h40" fill="none" stroke="{pad}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
             f'<circle cx="122" cy="44" r="3.4" fill="none" stroke="{pad}" stroke-width="2.2"/>')
 

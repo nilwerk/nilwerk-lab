@@ -32,7 +32,7 @@ def to_alt(f):
 
 
 TRACES = {
-    "post1-r9-review-catch": lambda W, M, y, sw, fs: A.trace_resistor(W, M, y, sw, fs, "R9 · 1.2 kOhm to 2.4 kOhm"),
+    "post1-r9-review-catch": lambda W, M, y, sw, fs: A.trace_resistor(W, M, y, sw, fs, "R9 sets the charge current: 1.2 to 2.4 kOhm (illustrative)"),
     "post2-rls-proof": lambda W, M, y, sw, fs: A.trace_lanes(W, M, y - fs * 1.2, y + fs * 1.6, sw, fs),
 }
 
@@ -41,6 +41,10 @@ for name, (theme, fields) in POSTS.items():
     for suffix, (tpl, W, M, y, sw, fs) in A.SIZES.items():
         f = to_alt(fields)
         f["TRACE"] = TRACES[name](W, M, y, sw, fs)
+        if name == "post2-rls-proof":
+            f["AUX_TONE"] = "var(--nw-muted)"
+        if name == "post1-r9-review-catch":
+            f["HERO_SUB"] = f["HERO_SUB1"] + "; " + f["HERO_SUB2"] + " " + f["HERO_SUB3"]
         svg = HERE / f"{name}-{suffix}.svg"
         A.build(tpl, f, theme, svg)
         jobs.append((svg, HERE / f"{name}-{suffix}.png"))

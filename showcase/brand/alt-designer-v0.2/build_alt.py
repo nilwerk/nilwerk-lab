@@ -36,9 +36,10 @@ def build(template, fields, theme="light", out_svg=None):
     f.setdefault("ALT", " ".join(str(f.get(k, "")) for k in ("H1", "H2", "H3")).strip())
     for k in ("INTRO1", "INTRO2", "TRACE"):
         f.setdefault(k, "")
+    f.setdefault("AUX_TONE", "var(--nw-warn)")  # post may set var(--nw-muted) for neutral labels
     for pre in ("AUX", "HERO"):  # one-line sub for portrait/square, three lines for LinkedIn
         subs = [f.get(f"{pre}_SUB{i}", "") for i in (1, 2, 3)]
-        f.setdefault(f"{pre}_SUB", " · ".join(x for x in subs if x))
+        f.setdefault(f"{pre}_SUB", " ".join(x for x in subs if x))
         for i, x in enumerate(subs, 1):
             f.setdefault(f"{pre}_SUB{i}", x)
     svg = (HERE / "templates" / f"{template}.svg").read_text()
@@ -73,20 +74,23 @@ def trace_resistor(W, M, y, sw, fs, label):
             f'<text x="{zx}" y="{y + fs * 2.6:.0f}" font-family="\'JetBrains Mono\', monospace" font-size="{fs}" fill="var(--nw-muted)">{label}</text>')
 
 
-def trace_lanes(W, M, ya, yb, sw, fs, label_a="A", label_b="B", wall="RLS"):
-    """Post 2 device: lane A bends toward lane B and stops at the wall; lane B runs on, off the edge."""
+def trace_lanes(W, M, ya, yb, sw, fs, label_a="A", label_b="B", wall="B'S ROWS", own="A'S OWN ROWS: ALLOWED"):
+    """Post 2 device: lane A runs on through its own rows; a branch bends toward lane B and stops at the per-row wall."""
     bx = int(W * 0.60)
     xa = bx - 40
-    ax = (f'<text x="{M}" y="{ya + fs * 0.35:.1f}" font-family="\'JetBrains Mono\', monospace" font-weight="600" font-size="{fs}" fill="var(--nw-accent)">{label_a}</text>'
-          f'<text x="{M}" y="{yb + fs * 0.35:.1f}" font-family="\'JetBrains Mono\', monospace" font-weight="600" font-size="{fs}" fill="var(--nw-ink)">{label_b}</text>')
-    pa = f"M{M + fs * 2},{ya} H{int(W * 0.30)} L{int(W * 0.30) + (yb - ya) * 0.55:.0f},{ya + (yb - ya) * 0.55:.0f} H{xa}"
-    ye = ya + (yb - ya) * 0.55
-    cross = (f'<path d="M{xa + 8},{ye - 7:.0f} l14,14 M{xa + 22},{ye - 7:.0f} l-14,14" stroke="var(--nw-warn)" stroke-width="{sw}" stroke-linecap="round"/>')
-    pb = f"M{M + fs * 2},{yb} H{W + 10}"
-    wall_el = (f'<line x1="{bx}" y1="{ya - fs * 1.2:.0f}" x2="{bx}" y2="{yb + fs * 1.2:.0f}" stroke="var(--nw-ink)" stroke-width="1.5" stroke-dasharray="5 5"/>'
-               f'<text x="{bx + 10}" y="{ya - fs * 0.5:.0f}" font-family="\'JetBrains Mono\', monospace" font-size="{fs * 0.85:.0f}" letter-spacing="1.2" fill="var(--nw-muted)">{wall}</text>')
-    return (ax + f'<path d="{pa}" fill="none" stroke="var(--nw-accent)" stroke-width="{sw}" stroke-linejoin="round" stroke-linecap="round"/>'
-            + cross + f'<path d="{pb}" fill="none" stroke="var(--nw-ink)" stroke-width="{sw}"/>' + wall_el)
+    ym = ya + (yb - ya) * 0.55
+    mono = "font-family=\"'JetBrains Mono', monospace\""
+    labels = (f'<text x="{M}" y="{ya + fs * 0.35:.1f}" {mono} font-weight="600" font-size="{fs}" fill="var(--nw-accent)">{label_a}</text>'
+              f'<text x="{M}" y="{yb + fs * 0.35:.1f}" {mono} font-weight="600" font-size="{fs}" fill="var(--nw-ink)">{label_b}</text>')
+    lane_a = f'<path d="M{M + fs * 2},{ya} H{W + 10}" fill="none" stroke="var(--nw-accent)" stroke-width="{sw}" stroke-linecap="round"/>'
+    branch = (f'<path d="M{int(W * 0.30)},{ya} L{int(W * 0.30) + (ym - ya):.0f},{ym:.0f} H{xa}" fill="none" stroke="var(--nw-accent)" '
+              f'stroke-width="{sw}" stroke-linejoin="round" stroke-linecap="round"/>')
+    cross = f'<path d="M{xa + 8},{ym - 7:.0f} l14,14 M{xa + 22},{ym - 7:.0f} l-14,14" stroke="var(--nw-warn)" stroke-width="{sw}" stroke-linecap="round"/>'
+    lane_b = f'<path d="M{M + fs * 2},{yb} H{W + 10}" fill="none" stroke="var(--nw-ink)" stroke-width="{sw}"/>'
+    wall_el = (f'<line x1="{bx}" y1="{ya + fs * 0.9:.0f}" x2="{bx}" y2="{yb + fs * 1.2:.0f}" stroke="var(--nw-ink)" stroke-width="1.5" stroke-dasharray="5 5"/>'
+               f'<text x="{bx + 10}" y="{ym + fs * 0.3:.0f}" {mono} font-size="{fs * 0.85:.0f}" letter-spacing="1.2" fill="var(--nw-muted)">{wall}</text>')
+    own_el = f'<text x="{bx + 10}" y="{ya - fs * 0.7:.0f}" {mono} font-size="{fs * 0.85:.0f}" letter-spacing="1.2" fill="var(--nw-accent)">{own}</text>'
+    return labels + lane_a + branch + cross + lane_b + wall_el + own_el
 
 
 SIZES = {"portrait-1080x1350": ("post-portrait-1080x1350", 1080, 72, 46, 3, 16),

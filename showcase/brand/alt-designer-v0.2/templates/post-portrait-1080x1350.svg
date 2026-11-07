@@ -18,7 +18,7 @@
   <!-- trace: the one graphic device, drawn per post from the real content -->
   <g transform="translate(0 600)">{{TRACE}}</g>
   <line x1="72" y1="716" x2="1008" y2="716" stroke="var(--nw-rule)" stroke-width="1.5"/>
-  <text x="72" y="754" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="18" letter-spacing="1.4" fill="var(--nw-warn)">{{AUX_LABEL}}</text>
+  <text x="72" y="754" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="18" letter-spacing="1.4" fill="{{AUX_TONE}}">{{AUX_LABEL}}</text>
   <text x="72" y="814" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="56" letter-spacing="-1" fill="var(--nw-ink)">{{AUX_VALUE}}</text>
   <text x="72" y="850" font-family="Inter, sans-serif" font-size="22" fill="var(--nw-muted)">{{AUX_SUB}}</text>
   <line x1="72" y1="882" x2="1008" y2="882" stroke="var(--nw-rule)" stroke-width="1.5"/>

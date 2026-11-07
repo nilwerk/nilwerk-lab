@@ -37,7 +37,7 @@ In der Prüfung hat unser Review-Agent den Wert markiert, und unser Platinen-Age
 
 Ehrlicher Stand: Das ist aus dem Datenblatt berechnet, noch nicht gemessen. Es muss noch an einer echten Platine geprüft werden.
 
-Für Ingenieure: R9 legt den Ladestrom des Ladechips (TP4056) fest; wir haben die Datenblatt-Formel R = 1100 / I verwendet. 2,4 kΩ ergibt etwa 458 mA (0,46C bei 1000 mAh) und im ungünstigsten Fall (+15 % Toleranz des Chips) nur 527 mA (0,53C). Quelle: Stücklistenentwurf, Revision 2. Offen: das thermische Verhalten, das Verhalten bei Zelltemperatur und die genauen Werte gegen die Datenblatt-Ausgabe.
+Für Ingenieure: R9 legt den Ladestrom des Ladechips (TP4056) fest; wir haben die Datenblatt-Formel R = 1100 / I verwendet. 2,4 kΩ ergibt etwa 458 mA (0,46C bei 1000 mAh) und im ungünstigsten Fall (+15 % Toleranz des Chips) sogar 527 mA (0,53C). Quelle: Stücklistenentwurf, Revision 2. Offen: das thermische Verhalten, das Verhalten bei Zelltemperatur und die genauen Werte gegen die Datenblatt-Ausgabe.
 
 So arbeiten wir: KI-Agenten, geleitet und geprüft von Menschen.
 
@@ -73,7 +73,7 @@ Your plants, your data. How do you know the app really keeps it that way?
 
 Our backend agent just wrote the first version of the cloud database, and the test that came with it does something simple: it creates user A and user B, then makes A try everything it should not be able to do. Read B's data. Change it. Delete it. Insert rows pretending to be B.
 
-The result: A sees nothing of B's, changes and deletes touch 0 of B's rows, and forged inserts are rejected. The same run also checks how long data is kept: raw readings 3 months, hourly summaries 12.
+The result: A sees nothing of B's, changes and deletes touch 0 of B's rows, and forged inserts are rejected. The same test suite also checks how long data is kept: raw readings 3 months, hourly summaries 12.
 
 Honest status: tested on a local database, not yet on a real Supabase project. Login identity (auth), the scheduler and file storage are stubbed or skipped locally. That comes next.
 
@@ -91,7 +91,7 @@ Ihre Pflanzen, Ihre Daten. Woher wissen Sie, dass die App das wirklich einhält?
 
 Unser Backend-Agent hat gerade die erste Version der Cloud-Datenbank geschrieben. Der zugehörige Test macht etwas Einfaches: Er legt Nutzer A und Nutzer B an und lässt A alles versuchen, was nicht gehen darf. Daten von B lesen. Verändern. Löschen. Zeilen im Namen von B einfügen.
 
-Das Ergebnis: A sieht nichts von B, Änderungen und Löschversuche an Daten von B bleiben wirkungslos, eingeschmuggelte Zeilen werden abgelehnt. Im selben Lauf wird auch geprüft, wie lange Daten aufbewahrt werden: Rohdaten 3 Monate, stündliche Zusammenfassungen 12 Monate.
+Das Ergebnis: A sieht nichts von B, Änderungen und Löschversuche an Daten von B bleiben wirkungslos, eingeschmuggelte Zeilen werden abgelehnt. Dieselbe Testreihe prüft auch, wie lange Daten aufbewahrt werden: Rohdaten 3 Monate, stündliche Zusammenfassungen 12 Monate.
 
 Ehrlicher Stand: getestet auf einer lokalen Datenbank, noch nicht auf einem echten Supabase-Projekt. Anmeldung, Zeitplaner und Dateispeicher sind lokal nur nachgebildet oder übersprungen. Das ist der nächste Schritt.
 

@@ -26,7 +26,7 @@
   <line x1="56" y1="436" x2="1144" y2="436" stroke="#3a424c" stroke-width="1.5"/>
   <text x="56" y="466" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="13" letter-spacing="1.4" fill="#e58a4f">BEFORE · LABEL</text>
   <text x="56" y="506" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="38" letter-spacing="-1" fill="#ecebe7">0 000</text>
-  <text x="56" y="530" font-family="Inter, sans-serif" font-size="15" fill="#a2a7af">Secondary number, · one plain line.</text>
+  <text x="56" y="530" font-family="Inter, sans-serif" font-size="15" fill="#a2a7af">Secondary number, one plain line.</text>
   <rect x="680" y="459" width="10" height="10" fill="#e58a4f"/>
   <text x="698" y="470" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="14" letter-spacing="0.8" fill="#ecebe7">STATUS · MEASURED OR ESTIMATED</text>
   <text x="56" y="554" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="13" letter-spacing="1.4" fill="#3fc79a">FOR ENGINEERS</text>
