@@ -25,8 +25,9 @@ extra-margin figure (`with_self_discharge=True`); whether it belongs in the rule
 is a question for Arsany (power-budget.md section 1).
 
 Every parameter carries a source tag.  Tags starting with "datasheet-unverified"
-are values recalled from the named datasheet and NOT read in this session (the
-session network blocks espressif.com); "assumption" is Emil's engineering
+are values recalled from the named datasheet and NOT read; "datasheet-read" names the
+table that was read on 2026-11-07 (ESP32-C3 series datasheet v2.4 only; the module,
+Aosong and ROHM datasheets are still unread); "assumption" is Emil's engineering
 estimate; "edge-ai" / "ADR-012" quote the repo documents.  None is a measurement.
 Task 5.4 replaces them (see power-budget.md section 9).
 """
@@ -78,7 +79,7 @@ class Params:
 
 # source tag for every field (checked by the unit test)
 SOURCES: dict[str, str] = {
-    "i_mcu_sleep_ua": "datasheet-unverified: ESP32-C3 series datasheet, low-power current table, deep sleep with RTC timer (about 5 uA); worst adds module flash leakage at temperature (assumption)",
+    "i_mcu_sleep_ua": "datasheet-read: ESP32-C3 series datasheet v2.4, Table 5-9 (p. 57), Deep-sleep RTC timer + RTC memory 5 uA typ (matches best/typical); worst 10 uA adds module flash leakage at temperature (assumption, module datasheet not read)",
     "i_ldo_iq_ua": "assumption: LDO not chosen yet (4.P1); needs a low-Iq part, an AMS1117-class LDO (mA quiescent) is excluded",
     "i_charger_prot_ua": "assumption: charger IC plus protection IC drain from BAT with USB unplugged; parts not chosen (4.P1)",
     "r_divider_mohm": "computed: I = 3.7 V / R (nominal cell voltage); R is a design choice for 4.P1, a high-side switch would give about 0",
@@ -90,7 +91,7 @@ SOURCES: dict[str, str] = {
     "t_sense_s": "edge-ai-concept 2.4: warm-up >= 1.5 s, sensor warm-up and samples about 2-3 s (estimate)",
     "t_infer_s": "edge-ai-concept 2.2/2.3: model A under 1 ms, model B a few ms (estimates), limit 50 ms (FR-E04)",
     "t_store_s": "assumption: one flash ring-buffer append",
-    "i_cpu_ma": "datasheet-unverified: ESP32-C3 series datasheet, active current, CPU 160 MHz, radio off (about 20 mA)",
+    "i_cpu_ma": "datasheet-read: ESP32-C3 series datasheet v2.4, Table 5-8 (p. 57), Modem-sleep CPU running 160 MHz: 23 mA typ (peripheral clocks off) / 28 mA (on); model values 15/20/30 are below the datasheet in best and typical (not changed here, see verified-currents.md what-if)",
     "i_periph_ma": "assumption: soil oscillator about a few mA plus AHT20 (datasheet-unverified, tens of uA) and BH1750 (datasheet-unverified, about 0.12 mA)",
     "reports_per_day": "FR-D02: hourly report, 24 per day",
     "critical_wakes_per_day": "edge-ai-concept 2.4: max 1 per class per 6 h; 4 critical classes; typical and worst are assumptions",
@@ -98,8 +99,8 @@ SOURCES: dict[str, str] = {
     "t_cloud_s": "assumption: to be measured (see t_connect_s)",
     "t_hub_s": "ADR-012: +1 s awake for the hub publish (unmeasured); best/worst are assumptions",
     "hub_every_n": "ADR-012: hub publish with every report; 2 is the ADR-012 fallback",
-    "i_rx_ma": "datasheet-unverified: ESP32-C3 series datasheet, Wi-Fi RX current (order of 80-100 mA); ADR-012 assumes about 100 mA",
-    "i_tx_ma": "datasheet-unverified: ESP32-C3 series datasheet, Wi-Fi TX current by rate and power (order of 200-340 mA)",
+    "i_rx_ma": "datasheet-read: ESP32-C3 series datasheet v2.4, Table 5-7 (p. 56), RX 802.11b/g/n HT20 84 mA, HT40 87 mA (peak); model best 70 is below the datasheet; ADR-012 assumes about 100 mA",
+    "i_tx_ma": "datasheet-read: ESP32-C3 series datasheet v2.4, Table 5-7 (p. 56), TX peak 335 mA (11b 1 Mbps @21 dBm), 285 (11g 54M @19 dBm), 276 (11n MCS7 @18.5 dBm), 100 % duty at 3.3 V; model best 200 is below the datasheet at maximum power (lower TX power settings are not tabulated)",
     "f_tx": "assumption: share of the session spent transmitting; measure in 5.4",
     "self_discharge_pct_month": "assumption: commonly quoted LiPo figure of 1-3 % per month, no datasheet read; cell not chosen",
     "t_warmup_s": "edge-ai-concept 2.4: warm-up >= 1.5 s (best/worst are assumptions); the share of t_sense_s in which the CPU only waits",

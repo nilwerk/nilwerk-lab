@@ -2,6 +2,36 @@
 
 Author: Emil (PCB Designer). Read 2026-11-06 18:20-18:45 CET. Model `power_budget.py` is **unchanged**; this file lists differences and a what-if (script call at the end).
 
+## UPDATE 2026-11-07: the datasheet itself was read
+
+`documentation.espressif.com/esp32-c3_datasheet_en.pdf` and `www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf` are now reachable (both HTTP 200, 900,158 bytes, identical). Document: **ESP32-C3 Series Datasheet v2.4**, section 5.6 Current Consumption, measured at 3.3 V, 25 C.
+
+| Quantity | Datasheet value | Table / page | Model best / typ / worst | Verdict |
+|---|---|---|---|---|
+| Deep sleep, RTC timer + RTC memory | **5 uA** typ | Table 5-9, p. 57 | 5 / 5 / 10 uA | agrees; worst 10 uA is the module-flash allowance (module datasheet not read) |
+| Light sleep (Wi-Fi powered down, GPIOs high-Z) | **130 uA** typ | Table 5-9, p. 57 | lever 0.1-1 mA (assumption) | inside the lever range; the model's 0.5 mA typical lever value is 3.8x the chip figure |
+| CPU running, 160 MHz, Wi-Fi clock gated | **23 mA** (peripheral clocks off), **28 mA** (on) | Table 5-8, p. 57 | 15 / 20 / 30 mA | best and typical **too low** by 8 and 3 mA; worst covers it |
+| CPU idle, 160 MHz | 16 mA / 21 mA | Table 5-8, p. 57 | not modelled | relevant to the soil warm-up (the model's 20 mA busy-wait is about right) |
+| Wi-Fi RX 802.11b/g/n HT20 / HT40 | **84 / 87 mA** peak | Table 5-7, p. 56 | 70 / 85 / 100 mA | best too low, typical agrees, worst covers it |
+| Wi-Fi TX 11b 1 Mbps @21 dBm | **335 mA** peak | Table 5-7, p. 56 | 200 / 260 / 340 mA | worst agrees |
+| Wi-Fi TX 11g 54 Mbps @19 dBm | **285 mA** peak | Table 5-7, p. 56 | | typical (260) is 25 mA low |
+| Wi-Fi TX 11n HT20 MCS7 @18.5 dBm / HT40 | **276 / 278 mA** peak | Table 5-7, p. 56 | | best (200) is 76 mA low at maximum power; lower TX power settings are not tabulated |
+
+All TX figures are 100 % duty at the RF port, so they are conservative for a session that only transmits a few percent of the time. The "Peak" label is the datasheet's. **Not read:** the ESP32-C3-MINI-1 module datasheet (module-level flash standby), Aosong AHT20, ROHM BH1750FVI; those flags stay `unverified`.
+
+What-if with the datasheet values (script: replace best/typical/worst by CPU 23/23/28, RX 84/84/87, TX 276/285/335, everything else unchanged), months by Arsany's rule (0.8 x rated / average current), `power_budget.py` functions `with_`, `life_days`, `required_rated_mah`:
+
+| Case | Model months @1000 mAh | Datasheet months @1000 | Model @1100 | Datasheet @1100 | Model @1500 | Datasheet @1500 | Rated mAh for 6 months, model / datasheet |
+|---|---|---|---|---|---|---|---|
+| best | 12.76 | 9.89 | 14.04 | 10.87 | 19.14 | 14.83 | 470 / 607 |
+| typical | 4.49 | 4.29 | 4.94 | 4.72 | 6.74 | 6.44 | 1336 / 1398 |
+| worst | 1.37 | 1.49 | 1.51 | 1.64 | 2.06 | 2.24 | 4364 / 4025 |
+
+(worst improves because the datasheet CPU 28 and TX 335 mA are below the model's 30 and 340 mA.) **Effect on the verdict:** typical moves by 4 % (1336 to 1398 mAh needed); with the BOM cell (1000 mAh minimum, 1100 nominal per the EEMB LP603449 datasheet) the typical case is **4.3-4.5 months at 1000 mAh and 4.7-4.9 at 1100 mAh: below NFR-01's 6 months**. A 1500 mAh cell passes (6.4-6.7 months).
+
+---
+Older text below (2026-11-06) kept for history; its "unreachable" statements are superseded by the update above.
+
 ## What could and could not be read
 
 | Source | Reachable? |

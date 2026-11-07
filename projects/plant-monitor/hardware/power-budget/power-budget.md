@@ -48,11 +48,11 @@ Self-discharge is the cell's own loss as a fraction of rated capacity per month;
 
 ## 4. Parameters with sources (best / typical / worst)
 
-Status: **Q** = quoted from a repo document (cited), **D?** = recalled from the named datasheet, **not read** in this session, unverified; **A** = assumption; **C** = computed.
+Status: **Q** = quoted from a repo document (cited), **D?** = recalled from the named datasheet, **not read**, unverified; **DR** = datasheet read on 2026-11-07 (table cited, see section 11); **A** = assumption; **C** = computed.
 
 | Parameter | Best | Typical | Worst | Status and source |
 |---|---|---|---|---|
-| MCU deep sleep (RTC timer), uA | 5 | 5 | 10 | **D?** ESP32-C3 series datasheet, low-power current table (about 5 uA); worst adds module-flash leakage (A) |
+| MCU deep sleep (RTC timer), uA | 5 | 5 | 10 | **DR** ESP32-C3 series datasheet v2.4, Table 5-9 p. 57: deep sleep 5 uA typ; worst adds module-flash leakage (A, module datasheet unread) |
 | LDO quiescent, uA | 1 | 2 | 5 | **A** part not chosen (4.P1); needs a low-Iq part, an AMS1117-class LDO (mA) is excluded |
 | Charger + protection from BAT, USB unplugged, uA | 1 | 4 | 10 | **A** parts not chosen (4.P1) |
 | Battery divider total R, MOhm -> uA at 3.7 V | 4 -> 0.93 | 2 -> 1.85 | 1 -> 3.7 | **C** 3.7 V / R; design choice in 4.P1 (high-side switch gives about 0) |
@@ -66,15 +66,15 @@ Status: **Q** = quoted from a repo document (cited), **D?** = recalled from the 
 | Inference model A + B, s | 0.002 | 0.010 | 0.050 | **Q** edge-ai-concept 2.2/2.3 estimates (<1 ms and a few ms), limit 50 ms (FR-E04) |
 | of which pure soil warm-up (CPU can wait), s | 1.0 | 1.5 | 2.0 | **Q** edge-ai-concept 2.4: warm-up >= 1.5 s; best/worst **A** |
 | Ring-buffer store, s | 0.02 | 0.05 | 0.10 | **A** |
-| CPU active, radio off, mA | 15 | 20 | 30 | **D?** ESP32-C3 series datasheet, active current at 160 MHz (about 20 mA) |
+| CPU active, radio off, mA | 15 | 20 | 30 | **DR** ESP32-C3 datasheet v2.4, Table 5-8 p. 57: CPU running 160 MHz 23 mA (28 mA with peripheral clocks on); model best/typical are below this (what-if in section 11) |
 | Soil oscillator + I2C sensors while sensing, mA | 1.5 | 3.5 | 7 | **A** (AHT20 tens of uA and BH1750 about 0.12 mA are **D?**) |
 | Reports per day | 24 | 24 | 24 | **Q** FR-D02 |
 | Critical Wi-Fi wakes per day | 0 | 1 | 4 | **Q** max 1 per class per 6 h, 4 critical classes (edge-ai-concept 2.4); the three values are **A**; cap is 16/day (section 7 levers) |
 | Wi-Fi association + DHCP, s | 1.0 | 2.5 | 6.0 | **A** to be measured; edge-ai-concept 2.4 estimates association + TLS + POST together at 3-10 s |
 | SNTP + TLS + POST + response, s | 0.8 | 2.0 | 5.0 | **A** to be measured |
 | Hub: TCP + TLS + MQTT + QoS1 publish, s | 0.5 | 1.0 | 3.0 | **Q** ADR-012 assumes +1 s (unmeasured); best/worst **A** |
-| Wi-Fi connected RX / listen, mA | 70 | 85 | 100 | **D?** ESP32-C3 series datasheet, Wi-Fi RX (order of 80-100 mA); ADR-012 assumes about 100 mA |
-| Wi-Fi TX, mA | 200 | 260 | 340 | **D?** ESP32-C3 series datasheet, TX by rate and power (order of 200-340 mA) |
+| Wi-Fi connected RX / listen, mA | 70 | 85 | 100 | **DR** ESP32-C3 datasheet v2.4, Table 5-7 p. 56: RX 84 mA (HT20), 87 mA (HT40), peak; ADR-012 assumes about 100 mA |
+| Wi-Fi TX, mA | 200 | 260 | 340 | **DR** ESP32-C3 datasheet v2.4, Table 5-7 p. 56: TX peak 335 (11b @21 dBm), 285 (11g 54M @19 dBm), 276 mA (11n MCS7 @18.5 dBm), 100 % duty; best 200 is below the datasheet at max power |
 | TX share of the session | 3 % | 8 % | 15 % | **A** |
 | Self-discharge, % per month | 1 | 2 | 3 | **A** commonly quoted 1-3 %, no datasheet; cell not chosen |
 
@@ -221,7 +221,15 @@ After M1-M6 the script is run with the measured values (edit `TYPICAL`, tag each
 
 - **Needs Arsany (question):** self-discharge in the NFR-01 rule, yes or no (section 1); his answer decides whether the 1500 mAh typical verdict is 6.7 months (pass) or 5.8 months (fail).
 - **Needs Arsany / Yara:** enclosure v2 battery bay dimensions (section 8); cell choice and any order (Arsany orders, hard rule); a current meter for 5.4 (purchase is Arsany's).
-- **Needs a person with network access:** read the five datasheet tables behind the D? rows and replace the tags with section and table numbers.
+- **Datasheet tags:** the four ESP32-C3 rows are now **DR** (section 11). Still D?: Aosong AHT20, ROHM BH1750FVI, ESP32-C3-MINI-1 module datasheet (flash leakage).
+
+## 11. Update 2026-11-07 (2.5 follow-up): datasheet read, cell 1000 mAh minimum
+
+Source read: ESP32-C3 Series Datasheet v2.4, `https://documentation.espressif.com/esp32-c3_datasheet_en.pdf` (HTTP 200, 900 kB, PDF creation date 2026-05-06), Tables 5-7, 5-8, 5-9 on pp. 56-57. Full comparison and what-if: [`verified-currents.md`](verified-currents.md). **Model values are unchanged**; only the tags changed.
+
+What the datasheet says against the model: deep sleep 5 uA agrees; CPU 160 MHz is 23-28 mA (model 15/20/30: best and typical too low); RX 84-87 mA peak (model best 70 too low); TX 276-335 mA peak at maximum power and 100 % duty (model best 200 too low). Replacing best/typical/worst by the datasheet values (CPU 23/23/28, RX 84/84/87, TX 276/285/335) moves the typical case from 4.49 to 4.29 months at **1000 mAh rated** (4.94 to 4.72 at 1100 mAh, 6.74 to 6.44 at 1500 mAh), and rated capacity needed for 6 months from 1336 to 1398 mAh.
+
+**The cell in the BOM (LP603449-class, 1000 mAh minimum, reference EEMB datasheet) does not meet NFR-01 in the typical case by Arsany's rule**: 4.5 months at 1000 mAh (4.9 at the 1100 mAh nominal). With the section 7 lever package (typical 3.7 mAh/day, not yet designed into firmware) the 1000 mAh cell would reach about 7.1 months (800 mAh / 3.7 mAh/day). Decision for Arsany: larger cell, lever package committed to firmware, or NFR-01 relaxed.
 - **For Theo:** the deep-sleep limit in section 6 as a requirement (the Wi-Fi-session figure is a design target only, 5.5 s typical); whether the 6 months are counted to the 3.4 V warning (assumed here); please check the hub-unreachable figure (+1.4 vs your +0.2 mAh/day).
 - **For Mira (firmware):** fast Wi-Fi connect (cached channel/BSSID, static IP or DHCP lease reuse), SNTP not on every session, hub publish every 2nd report if needed, hub back-off when unreachable, light sleep during the soil warm-up, critical-wake cap per day; each is a lever in section 7.
 - **For me, next in 4.P1/4.P3:** pick a low-Iq LDO and charger/protection (sum of their quiescent currents goes in section 4), battery divider with a switch, and the LDO dropout simulation at 3.4 V.

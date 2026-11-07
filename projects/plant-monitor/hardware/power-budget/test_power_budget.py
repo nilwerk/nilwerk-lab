@@ -165,7 +165,7 @@ class Provenance(unittest.TestCase):
         names = {f.name for f in dataclasses.fields(pb.Params)}
         self.assertEqual(names, set(pb.SOURCES))
         for n, s in pb.SOURCES.items():
-            self.assertTrue(s.split(":")[0] in ("datasheet-unverified", "assumption", "computed")
+            self.assertTrue(s.split(":")[0] in ("datasheet-unverified", "datasheet-read", "assumption", "computed")
                             or s.startswith(("FR-", "edge-ai", "ADR-")), n)
 
     def test_constants_follow_owner_decisions(self):
