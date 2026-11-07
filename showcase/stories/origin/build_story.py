@@ -87,7 +87,7 @@ CW = W - 2 * M
 AV = (ROOT / "team" / "avatars").as_uri()
 ASSET = (HERE / "assets").as_uri()
 WF = (ROOT / "projects" / "plant-monitor" / "app" / "wireframes" / "03-plants.png").as_uri()
-IMGS = {"v1-exploded": (420, 410), "pcb-v1": (430, 700), "v2-assembled": (390, 470), "v2-exploded": (440, 420), "v2-back-shell": (250, 360)}
+IMGS = {"v1-exploded": (420, 410), "pcb-v1": (430, 700), "v2-assembled": (390, 470), "v2-exploded": (440, 420), "v2-back-shell": (250, 360), "v2-back-shell-nocap": (250, 310)}
 
 
 def image_el(name, x, y, w, h):

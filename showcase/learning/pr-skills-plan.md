@@ -2,6 +2,8 @@
 
 Author: Poppy, 2026-11-07. Research done with web search (several queries, results read as snippets and summaries; I did **not** open every page, so "verify" means: open the page before relying on it). I signed up for nothing, paid for nothing and accepted no terms. Prices that I could not see are written "not verified". Paid items are options for Arsany only.
 
+Ground rules: **legal items below are orientation for questions to a professional, not legal advice**; sign-ups (HubSpot, Metricool, Meta, LinkedIn Learning) are done by **Arsany only**, and the schedule does not depend on any sign-up: every day has a no-account fallback (the free PDFs and web pages in the top 5 and the free list).
+
 Credibility key: **A** official or regulator/standards body, **B** established provider with a free course or tool, **C** blog or vendor content (useful, check the claims).
 
 ## Top 5 (do these first, all free)
@@ -9,9 +11,9 @@ Credibility key: **A** official or regulator/standards body, **B** established p
 | # | Resource | Provider, URL | Price, time, level | Why it fits us / what to apply it to | Credibility |
 |---|---|---|---|---|---|
 | 1 | **Leitfaden Werbekennzeichnung bei Social-Media-Angeboten** (labelling matrix: when and how a post must be marked as advertising) | State media authorities (Landesmedienanstalten), PDF at https://www.ma-hsh.de/files/ma-hsh/Aufgaben/Leitfaden_Medienanstalten_Werbekennzeichnung_Online-Medien%281%29.pdf | free, 1 h, beginner | Our posts are company communication, so check every post with the matrix; apply to the claim-check step of every episode. Also sets out Impressum duties (§ 5 DDG, § 18 MStV) | A (regulators; guidance is not binding for civil courts, but is used as a yardstick) |
-| 2 | **W3C WAI Images Tutorial** (how to write alt text, decision tree) | W3C, https://www.w3.org/WAI/alt | free, 45 min, beginner | Every image gets alt text; apply to `alt-texts.md` of the origin story and each episode | A (standards body) |
-| 3 | **EU AI Act Article 50, transparency and labelling** (practical guide) | https://artificialintelligenceact.eu/transparency-rules-article-50/ (the Commission's own guidelines were reported finalised on 20 Jul 2026; law-firm summaries found, official text not opened) | free, 1 h, intermediate | Our images are code-generated, not AI images, but we must know the rule before we ever use AI imagery; apply to the "AI imagery" rule in `brand-kit.md` | B (explanatory site) and law-firm briefings: **verify dates with the official text** (Art. 50 duties reported to apply from 2 Aug 2026, machine-readable marking deferred to 2 Dec 2026 for existing systems) |
-| 4 | **HubSpot Academy: Social Media Marketing certification** | HubSpot, https://www.hubspot.com/resources/courses/social-media | free (needs a free account, which Arsany would create), about 5 h 18 min (per a guide), beginner | Fundamentals of planning, content mix, measuring; apply to the daily routine and the weekly review | B (large vendor, marketing-oriented, general not B2B hardware) |
+| 2 | **W3C WAI Images Tutorial** (how to write alt text, decision tree) | W3C, https://www.w3.org/WAI/tutorials/images/ | free, 45 min, beginner | Every image gets alt text; apply to `alt-texts.md` of the origin story and each episode | A (standards body) |
+| 3 | **EU AI Act Article 50, transparency and labelling** (practical guide) | https://artificialintelligenceact.eu/transparency-rules-article-50/ (the Commission's own guidelines were reported finalised on 20 Jul 2026; law-firm summaries found, official text not opened) | free, 1 h, intermediate | Our images are code-generated, not AI images, but we must know the rule before we ever use AI imagery; apply to the "AI imagery" rule in `brand-kit.md` | B (explanatory site) and law-firm briefings: **verify dates with the official text** (Art. 50 duties reported to apply from 2 Aug 2026; machine-readable marking deferred to 2 Dec 2026 for existing systems; **the Digital Omnibus changes to the AI Act are provisional and not final: treat all dates as provisional**). Scope: Art. 50(2) (machine-readable marking) is a duty of **providers** of generative AI systems, Art. 50(4) (disclosing deepfakes and AI-generated public-interest text) is a duty of **deployers** such as us if we ever publish AI-generated content; neither applies to our code-generated images, but we must know the rule |
+| 4 | **HubSpot Academy: Social Media Marketing certification** | HubSpot, https://www.hubspot.com/resources/courses/social-media | free (needs a free account, which only Arsany would create), duration **unverified** (a third-party guide says about 5 h; check on the course page), beginner | Fundamentals of planning, content mix, measuring; apply to the daily routine and the weekly review | B (large vendor, marketing-oriented, general not B2B hardware) |
 | 5 | **Metricool Instagram course and tutorials** | Metricool, https://metricool.com/instaschool/ and https://metricool.com/metricool-tutorials/ | free, a few hours, beginner to intermediate | We already plan to use Metricool as the draft tool; learn scheduling, analytics and Instagram growth basics; apply to the Friday metrics review | B (tool vendor; a page said the course starts 16 Nov, check) |
 
 ## More free resources
@@ -54,7 +56,7 @@ Rule: read or watch 15 minutes, then 5 minutes to apply it to that day's episode
 | Days | Theme | Task | Apply to |
 |---|---|---|---|
 | 1-3 (9-11 Nov) | Advertising labelling and honesty | Leitfaden Werbekennzeichnung: matrix and "recognisable at first glance" | check Logbook day 1-3 drafts, claim-check |
-| 4-5 | Accessibility | W3C alt text tutorial, decision tree | review `alt-texts.md`, captions for any video |
+| 4-5 | Accessibility | W3C alt text tutorial (https://www.w3.org/WAI/tutorials/images/), decision tree | review `alt-texts.md`, captions for any video |
 | 6-7 | Hooks and structure | `anthropic-skills:social` hook and carousel references (apply only what fits proof-first) | next carousel |
 | 8-9 | Impressum and privacy | Händlerbund article, DSK Fanpages FAQ | write 3 questions for Arsany or a lawyer |
 | 10-12 | Platform fundamentals | HubSpot social course lessons 1-3 | week-2 plan |
@@ -62,7 +64,7 @@ Rule: read or watch 15 minutes, then 5 minutes to apply it to that day's episode
 | 15-17 | Instagram | Metricool Instagram course or Meta Blueprint module | carousels and stories |
 | 18-19 | Analytics | Metricool analytics tutorial, pick 3 metrics (reach, saves, profile visits) | Friday metrics review |
 | 20-21 | Build in public | Failory and Alphavant guides, check claims | episode mix per week |
-| 22-23 | AI content labelling | AI Act Art. 50 guide + the official text | confirm dates for Arsany; update the brand-kit rule |
+| 22-23 | AI content labelling | AI Act Art. 50 guide + the official text; **do this after the Digital Omnibus is final** (until then read only, no rule change) | confirm dates for Arsany; update the brand-kit rule only when final |
 | 24-25 | Short video | find one credible Reels scripting source (gap), read `anthropic-skills:social` video section | Reel script when real footage exists |
 | 26-27 | Community | find one credible source (gap); list 20 accounts to follow and comment on | engagement routine |
 | 28-29 | Review | reread the week's best and worst posts | retro rules |

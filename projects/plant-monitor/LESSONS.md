@@ -29,3 +29,9 @@ Added by the Lead from each day's `Lesson:` notes; reviewed in the Friday retro.
 - Battery-life target is the single parameter `NFR01_MONTHS`; power-budget doc tables are generated from the script.
 - Strapping pins on ESP32-C3-MINI-1 must match `firmware/main/board.h` and the PR pin table.
 - Shop hosts (LCSC/JLCPCB) must be requested before the BOM can be called verified; until then stock/price are `unverified`.
+
+## PR/social examples (moved from the playbook)
+- Time numbers: "99 min of agent time on 3-5 Nov, without the lead" (measured, day totals 16.2 + 50.0 + 33.0) next to "about 145 working hours of a human without AI" (agents' own estimate) was easy to read as "X times faster"; the report of 5 Nov also shows 103.1 for sprint to date, a different sum.
+- Canon drift: the origin canon said parts were ordered on Wed 4 Nov; the daily reports say Tue 3 Nov. Fixed in `showcase/stories/origin/README.md`.
+- Counts grow: Saturday 7 Nov had 7 merges in the morning and 10 by 20:46.
+

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627" role="img" aria-label="Sprint 1: drei Aufgaben fertig, neun in Prüfung.">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627" role="img" aria-label="Sprint 1, 6. Nov: drei fertig, neun in Prüfung.">
   <!-- Nilwerk post template v0.1 (PROPOSAL). LinkedIn landscape 1.91:1. Placeholders: {{...}}. -->
   <defs>
     <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
@@ -21,8 +21,8 @@
   <text x="74" y="133" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="17" letter-spacing="0.9" fill="#0f7a5c">LOGBUCH · TAG 2 · ZAHL DES TAGES</text>
 
   <g font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="54" letter-spacing="-1.4">
-    <text x="56" y="222" fill="#15181d">Sprint 1: drei</text>
-    <text x="56" y="286" fill="#15181d">Aufgaben fertig,</text>
+    <text x="56" y="222" fill="#15181d">Sprint 1, 6. Nov:</text>
+    <text x="56" y="286" fill="#15181d">drei fertig,</text>
     <text x="56" y="350" fill="#0f7a5c">neun in Prüfung.</text>
   </g>
   <g font-family="Inter, sans-serif" font-size="23" fill="#5b616b">
@@ -40,8 +40,8 @@
     <text x="722" y="86" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="17" letter-spacing="0.8" fill="#0f7a5c">FERTIG · PLAN, 6. NOV</text>
     <text x="722" y="170" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2.3" fill="#15181d">3 / 20</text>
     <text x="722" y="212" font-family="Inter, sans-serif" font-size="21" fill="#5b616b">der 20 zugesagten Aufgaben</text>
-    <text x="722" y="238" font-family="Inter, sans-serif" font-size="21" fill="#5b616b">aus Sprint 1</text>
-    <text x="722" y="264" font-family="Inter, sans-serif" font-size="21" fill="#5b616b">sind ganz fertig</text>
+    <text x="722" y="238" font-family="Inter, sans-serif" font-size="21" fill="#5b616b">aus Sprint 1 waren am</text>
+    <text x="722" y="264" font-family="Inter, sans-serif" font-size="21" fill="#5b616b">6. Nov ganz fertig</text>
   </g>
   <g>
     <rect x="690" y="298" width="454" height="230" rx="14" fill="#ffffff" stroke="#e2ded5" stroke-width="1.5"/>
@@ -53,10 +53,10 @@
     <text x="722" y="514" font-family="Inter, sans-serif" font-size="21" fill="#5b616b">warten auf einen Menschen</text>
   </g>
 
-  <text x="56" y="534" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="15" letter-spacing="1.2" fill="#0f7a5c">FOR ENGINEERS</text>
+  <text x="56" y="534" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="15" letter-spacing="1.2" fill="#0f7a5c">FÜR INGENIEURE</text>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#5b616b">
-    <text x="56" y="556">Sprint 1: 20 zugesagt, Done 3, In Review 9</text>
-    <text x="56" y="577">Agentenzeit im Sprint: etwa 151 min (gemessen)</text>
+    <text x="56" y="556">Plan, Bericht vom Fr 6. Nov: 20 zugesagt, Done 3, In Review 9</text>
+    <text x="56" y="577">Nicht gezählt: Arsanys eigene Aufgaben (1.1-1.4)</text>
   </g>
   <line x1="56" y1="594" x2="1144" y2="594" stroke="#e2ded5" stroke-width="1.5"/>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#5b616b">
