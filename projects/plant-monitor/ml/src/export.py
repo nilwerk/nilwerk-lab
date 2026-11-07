@@ -103,6 +103,7 @@ def build_dataset(splits: dict[str, pd.DataFrame], T: float = prep.DEFAULT_DRY_T
             plain = g.rename(columns=lambda c: c[2:] if c.startswith("f_") else c)
             g["lbl_fast_drying"] = L.label_fast_drying(plain, thr).to_numpy()
             g["lbl_waterlogged"] = L.label_waterlogged(g).to_numpy()
+            g = L.label_wetting_classes(g)                     # A-032: positives / ignore mask / negatives (FR-E02)
             parts.append(g)
         out[s] = pd.concat(parts, ignore_index=True) if parts else feats[s]
     out["_meta"] = {"dry_threshold": T, "soil": soil, "baseline_mean_interval_h": mean_int, "fast_drying_thresholds": thr,
@@ -122,6 +123,22 @@ def dataset_counts(ds: dict) -> pd.DataFrame:
                      "y_capped_72h": int(g["y_capped"].sum()),
                      "fast_drying": int(g["lbl_fast_drying"].sum()), "waterlogged": int(g["lbl_waterlogged"].sum())})
     return pd.DataFrame(rows)
+
+
+def event_class_table(ds: dict) -> pd.DataFrame:
+    """Month x sector table over all splits for the data card (A-032): positives by class, generic wetting events,
+    ignore-mask ticks, negative ticks; fast-drying / waterlogged weak labels are reported separately (not FR-E02)."""
+    allr = pd.concat([ds[s] for s in ("train", "val", "test")], ignore_index=True)
+    allr["month"] = allr["time"].dt.strftime("%Y-%m")
+    allr["pos_watering"] = (allr["event"] == prep.EVENT_WATERING) & allr["lbl_wetting_pos"]
+    allr["pos_rain"] = (allr["event"] == prep.EVENT_RAIN) & allr["lbl_wetting_pos"]
+    allr["generic_events"] = allr["event"] == prep.EVENT_WETTING
+    g = allr.groupby(["month", "plant"])
+    t = pd.DataFrame({"ticks": g.size(), "pos_watering": g["pos_watering"].sum(), "pos_rain": g["pos_rain"].sum(),
+                      "generic_wetting_events": g["generic_events"].sum(), "ignore_ticks": g["lbl_wetting_ignore"].sum(),
+                      "negative_ticks": g["lbl_wetting_neg"].sum(), "weak_fast_drying": g["lbl_fast_drying"].sum(),
+                      "weak_waterlogged": g["lbl_waterlogged"].sum()}).astype(int)
+    return t.reset_index()
 
 
 def write_table(df: pd.DataFrame, stem: Path, prefer_parquet: bool = True) -> Path:

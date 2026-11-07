@@ -154,3 +154,50 @@ def label_waterlogged(seg: pd.DataFrame, m_col: str = "m", pct: float = WATERLOG
         run = run + 1 if a else 0
         out[i] = run >= ticks
     return pd.Series(out, index=seg.index)
+
+
+# --------------------------------------------------------------------------- Model B event labels (A-032)
+# Decision A-032 (Arsany, approved 2026-11-06). Real-data finding: 556 of 900 Mendeley wetting events have no valve
+# and no rain signal ("generic wetting"), 243 of them in sector 5 (probe jumps 30-40 points/h, cause unverified).
+#   * wetting POSITIVES = valve-coincident watering (219) + rain-coincident (125) events only (FR-E02 evidence).
+#   * generic / unexplained wetting is an IGNORE mask: never a positive, never a negative in training. It is used
+#     only to report (evaluation) how the model reacts on events we cannot explain.
+#   * sector 5 is excluded from wetting positives and from FR-E02 evidence: all its ticks are ignored for Model B.
+#   * FR-E02 claims cover WETTING and SENSOR FAULT only. fast_drying / waterlogged stay weak labels, reported
+#     separately in the data card, never as an FR-E02 claim.
+#   * NO threshold re-tuning after seeing zero train positives (fast_drying train = 0): the percentile constants
+#     above are frozen (FROZEN_WEAK_LABEL_RULE); see tests/test_labels.py::test_no_retuning_*.
+EXCLUDED_WETTING_PLANTS = ("mendeley_s5",)          # A-032: sector 5 (unexplained probe jumps)
+IGNORE_PAD_TICKS = 2                                # ticks around an unexplained onset (= label_events window_ticks)
+FR_E02_CLAIM_CLASSES = ("wetting", "sensor_fault")  # A-032: nothing else may be claimed under FR-E02
+EXPLAINED_WETTING_EVENTS = (prep.EVENT_WATERING, prep.EVENT_RAIN)
+FROZEN_WEAK_LABEL_RULE = {"slope_pct": FAST_DRYING_SLOPE_PCT, "hot_pct": HOT_PCT,
+                          "waterlogged_pct": WATERLOGGED_PCT, "waterlogged_ticks": WATERLOGGED_TICKS}  # A-032: frozen
+
+
+def label_wetting_classes(seg: pd.DataFrame, excluded_plants: tuple = EXCLUDED_WETTING_PLANTS,
+                          pad: int = IGNORE_PAD_TICKS) -> pd.DataFrame:
+    """Model B wetting labels for ONE contiguous segment of ONE plant (A-032, FR-E02 wetting class).
+
+    Adds three boolean columns:
+      lbl_wetting_pos     event is valve-coincident watering or rain-coincident, plant not excluded.
+      lbl_wetting_ignore  generic 'wetting' onset +-`pad` ticks (unless that tick is a positive), or EVERY tick
+                          of an excluded plant (sector 5). Never used in training as positive or negative.
+      lbl_wetting_neg     everything else: usable negative (no event, nothing unexplained nearby).
+    Training uses ticks where lbl_wetting_pos | lbl_wetting_neg; the ignore mask is for evaluation reports only.
+    """
+    d = seg.copy()
+    plant = d["plant"].iloc[0] if ("plant" in d and len(d)) else None
+    excluded = plant in excluded_plants
+    ev = d["event"]
+    explained = ev.isin(EXPLAINED_WETTING_EVENTS).to_numpy()
+    generic = (ev == prep.EVENT_WETTING).to_numpy()
+    n = len(d)
+    near = np.zeros(n, dtype=bool)
+    for i in np.flatnonzero(generic):
+        near[max(0, i - pad): i + pad + 1] = True
+    pos = explained & (not excluded)
+    ign = np.ones(n, dtype=bool) if excluded else (near & ~pos)
+    d["lbl_wetting_pos"], d["lbl_wetting_ignore"] = pos, ign
+    d["lbl_wetting_neg"] = ~pos & ~ign
+    return d
