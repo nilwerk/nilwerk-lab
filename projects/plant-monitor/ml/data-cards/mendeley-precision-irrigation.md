@@ -62,6 +62,52 @@ File: `mendeley-handcheck-50.csv` (30 event ticks stratified from all 900 events
 
 Reading: labels that carry a valve or rain signal are consistent. **62 % of all events (556/900) are unexplained "wetting"**, concentrated in sector 5 (243 of 337 events), whose probe jumps 30-40 points within an hour without a recorded valve (probe noise, unrecorded irrigation, or rain on an uncovered plot: cause unverified). Do not use generic wetting as ground truth for Model B without a stricter rule or dropping sector 5. Per-sector cleanliness was not measured (50 samples are too few). Rain labels use farm-wide ERA5 and 3 of 3 sampled were coincident, but sample is tiny. Flat low readings (s2 raw 16 for days, s1 raw 23, m 2-9 %) could be real dry soil or a stalled probe: undetectable here; the flatline fault class on real data is not validated.
 
+## Model B event labels after decision A-032 (month x sector)
+
+Decision A-032 (Arsany, approved 2026-11-06), implemented in `src/labels.py::label_wetting_classes` (FR-E02, FR-E01):
+- **Wetting positives** = valve-coincident watering + rain-coincident events only. **Generic/unexplained wetting** (no valve, no rain) is an **ignore mask**: never a positive, never a negative in training; kept only for evaluation reports. The mask covers each generic onset +-2 ticks (`IGNORE_PAD_TICKS`, my choice = the event-detection window; open for Theo).
+- **Sector 5 is excluded** from wetting positives and from FR-E02 evidence: all of its ticks are ignore-mask (its 35 watering + 59 rain events are not positives either). Positives are therefore 219 + 125 = 344 minus sector 5's 94 = **250** (184 watering + 66 rain).
+- **FR-E02 claims cover wetting + sensor fault only.** Fast-drying and waterlogged stay weak labels, shown in the last two columns and **not** an FR-E02 claim. **No threshold re-tuning** after seeing zero train fast-drying positives: percentile constants are frozen (`FROZEN_WEAK_LABEL_RULE`, guarded by tests).
+- Real data, `scripts/run_mendeley.py`, seed 0, no synthetic faults, all splits pooled, months in UTC. Counts are data counts, not results. Ticks are 15-min ticks of the pipeline (masked ticks included).
+- Weak labels are not masked by sector: all 49 val fast-drying ticks sit in sector 5 (Aug) and the 14 test ones in sector 4 (Jul); train has 0. Waterlogged is 0 everywhere. Sensor-fault classes have 0 real positives (faults are synthetic only; not injected here).
+- Per-split positive counts were not recomputed (the pooled table is what was run).
+
+| Month | Sector | Ticks | Pos: watering (valve) | Pos: rain | Generic wetting events | Ignore-mask ticks | Negative ticks | Weak fast-drying | Weak waterlogged |
+|---|---|---|---|---|---|---|---|---|---|
+| 2025-02 | s1 | 1772 | 0 | 1 | 4 | 20 | 1751 | 0 | 0 |
+| 2025-02 | s2 | 1772 | 6 | 7 | 12 | 60 | 1699 | 0 | 0 |
+| 2025-02 | s4 | 1772 | 0 | 1 | 2 | 10 | 1761 | 0 | 0 |
+| 2025-02 | s5 | 1772 | 0 | 0 | 1 | 1772 | 0 | 0 | 0 |
+| 2025-03 | s1 | 2112 | 1 | 3 | 4 | 20 | 2088 | 0 | 0 |
+| 2025-03 | s2 | 2112 | 11 | 12 | 15 | 75 | 2014 | 0 | 0 |
+| 2025-03 | s4 | 2112 | 2 | 3 | 2 | 10 | 2097 | 0 | 0 |
+| 2025-03 | s5 | 2112 | 0 | 0 | 35 | 2112 | 0 | 0 | 0 |
+| 2025-04 | s1 | 2016 | 1 | 1 | 6 | 30 | 1984 | 0 | 0 |
+| 2025-04 | s2 | 2016 | 13 | 4 | 17 | 85 | 1914 | 0 | 0 |
+| 2025-04 | s4 | 2016 | 5 | 4 | 12 | 60 | 1947 | 0 | 0 |
+| 2025-04 | s5 | 2016 | 0 | 0 | 14 | 2016 | 0 | 0 | 0 |
+| 2025-05 | s1 | 2208 | 9 | 2 | 15 | 75 | 2122 | 0 | 0 |
+| 2025-05 | s2 | 2208 | 10 | 6 | 22 | 110 | 2082 | 0 | 0 |
+| 2025-05 | s4 | 2208 | 4 | 0 | 9 | 45 | 2159 | 0 | 0 |
+| 2025-05 | s5 | 2208 | 0 | 0 | 24 | 2208 | 0 | 0 | 0 |
+| 2025-06 | s1 | 2208 | 21 | 0 | 50 | 250 | 1937 | 0 | 0 |
+| 2025-06 | s2 | 2208 | 12 | 0 | 5 | 25 | 2171 | 0 | 0 |
+| 2025-06 | s4 | 2208 | 35 | 1 | 22 | 110 | 2062 | 0 | 0 |
+| 2025-06 | s5 | 2208 | 0 | 0 | 21 | 2208 | 0 | 0 | 0 |
+| 2025-07 | s1 | 2400 | 9 | 0 | 21 | 105 | 2286 | 0 | 0 |
+| 2025-07 | s2 | 2400 | 0 | 0 | 6 | 30 | 2370 | 0 | 0 |
+| 2025-07 | s4 | 2400 | 31 | 3 | 41 | 205 | 2161 | 14 | 0 |
+| 2025-07 | s5 | 2400 | 0 | 0 | 72 | 2400 | 0 | 0 | 0 |
+| 2025-08 | s1 | 2112 | 0 | 0 | 0 | 0 | 2112 | 0 | 0 |
+| 2025-08 | s2 | 2112 | 0 | 0 | 3 | 15 | 2097 | 0 | 0 |
+| 2025-08 | s4 | 2112 | 14 | 15 | 40 | 200 | 1883 | 0 | 0 |
+| 2025-08 | s5 | 2112 | 0 | 0 | 73 | 2112 | 0 | 49 | 0 |
+| 2025-09 | s1 | 479 | 0 | 0 | 0 | 0 | 479 | 0 | 0 |
+| 2025-09 | s2 | 1689 | 0 | 0 | 0 | 0 | 1689 | 0 | 0 |
+| 2025-09 | s4 | 1689 | 0 | 3 | 5 | 25 | 1661 | 0 | 0 |
+| 2025-09 | s5 | 1689 | 0 | 0 | 3 | 1689 | 0 | 0 | 0 |
+| **Total** | s1,s2,s4,s5 | **64858** | **184** | **66** | **556** | **18082** | **46526** | **63** | **0** |
+
 ## Known risks
 - Drip-irrigated farm, not pots; one season, one site; probe depth unknown; valve telemetry must never be a feature; fault labels are derived and noisy; recording is dense only in Aug-Sep so train/val/test are mostly late-summer vs spring-sparse; ERA5 rain/temperature are site-wide proxies.
 - Time zone of probe/valve clocks assumed equal to the weather clock.

@@ -47,6 +47,9 @@ def main(raw_dir: str, out_dir: str) -> None:
     ds = export.build_dataset(sp)
     dc = export.dataset_counts(ds)
     print(dc.to_string())
+    ect = export.event_class_table(ds)                       # A-032 month x sector table (data card)
+    ect.to_csv(out / "event_class_table.csv", index=False)
+    print(ect.to_string(index=False))
     res = {"rows_raw_valid": int(len(raw)), "devices": sorted(raw["plant"].unique()),
            "date_utc": [str(raw["time"].min()), str(raw["time"].max())],
            "ticks_after_split": {k: int(len(v)) for k, v in sp.items()},
