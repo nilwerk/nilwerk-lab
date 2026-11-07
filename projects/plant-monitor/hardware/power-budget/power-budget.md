@@ -223,6 +223,17 @@ The cell is the **603449 LiPo, 3.7 V, 1100 mAh typical / 1000 mAh minimum, about
 
 Capacity check against section 5: the typical case needs about 670 mAh rated by the rule and the 1000 mAh minimum gives 4.5 months, so the cell is sufficient with a factor 1.5; the worst-case stack (about 2180 mAh needed) cannot be met by any cell that fits this bay, so the levers in section 7 and the measurements in section 9 matter more than capacity.
 
+**A-034 (battery from DigiKey): candidates against NFR-01** (generated; details, datasheet pages and options in [`../bom/cell-decision-A034.md`](../bom/cell-decision-A034.md)). The Jauch LP503030JU candidate has only 430 mAh minimum and **fails** the 3-month rule in the typical case; "fits" compares the envelope with the A-020 bay and ignores swelling and wire clearance.
+
+<!-- BEGIN:cells -->
+| cell | typ mAh | MIN mAh | T x W x L mm | fits 51 x 34.5 x 6.3 | months best | months typical | months worst | NFR-01 typical | max sleep uA (typical terms) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| EEMB LP603449 bare cell (A-020) | 1100 | 1000 | 6.3 x 34.5 x 50 | yes | 12.8 | 4.5 | 1.4 | PASS | 134 |
+| Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate) | 450 | 430 | 5.2 x 30 x 30 | yes | 5.5 | 1.9 | 0.6 | FAIL | -74 |
+| Jauch LP603443JU+PCM+2 wires (DigiKey alternative) | 900 | 850 | 6.5 x 34.5 x 45 | no, thicker: input to Yara | 10.8 | 3.8 | 1.2 | PASS | 80 |
+<!-- END:cells -->
+
+
 ## 9. To be measured in 5.4 (dev kit, then PCB) to replace estimates
 
 Needs hands on hardware: Peter does these via a work order; the work order text is Emil's to draft once the dev-kit list is fixed. Equipment: a current meter that resolves 1 uA in deep sleep and records mA bursts (source-measure unit or a power profiler; choice and any purchase are Arsany's), a bench supply or a charged cell, and the same firmware as the field build.
