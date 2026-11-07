@@ -35,6 +35,8 @@ else
 fi
 echo "ok  $(psqlx postgres -At -c 'select version()' | cut -c1-40)"
 
+export PGOPTIONS="-c nilwerk.allow_no_cron=on"   # plain local Postgres has no pg_cron; migration 2 otherwise fails loudly
+
 newdb() { # name, seed(yes/no)
   psqlx postgres -c "drop database if exists $1" -c "create database $1"
   psqlx "$1" -f test/stub_auth.sql
@@ -42,6 +44,13 @@ newdb() { # name, seed(yes/no)
   psqlx "$1" -f test/grants.sql
   if [ "$2" = yes ]; then psqlx "$1" -f supabase/seed.sql; fi
 }
+
+# --- 1b. migration 2 must FAIL (not skip) when pg_cron is missing and the opt-out flag is not set
+psqlx postgres -c "drop database if exists nw_test_cron" -c "create database nw_test_cron"
+if PGOPTIONS="" psqlx nw_test_cron -f "$MIG/20261107000002_schedules.sql" >/dev/null 2>&1; then
+  echo "FAIL: schedules migration did not fail without pg_cron"; exit 1; fi
+psqlx postgres -c "drop database nw_test_cron"
+echo "ok  schedules migration fails loudly without pg_cron (and skips only with nilwerk.allow_no_cron=on)"
 
 # --- 2. migrations + seed apply on a fresh DB; RLS isolation A vs B on every table
 echo "== RLS isolation (test/rls_isolation.sql)"
