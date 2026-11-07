@@ -4,7 +4,7 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 
 - `workflow/` — how the team works (safe to publish)
 - `items/<YYYY-MM-DD>_<task-id>/` — one folder per showcase item: images, optional short animation, `caption.md`
-- `brand/` — **brand kit v0.1 (KEPT by Arsany's decision A-039; palette, fonts and logo as in `brand-kit.md`)**: `brand-kit.md`, `USAGE.md` (use case x audience matrix), `glossary.md`, tokens `brand.css` + `brand-status.css`, logo mark, post templates (portrait, LinkedIn, square, story, carousel), contrast checkers, previews
+- `brand/` — **brand kit v0.1 (KEPT by Arsany's decision; palette, fonts and logo as in `brand-kit.md`)**: `brand-kit.md`, `USAGE.md` (use case x audience matrix), `glossary.md`, tokens `brand.css` + `brand-status.css`, logo mark, post templates (portrait, LinkedIn, square, story, carousel), contrast checkers, previews
   - `brand/slides/` 16:9 demo slide templates (SVG + PNG + Google Slides instructions) · `brand/web/` web component kit sample (light/dark, self-hosted fonts) · `brand/app/` React Native/Expo theme (`theme.ts`, `tokens.json`), app icon and splash, mapping to the wireframe palette
 - `content/` — post drafts and the content calendar: `calendar.md` (9-20 Nov 2026), `2026-11-07/` (two drafted posts with images and claim-check)
 - `stories/origin/` — origin story canon and first carousel (pre-brand look, to be re-rendered if the brand is approved)

@@ -71,7 +71,7 @@ CAROUSEL = dict(COMMON, KICKER="HOW WE CHECK", N="2", TOTAL="5", H1="Every part 
                 E1="Review: architect agent, requirement IDs,", E2="line-level findings on the pull request.", E3="Then QA, then pipeline, then a human", E4="approves and merges.",
                 STATUS="SAMPLE TEXT · NOT A CLAIM", SRC1="Sample slide for the template", SWIPE="Swipe →")
 
-FOOT = dict(FOOT_L="Nilwerk · sample deck (placeholder text)", FOOT_R="nilwerk.de")
+FOOT = dict(FOOT_L="PLACEHOLDER DECK TEXT · sample values, not a claim", FOOT_R="nilwerk.de")
 SLIDES = {
     "slide-1-title": dict(FOOT, KICKER="DEMO · SAMPLE", H1="A plant sensor,", H2="built by AI agents,", H3="checked by humans.",
                           SUB1="Prototype status, plain words first,", SUB2="numbers and sources for engineers."),
@@ -89,7 +89,7 @@ SLIDES = {
                                  PLAIN1="Sensor, phone app and cloud, in one picture.", PLAIN2="Arrows show where the data travels.",
                                  SRC1="Source: docs/architecture (link in speaker notes)", SRC2="Diagram status: draft", STATUS="DRAFT DIAGRAM"),
     "slide-6-closing": dict(FOOT, H1="Thank you.", H2="Next step?", SUB1="Tell us about your idea,", SUB2="we answer with a plan and proof.",
-                            C1="nilwerk.de", C2="@nilwerk", C3="@nilwerk", C4="your-address@example.com (placeholder)", FOOT_NOTE="AI agents, led and reviewed by humans"),
+                            C1="nilwerk.de", C2="@nilwerk", C3="@nilwerk", C4="name@example.com", FOOT_NOTE="AI agents, led and reviewed by humans"),
 }
 
 

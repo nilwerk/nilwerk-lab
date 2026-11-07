@@ -20,7 +20,7 @@ Six 16:9 templates, 1920x1080, for both audiences: every content slide has the p
 
 ## Google Slides (or PowerPoint / Keynote): editable slides without extra tools
 
-1. New presentation, page size **Widescreen 16:9** (Google default, 10 x 5.625 in = 720 x 405 pt; 1 px of the 1920 px images = 0.375 pt).
+1. New presentation, page size **Widescreen 16:9** (Google default, 10 x 5.625 in = 720 x 405 pt; 1 px of the 1920 px images = 0.375 pt). **PowerPoint's default 16:9 is 13.333 x 7.5 in (960 x 540 pt)**: either set the slide size to 10 x 5.625 in (Design > Slide Size > Custom) so the pt values below apply, or keep 13.333 x 7.5 in and use **0.5 pt per px** (e.g. 150 px = 75 pt).
 2. Fonts: Google Slides already has **Space Grotesk, Inter, JetBrains Mono** (Font menu, "More fonts"). In PowerPoint/Keynote install them from fonts.google.com (OFL) or from `../web/fonts`.
 3. Per slide: Slide > Change background > Image > upload the matching file from `png-clean/` (light or dark). Then add text boxes with the specs below. Keep the textboxes left-aligned, no autofit, line spacing 1.0 for headings, 1.15 for body.
 4. Save the finished deck as your own template (copy it per customer). Replace placeholders with real content only; sample texts are not claims.
@@ -45,3 +45,7 @@ Text box specs (position of the top-left corner and size in px of the 1920 x 108
 - Every number: measured, calculated, simulated or estimated, shown with the chip; sources in the engineers' layer or speaker notes.
 - No prices, offers, customer names or lead information in a shared template; the closing slide carries only public handles (nilwerk.de, @nilwerk) and a contact address you fill in per deck.
 - AI imagery (if any) is labelled "AI-generated image"; diagrams are exported from Mermaid / draw.io (code-generated, no label needed).
+
+## Realistic maximum lengths (so text never runs past the margin)
+
+Approximate characters per line at the template font size: title lines (slide 1) 20; section heading lines (2) 14; key-number headline lines (3) 16, intro lines 36; slide 4 plain sentences 40, engineers' lines 42 (mono); slide 5 plain caption 48; status chip text 40; slide 6 contact values 18 (an email address longer than that: shrink the text box font to 24 px = 9 pt or put it on the next line); footer left 55. The footer on every sample says "PLACEHOLDER DECK TEXT": replace it with your own footer in a real deck; the sample numbers are not claims.

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="{{ALT}}">
-  <!-- Nilwerk v0.1 template: slide 16:9 1920x1080: closing / contact. Placeholders {{...}}; colours var(--nw-*) from brand.css / brand-status.css. -->
+  <!-- Nilwerk v0.1 template: slide 16:9 1920x1080: closing / contact. Placeholders {{...}}; colours are nw tokens from brand.css and brand-status.css. -->
   <defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="var(--nw-line)" stroke-width="1.5" opacity=".55"/></pattern></defs>
   <rect width="1920" height="1080" fill="var(--nw-bg)"/>
   <rect width="1920" height="1080" fill="url(#grid)"/>
@@ -9,7 +9,7 @@
   <g font-family="'JetBrains Mono', monospace" font-size="22" fill="var(--nw-muted)"><text x="120" y="1044">{{FOOT_L}}</text><text x="1800" y="1044" text-anchor="end">{{FOOT_R}}</text></g>
   <g font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="170" letter-spacing="-5"><text x="120" y="470" fill="var(--nw-ink)">{{H1}}</text><text x="120" y="640" fill="var(--nw-accent)">{{H2}}</text></g>
   <g font-family="Inter, sans-serif" font-size="42" fill="var(--nw-muted)"><text x="120" y="740">{{SUB1}}</text><text x="120" y="794">{{SUB2}}</text></g>
-  <g font-family="'JetBrains Mono', monospace" font-size="34" fill="var(--nw-ink)">
+  <g font-family="'JetBrains Mono', monospace" font-size="32" fill="var(--nw-ink)">
     <text x="1180" y="300" fill="var(--nw-accent)" font-weight="600" font-size="24" letter-spacing="1.5">WEB</text><text x="1420" y="300">{{C1}}</text>
     <text x="1180" y="380" fill="var(--nw-accent)" font-weight="600" font-size="24" letter-spacing="1.5">INSTAGRAM</text><text x="1420" y="380">{{C2}}</text>
     <text x="1180" y="460" fill="var(--nw-accent)" font-weight="600" font-size="24" letter-spacing="1.5">LINKEDIN</text><text x="1420" y="460">{{C3}}</text>

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="{{ALT}}">
-  <!-- Nilwerk v0.1 template: slide 16:9 1920x1080: key number. Placeholders {{...}}; colours var(--nw-*) from brand.css / brand-status.css. -->
+  <!-- Nilwerk v0.1 template: slide 16:9 1920x1080: key number. Placeholders {{...}}; colours are nw tokens from brand.css and brand-status.css. -->
   <defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="var(--nw-line)" stroke-width="1.5" opacity=".55"/></pattern></defs>
   <rect width="1920" height="1080" fill="var(--nw-bg)"/>
   <rect width="1920" height="1080" fill="url(#grid)"/>
@@ -11,9 +11,9 @@
   <rect x="120" y="190" width="860" height="10" rx="5" fill="{{TONE_B}}"/>
   <text x="160" y="250" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="26" letter-spacing="1" fill="{{TONE_B}}">{{TILE_LABEL}}</text>
   <text x="160" y="470" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="220" letter-spacing="-6.6" fill="var(--nw-ink)">{{TILE_VALUE}}</text>
-  <text x="160" y="578" font-family="Inter, sans-serif" font-size="36" fill="var(--nw-muted)">{{TILE_SUB1}}</text>
-  <text x="160" y="646" font-family="Inter, sans-serif" font-size="36" fill="var(--nw-muted)">{{TILE_SUB2}}</text>
-  <text x="160" y="715" font-family="Inter, sans-serif" font-size="36" fill="var(--nw-muted)">{{TILE_SUB3}}</text>
+  <text x="160" y="562" font-family="Inter, sans-serif" font-size="36" fill="var(--nw-muted)">{{TILE_SUB1}}</text>
+  <text x="160" y="614" font-family="Inter, sans-serif" font-size="36" fill="var(--nw-muted)">{{TILE_SUB2}}</text>
+  <text x="160" y="666" font-family="Inter, sans-serif" font-size="36" fill="var(--nw-muted)">{{TILE_SUB3}}</text>
   <g font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2"><text x="1060" y="290" fill="var(--nw-ink)">{{H1}}</text><text x="1060" y="380" fill="var(--nw-ink)">{{H2}}</text><text x="1060" y="470" fill="var(--nw-accent)">{{H3}}</text></g>
   <g font-family="Inter, sans-serif" font-size="38" fill="var(--nw-muted)"><text x="1060" y="570">{{INTRO1}}</text><text x="1060" y="620">{{INTRO2}}</text></g>
   <rect x="120" y="800" width="{{STATUS_W}}" height="58" rx="8" fill="none" stroke="var(--nw-warn)" stroke-width="2"/>

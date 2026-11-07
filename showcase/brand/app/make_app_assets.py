@@ -128,6 +128,9 @@ export const type = {{
   number: typo('monoStrong', 40, 44, -1.5),
 }} as const;
 
+// FR-A07 (push alerts): too dry, too wet, low battery, device offline map to these statuses. Thresholds and clear rules are NOT
+// repeated here: see projects/plant-monitor/docs/requirements-v1.0-delta.md, row FR-A07 (single source). The four edge-AI alert
+// kinds (wetting_unexpected, waterlogged, sensor_out_of_soil, sensor_fault) are an open decision for Leo / 4.A2: see app/README.md.
 export const statusMeta: Record<PlantStatus, {{ colorKey: keyof typeof colors.light; softKey: keyof typeof colors.light; labelKey: string; shape: string }}> = {{
   ok: {{ colorKey: 'ok', softKey: 'okSoft', labelKey: 'status.ok', shape: 'circle' }},
   dry: {{ colorKey: 'dry', softKey: 'drySoft', labelKey: 'status.dry', shape: 'triangle' }},
@@ -137,13 +140,13 @@ export const statusMeta: Record<PlantStatus, {{ colorKey: keyof typeof colors.li
   error: {{ colorKey: 'danger', softKey: 'dangerSoft', labelKey: 'status.error', shape: 'cross' }},
 }};
 
-export function getTheme(scheme: Scheme | null | undefined = 'light') {{
+export function getTheme(scheme?: string | null) {{
   const name: Scheme = scheme === 'dark' ? 'dark' : 'light';
   return {{ name, color: colors[name], spacing, radius, type, fontFamily, minTouchTarget }};
 }}
 
 /** Colours, label key and shape for a plant status badge, for the given scheme. */
-export function statusStyle(status: PlantStatus, scheme: Scheme | null | undefined = 'light') {{
+export function statusStyle(status: PlantStatus, scheme?: string | null) {{
   const name: Scheme = scheme === 'dark' ? 'dark' : 'light';
   const m = statusMeta[status];
   return {{ color: colors[name][m.colorKey], background: colors[name][m.softKey], labelKey: m.labelKey, shape: m.shape }};
@@ -176,7 +179,7 @@ def mark_at(cx, cy, size, plate=True):
 files = {
     # iOS/Expo icon: opaque, full-bleed ink, mark (without its own plate) at about 60 % so the OS corner mask never cuts it
     "icon-1024.svg": svg(1024, 1024, '<rect width="1024" height="1024" fill="#15181d"/>' + mark_at(512, 512, 620, plate=False)),
-    # Android adaptive foreground: transparent, mark inside the 66 % safe zone (676 px); background colour #15181d set in app.json
+    # Android adaptive foreground: RGBA PNG with real transparency (rendered with omitBackground), mark inside the 66 % safe zone (676 px); background colour #15181d is set in app.json
     "adaptive-icon-foreground-1024.svg": svg(1024, 1024, mark_at(512, 512, 520, plate=False)),
     "favicon-48.svg": svg(48, 48, '<rect width="48" height="48" rx="12" fill="#15181d"/>' + mark_at(24, 24, 36, plate=False)),
 }
@@ -186,6 +189,13 @@ for theme, bg, ink, acc in (("light", "#f6f4ef", "#15181d", "#0f7a5c"), ("dark",
 jobs = []
 for n, s in files.items():
     (assets / n).write_text(s)
+    if n.startswith("adaptive"):
+        continue  # rendered separately with a transparent background
     jobs.append((assets / n, assets / n.replace(".svg", ".png")))
 v01.render_png(jobs, scale=1)
+import os, subprocess  # noqa: E402
+env = dict(os.environ)
+env.setdefault("NODE_PATH", "/opt/node-tools/node_modules")
+subprocess.run(["node", str(HERE.parent / "render_transparent.js"), str(assets / "adaptive-icon-foreground-1024.svg"),
+                str(assets / "adaptive-icon-foreground-1024.png")], check=True, env=env)
 print("app assets written")

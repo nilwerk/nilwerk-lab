@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-label="{{ALT}}">
-  <!-- Nilwerk v0.1 template: Instagram story 1080x1920, safe area y 250-1580. Placeholders {{...}}; colours var(--nw-*) from brand.css / brand-status.css. -->
+  <!-- Nilwerk v0.1 template: Instagram story 1080x1920, safe area y 250-1580. Placeholders {{...}}; colours are nw tokens from brand.css and brand-status.css. -->
   <defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="var(--nw-line)" stroke-width="1.5" opacity=".55"/></pattern></defs>
   <rect width="1080" height="1920" fill="var(--nw-bg)"/>
   <rect width="1080" height="1920" fill="url(#grid)"/>

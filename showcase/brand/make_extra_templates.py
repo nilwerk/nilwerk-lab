@@ -22,7 +22,7 @@ LOGO = ('<g transform="translate({x} {y}) scale({s})">'
 
 def head(W, H, grid=True, desc=""):
     s = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-label="{{{{ALT}}}}">\n'
-    s += f'  <!-- Nilwerk v0.1 template: {desc}. Placeholders {{{{...}}}}; colours var(--nw-*) from brand.css / brand-status.css. -->\n'
+    s += f'  <!-- Nilwerk v0.1 template: {desc}. Placeholders {{{{...}}}}; colours are nw tokens from brand.css and brand-status.css. -->\n'
     s += '  <defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="var(--nw-line)" stroke-width="1.5" opacity=".55"/></pattern></defs>\n'
     s += f'  <rect width="{W}" height="{H}" fill="var(--nw-bg)"/>\n'
     if grid:
@@ -44,13 +44,13 @@ def chip(x, y, h, fs):
             f'  <text x="{x + h * 0.4:.0f}" y="{y + h * 0.68:.0f}" {FM} font-weight="600" font-size="{fs}" letter-spacing="{fs * 0.05:.1f}" fill="var(--nw-warn)">{{{{STATUS}}}}</text>\n')
 
 
-def tile(x, y, w, h, tone, label, value, subs, lfs, vfs, sfs, pad=28):
+def tile(x, y, w, h, tone, label, value, subs, lfs, vfs, sfs, pad=28, lh=1.9):
     s = (f'  <rect x="{x}" y="{y}" width="{w}" height="{h}" rx="18" fill="var(--nw-surface)" stroke="var(--nw-line)" stroke-width="2"/>\n'
          f'  <rect x="{x}" y="{y}" width="{w}" height="10" rx="5" fill="{tone}"/>\n'
          f'  <text x="{x + pad}" y="{y + 60}" {FM} font-weight="600" font-size="{lfs}" letter-spacing="1" fill="{tone}">{{{{{label}}}}}</text>\n'
          f'  <text x="{x + pad}" y="{y + 60 + vfs * 1.0:.0f}" {FD} font-weight="700" font-size="{vfs}" letter-spacing="{-vfs * 0.03:.1f}" fill="var(--nw-ink)">{{{{{value}}}}}</text>\n')
     for i, k in enumerate(subs):
-        s += f'  <text x="{x + pad}" y="{y + 60 + vfs * 1.0 + vfs * 0.18 + sfs * 1.9 * (i + 1):.0f}" {FB} font-size="{sfs}" fill="var(--nw-muted)">{{{{{k}}}}}</text>\n'
+        s += f'  <text x="{x + pad}" y="{y + 60 + vfs * 1.0 + vfs * 0.18 + sfs * lh * (i + 1):.0f}" {FB} font-size="{sfs}" fill="var(--nw-muted)">{{{{{k}}}}}</text>\n'
     return s
 
 
@@ -125,7 +125,7 @@ def slides():
     out["slide-2-section"] = s + '</svg>\n'
 
     s, W, H, M = slide_frame("key number")
-    s += tile(M, 190, 860, 560, "{{TONE_B}}", "TILE_LABEL", "TILE_VALUE", ["TILE_SUB1", "TILE_SUB2", "TILE_SUB3"], 26, 220, 36, pad=40)
+    s += tile(M, 190, 860, 560, "{{TONE_B}}", "TILE_LABEL", "TILE_VALUE", ["TILE_SUB1", "TILE_SUB2", "TILE_SUB3"], 26, 220, 36, pad=40, lh=1.45)
     s += f'  <g {FD} font-weight="700" font-size="76" letter-spacing="-2"><text x="1060" y="290" fill="var(--nw-ink)">{{{{H1}}}}</text><text x="1060" y="380" fill="var(--nw-ink)">{{{{H2}}}}</text><text x="1060" y="470" fill="var(--nw-accent)">{{{{H3}}}}</text></g>\n'
     s += f'  <g {FB} font-size="38" fill="var(--nw-muted)"><text x="1060" y="570">{{{{INTRO1}}}}</text><text x="1060" y="620">{{{{INTRO2}}}}</text></g>\n'
     s += chip(M, 800, 58, 26)
@@ -157,7 +157,7 @@ def slides():
     s, W, H, M = slide_frame("closing / contact")
     s += f'  <g {FD} font-weight="700" font-size="170" letter-spacing="-5"><text x="{M}" y="470" fill="var(--nw-ink)">{{{{H1}}}}</text><text x="{M}" y="640" fill="var(--nw-accent)">{{{{H2}}}}</text></g>\n'
     s += f'  <g {FB} font-size="42" fill="var(--nw-muted)"><text x="{M}" y="740">{{{{SUB1}}}}</text><text x="{M}" y="794">{{{{SUB2}}}}</text></g>\n'
-    s += f'  <g {FM} font-size="34" fill="var(--nw-ink)">\n'
+    s += f'  <g {FM} font-size="32" fill="var(--nw-ink)">\n'
     for i, (lab, key) in enumerate((("WEB", "C1"), ("INSTAGRAM", "C2"), ("LINKEDIN", "C3"), ("EMAIL", "C4"))):
         y = 300 + 80 * i
         s += f'    <text x="1180" y="{y}" fill="var(--nw-accent)" font-weight="600" font-size="24" letter-spacing="1.5">{lab}</text><text x="1420" y="{y}">{{{{{key}}}}}</text>\n'

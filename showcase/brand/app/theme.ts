@@ -117,6 +117,9 @@ export const type = {
   number: typo('monoStrong', 40, 44, -1.5),
 } as const;
 
+// FR-A07 (push alerts): too dry, too wet, low battery, device offline map to these statuses. Thresholds and clear rules are NOT
+// repeated here: see projects/plant-monitor/docs/requirements-v1.0-delta.md, row FR-A07 (single source). The four edge-AI alert
+// kinds (wetting_unexpected, waterlogged, sensor_out_of_soil, sensor_fault) are an open decision for Leo / 4.A2: see app/README.md.
 export const statusMeta: Record<PlantStatus, { colorKey: keyof typeof colors.light; softKey: keyof typeof colors.light; labelKey: string; shape: string }> = {
   ok: { colorKey: 'ok', softKey: 'okSoft', labelKey: 'status.ok', shape: 'circle' },
   dry: { colorKey: 'dry', softKey: 'drySoft', labelKey: 'status.dry', shape: 'triangle' },
@@ -126,13 +129,13 @@ export const statusMeta: Record<PlantStatus, { colorKey: keyof typeof colors.lig
   error: { colorKey: 'danger', softKey: 'dangerSoft', labelKey: 'status.error', shape: 'cross' },
 };
 
-export function getTheme(scheme: Scheme | null | undefined = 'light') {
+export function getTheme(scheme?: string | null) {
   const name: Scheme = scheme === 'dark' ? 'dark' : 'light';
   return { name, color: colors[name], spacing, radius, type, fontFamily, minTouchTarget };
 }
 
 /** Colours, label key and shape for a plant status badge, for the given scheme. */
-export function statusStyle(status: PlantStatus, scheme: Scheme | null | undefined = 'light') {
+export function statusStyle(status: PlantStatus, scheme?: string | null) {
   const name: Scheme = scheme === 'dark' ? 'dark' : 'light';
   const m = statusMeta[status];
   return { color: colors[name][m.colorKey], background: colors[name][m.softKey], labelKey: m.labelKey, shape: m.shape };
