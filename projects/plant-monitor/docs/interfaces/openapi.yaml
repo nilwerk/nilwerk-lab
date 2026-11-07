@@ -1,0 +1,288 @@
+openapi: 3.1.0
+info:
+  title: Plant Monitor cloud API (Supabase Edge Functions)
+  version: 0.1.0-draft
+  description: |
+    Task 2.4 contract for the edge functions in architecture.md (C-05). Direct table access by the app
+    (supabase-js under RLS) is specified in db-schema.sql, not here. Tips and analytics endpoints
+    (FR-P01, FR-P02) are contracts of 4.B3/4.B4 and are not part of this draft.
+    Every operation cites its requirements in `x-requirements`.
+    Status: DRAFT; not validated against a live Supabase project.
+servers:
+  - url: https://{project_ref}.supabase.co/functions/v1
+    variables: { project_ref: { default: TBD-set-in-4.B1 } }
+tags:
+  - { name: device, description: "Called by the sensor (device bearer token or claim token)" }
+  - { name: app, description: "Called by the phone app (user JWT)" }
+paths:
+  /claim-token:
+    post:
+      tags: [app]
+      summary: Issue a one-time claim token bound to the signed-in user
+      x-requirements: [FR-D03, FR-A03, FR-A02, NFR-06]
+      description: |
+        The app calls this before BLE setup and sends the token to the sensor inside the encrypted BLE
+        channel (ble-provisioning.md, endpoint nw-claim). Token: 16 random bytes, base64url, valid 15 min,
+        single use; only its SHA-256 is stored. No cap on tokens or devices per user (FR-A02), but at most
+        10 open tokens per user.
+      security: [{ userJwt: [] }]
+      responses:
+        "201":
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [claim_token, expires_at]
+                properties:
+                  claim_token: { type: string, example: "k3J9...redacted" }
+                  expires_at: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /device-claim:
+    post:
+      tags: [device]
+      summary: First call of a new or reset sensor; binds it to the user and returns its device token
+      x-requirements: [FR-D03, FR-A03, FR-A08, NFR-06]
+      description: |
+        Sent once over HTTPS right after the sensor joined Wi-Fi (TLS 1.2+, pinned CA). Rules:
+        - claim token valid, unexpired, unused -> device row created or updated, token marked used.
+        - hw_id unknown -> device created (owner = token user).
+        - hw_id known and unowned (released, FR-A08) -> new owner, any old credential revoked.
+        - hw_id known and owned by the SAME user (factory reset, FR-D07) -> credential rotated.
+        - hw_id owned by ANOTHER user -> 409 device_owned; the owner must release it first.
+        The device token (32 random bytes, hex) is returned ONCE; only its SHA-256 is stored (ADR-004).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hw_id, claim_token, fw]
+              additionalProperties: false
+              properties:
+                hw_id: { type: string, pattern: "^nw-[0-9a-f]{12}$", example: "nw-a1b2c3d4e5f6" }
+                claim_token: { type: string }
+                name: { type: string, maxLength: 80, description: "Device name entered in the app (UC-02)" }
+                fw: { type: string, maxLength: 32 }
+      responses:
+        "200":
+          description: Claimed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [device_id, device_token, server_time, config]
+                properties:
+                  device_id: { type: string, format: uuid }
+                  device_token: { type: string, pattern: "^[0-9a-f]{64}$", description: "Shown once; store in NVS" }
+                  server_time: { type: integer, description: "Unix seconds" }
+                  config: { $ref: "#/components/schemas/DeviceConfig" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { description: "claim_token unknown, expired or already used (error: claim_token_invalid)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409": { description: "error: device_owned", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /ingest:
+    post:
+      tags: [device]
+      summary: Upload a batch of samples, forecast and events; receive time, config and OTA manifest
+      x-requirements: [FR-D01, FR-D02, FR-D04, FR-D05, FR-D06, FR-E01, FR-E03, FR-A07, NFR-04, NFR-06]
+      description: |
+        Hourly (FR-D02: 24 +/- 1 reports per day), immediately on a critical event (FR-E03), and on
+        reconnect after an offline period (FR-D04). The device deletes a sample from its buffer only after
+        a 2xx for the batch containing it. Idempotent on (device, ts): replays are counted as duplicates.
+        Processing order (so data is visible in the app within 2 min, NFR-04): authenticate -> validate
+        schema -> insert samples (plausible flag by G1 ranges: temp -10..60 degC, RH 0..100 %, lux 0..100000,
+        battery 3000..4250 mV, moisture 0..100 %) -> insert events -> update device (last_seen_at, fw,
+        forecast, cal) -> evaluate_alerts() -> push dispatch -> build response.
+        Authentication failure semantics for firmware: 401 token_revoked means the device was released or
+        deleted: it stops uploading, discards its buffer and re-enters setup mode [proposed, Mira to confirm].
+        Limit: max 6 requests per device per hour; excess gets 429 with Retry-After [proposed].
+      security: [{ deviceToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "device-report.schema.json" }
+            example:
+              v: 1
+              sent_at: 1799000000
+              trigger: scheduled
+              fw: "0.1.0"
+              model: "m0"
+              forecast_h: 36.5
+              samples:
+                - { ts: 1798997200, moisture_pct: 41.2, moisture_raw: 1900, temp_c: 21.4, rh_pct: 48, lux: 320, vbat_mv: 3920 }
+                - { ts: 1798998100, moisture_pct: 41.0, moisture_raw: 1904, temp_c: 21.5, rh_pct: 48, lux: 310, vbat_mv: 3918 }
+              events: []
+      responses:
+        "200":
+          description: Accepted (also when every sample was a duplicate)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [server_time, accepted, duplicates, implausible, config]
+                properties:
+                  server_time: { type: integer, description: "Unix seconds; device re-syncs its RTC" }
+                  accepted: { type: integer, description: "Samples newly stored" }
+                  duplicates: { type: integer }
+                  implausible: { type: integer, description: "Stored with plausible=false (outside G1 ranges)" }
+                  config: { $ref: "#/components/schemas/DeviceConfig" }
+                  fw_target: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/Artifact" }] }
+                  model_target: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/Artifact" }] }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { description: "error: token_invalid | token_revoked", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "413": { description: "More than 192 samples or body > 64 KiB" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /device-release:
+    post:
+      tags: [app]
+      summary: Release a device so another user can claim it
+      x-requirements: [FR-A08, NFR-06]
+      description: |
+        Sets owner_id and plant_id to null, revokes the device token (next /ingest returns 401 token_revoked).
+        History stays with the releasing owner (readings.owner_id). The app additionally revokes the
+        device's hub credential on the LAN (architecture L-24); that call is not part of this API.
+      security: [{ userJwt: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [device_id], properties: { device_id: { type: string, format: uuid } } } } }
+      responses:
+        "204": { description: Released }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: "Not your device (indistinguishable from unknown id)" }
+  /plants/{id}:
+    delete:
+      tags: [app]
+      summary: Delete a plant together with its photos and readings
+      x-requirements: [FR-A08, NFR-07]
+      description: |
+        Calls the database function `delete_plant(p_plant)` (db-schema.sql). Deletes the plant, its photos,
+        readings, events, alerts and tips. The sensor stays claimed (plant_id becomes null) and is released
+        separately with POST /device-release. The app MUST show a warning first and offer the JSON/CSV export
+        (GET /export); there is no undo. Photo objects in Storage bucket 'plant-photos' are removed by the caller
+        from the returned `photo_paths`. Readings recorded before the sensor was assigned to this plant are kept.
+      security: [{ userJwt: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [plant_id, photo_paths, deleted]
+                properties:
+                  plant_id: { type: string, format: uuid }
+                  photo_paths: { type: array, items: { type: string } }
+                  deleted: { type: object, properties: { readings: { type: integer }, events: { type: integer }, alerts: { type: integer }, photos: { type: integer } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { description: "Not your plant (indistinguishable from unknown id)" }
+  /api-keys:
+    post:
+      tags: [app]
+      summary: Create a personal API key for the MCP server (premium)
+      x-requirements: [FR-P03, FR-P04, NFR-06]
+      description: Key = "nwk_" + 32 random bytes base64url. Returned ONCE; only SHA-256 and the 8-char prefix are stored. 403 premium_required for free users.
+      security: [{ userJwt: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, maxLength: 60 } } } } }
+      responses:
+        "201":
+          description: Created
+          content: { application/json: { schema: { type: object, required: [id, key, prefix], properties: { id: { type: string, format: uuid }, key: { type: string }, prefix: { type: string } } } } }
+        "403": { $ref: "#/components/responses/PremiumRequired" }
+    get:
+      tags: [app]
+      summary: List own keys (never the key itself)
+      x-requirements: [FR-P03]
+      description: Equivalent to a supabase-js select on api_keys; listed for completeness.
+      security: [{ userJwt: [] }]
+      responses:
+        "200": { description: OK }
+  /api-keys/{id}:
+    delete:
+      tags: [app]
+      summary: Revoke a key; the next MCP call with it fails
+      x-requirements: [FR-P03, NFR-06]
+      security: [{ userJwt: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "204": { description: Revoked (sets revoked_at) }
+        "404": { description: Not found }
+  /export:
+    get:
+      tags: [app]
+      summary: Export all of the user's data (JSON or CSV)
+      x-requirements: [NFR-07, FR-A01]
+      description: |
+        Available to free and premium users alike, covers all retained data (12 months of readings),
+        and is not subject to the 7-day free-user read window of the readings policy.
+        format=json: one JSON document {exported_at, profile, plants, devices, readings, events, alerts,
+        tips, photos:[{plant_id, taken_at, url}]}; photo URLs are signed Storage URLs valid 7 days
+        (photos are linked, not embedded) [proposed].
+        format=csv: application/zip with plants.csv, devices.csv, readings.csv, events.csv, alerts.csv, tips.csv
+        (UTF-8, header row, ISO-8601 UTC timestamps, one row per record).
+        Size/time limits of the Supabase function runtime are UNVERIFIED; if a large export times out, move to an async job (4.B1 to confirm).
+      security: [{ userJwt: [] }]
+      parameters: [{ name: format, in: query, required: true, schema: { type: string, enum: [json, csv] } }]
+      responses:
+        "200":
+          description: Export
+          content:
+            application/json: { schema: { type: object } }
+            application/zip: { schema: { type: string, format: binary } }
+  /account:
+    delete:
+      tags: [app]
+      summary: Delete the account and all its data
+      x-requirements: [FR-A01, NFR-07]
+      description: |
+        Order: release and revoke all devices -> delete Storage objects under '<owner_id>/' in plant-photos
+        -> delete auth.users row (FK cascade removes profiles, plants, plant_images, readings, events,
+        alerts, tips, api_keys, push_tokens, claim_tokens). Verified for the SQL cascade in db-schema.test.sql.
+      security: [{ userJwt: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [confirm], properties: { confirm: { type: string, enum: [DELETE] } } } } }
+      responses:
+        "204": { description: Deleted }
+components:
+  securitySchemes:
+    userJwt: { type: http, scheme: bearer, bearerFormat: "Supabase user JWT" }
+    deviceToken: { type: http, scheme: bearer, bearerFormat: "256-bit hex device token (ADR-004)" }
+  schemas:
+    DeviceConfig:
+      type: object
+      required: [sample_interval_s, report_interval_s, dry_pct, wet_pct, low_battery_mv]
+      description: "Per-device settings pushed with every response (architecture D-5). Defaults are the G1 decisions."
+      properties:
+        sample_interval_s: { type: integer, default: 900, description: "15 min (Requirements section 5)" }
+        report_interval_s: { type: integer, default: 3600, description: "FR-D02" }
+        dry_pct: { type: number, default: 25, description: "Dry threshold of the assigned plant; model input T (edge-ai-concept 2.2). Default 25 when no plant is assigned." }
+        wet_pct: { type: number, default: 85 }
+        low_battery_mv: { type: integer, default: 3400, description: "FR-D06; G1: 3.4 V" }
+    Artifact:
+      type: object
+      required: [version, url, sha256, size_bytes]
+      description: "OTA artefact. Integrity = SHA-256 over TLS (G1, A-009); image signing is a follow-up (needs its own ADR)."
+      properties:
+        version: { type: string }
+        url: { type: string, format: uri, description: "Signed Storage URL, valid 1 h" }
+        sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        size_bytes: { type: integer }
+        min_battery_mv: { type: integer, description: "Do not start the update below this voltage" }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, description: "Stable machine code, e.g. token_invalid, device_owned, premium_required, bad_request, rate_limited" }
+        message: { type: string }
+  responses:
+    BadRequest: { description: "error: bad_request (schema violation; message names the field)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Unauthorized: { description: Missing or invalid user JWT, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    PremiumRequired: { description: "error: premium_required (FR-P04)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    RateLimited: { description: "error: rate_limited", headers: { Retry-After: { schema: { type: integer } } }, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }

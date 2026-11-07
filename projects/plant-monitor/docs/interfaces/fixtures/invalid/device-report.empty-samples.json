@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "sent_at": 1767225600,
+  "trigger": "scheduled",
+  "fw": "0.3.1",
+  "model": "a-0.1",
+  "forecast_h": 41.5,
+  "samples": [],
+  "events": [
+    {
+      "ts": 1767224000,
+      "type": "wetting"
+    }
+  ]
+}

@@ -41,6 +41,21 @@ Time: record start/end with `date`, end your result with the Time block (TEAM.md
   every PR, and DevOps also on `main` once at the end. Send a status line as each reviewer finishes.
 - If a reviewer requests changes and one fix round doesn't resolve it, stop and carry over to tomorrow.
 
+## Showcase and Poppy (TEAM.md §13, `roles/pr-social.md`)
+- Every builder assignment includes the showcase item for its PR: `showcase/items/<today>_<task-id>/` with
+  1–3 real images of the output, optional short GIF/MP4, and `caption.md` (task, PR, persona, agent minutes,
+  own human estimate, what is unverified). Add it to the acceptance criteria; Theo checks it for accuracy and
+  confidentiality. Every work order for Peter asks for 2–3 photos and a 10–20 s video plus his OK to use them.
+- **Run Poppy every day after Kai's final pipeline check** (task ID `PR-<today>`, branch
+  `agent/pr-social/<today>`): curate today's showcase items into `showcase/INDEX.md`, keep
+  `showcase/workflow/team-workflow.md` in sync with TEAM.md, add post ideas with evidence and claim sources
+  to the *Nilwerk – Content Plan* sheet. **Fridays, after the sprint review:** weekly content pack (LinkedIn
+  DE+EN text, one Instagram post/carousel for @nilwerk as a **Metricool draft only**, a "sprint in numbers"
+  card); monthly a case-study draft. Each Metricool draft → Needs Arsany row (type *Post approval*, planner link).
+  Theo reviews her PR. Time, log and status-line her like every agent.
+- Daily report and summary get a **Showcase** line: new items today, post drafts waiting for approval.
+- Friday review links the three best showcase items.
+
 ## Agile ceremonies (TEAM.md §7)
 - **Monday = sprint planning** (or the first run of a sprint): read the Sprints tab, refine the sprint goal,
   commit tasks (Plan column X = sprint), record committed IDs in the Sprints tab. Carry-over from last

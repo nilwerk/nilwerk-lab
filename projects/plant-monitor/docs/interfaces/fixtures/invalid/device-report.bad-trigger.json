@@ -1,0 +1,52 @@
+{
+  "v": 1,
+  "sent_at": 1767225600,
+  "trigger": "hourly",
+  "fw": "0.3.1",
+  "model": "a-0.1",
+  "forecast_h": 41.5,
+  "samples": [
+    {
+      "ts": 1767222000,
+      "moisture_pct": 42.0,
+      "moisture_raw": 2210,
+      "temp_c": 21.4,
+      "rh_pct": 55,
+      "lux": 1200,
+      "vbat_mv": 3900
+    },
+    {
+      "ts": 1767222900,
+      "moisture_pct": 41.8,
+      "moisture_raw": 2214,
+      "temp_c": 21.5,
+      "rh_pct": 55,
+      "lux": 1180,
+      "vbat_mv": 3898
+    },
+    {
+      "ts": 1767223800,
+      "moisture_pct": 41.5,
+      "moisture_raw": 2219,
+      "temp_c": 21.5,
+      "rh_pct": 54,
+      "lux": 1150,
+      "vbat_mv": 3897
+    },
+    {
+      "ts": 1767224700,
+      "moisture_pct": null,
+      "moisture_raw": null,
+      "temp_c": 21.6,
+      "rh_pct": 54,
+      "lux": 1100,
+      "vbat_mv": 3896
+    }
+  ],
+  "events": [
+    {
+      "ts": 1767224000,
+      "type": "wetting"
+    }
+  ]
+}
