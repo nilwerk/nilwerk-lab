@@ -83,6 +83,24 @@ Canva note: Space Grotesk, Inter and JetBrains Mono are in Canva's library; the 
 - **Words to avoid:** first, best, fastest, revolutionary, "X times faster", "autonomous", "guaranteed", anything that hints nobody checks the work. Never "will" for things not yet built.
 - **Numbers:** measured vs calculated vs simulated vs estimated is always visible (the status chip in the templates). Human-equivalent hours are always "estimated".
 
+## 5b. Audiences and the two-layer post (owner request 2026-11-07)
+
+Every post serves two audiences at once; the **layers** let each one take what it needs.
+
+| | **A: non-technical** | **B: technical** |
+|---|---|---|
+| Who | Founders, SME owners, plant lovers, buyers of hardware projects | Engineers, CTOs, makers |
+| Cares about | Does it work, can I trust it, what does it mean for me, who checks it | Numbers, formulas, how it was verified, what is still unmeasured |
+| Tone | Warm, plain, one idea per post, benefit first | Precise, sourced, no hype |
+| Vocabulary | Plain words; any term of art gets a one-line explanation (see `glossary.md`); no acronym without its meaning | Exact terms, units, formulas, test names, evidence links |
+| Proof | A single number and a before/after picture | The same number plus method, source file and caveats |
+
+**Two-layer pattern (every post, every format):**
+1. **Layer 1, plain story (leads):** headline + two plain sentences: what happened and why it matters. In images: headline and the two-line intro under it. In text: the first 2-3 short paragraphs. Anyone should be able to stop here and still know the point.
+2. **Layer 2, "For engineers" (marked):** the numbers, formula, how it was checked, and what is still unmeasured or stubbed. In images: the mono block labelled FOR ENGINEERS (two lines) plus the status chip. In text: a paragraph starting "For engineers:" (DE: "Für Ingenieure:"). Sources and caveats live here, never hidden.
+3. **Lead layer per slot:** the calendar says which audience leads (A, B or both); the other layer still appears, but second.
+4. Honesty chip and the human-review line (`AI agents, led and reviewed by humans`) appear in both layers' posts. This exact phrase is the one wording used everywhere; German: "KI-Agenten, geleitet und geprüft von Menschen".
+
 ## 6. Do / Don't
 
 | Do | Don't |
@@ -113,9 +131,11 @@ Canva note: Space Grotesk, Inter and JetBrains Mono are in Canva's library; the 
 
 ## 8. Templates
 
-`templates/` has three SVGs with `{{PLACEHOLDERS}}`: `post-portrait-1080x1350.svg` (Instagram 4:5), `post-linkedin-1200x627.svg`, `post-square-1080x1080.svg`. Layout: logo, kicker chip, 3-line headline (last line accent), optional 2-line intro, two evidence tiles (label, big number, 3 lines), status chip, source lines, footer with handle and the human-review line. `build_post.py` fills them, resolves the tokens for light or dark and renders PNG (Chromium via Playwright at 2x). `previews/` shows all three in light and dark with placeholder text (viewed: text fits, contrast fine). Limits: headline ≤ 19 characters per line (portrait), label ≤ 24 characters, tile number ≤ 7 characters, sub-lines ≤ 26 characters; `build_post.py` warns on long headlines, always look at the render.
+`templates/` has three SVGs with `{{PLACEHOLDERS}}`: `post-portrait-1080x1350.svg` (Instagram 4:5), `post-linkedin-1200x627.svg`, `post-square-1080x1080.svg`. Layout: logo, kicker chip, 3-line headline (last line accent), **plain 2-line intro (layer 1)**, two evidence tiles (label, big number, 3 lines), status chip, **FOR ENGINEERS block with two source/caveat lines (layer 2)**, footer with handle and the human-review line. Plain glossary: `glossary.md`. `build_post.py` fills them, resolves the tokens for light or dark and renders PNG (Chromium via Playwright at 2x). `previews/` shows all three in light and dark with placeholder text (viewed: text fits, contrast fine). Limits: headline ≤ 19 characters per line (portrait), label ≤ 24 characters, tile number ≤ 7 characters, sub-lines ≤ 26 characters; `build_post.py` warns on long headlines, always look at the render.
 Rebuild: `NW_FONT_DIR=<node_modules/@fontsource> python3 -I build_post.py --previews previews` (needs `npm i @fontsource/space-grotesk @fontsource/inter @fontsource/jetbrains-mono`).
 
 ## 9. Approval needed
+
+Also for approval: the audience split and the two-layer pattern (section 5b).
 
 Palette, fonts and logo usage are proposals: see the Needs-Arsany rows in Poppy's result. Until approved, treat this as v0.1 for drafts only.

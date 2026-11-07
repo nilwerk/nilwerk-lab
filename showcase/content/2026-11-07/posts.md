@@ -1,8 +1,10 @@
-# Content pack 2026-11-07: two post drafts
+# Content pack 2026-11-07: two post drafts (two-layer pattern)
 
-Drafts only. Nothing is published or scheduled. Author: Poppy (PR & Social). Images are code-generated from the brand templates (`images/`, rebuild with `build_images.py`), so they are **not** AI imagery and need no AI flag. Claim sources: `claim-check.md`. Brand look is a **proposal** until Arsany approves `showcase/brand/brand-kit.md`.
+Drafts only. Nothing is published or scheduled. Author: Poppy (PR & Social). Images are code-generated from the brand templates (`images/`, rebuild with `build_images.py`), so they are **not** AI imagery and need no AI flag. Claim sources: `claim-check.md`. Plain-word explanations of terms: `../../brand/glossary.md`. Brand look is a **proposal** until Arsany approves `showcase/brand/brand-kit.md`.
 
-Status of each text: English by Poppy; German is a plain-German draft and **must be checked by Theo or Nora, then Arsany** before use (fix round 1 applied Theo's wording). Suggested slots: Post 1 Mon 9 Nov, Post 2 Tue 10 Nov (see `../calendar.md`). Tag @nilwerk, link nilwerk.de.
+**Two layers in every text:** first the plain story (audience A: non-technical), then a paragraph marked "For engineers:" / "Für Ingenieure:" (audience B: numbers, how it was checked, what is unmeasured). One wording for the human side everywhere: "AI agents, led and reviewed by humans" (DE: "KI-Agenten, geleitet und geprüft von Menschen").
+
+Status: English by Poppy; German is a plain-German draft and **must be checked by Theo or Nora, then Arsany** (Theo's wording from fix round 1 kept). Suggested slots: Post 1 Mon 9 Nov (A leads), Post 2 Tue 10 Nov (B leads, see `../calendar.md`). Tag @nilwerk, link nilwerk.de.
 
 ---
 
@@ -13,15 +15,15 @@ Alt text: "Before and after: charger resistor R9 of 1.2 kOhm gives about 0.9 A i
 
 ### LinkedIn (EN)
 
-In our first parts-list draft, the charger resistor R9 was 1.2 kOhm: about 0.9 A into a 1000 mAh cell, roughly 0.9C and well above the gentle 0.5C we want for this little plant sensor.
+A tiny part decides how fast our plant sensor's battery charges. In our first parts-list draft, that part, the charger resistor R9, was 1.2 kOhm: about 0.9 A into a 1000 mAh cell, roughly 0.9C and well above the gentle 0.5C we want for this little plant sensor.
 
-R9 sets the charge current. During review our reviewing AI agent flagged it, and our PCB agent redid the sum with the charger datasheet's formula (R = 1100 / I): R9 is now 2.4 kOhm, which gives about 458 mA (0.46C), and still only 527 mA if the chip's +15 % tolerance goes against us.
-
-Nothing had been ordered. That is the point of reviewing before buying: a wrong resistor costs one line in a spreadsheet, not a board respin.
+During review our reviewing AI agent flagged it, and our PCB agent redid the sum. R9 is now 2.4 kOhm, a much gentler charge. Nothing had been ordered, so the fix cost one line in a spreadsheet, not a board respin. That is the point of reviewing before buying.
 
 Honest status: this is calculated from the datasheet, not yet measured. It still has to be checked on a real board.
 
-How we work: our team is made of AI agents, led and reviewed by a human engineer who approves every change.
+For engineers: R9 programs the charge current of the charger IC (TP4056); we used the datasheet formula R = 1100 / I. 2.4 kOhm gives about 458 mA (0.46C of 1000 mAh) and 527 mA in the worst case with the chip's +15 % current tolerance (0.53C). Source: BOM draft revision 2. Open: thermal and cell-temperature behaviour, and the exact figure against the datasheet edition, are still to be checked.
+
+How we work: AI agents, led and reviewed by humans.
 
 nilwerk.de · @nilwerk
 
@@ -29,15 +31,15 @@ nilwerk.de · @nilwerk
 
 ### LinkedIn (DE), to be checked by Theo/Nora
 
-In unserem ersten Stücklistenentwurf stand für den Ladewiderstand R9 ein Wert von 1,2 kΩ. Das bedeutet etwa 0,9 A in eine Zelle mit 1000 mAh, rund 0,9C und damit deutlich mehr als die schonenden 0,5C, die wir für diesen kleinen Pflanzensensor wollen.
+Ein winziges Bauteil entscheidet, wie schnell der Akku unseres Pflanzensensors geladen wird. In unserem ersten Stücklistenentwurf stand für dieses Bauteil, den Ladewiderstand R9, ein Wert von 1,2 kΩ. Das bedeutet etwa 0,9 A in eine Zelle mit 1000 mAh, rund 0,9C und damit deutlich mehr als die schonenden 0,5C, die wir für diesen kleinen Pflanzensensor wollen.
 
-R9 legt den Ladestrom fest. In der Prüfung hat unser Review-Agent den Wert markiert, und unser Platinen-Agent hat mit der Formel aus dem Datenblatt des Ladechips (R = 1100 / I) neu gerechnet: R9 ist jetzt 2,4 kΩ. Das ergibt etwa 458 mA (0,46C), und auch im ungünstigsten Fall (+15 % Toleranz des Chips) nur 527 mA.
-
-Bestellt war noch nichts. Genau dafür prüfen wir vor dem Einkauf: Ein falscher Widerstand kostet eine Zeile in der Tabelle, keine neue Platinenrunde.
+In der Prüfung hat unser Review-Agent den Wert markiert, und unser Platinen-Agent hat neu gerechnet. R9 ist jetzt 2,4 kΩ, ein deutlich sanfteres Laden. Bestellt war noch nichts. Ein falscher Widerstand kostet eine Zeile in der Tabelle, keine neue Platinenrunde. Genau dafür prüfen wir vor dem Einkauf.
 
 Ehrlicher Stand: Das ist aus dem Datenblatt berechnet, noch nicht gemessen. Es muss noch an einer echten Platine geprüft werden.
 
-So arbeiten wir: Unser Team besteht aus KI-Agenten, geleitet und geprüft von einem Ingenieur, der jede Änderung freigibt.
+Für Ingenieure: R9 legt den Ladestrom des Ladechips (TP4056) fest; wir haben die Datenblatt-Formel R = 1100 / I verwendet. 2,4 kΩ ergibt etwa 458 mA (0,46C bei 1000 mAh) und im ungünstigsten Fall (+15 % Toleranz des Chips) nur 527 mA (0,53C). Quelle: Stücklistenentwurf, Revision 2. Offen: das thermische Verhalten, das Verhalten bei Zelltemperatur und die genauen Werte gegen die Datenblatt-Ausgabe.
+
+So arbeiten wir: KI-Agenten, geleitet und geprüft von Menschen.
 
 nilwerk.de · @nilwerk
 
@@ -45,11 +47,13 @@ nilwerk.de · @nilwerk
 
 ### Instagram (EN) caption
 
-Ooh, a good catch! One resistor, R9, decides how hard the charger pushes into the battery. First draft: 1.2 kOhm, about 0.9 A into a 1000 mAh cell. After review by our reviewing AI agent: 2.4 kOhm, 458 mA (0.46C), 527 mA even in the worst tolerance case. Nothing was ordered, so the fix cost one spreadsheet line.
+Ooh, a good catch! A tiny part, the charger resistor R9, decides how hard the charger pushes into the battery. First draft: 1.2 kOhm, about 0.9 A into a 1000 mAh cell. After review by our reviewing AI agent: 2.4 kOhm, a much gentler charge. Nothing was ordered, so the fix cost one spreadsheet line.
 
-Calculated from the datasheet, not yet measured: it still has to be checked on a real board. Our team is AI agents, led and reviewed by a human engineer.
+Calculated from the datasheet, not yet measured: it still has to be checked on a real board.
 
-nilwerk.de · @nilwerk
+For engineers: R = 1100 / I (charger datasheet) gives 458 mA (0.46C), 527 mA worst case with +15 % tolerance. BOM draft rev. 2.
+
+AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 Deutsch: Ein Review hat einen zu großen Ladestrom entdeckt, bevor etwas bestellt wurde. Berechnet, noch nicht gemessen.
 
 Hashtags: #nilwerk #electronics #pcbdesign #hardwarestartup #aiagents #buildinpublic #iot #prototyping #engineering #plantmonitor
@@ -67,13 +71,15 @@ Alt text: "Two tiles: row-level security on 14 of 14 tables of our own database 
 
 Your plants, your data. How do you know the app really keeps it that way?
 
-Our backend agent just wrote the first version of the cloud database, and the test that came with it does something simple: it creates user A and user B, then makes A try everything it should not be able to do. Read B's rows. Change them. Delete them. Insert rows pretending to be B.
+Our backend agent just wrote the first version of the cloud database, and the test that came with it does something simple: it creates user A and user B, then makes A try everything it should not be able to do. Read B's data. Change it. Delete it. Insert rows pretending to be B.
 
-Result on a local PostgreSQL 16: row-level security is switched on for all 14 tables of our schema, A sees 0 foreign rows, changes and deletes touch 0 of B's rows, and forged inserts are rejected. The same run also checks the retention rule: raw readings are kept for 3 months, hourly roll-ups for 12.
+The result: A sees nothing of B's, changes and deletes touch 0 of B's rows, and forged inserts are rejected. The same run also checks how long data is kept: raw readings 3 months, hourly summaries 12.
 
 Honest status: tested on a local database, not yet on a real Supabase project. Login identity (auth), the scheduler and file storage are stubbed or skipped locally. That comes next.
 
-A test that fails when the rule is broken beats a promise in a slide deck. Our team is AI agents, led and reviewed by a human engineer who approves every change.
+For engineers: row-level security (RLS) is enabled on all 14 tables of our schema; the test ran on a local PostgreSQL 16. A sees 0 foreign rows on every table; the forged-insert check passes on all 14. The retention test covers roll-up and cleanup, and the schema contract test passes on the migrated database. Not covered yet: real Supabase auth, pg_cron schedules, storage buckets.
+
+A test that fails when the rule is broken beats a promise in a slide deck. AI agents, led and reviewed by humans.
 
 nilwerk.de · @nilwerk
 
@@ -85,11 +91,13 @@ Ihre Pflanzen, Ihre Daten. Woher wissen Sie, dass die App das wirklich einhält?
 
 Unser Backend-Agent hat gerade die erste Version der Cloud-Datenbank geschrieben. Der zugehörige Test macht etwas Einfaches: Er legt Nutzer A und Nutzer B an und lässt A alles versuchen, was nicht gehen darf. Daten von B lesen. Verändern. Löschen. Zeilen im Namen von B einfügen.
 
-Ergebnis auf einer lokalen PostgreSQL-16-Datenbank: Row-Level-Security ist auf allen 14 Tabellen unseres Schemas aktiv, A sieht 0 fremde Zeilen, Änderungen und Löschversuche an Daten von B bleiben wirkungslos, eingeschmuggelte Zeilen werden abgelehnt. Im selben Lauf wird auch die Aufbewahrungsregel geprüft: Rohdaten 3 Monate, stündliche Zusammenfassungen 12 Monate.
+Das Ergebnis: A sieht nichts von B, Änderungen und Löschversuche an Daten von B bleiben wirkungslos, eingeschmuggelte Zeilen werden abgelehnt. Im selben Lauf wird auch geprüft, wie lange Daten aufbewahrt werden: Rohdaten 3 Monate, stündliche Zusammenfassungen 12 Monate.
 
 Ehrlicher Stand: getestet auf einer lokalen Datenbank, noch nicht auf einem echten Supabase-Projekt. Anmeldung, Zeitplaner und Dateispeicher sind lokal nur nachgebildet oder übersprungen. Das ist der nächste Schritt.
 
-Ein Test, der fehlschlägt, wenn die Regel verletzt wird, ist mehr wert als ein Versprechen auf einer Folie. Unser Team besteht aus KI-Agenten, geleitet und geprüft von einem Ingenieur, der jede Änderung freigibt.
+Für Ingenieure: Row-Level-Security (RLS) ist auf allen 14 Tabellen unseres Schemas aktiv; der Test lief auf einer lokalen PostgreSQL-16-Datenbank. A sieht auf jeder Tabelle 0 fremde Zeilen; die Prüfung eingeschmuggelter Zeilen besteht auf allen 14. Der Aufbewahrungstest deckt Zusammenfassung und Bereinigung ab, und der Schema-Vertragstest besteht auf der migrierten Datenbank. Noch nicht abgedeckt: echte Supabase-Anmeldung, pg_cron-Zeitpläne, Speicher-Buckets.
+
+Ein Test, der fehlschlägt, wenn die Regel verletzt wird, ist mehr wert als ein Versprechen auf einer Folie. KI-Agenten, geleitet und geprüft von Menschen.
 
 nilwerk.de · @nilwerk
 
@@ -97,11 +105,13 @@ nilwerk.de · @nilwerk
 
 ### Instagram (EN) caption
 
-Can user A peek at user B's plants? We made them try. Row-level security is on for 14 of 14 tables of our schema, A saw 0 foreign rows, and none of the attempts to read, change, delete or forge B's data succeeded. Plus: raw readings kept 3 months, hourly roll-ups 12.
+Can user A peek at user B's plants? We made them try. A tried to read, change, delete or forge B's data: none of the attempts succeeded. Plus: raw readings kept 3 months, hourly summaries 12.
 
-Tested on a local PostgreSQL 16 (login, scheduler and file storage stubbed), not yet on a live Supabase project. Our team is AI agents, led and reviewed by a human engineer.
+Tested on a local database (login, scheduler and file storage stubbed), not yet on a live Supabase project.
 
-nilwerk.de · @nilwerk
+For engineers: RLS enabled on all 14 tables of our schema, local PostgreSQL 16, 0 foreign rows seen.
+
+AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 Deutsch: Nutzer A kann die Daten von Nutzer B weder lesen noch ändern. Getestet auf lokaler Datenbank, noch nicht live.
 
 Hashtags: #nilwerk #backend #postgresql #supabase #dataprivacy #aiagents #buildinpublic #iot #softwareengineering #plantmonitor

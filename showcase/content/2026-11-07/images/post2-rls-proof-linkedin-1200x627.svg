@@ -26,8 +26,8 @@
     <text x="56" y="350" fill="#3fc79a">plant data.</text>
   </g>
   <g font-family="Inter, sans-serif" font-size="23" fill="#a2a7af">
-    <text x="56" y="400">Row-level security on all our tables,</text>
-    <text x="56" y="430">proved by a test, not by a promise.</text>
+    <text x="56" y="400">Can one user see another user&#x27;s plants?</text>
+    <text x="56" y="430">We tested all 14 tables of our schema.</text>
   </g>
 
   <rect x="56" y="462" width="444" height="34" rx="6" fill="none" stroke="#e58a4f" stroke-width="1.5"/>
@@ -53,9 +53,10 @@
     <text x="722" y="514" font-family="Inter, sans-serif" font-size="21" fill="#a2a7af">none succeeded</text>
   </g>
 
+  <text x="56" y="534" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="15" letter-spacing="1.2" fill="#3fc79a">FOR ENGINEERS</text>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#a2a7af">
-    <text x="56" y="560">Source: cloud test run, 7 Nov 2026 (RLS + retention)</text>
-    <text x="56" y="581">Not yet run on a real Supabase project</text>
+    <text x="56" y="556">Local PostgreSQL 16 run, 7 Nov 2026: RLS + retention tests</text>
+    <text x="56" y="577">Auth, scheduler, storage stubbed locally; not on live Supabase</text>
   </g>
   <line x1="56" y1="594" x2="1144" y2="594" stroke="#2a3038" stroke-width="1.5"/>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#a2a7af">

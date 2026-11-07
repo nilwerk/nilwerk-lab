@@ -26,8 +26,8 @@
     <text x="56" y="350" fill="#0f7a5c">before any order.</text>
   </g>
   <g font-family="Inter, sans-serif" font-size="23" fill="#5b616b">
-    <text x="56" y="400">R9 sets the charge current of a 1000 mAh cell.</text>
-    <text x="56" y="430">Our reviewing agent flagged 1.2 kOhm as too high.</text>
+    <text x="56" y="400">A tiny part sets how fast the battery charges.</text>
+    <text x="56" y="430">Our reviewing AI agent flagged the wrong value.</text>
   </g>
 
   <rect x="56" y="462" width="355" height="34" rx="6" fill="none" stroke="#b4541a" stroke-width="1.5"/>
@@ -53,9 +53,10 @@
     <text x="722" y="514" font-family="Inter, sans-serif" font-size="21" fill="#5b616b">(+15 % tolerance)</text>
   </g>
 
+  <text x="56" y="534" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="15" letter-spacing="1.2" fill="#0f7a5c">FOR ENGINEERS</text>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#5b616b">
-    <text x="56" y="560">Source: BOM draft rev. 2 and review, 6-7 Nov 2026</text>
-    <text x="56" y="581">Formula from the charger datasheet; bench test pending</text>
+    <text x="56" y="556">R9 sets charge current, R = 1100 / I (charger datasheet), BOM rev. 2</text>
+    <text x="56" y="577">Calculated, not yet measured on a real board</text>
   </g>
   <line x1="56" y1="594" x2="1144" y2="594" stroke="#e2ded5" stroke-width="1.5"/>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#5b616b">

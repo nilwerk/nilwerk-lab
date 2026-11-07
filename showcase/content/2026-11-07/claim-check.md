@@ -16,8 +16,11 @@ Types: **M** measured/test result, **C** calculated from a datasheet formula, **
 | 8 | Nothing had been ordered | D | bom-draft.md header: "Nothing was ordered or bought" | ok |
 | 9 | PCB agent (Emil) redid the sum | D | commit db782c5 "[2.5] BOM follow-up: R9 ..." (PR #30), persona Emil | ok |
 | 10 | Calculated, not yet measured; still has to be checked on a real board (no promise of who or when) | D | bom-draft.md "thermal and cell-temperature behaviour in 4.P1" still open | ok (fix round C3) |
-| 11 | AI agents led and reviewed by a human engineer who approves every change | D | TEAM.md sections 4, 5, 12 (Arsany merges every PR) | ok |
+| 11 | "AI agents, led and reviewed by humans" (one wording everywhere; every change is approved by a person) | D | TEAM.md sections 4, 5, 12 (Arsany merges every PR) | ok |
 | 12 | "cost one line in a spreadsheet, not a board respin" | D (framing) | no board was ordered (see 8) | ok, rhetorical, no number |
+| 13 | (two-layer round) "A tiny part decides how fast the battery charges"; "much gentler charge" (2.4 vs 1.2 kOhm = about half the current) | C | bom-draft.md R9 section; 1100 / 2.4k = 458 mA vs about 0.9 A | ok |
+| 14 | "For engineers" paragraph: R9 programs the charge current of the TP4056; 0.53C worst case (527 / 1000) ; open items: thermal and cell-temperature behaviour, datasheet edition | C / D | bom-draft.md "R9" section and open column of the "What changed" table; claim note A | ok (T) |
+| 15 | Image intro "Our reviewing AI agent flagged the wrong value"; footer wording "AI agents, led and reviewed by humans" used everywhere (Ines N2) | D | row 3; TEAM.md section 4 | ok |
 
 **Note A (open, for Theo):** the agents' formula is R = 1100 / I. Common TP4056 vendor tables read about 1.2 kOhm = 1 A and 2.0 kOhm ~ 0.58 A (roughly 1200 / R), i.e. 2.4 kOhm would be about 0.5 A. Datasheet editions differ. Either reading keeps the new value well below 1C and above the old one by 2x, so the story holds, but the exact figures 458 / 527 mA and "~0.9 A" should be confirmed against the datasheet edition in the BOM before this goes out. If they change, rebuild the image (edit `build_images.py`).
 
@@ -35,6 +38,9 @@ Types: **M** measured/test result, **C** calculated from a datasheet formula, **
 | 8 | "backend agent just wrote the first version" | D | task 4.B1, PR #29 (merged), persona Sana (Cloud AI) | ok |
 | 9 | 14 tables = "all tables of our own database schema" | M | "RLS enabled on all 14 public tables" (public schema only) | wording fixed in round C4 (no "every table") |
 | 10 | Review and approval statement | D | TEAM.md sections 4, 5 | ok |
+| 11 | (two-layer round) Image intro and text: "tested all 14 tables of our schema" (Ines N1) | M | test-output.txt "RLS enabled on all 14 public tables" | ok |
+| 12 | "For engineers": A sees 0 foreign rows on every table; forged-insert check passes on all 14; retention test covers roll-up and cleanup; schema contract test passes on the migrated database | M | test-output.txt: 14 "read ok" lines, "forged inserts refused on all 14 tables", "apply_retention #1 -> rolled_up 1, raw_deleted 5, hourly_deleted 1", "ALL OK" | ok |
+| 13 | Not covered yet: real Supabase auth, pg_cron schedules, storage buckets | D | test-output.txt NOTICEs "pg_cron not available", "storage schema not present"; caption 4.B1 "auth.uid() ... stubbed" | ok |
 
 ## Not used, and why
 

@@ -29,8 +29,8 @@
     <text x="72" y="541" fill="#3fc79a">plant data.</text>
   </g>
   <g font-family="Inter, sans-serif" font-weight="400" font-size="34" fill="#a2a7af">
-    <text x="72" y="622">Row-level security on all our tables,</text>
-    <text x="72" y="668">proved by a test, not by a promise.</text>
+    <text x="72" y="622">Can one user see another user&#x27;s plants?</text>
+    <text x="72" y="668">We tested all 14 tables of our schema.</text>
   </g>
 
   <!-- two evidence tiles -->
@@ -57,14 +57,15 @@
   <rect x="72" y="1112" width="636" height="48" rx="8" fill="none" stroke="#e58a4f" stroke-width="2"/>
   <text x="92" y="1145" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="22" letter-spacing="1" fill="#e58a4f">TESTED ON LOCAL POSTGRES 16 · NOT YET LIVE</text>
 
-  <!-- source + footer -->
-  <g font-family="'JetBrains Mono', monospace" font-size="21" fill="#a2a7af">
-    <text x="72" y="1214">Source: cloud test run, 7 Nov 2026 (RLS + retention)</text>
-    <text x="72" y="1244">Not yet run on a real Supabase project</text>
+  <!-- layer 2: for engineers (numbers, how checked, what is unmeasured) + footer -->
+  <text x="72" y="1204" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#3fc79a">FOR ENGINEERS</text>
+  <g font-family="'JetBrains Mono', monospace" font-size="20" fill="#a2a7af">
+    <text x="72" y="1232">Local PostgreSQL 16 run, 7 Nov 2026: RLS + retention tests</text>
+    <text x="72" y="1258">Auth, scheduler, storage stubbed locally; not on live Supabase</text>
   </g>
-  <line x1="72" y1="1270" x2="1008" y2="1270" stroke="#2a3038" stroke-width="2"/>
+  <line x1="72" y1="1278" x2="1008" y2="1278" stroke="#2a3038" stroke-width="2"/>
   <g font-family="'JetBrains Mono', monospace" font-size="21" fill="#a2a7af">
-    <text x="72" y="1307">@nilwerk · nilwerk.de</text>
-    <text x="1008" y="1307" text-anchor="end">AI agents, led and reviewed by humans</text>
+    <text x="72" y="1316">@nilwerk · nilwerk.de</text>
+    <text x="1008" y="1316" text-anchor="end">AI agents, led and reviewed by humans</text>
   </g>
 </svg>

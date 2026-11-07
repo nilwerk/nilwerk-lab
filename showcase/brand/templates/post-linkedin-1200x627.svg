@@ -53,9 +53,10 @@
     <text x="722" y="514" font-family="Inter, sans-serif" font-size="21" fill="var(--nw-muted)">{{TILE_B_SUB3}}</text>
   </g>
 
+  <text x="56" y="534" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="15" letter-spacing="1.2" fill="var(--nw-accent)">FOR ENGINEERS</text>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="var(--nw-muted)">
-    <text x="56" y="560">{{SRC1}}</text>
-    <text x="56" y="581">{{SRC2}}</text>
+    <text x="56" y="556">{{SRC1}}</text>
+    <text x="56" y="577">{{SRC2}}</text>
   </g>
   <line x1="56" y1="594" x2="1144" y2="594" stroke="var(--nw-line)" stroke-width="1.5"/>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="var(--nw-muted)">

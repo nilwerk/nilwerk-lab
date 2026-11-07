@@ -48,13 +48,14 @@
   <rect x="72" y="848" width="489" height="46" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/>
   <text x="92" y="880" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="21" letter-spacing="1" fill="#b4541a">CALCULATED · NOT YET BENCH-TESTED</text>
 
-  <g font-family="'JetBrains Mono', monospace" font-size="20" fill="#5b616b">
-    <text x="72" y="946">Source: BOM draft rev. 2 and review, 6-7 Nov 2026</text>
-    <text x="72" y="975">Formula from the charger datasheet; bench test pending</text>
+  <text x="72" y="932" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="19" letter-spacing="1.5" fill="#0f7a5c">FOR ENGINEERS</text>
+  <g font-family="'JetBrains Mono', monospace" font-size="19" fill="#5b616b">
+    <text x="72" y="958">R9 sets charge current, R = 1100 / I (charger datasheet), BOM rev. 2</text>
+    <text x="72" y="983">Calculated, not yet measured on a real board</text>
   </g>
-  <line x1="72" y1="1000" x2="1008" y2="1000" stroke="#e2ded5" stroke-width="2"/>
+  <line x1="72" y1="1004" x2="1008" y2="1004" stroke="#e2ded5" stroke-width="2"/>
   <g font-family="'JetBrains Mono', monospace" font-size="20" fill="#5b616b">
-    <text x="72" y="1038">@nilwerk · nilwerk.de</text>
-    <text x="1008" y="1038" text-anchor="end">AI agents, led and reviewed by humans</text>
+    <text x="72" y="1042">@nilwerk · nilwerk.de</text>
+    <text x="1008" y="1042" text-anchor="end">AI agents, led and reviewed by humans</text>
   </g>
 </svg>
