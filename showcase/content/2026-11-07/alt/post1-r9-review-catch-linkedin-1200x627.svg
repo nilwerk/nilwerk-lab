@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627" role="img" aria-label="A review caught a charger resistor before any order.">
+  <!-- Nilwerk post template v0.2 (designer alternative, PROPOSAL). 1200x627. Hero number right, statement left, trace across. -->
+  <rect width="1200" height="627" fill="#f6f4ef"/>
+  <!-- header: line mark + wordmark left, mono kicker right, hairline -->
+  <g transform="translate(52 22.0) scale(1.0714285714285714)" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M6 25V8.5L19 25V12" stroke="#15181d" stroke-width="2.4"/><circle cx="19" cy="9.2" r="2.7" stroke="#0f7a5c" stroke-width="2"/></g>
+  <text x="88" y="55" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="24" letter-spacing="-1.2" fill="#15181d">nilwerk</text>
+  <text x="1144" y="55" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="12" letter-spacing="1.4" fill="#5b616b">CAUGHT IN REVIEW · HARDWARE</text>
+  <line x1="56" y1="74" x2="1144" y2="74" stroke="#c9c2b3" stroke-width="1.5"/>
+  <g font-family="'Space Grotesk', Inter, sans-serif" font-weight="500" font-size="48" letter-spacing="-1.4" fill="#15181d">
+    <text x="56" y="150">A review caught</text>
+    <text x="56" y="204">a charger resistor</text>
+    <text x="56" y="258">before any order.</text>
+  </g>
+  <g font-family="Inter, sans-serif" font-size="19" fill="#5b616b">
+    <text x="56" y="302">A tiny part sets how fast the battery charges.</text>
+    <text x="56" y="328">Our reviewing AI agent flagged the wrong value.</text>
+  </g>
+  <text x="680" y="124" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="14" letter-spacing="1.4" fill="#0f7a5c">AFTER · R9 = 2.4 kOhm</text>
+  <text x="672" y="244" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="128" letter-spacing="-5" fill="#15181d">458<tspan font-size="0.36em" letter-spacing="0" dx="0.25em">mA</tspan></text>
+  <g font-family="Inter, sans-serif" font-size="17" fill="#5b616b">
+    <text x="680" y="278">0.46C, from R = 1100 / I</text>
+    <text x="680" y="300">worst case 527 mA</text>
+    <text x="680" y="322">(+15 % tolerance)</text>
+  </g>
+  <g transform="translate(0 372)"><circle cx="62" cy="22" r="6" fill="none" stroke="#0f7a5c" stroke-width="2.5"/><path d="M68,22 H432 L441.0,11.2 L459.0,32.8 L477.0,11.2 L495.0,32.8 L513.0,11.2 L531.0,32.8 L540.0,22.0 H1210" fill="none" stroke="#0f7a5c" stroke-width="2.5" stroke-linejoin="round"/><text x="432" y="53" font-family="'JetBrains Mono', monospace" font-size="12" fill="#5b616b">R9 · 1.2 kOhm to 2.4 kOhm</text></g>
+  <line x1="56" y1="436" x2="1144" y2="436" stroke="#c9c2b3" stroke-width="1.5"/>
+  <text x="56" y="466" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="13" letter-spacing="1.4" fill="#b4541a">BEFORE · R9 = 1.2 kOhm</text>
+  <text x="56" y="506" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="38" letter-spacing="-1" fill="#15181d">~0.9 A</text>
+  <text x="56" y="530" font-family="Inter, sans-serif" font-size="15" fill="#5b616b">about 0.9C on a · 1000 mAh cell, · flagged in review</text>
+  <rect x="680" y="459" width="10" height="10" fill="#b4541a"/>
+  <text x="698" y="470" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="14" letter-spacing="0.8" fill="#15181d">CALCULATED · NOT YET BENCH-TESTED</text>
+  <text x="56" y="554" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="13" letter-spacing="1.4" fill="#0f7a5c">FOR ENGINEERS</text>
+  <g font-family="'JetBrains Mono', monospace" font-size="13" fill="#5b616b"><text x="190" y="554">R9 sets charge current, R = 1100 / I (charger datasheet), BOM rev. 2</text><text x="190" y="574">Calculated, not yet measured on a real board</text></g>
+  <line x1="56" y1="592" x2="1144" y2="592" stroke="#c9c2b3" stroke-width="1.5"/>
+  <g font-family="'JetBrains Mono', monospace" font-size="13" fill="#5b616b">
+    <text x="56" y="616">@nilwerk · nilwerk.de</text>
+    <text x="1144" y="616" text-anchor="end">AI agents, led and reviewed by humans</text>
+  </g>
+</svg>

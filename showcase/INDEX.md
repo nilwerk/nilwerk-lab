@@ -5,6 +5,7 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 - `workflow/` — how the team works (safe to publish)
 - `items/<YYYY-MM-DD>_<task-id>/` — one folder per showcase item: images, optional short animation, `caption.md`
 - `brand/` — **brand kit v0.1 (proposal, awaiting Arsany's approval)**: `brand-kit.md`, `brand.css` tokens, logo mark, three SVG post templates, contrast checker, previews
+- `brand/alt-designer-v0.2/` — **alternative "designer" look for comparison with v0.1** (own tokens, logo options, templates, `comparison-board.png`); v0.1 stays untouched until Arsany decides
 - `content/` — post drafts and the content calendar: `calendar.md` (9-20 Nov 2026), `2026-11-07/` (two drafted posts with images and claim-check)
 - `stories/origin/` — origin story canon and first carousel (pre-brand look, to be re-rendered if the brand is approved)
 
