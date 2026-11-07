@@ -20,6 +20,7 @@ jobs:
       firmware: ${{ steps.d.outputs.firmware }}
       app: ${{ steps.d.outputs.app }}
       cloud: ${{ steps.d.outputs.cloud }}
+      clouddb: ${{ steps.d.outputs.clouddb }}
       ml: ${{ steps.d.outputs.ml }}
       pcb: ${{ steps.d.outputs.pcb }}
       sim: ${{ steps.d.outputs.sim }}
@@ -61,6 +62,7 @@ jobs:
           gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/" $CT
           gate app "test -f $P/app/package.json" "$P/app/" $CT
           gate cloud "test -f $P/cloud/package.json" "$P/cloud/" $CT
+          gate clouddb "test -f $P/cloud/test.sh" "$P/cloud/" $CT
           gate ml "find $P/ml -name '*.py' 2>/dev/null | grep -q ." "$P/ml/"
           gate pcb "ls $P/pcb/*.kicad_pro" "$P/pcb/"
           gate sim "find $P/pcb/sim \\( -name '*.cir' -o -name '*.sp' \\) 2>/dev/null | grep -q ." "$P/pcb/"
@@ -147,6 +149,27 @@ jobs:
       - run: npm run lint --if-present
       - run: npm run typecheck --if-present
       - run: npm test --if-present
+
+  cloud-db:
+    name: cloud DB tests
+    needs: detect
+    if: needs.detect.outputs.clouddb == 'true'
+    runs-on: ubuntu-latest
+    # Not gated on cloud/package.json: test.sh needs only Postgres + psql (migrations, RLS, retention, 2.4 contract test).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres   # superuser; test.sh creates/drops nw_test_* databases
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cloud DB tests (projects/plant-monitor/cloud/test.sh)
+        run: bash projects/plant-monitor/cloud/test.sh
 
   ml:
     needs: detect
@@ -305,7 +328,7 @@ jobs:
 
   summary:
     name: Final status
-    needs: [detect, firmware, app, cloud, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
+    needs: [detect, firmware, app, cloud, cloud-db, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -319,6 +342,7 @@ jobs:
             echo "| firmware | ${{ needs.firmware.result }} |"
             echo "| app | ${{ needs.app.result }} |"
             echo "| cloud | ${{ needs.cloud.result }} |"
+            echo "| cloud-db | ${{ needs.cloud-db.result }} |"
             echo "| ml | ${{ needs.ml.result }} |"
             echo "| pcb | ${{ needs.pcb.result }} |"
             echo "| sim | ${{ needs.sim.result }} |"
@@ -329,7 +353,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           # Detect must succeed: if it fails, every job is skipped and that must not look green.
           [ "${{ needs.detect.result }}" = "success" ] || { echo "Pipeline RED: Detect ${{ needs.detect.result }}"; exit 1; }
-          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
+          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.cloud-db.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "Pipeline RED"; exit 1; fi
           done
           echo "Pipeline GREEN (skipped = workstream not started yet)"
