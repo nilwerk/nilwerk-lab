@@ -17,20 +17,17 @@ load current = battery current, no conversion gain or loss, only the LDO Iq):
 Sizing rule, applied LITERALLY for every headline figure (Arsany, PR #2 item 12
 and the NFR-01 row of the acceptance matrix):
 
-    projected life = (0.8 x RATED capacity) / average current   >= NFR01_HOURS
+    projected life = (0.8 x RATED capacity) / average current   >= NFR01_HOURS (2190 h = 3 months)
 
-NFR-01 was relaxed from 6 to 3 months by Arsany (A-020 answer): NFR01_HOURS =
-NFR01_MONTHS x 730 h = 2190 h; change NFR01_MONTHS and everything follows.  The
-cell is the 603449 LiPo of A-020 (1100 mAh typical, 1000 mAh minimum); the
-verdict uses the 1000 mAh minimum (A-021).
 There is NO self-discharge term in that rule.  Self-discharge (fraction of RATED
 capacity per month, an assumption) is computed only as a separately labelled
 extra-margin figure (`with_self_discharge=True`); whether it belongs in the rule
-is NOT part of the rule (A-021 answered: literal rule, no self-discharge term).
+is a question for Arsany (power-budget.md section 1).
 
 Every parameter carries a source tag.  Tags starting with "datasheet-unverified"
-are values recalled from the named datasheet and NOT read in this session (the
-session network blocks espressif.com); "assumption" is Emil's engineering
+are values recalled from the named datasheet and NOT read; "datasheet-read" names the
+table that was read on 2026-11-07 (ESP32-C3 series datasheet v2.4 only; the module,
+Aosong and ROHM datasheets are still unread); "assumption" is Emil's engineering
 estimate; "edge-ai" / "ADR-012" quote the repo documents.  None is a measurement.
 Task 5.4 replaces them (see power-budget.md section 9).
 """
@@ -39,14 +36,15 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, replace
 
-HOURS_PER_MONTH = 730.0       # 8760 h / 12
-NFR01_MONTHS = 3.0            # relaxed from 6 by Arsany (A-020): "up to 3 months is acceptable"
-NFR01_HOURS = NFR01_MONTHS * HOURS_PER_MONTH   # 2190 h (was 4380 h)
-CELL_RATED_TYP_MAH = 1100.0   # A-020: 603449 LiPo 3.7 V, typical capacity (maker's figure, datasheet not read here)
+NFR01_MONTHS = 3.0           # NFR-01 (A-020: 3 months; 6 months is an information-only stretch goal)
+HOURS_PER_MONTH = 730.0      # 4380 h = 6 months, 2190 h = 3 months (acceptance matrix, 5.4)
+NFR01_HOURS = NFR01_MONTHS * HOURS_PER_MONTH
+STRETCH_HOURS = 6 * HOURS_PER_MONTH   # 6-month stretch goal, information line only
+CELL_RATED_TYP_MAH = 1100.0   # A-020: 603449 LiPo 3.7 V, typical capacity (EEMB LP603449 datasheet: 1100 nominal)
 CELL_RATED_MIN_MAH = 1000.0   # A-020: minimum capacity; the NFR-01 verdict uses this (A-021)
 BAY_MM = (51.0, 34.5, 6.3)    # A-020: cell envelope L x W x H, mm (input note for PCB outline / enclosure v3, 4.E3)
-NFR12_MARGIN = 0.4            # proposed NFR-12 limit = this share of the typical-case limit (134 uA -> 53.8), rounded down ...
-NFR12_STEP_UA = 25.0          # ... to a multiple of this (uA) -> 50 uA
+NFR12_MARGIN = 0.4            # NFR-12 limit = this share of the typical-case limit (134 uA -> 53.8), rounded down ...
+NFR12_STEP_UA = 25.0          # ... to a multiple of this (uA) -> 50 uA (accepted by Arsany, A-027)
 NFR12_CEILING_UA = 100.0      # absolute upper ceiling the budget would still tolerate (not the recommendation)
 DERATING = 0.80               # Arsany, PR #2 item 12: rated capacity less 20 %
 LOW_BATTERY_V = 3.4           # low-battery warning threshold in volts (Arsany, Needs Arsany A-008.2 answered 'ok' on PR #2, 'low-battery 3.4 V')
@@ -90,7 +88,7 @@ class Params:
 
 # source tag for every field (checked by the unit test)
 SOURCES: dict[str, str] = {
-    "i_mcu_sleep_ua": "datasheet-unverified: ESP32-C3 series datasheet, low-power current table, deep sleep with RTC timer (about 5 uA); worst adds module flash leakage at temperature (assumption)",
+    "i_mcu_sleep_ua": "datasheet-read: ESP32-C3 series datasheet v2.4, Table 5-9 (p. 57), Deep-sleep RTC timer + RTC memory 5 uA typ (matches best/typical); worst 10 uA adds module flash leakage at temperature (assumption, module datasheet not read)",
     "i_ldo_iq_ua": "assumption: LDO not chosen yet (4.P1); needs a low-Iq part, an AMS1117-class LDO (mA quiescent) is excluded",
     "i_charger_prot_ua": "assumption: charger IC plus protection IC drain from BAT with USB unplugged; parts not chosen (4.P1)",
     "r_divider_mohm": "computed: I = 3.7 V / R (nominal cell voltage); R is a design choice for 4.P1, a high-side switch would give about 0",
@@ -102,7 +100,7 @@ SOURCES: dict[str, str] = {
     "t_sense_s": "edge-ai-concept 2.4: warm-up >= 1.5 s, sensor warm-up and samples about 2-3 s (estimate)",
     "t_infer_s": "edge-ai-concept 2.2/2.3: model A under 1 ms, model B a few ms (estimates), limit 50 ms (FR-E04)",
     "t_store_s": "assumption: one flash ring-buffer append",
-    "i_cpu_ma": "datasheet-unverified: ESP32-C3 series datasheet, active current, CPU 160 MHz, radio off (about 20 mA)",
+    "i_cpu_ma": "datasheet-read: ESP32-C3 series datasheet v2.4, Table 5-8 (p. 57), Modem-sleep CPU running 160 MHz: 23 mA typ (peripheral clocks off) / 28 mA (on); model values 15/20/30 are below the datasheet in best and typical (not changed here, see verified-currents.md what-if)",
     "i_periph_ma": "assumption: soil oscillator about a few mA plus AHT20 (datasheet-unverified, tens of uA) and BH1750 (datasheet-unverified, about 0.12 mA)",
     "reports_per_day": "FR-D02: hourly report, 24 per day",
     "critical_wakes_per_day": "edge-ai-concept 2.4: max 1 per class per 6 h; 4 critical classes; typical and worst are assumptions",
@@ -110,10 +108,10 @@ SOURCES: dict[str, str] = {
     "t_cloud_s": "assumption: to be measured (see t_connect_s)",
     "t_hub_s": "ADR-012: +1 s awake for the hub publish (unmeasured); best/worst are assumptions",
     "hub_every_n": "ADR-012: hub publish with every report; 2 is the ADR-012 fallback",
-    "i_rx_ma": "datasheet-unverified: ESP32-C3 series datasheet, Wi-Fi RX current (order of 80-100 mA); ADR-012 assumes about 100 mA",
-    "i_tx_ma": "datasheet-unverified: ESP32-C3 series datasheet, Wi-Fi TX current by rate and power (order of 200-340 mA)",
+    "i_rx_ma": "datasheet-read: ESP32-C3 series datasheet v2.4, Table 5-7 (p. 56), RX 802.11b/g/n HT20 84 mA, HT40 87 mA (peak); model best 70 is below the datasheet; ADR-012 assumes about 100 mA",
+    "i_tx_ma": "datasheet-read: ESP32-C3 series datasheet v2.4, Table 5-7 (p. 56), TX peak 335 mA (11b 1 Mbps @21 dBm), 285 (11g 54M @19 dBm), 276 (11n MCS7 @18.5 dBm), 100 % duty at 3.3 V; model best 200 is below the datasheet at maximum power (lower TX power settings are not tabulated)",
     "f_tx": "assumption: share of the session spent transmitting; measure in 5.4",
-    "self_discharge_pct_month": "assumption: commonly quoted LiPo figure of 1-3 % per month, no datasheet read for the 603449 cell",
+    "self_discharge_pct_month": "assumption: commonly quoted LiPo figure of 1-3 % per month, no datasheet read; cell not chosen",
     "t_warmup_s": "edge-ai-concept 2.4: warm-up >= 1.5 s (best/worst are assumptions); the share of t_sense_s in which the CPU only waits",
     "i_warmup_cpu_ma": "assumption: default = i_cpu_ma (CPU busy-waits, the model baseline); the light-sleep lever sets an assumption (datasheet-unverified: ESP32-C3 light-sleep current, order of 0.1-1 mA incl. peripherals; measure in M3)",
     "usable_fraction": "assumption: the 20 % derating is taken to cover capacity unusable below 3.4 V; to be checked in 5.4 with a discharge curve at the real load",
@@ -198,11 +196,6 @@ def required_rated_mah(p: Params, hours: float = NFR01_HOURS,
     return load / avail
 
 
-def derated_hours(p: Params, rated_mah: float, derating: float = DERATING) -> float:
-    """NFR-01 verdict figure in hours: derating x RATED capacity / average current (literal rule)."""
-    return derating * p.usable_fraction * rated_mah / avg_current_ma(p)
-
-
 def life_days(p: Params, rated_mah: float, derating: float = DERATING,
               with_self_discharge: bool = False) -> float:
     """Days until the derated capacity is used up: derating*C / I_avg (rule);
@@ -224,9 +217,14 @@ def max_sleep_current_ua(p: Params, rated_mah: float, hours: float = NFR01_HOURS
     return (budget_mah / (hours / 24.0) - other_per_day) / 24.0 * 1000.0
 
 
+def derated_hours(p: Params, rated_mah: float, derating: float = DERATING) -> float:
+    """NFR-01 verdict figure in hours: derating x RATED capacity / average current (literal rule)."""
+    return derating * p.usable_fraction * rated_mah / avg_current_ma(p)
+
+
 def nfr12_limit_ua(p: Params = None, rated_mah: float = CELL_RATED_MIN_MAH,
                    margin: float = NFR12_MARGIN, step_ua: float = NFR12_STEP_UA) -> float:
-    """Proposed NFR-12 whole-board deep-sleep limit (uA), derived, not chosen:
+    """NFR-12 whole-board deep-sleep limit (uA), derived, not chosen:
     margin x (largest sleep current at which `rated_mah` still reaches NFR01_HOURS
     with the TYPICAL sample/Wi-Fi terms), rounded down to a multiple of step_ua."""
     import math
@@ -240,7 +238,7 @@ def with_(p: Params, **kw: float) -> Params:
 
 # --------------------------------------------------------------------------
 # Markdown report
-CAPACITIES = (500, 750, 1000, 1100, 1500, 2000)   # rated values; 1000 / 1100 are the A-020 cell (min / typ), the rest generic
+CAPACITIES = (500, 750, 1000, 1100, 1500, 2000, 2500, 3000)   # rated values; 1000 / 1100 are the A-020 cell (min / typ), the rest generic
 
 
 def _row(cells) -> str:
@@ -252,7 +250,6 @@ def _table(head, rows) -> str:
 
 
 MONTH_DAYS = 30.4167
-CELL_VERDICT_MAH = CELL_RATED_MIN_MAH
 SD = {"with_self_discharge": True}
 
 LEVERS = [
@@ -277,7 +274,7 @@ LEVERS = [
 HEADINGS = {
     "scenarios": "### Scenario results\n",
     "life": "### Life in months per rated capacity (rule: 0.8 x rated / average current; +SD = extra-margin line with self-discharge)\n",
-    "sleep_limit": f"### Deep-sleep limit (whole board) that still reaches {NFR01_MONTHS:g} months, uA (rule; +SD = extra-margin line)\n",
+    "sleep_limit": "### Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (rule; +SD = extra-margin line)\n",
     "cell": f"### A-020 cell (603449, 1S LiPo): NFR-01 verdict at {NFR01_HOURS:.0f} h\n",
     "nfr12": "### Derived NFR-12 sleep-current limit (A-020 cell)\n",
     "sensitivity": "### Sensitivity, one parameter at a time around TYPICAL\n",
@@ -330,11 +327,11 @@ def report_sections() -> dict[str, str]:
             p = with_(TYPICAL, **{key: v})
             d = daily_budget(p)
             rows.append([v, f"{sleep_current_ua(p):.1f}", f"{d['total']:.2f}", f"{required_rated_mah(p):.0f}",
-                         f"{life_days(p, CELL_VERDICT_MAH) / MONTH_DAYS:.1f}",
-                         f"{life_days(p, CELL_VERDICT_MAH, **SD) / MONTH_DAYS:.1f}"])
+                         f"{life_days(p, 1500) / MONTH_DAYS:.1f}",
+                         f"{life_days(p, 1500, **SD) / MONTH_DAYS:.1f}"])
         out.append(f"**{title}**\n")
         out.append(_table(["value", "board sleep uA", "mAh/day", "rated mAh needed (rule)",
-                           f"months @{CELL_VERDICT_MAH:.0f} mAh (rule)", f"extra: months @{CELL_VERDICT_MAH:.0f} incl. SD"], rows))
+                           "months @1500 mAh (rule)", "extra: months @1500 incl. SD"], rows))
         out.append("")
     sec["sensitivity"] = "\n".join(out).rstrip()
 
@@ -343,6 +340,9 @@ def report_sections() -> dict[str, str]:
         p = with_(TYPICAL, **kw)
         rows.append([name, f"{daily_budget(p)['total']:.2f}", f"{wifi_session_s(p):.1f}",
                      f"{required_rated_mah(p):.0f}", f"{required_rated_mah(p, **SD):.0f}"])
+    sec["levers"] = _table(["lever", "mAh/day", "Wi-Fi session s", "rated mAh needed (rule)",
+                            "extra: incl. self-disch."], rows)
+
     rows = []
     for cap_name, cap in (("minimum (verdict, A-021)", CELL_RATED_MIN_MAH), ("typical (info only)", CELL_RATED_TYP_MAH)):
         for n, p in SCENARIOS.items():
@@ -359,13 +359,11 @@ def report_sections() -> dict[str, str]:
         lim = max_sleep_current_ua(p, CELL_RATED_MIN_MAH)
         rows.append([n, f"{sleep_current_ua(p):.1f}", f"{lim:.0f}",
                      f"{lim / sleep_current_ua(p):.1f}" if lim > 0 else "n/a (cannot reach)"])
-    rows.append([f"**proposed NFR-12 limit** = floor({NFR12_MARGIN:g} x typical limit to {NFR12_STEP_UA:g} uA)",
+    rows.append([f"**NFR-12 limit** = floor({NFR12_MARGIN:g} x typical limit to {NFR12_STEP_UA:g} uA)",
                  "", f"**{nfr12_limit_ua():.0f}**", f"{nfr12_limit_ua() / sleep_current_ua(TYPICAL):.1f}"])
     sec["nfr12"] = _table(["case (other terms as in the case)", "board sleep estimate uA",
                            f"max sleep uA for {CELL_RATED_MIN_MAH:.0f} mAh rated, {NFR01_HOURS:.0f} h",
                            "limit / estimate"], rows)
-    sec["levers"] = _table(["lever", "mAh/day", "Wi-Fi session s", "rated mAh needed (rule)",
-                            "extra: incl. self-disch."], rows)
     return sec
 
 

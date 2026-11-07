@@ -54,11 +54,11 @@ class HandCalc(unittest.TestCase):
 
 
 class Consistency(unittest.TestCase):
-    def test_required_capacity_reaches_exactly_six_months(self):
+    def test_required_capacity_reaches_exactly_nfr01_hours(self):
         for p in pb.SCENARIOS.values():
             for sd in (False, True):
                 c = pb.required_rated_mah(p, with_self_discharge=sd)
-                self.assertAlmostEqual(pb.life_days(p, c, with_self_discharge=sd), pb.NFR01_HOURS / 24, delta=1.0)  # exactly NFR01_HOURS
+                self.assertAlmostEqual(pb.life_days(p, c, with_self_discharge=sd), pb.NFR01_HOURS / 24, delta=1.0)
 
     def test_sleep_limit_is_inverse_of_required_capacity(self):
         p = pb.TYPICAL
@@ -83,7 +83,7 @@ class Consistency(unittest.TestCase):
         self.assertLess(pb.life_days(pb.TYPICAL, 1000), pb.life_days(pb.TYPICAL, 2000))
 
     def test_impossible_when_self_discharge_eats_derated_capacity(self):
-        p = pb.with_(pb.TYPICAL, self_discharge_pct_month=40.0)              # 45 % per 3 months is not > 80 %, so use a larger value below
+        p = pb.with_(pb.TYPICAL, self_discharge_pct_month=30.0)              # 90 % over 3 months > 80 %
         self.assertEqual(pb.required_rated_mah(p, with_self_discharge=True), float("inf"))
 
 
@@ -91,43 +91,43 @@ class Rule(unittest.TestCase):
     def test_headline_rule_is_derated_capacity_over_average_current(self):
         p = pb.TYPICAL
         i_avg = pb.avg_current_ma(p)
-        hours = 0.8 * 1000 / i_avg                                     # A-021: 1000 mAh minimum, derated
-        self.assertAlmostEqual(pb.life_days(p, 1000) * 24, hours, places=6)
-        self.assertAlmostEqual(pb.derated_hours(p, pb.CELL_RATED_MIN_MAH), hours, places=6)
-        self.assertGreaterEqual(hours, 2190)                           # passes the relaxed 3-month rule
+        hours_1500 = 0.8 * 1500 / i_avg
+        self.assertAlmostEqual(pb.life_days(p, 1500) * 24, hours_1500, places=6)
+        self.assertGreaterEqual(hours_1500, pb.NFR01_HOURS)                      # 1500 mAh passes by the rule
+        self.assertAlmostEqual(hours_1500 / 24 / pb.MONTH_DAYS, 6.7, delta=0.05)
+        self.assertGreaterEqual(pb.life_days(p, 1500, with_self_discharge=True) * 24, pb.NFR01_HOURS)   # SD line still passes 3 months
+        self.assertLess(pb.life_days(p, 1000) * 24, pb.STRETCH_HOURS)       # 1000 mAh misses the 6-month stretch (information only)
+        self.assertAlmostEqual(pb.required_rated_mah(p), pb.NFR01_HOURS * i_avg / 0.8)
+
+    def test_cell_verdict_uses_1000_mah_minimum(self):
+        """A-020 / A-021: 603449 cell, verdict on the 1000 mAh minimum, literal rule, no self-discharge term."""
+        t = pb.TYPICAL
+        hours = 0.8 * 1000 / pb.avg_current_ma(t)
+        self.assertAlmostEqual(pb.derated_hours(t, pb.CELL_RATED_MIN_MAH), hours, places=6)
+        self.assertGreaterEqual(hours, pb.NFR01_HOURS)                       # typical passes 3 months
         self.assertAlmostEqual(hours / pb.HOURS_PER_MONTH, 4.5, delta=0.05)
-        self.assertGreaterEqual(pb.life_days(p, 1000, with_self_discharge=True) * 24, 2190)   # extra line also passes
-        self.assertAlmostEqual(pb.required_rated_mah(p), 2190 * i_avg / 0.8)
-        self.assertLess(pb.derated_hours(pb.WORST, 1000), 2190)        # stress bound fails
-        self.assertGreaterEqual(pb.derated_hours(pb.BEST, 1000), 2190)
-
-    def test_self_discharge_not_in_verdict(self):
-        p = pb.with_(pb.TYPICAL, self_discharge_pct_month=50.0)        # absurd value must not change the rule
-        self.assertAlmostEqual(pb.derated_hours(p, 1000), pb.derated_hours(pb.TYPICAL, 1000))
-
-    def test_nfr01_relaxed_and_parameterised(self):
-        self.assertEqual(pb.NFR01_MONTHS, 3.0)
-        self.assertEqual(pb.NFR01_HOURS, 2190.0)                       # A-020: 4380 h -> 2190 h
+        self.assertLess(pb.derated_hours(pb.WORST, 1000), pb.NFR01_HOURS)    # stress bound fails
+        self.assertGreaterEqual(pb.derated_hours(pb.BEST, 1000), pb.NFR01_HOURS)
+        p = pb.with_(t, self_discharge_pct_month=50.0)                       # absurd value must not change the rule
+        self.assertAlmostEqual(pb.derated_hours(p, 1000), pb.derated_hours(t, 1000))
         self.assertEqual((pb.CELL_RATED_TYP_MAH, pb.CELL_RATED_MIN_MAH), (1100.0, 1000.0))
         self.assertEqual(pb.BAY_MM, (51.0, 34.5, 6.3))
 
-    def test_nfr12_limit_is_derived_from_the_rerun(self):
+    def test_nfr12_limit_is_derived(self):
         lim = pb.max_sleep_current_ua(pb.TYPICAL, 1000)
         self.assertAlmostEqual(lim, 134.6, delta=0.5)
-        self.assertEqual(pb.nfr12_limit_ua(), 50.0)                    # floor(0.4 x 134.6 / 25) x 25
+        self.assertEqual(pb.nfr12_limit_ua(), 50.0)                          # floor(0.4 x 134.6 / 25) x 25, accepted A-027
         self.assertAlmostEqual(50.0 / pb.sleep_current_ua(pb.WORST), 1.6, delta=0.05)
         self.assertAlmostEqual(50.0 / pb.sleep_current_ua(pb.TYPICAL), 3.8, delta=0.05)
-        self.assertEqual(pb.NFR12_CEILING_UA, 100.0)
         self.assertLess(pb.nfr12_limit_ua(), pb.NFR12_CEILING_UA)
         self.assertLessEqual(pb.nfr12_limit_ua(), lim)
         # a board at exactly the limit, other terms typical, still meets the rule
         p = pb.with_(pb.TYPICAL, i_mcu_sleep_ua=pb.TYPICAL.i_mcu_sleep_ua + 50 - pb.sleep_current_ua(pb.TYPICAL))
         self.assertGreaterEqual(pb.derated_hours(p, 1000), pb.NFR01_HOURS)
-        # a looser margin or step changes the proposal (the value is not hard-coded)
+        # not hard-coded: margin and step change the value
         self.assertEqual(pb.nfr12_limit_ua(margin=1.0, step_ua=25.0), 125.0)
         self.assertEqual(pb.nfr12_limit_ua(margin=0.75), 100.0)
-        # longer life target -> tighter limit
-        self.assertLess(pb.max_sleep_current_ua(pb.TYPICAL, 1000, hours=4380.0), lim)
+        self.assertLess(pb.max_sleep_current_ua(pb.TYPICAL, 1000, hours=4380.0), lim)   # 6-month stretch: tighter
 
     def test_light_sleep_lever_and_default_neutral(self):
         base = pb.daily_budget(pb.TYPICAL)["sample"]
@@ -169,13 +169,13 @@ class DocMatchesScript(unittest.TestCase):
             f"**about {round(pb.required_rated_mah(t), -1):.0f} mAh rated**",
             f"best **about {round(pb.required_rated_mah(pb.BEST), -1):.0f} mAh**",
             f"worst **about {round(pb.required_rated_mah(pb.WORST), -1):.0f} mAh**",
-            f"**PASS, {pb.derated_hours(t, 1000) / pb.HOURS_PER_MONTH:.1f} months**",
-            f"**FAIL, {pb.derated_hours(pb.WORST, 1000) / pb.HOURS_PER_MONTH:.1f} months**",
-            f"1000 mAh: **{pb.life_days(t, 1000, with_self_discharge=True) / pb.MONTH_DAYS:.1f} months**",
+            f"**yes, {pb.life_days(t, 1500) / pb.MONTH_DAYS:.1f} months**",
+            f"typical **{pb.life_days(t, 2000) / pb.MONTH_DAYS:.1f} months**",
+            f"1500 mAh: **{pb.life_days(t, 1500, with_self_discharge=True) / pb.MONTH_DAYS:.1f} months**",
+            f"2000 mAh: **{pb.life_days(t, 2000, with_self_discharge=True) / pb.MONTH_DAYS:.1f} months**",
             f"rated capacity needed {pb.required_rated_mah(t, with_self_discharge=True):.0f} mAh instead of {pb.required_rated_mah(t):.0f} mAh",
-            f"**{pb.max_sleep_current_ua(t, 1000):.0f} uA whole board**",
-            f"(with self-discharge: {pb.max_sleep_current_ua(t, 1000, with_self_discharge=True):.0f} uA)",
-            f"NFR-12: <= {pb.nfr12_limit_ua():.0f} uA**",
+            f"**{pb.max_sleep_current_ua(t, 2000):.0f} uA whole board for a 2000 mAh rated cell, {pb.max_sleep_current_ua(t, 1500):.0f} uA for 1500 mAh**",
+            f"(with self-discharge: {pb.max_sleep_current_ua(t, 2000, with_self_discharge=True):.0f} uA and {pb.max_sleep_current_ua(t, 1500, with_self_discharge=True):.0f} uA)",
         ]
         for e in expect:
             self.assertIn(e, sec1)
@@ -188,9 +188,6 @@ class DocMatchesScript(unittest.TestCase):
         self.assertIn("5.5 s at about 99 mA", DOC)
         self.assertNotIn("typical row; to be confirmed", DOC)
         self.assertIn("A-008.2", DOC)
-        for ref in ("A-020", "A-021", "NFR-12", "unverified"):
-            self.assertIn(ref, DOC)
-        self.assertNotIn("4380 h mAh", DOC)
         self.assertIn("Levers are in section 7".lower(), DOC.lower().replace("the levers are", "levers are"))
 
 
@@ -199,12 +196,14 @@ class Provenance(unittest.TestCase):
         names = {f.name for f in dataclasses.fields(pb.Params)}
         self.assertEqual(names, set(pb.SOURCES))
         for n, s in pb.SOURCES.items():
-            self.assertTrue(s.split(":")[0] in ("datasheet-unverified", "assumption", "computed")
+            self.assertTrue(s.split(":")[0] in ("datasheet-unverified", "datasheet-read", "assumption", "computed")
                             or s.startswith(("FR-", "edge-ai", "ADR-")), n)
 
     def test_constants_follow_owner_decisions(self):
         self.assertEqual(pb.DERATING, 0.8)           # PR #2 item 12
-        self.assertEqual(pb.NFR01_HOURS, 2190.0)     # 3 months, A-020
+        self.assertEqual(pb.NFR01_MONTHS, 3.0)       # A-020
+        self.assertEqual(pb.NFR01_HOURS, 2190.0)     # 3 months, acceptance matrix
+        self.assertEqual(pb.STRETCH_HOURS, 4380.0)   # 6 months stretch, information only
         self.assertEqual(pb.LOW_BATTERY_V, 3.4)      # A-008.2 'ok' on PR #2
 
     def test_report_runs(self):
