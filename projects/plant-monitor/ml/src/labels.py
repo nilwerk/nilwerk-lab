@@ -168,7 +168,7 @@ def label_waterlogged(seg: pd.DataFrame, m_col: str = "m", pct: float = WATERLOG
 #   * NO threshold re-tuning after seeing zero train positives (fast_drying train = 0): the percentile constants
 #     above are frozen (FROZEN_WEAK_LABEL_RULE); see tests/test_labels.py::test_no_retuning_*.
 EXCLUDED_WETTING_PLANTS = ("mendeley_s5",)          # A-032: sector 5 (unexplained probe jumps)
-IGNORE_PAD_TICKS = 2                                # ticks around an unexplained onset (= label_events window_ticks)
+IGNORE_PAD_TICKS = 4   # ticks (+-1 h) around an unexplained onset; Lead decision (Theo C1): 4 gives 1.50 % vs 2.52 % contaminated negatives at 2
 FR_E02_CLAIM_CLASSES = ("wetting", "sensor_fault")  # A-032: nothing else may be claimed under FR-E02
 EXPLAINED_WETTING_EVENTS = (prep.EVENT_WATERING, prep.EVENT_RAIN)
 FROZEN_WEAK_LABEL_RULE = {"slope_pct": FAST_DRYING_SLOPE_PCT, "hot_pct": HOT_PCT,
@@ -182,9 +182,12 @@ def label_wetting_classes(seg: pd.DataFrame, excluded_plants: tuple = EXCLUDED_W
     Adds three boolean columns:
       lbl_wetting_pos     event is valve-coincident watering or rain-coincident, plant not excluded.
       lbl_wetting_ignore  generic 'wetting' onset +-`pad` ticks (unless that tick is a positive), or EVERY tick
-                          of an excluded plant (sector 5). Never used in training as positive or negative.
+                          of an excluded plant (sector 5). These ticks are neither positive nor negative: they must be
+                          dropped from the training loss AND from the positive/negative counts of every evaluation
+                          metric; they may only appear in a separate "unexplained wetting" report.
       lbl_wetting_neg     everything else: usable negative (no event, nothing unexplained nearby).
-    Training uses ticks where lbl_wetting_pos | lbl_wetting_neg; the ignore mask is for evaluation reports only.
+    This function only SETS the three columns (exactly one is True per tick); it does not drop rows. Consumers
+    (4.AI2 training and evaluation) must select `lbl_wetting_pos | lbl_wetting_neg` themselves.
     """
     d = seg.copy()
     plant = d["plant"].iloc[0] if ("plant" in d and len(d)) else None
