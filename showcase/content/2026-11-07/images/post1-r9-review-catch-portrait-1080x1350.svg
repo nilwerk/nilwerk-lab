@@ -30,7 +30,7 @@
   </g>
   <g font-family="Inter, sans-serif" font-weight="400" font-size="34" fill="#5b616b">
     <text x="72" y="622">R9 sets the charge current of a 1000 mAh cell.</text>
-    <text x="72" y="668">Our reviewer flagged 1.2 kOhm as too high.</text>
+    <text x="72" y="668">Our reviewing agent flagged 1.2 kOhm as too high.</text>
   </g>
 
   <!-- two evidence tiles -->

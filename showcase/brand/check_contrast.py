@@ -59,7 +59,9 @@ for name, tk in (("LIGHT", LIGHT), ("DARK", DARK)):
     for fg, bg, need, what in PAIRS:
         r = ratio(tk[fg], tk[bg])
         ok = r >= need
-        if not ok and fg not in ("signal", "line"):
+        decorative = fg in ("signal", "line")
+        if not ok and not decorative:
             failed = True
-        print(f"  {fg:<10} {tk[fg]} on {bg:<11} {tk[bg]}  {r:5.2f}:1  need {need}  {'AA ok' if ok else 'FAIL'}  ({what})")
+        verdict = "n/a (decorative)" if decorative else ("AA ok" if ok else "FAIL")
+        print(f"  {fg:<10} {tk[fg]} on {bg:<11} {tk[bg]}  {r:5.2f}:1  need {need}  {verdict}  ({what})")
 sys.exit(1 if failed else 0)
