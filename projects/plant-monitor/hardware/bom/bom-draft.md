@@ -21,7 +21,7 @@ Components + JLC Economic PCBA loading fee (Extended, non-Preferred parts only) 
 
 | | 3 boards | 1000 boards |
 |---|---|---|
-| Components per board (43 pieces, 29 lines incl. the unpriced cell) | 6.65 USD | 4.06 USD |
+| Components per board (43 pieces, 29 CSV lines, of which 4 are alternatives not in the sums: B1, B2, B3, J2b) | 6.65 USD | 4.06 USD |
 | Loading fee: 10 Extended non-Preferred parts x 3.07 USD per order | +10.23 USD / board | +0.03 USD / board |
 | Setup 8.18 + stencil 1.53 USD per order | +3.24 USD / board | +0.01 USD / board |
 | **Total per board** | **20.12 USD (EUR 18.11)** | **4.10 USD (EUR 3.69)** |
@@ -115,7 +115,7 @@ Method: public JLCPCB parts search, filter library type = Basic, by model keywor
 - **U3 TP4056 (C16581)** is flagged Preferred on JLC: Economic loading fee exempt (FAQ 7), so it no longer counts in the fee although it is "Extended".
 - **No Basic equivalent found for:** TP4056 charger, DW01A, 8205A, USBLC6-2SC6 / any USB ESD array, USB-C 16-pin, JST PH SMD, AHT20, BH1750, Schmitt-trigger gate, ESP32-C3 module.
 - **LDO (U2):** the Basic LDOs in the JLC library are XC6206P332MR-G (C5446, **200 mA** per LCSC listing), HT7533-1 (C14289, **100 mA** per listing), AMS1117-3.3 (C6186, mA-class Iq, excluded in the power budget), none carries the 340 mA Wi-Fi TX peak (datasheet Table 5-7) with a low Iq. XC6220B331MR-G (C86534, listing: 1 A, 8 uA, 655 mV dropout at 1 A) stays Extended. Listing values, not datasheets (**unverified**).
-- **100 nF (C5-C11):** Yageo C14663 has **0 stock on LCSC today but 34,465,360 on JLC**; the Samsung alternative C1591 is Extended. Keep C14663 and re-check at order time (the first draft's "7,150 in stock" flag is obsolete).
+- **100 nF (C5-C11):** Yageo C14663 has **0 stock on LCSC but about 34 million on JLC** (34,237,410 at the refresh of 2026-11-07 19:52Z, see the CSV); the Samsung alternative C1591 is Extended. Keep C14663 and re-check at order time (the first draft's "7,150 in stock" flag is obsolete).
 
 Net: Extended parts on the board 11 (the first draft had 11: D3 swapped out, U7 added); fee-bearing parts **10** because U3 is Preferred.
 

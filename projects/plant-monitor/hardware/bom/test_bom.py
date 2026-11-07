@@ -27,6 +27,33 @@ class Charger(unittest.TestCase):
         self.assertEqual(BY["R9"]["mpn"], "0603WAF2401T5E")                   # 2401 = 240 x 10 Ohm
 
 
+class ChargerLP503030JU(unittest.TestCase):
+    """A-034 candidate Jauch LP503030JU: 430 mAh minimum, max charge 1.0C = 430 mA (Jauch datasheet v1.0 p. 2)."""
+    MIN_MAH = 430.0
+
+    def test_r9_5k1_is_half_c(self):
+        i = 1100.0 / 5.1                                    # TP4056: R_PROG = 1100 / I_BAT
+        self.assertAlmostEqual(i, 215.7, delta=0.1)
+        self.assertAlmostEqual(i / self.MIN_MAH, 0.50, delta=0.005)
+        self.assertLessEqual(i * 1.15 / self.MIN_MAH, 0.58)  # +15 % datasheet tolerance
+        self.assertEqual(BY["R1,R2"]["mpn"], "0603WAF5101T5E")   # the 5.1k part already in the BOM (C23186)
+
+    def test_r9_2k4_exceeds_this_cell(self):
+        i = 1100.0 / 2.4
+        self.assertAlmostEqual(i / self.MIN_MAH, 1.066, delta=0.005)
+        self.assertGreater(i / self.MIN_MAH, 1.0)           # above the cell's 1.0C maximum
+
+
+class AlternativeFlag(unittest.TestCase):
+    def test_alternatives_flagged_and_not_in_sums(self):
+        for ref in ("B1", "B2", "B3", "J2b"):
+            self.assertEqual(BY[ref]["alternative"], "yes", ref)
+        for ref in ("J2", "R9", "U7", "U3"):
+            self.assertNotEqual(BY[ref].get("alternative"), "yes", ref)
+        self.assertNotIn("J2b", [r["ref"] for r in bc.priced(ROWS)])   # J2b has a live price but must stay out of the sums
+        self.assertEqual(sum(1 for r in ROWS if r["alternative"] == "yes"), 4)
+
+
 class Completeness(unittest.TestCase):
     def test_required_lines_exist(self):
         for ref in ("B1", "U7", "R12", "J2", "R9"):

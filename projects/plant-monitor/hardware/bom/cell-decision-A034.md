@@ -96,7 +96,7 @@ For the LP503030JU the right resistor: 0.5C = 215 mA gives R = 1100 / 215 = 5.1 
 | Shipping | free from EUR 66.58 on Jauch Quartz orders | not read |
 | Datasheet | `jauch.com/downloadfile/6656dfa0.../lp503030ju.pdf` | `https://www.jauch.com/downloadfile/677e3a8d45c2839aafeab5156381835e3/matd_246512_20200507_850mah_-_lp603443ju_1s1p_2_wire_70mm.pdf` (Jauch no. 246512, **Rev. 1.2, 12/2024**, retrieved 2026-11-07; the older Rev. 1.1 of 10/2022 has the same values): 900 typ / 850 min mAh, charge max 1.0C = 900 mA (0 to 15 C 0.2C, 45 to 50 C 0.5C at 4.1 V), discharge max 900 mA, PCM OC 4.28 +-0.02 V, OD 3.00 +-0.05 V, over-current 3.0 to 6.0 A, **no NTC, no 2nd IC, bare wires**, IEC 62133 **NO**, UN 38.3 yes, about 20 g; DigiKey size 45.0 x 34.5 x 6.5 mm |
 
-## 6. DigiKey cart for Arsany (3 demo units + 2 spare = quantity 5; never ordered by me)
+## 6. DigiKey cart for Arsany (3 demo units + 2 spare = quantity 5; never ordered by me; prices read 2026-11-07, check in cart)
 
 | # | DigiKey part number | Qty | Unit (excl. VAT) | Line |
 |---|---|---|---|---|
@@ -104,7 +104,7 @@ For the LP503030JU the right resistor: 0.5C = 215 mA gives R = 1100 / 215 = 5.1 
 | 2 (only if Arsany insists on the A-034 cell) | 3027-LP503030JU+PCM+2IC+NTC+Mol.78172-350MM-ND | 5 | EUR 8.47 | **EUR 42.35** (EUR 50.40 incl. VAT), below the free-shipping threshold of EUR 66.58 |
 
 Mating parts (not on DigiKey; I did not look up DigiKey numbers for them, **unverified there**):
-- for line 1 (bare wires): the board keeps **J2 JST PH**; the mating side is a JST PHR-2 housing (LCSC C157955, 0.0135 USD) with two SPH-002T-P0.5S contacts (LCSC C111515, 0.0086 USD), crimped or bought as a PH pigtail (needs a crimp tool or Peter; polarity by the wire colours of the cell, to be checked);
+- for line 1 (bare wires): the board keeps **J2 JST PH**; the mating side is a JST PHR-2 housing (LCSC C157955, 0.0135 USD at 1 pc, JLC parts search read 2026-11-07, unverified in a cart) with two SPH-002T-P0.5S contacts (LCSC C111515, 0.0086 USD at 1 pc, JLC parts search read 2026-11-07, unverified in a cart), crimped or bought as a PH pigtail (needs a crimp tool or Peter; polarity by the wire colours of the cell, to be checked);
 - for line 2: **no mating part is needed on the cell side** (the Molex plug is on the cell); the board needs **J2b = Molex 78171-0003 (C564183)** in the JLC BOM instead of J2.
 The JLC/LCSC items are board-assembly or hand-work parts and are not part of the DigiKey cart.
 
@@ -119,7 +119,7 @@ The JLC/LCSC items are board-assembly or hand-work parts and are not part of the
 | Connector | solder tabs; plug to be specified | Molex 78172-3 plug, 50 mm leads (3 circuits) | bare wires, 70 mm |
 | Board change needed | J2 stays; PCM/NTC must be added to the purchase spec | **J2 to Molex 78171-0003 (J2b); R9 2.4k to 5.1k; R1/R2 NTC divider** | J2 stays; R9 2.4k fine; TEMP pin grounded (no NTC) |
 | Max charge / discharge | 1100 mA (1C) / 2200 mA | 430 mA / 430 mA | 900 mA / 900 mA |
-| Price / stock | none found, **unverified** | EUR 8.47 at 1; 85 in stock; ships in about 6 days | USD 11.11 at 1; 516 in stock; lead time 28 weeks listed |
+| Price / stock (DigiKey, read 2026-11-07, check in cart) | none found, **unverified** | EUR 8.47 at 1; 85 in stock; ships in about 6 days | USD 11.11 at 1; 516 in stock; lead time 28 weeks listed |
 | Source datasheet | EEMB, read | Jauch, read (no drawing) | Jauch, read |
 
 **Recommendation: choose the Jauch LP603443JU+PCM+2 wires (DigiKey 1908-...-ND) if the bay can take 6.5 x 34.5 x 45 mm (Yara and Arsany to confirm in enclosure v3, A-020 bay is only a note so far).** It is the only DigiKey cell I found that passes NFR-01 and is close to the bay. **IEC 62133 is NO on its datasheet** (UN 38.3 yes); flagged to Arsany as a decision, not assessed here. Its price of the missing NTC is a grounded TEMP pin (no cell temperature protection beyond the PCM; the 4.P1 checklist item). **The LP503030JU does not meet NFR-01 as specified:** it falls short by a wide margin (1.9 against 3 months), needs a different connector, a different charge resistor and a firmware lever package that is neither designed nor measured. If the bay cannot change, the alternative is to ask Jauch (batterytechnology@jauch.com is on their datasheet; I send nothing) for a 603449-size cell with PCM, or keep the EEMB 603449 with a purchase spec (PCM, plug) and a source that I could not verify.
