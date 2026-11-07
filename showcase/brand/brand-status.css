@@ -1,0 +1,36 @@
+/* Nilwerk status and feedback tokens, additive to brand.css (v0.1 is unchanged). PROPOSAL, pending Arsany's approval.
+   Used by the web component kit (web/components.html), the app theme (app/theme.ts) and slides.
+   Rule: a status is never shown by colour alone: always with a word or an icon shape. */
+
+:root {
+  /* text-safe status colours (AA on --nw-bg and --nw-surface) and their soft backgrounds (AA for the same colour as text) */
+  --nw-ok: #0f7a5c;        --nw-ok-soft: #e3f2ec;        /* = accent */
+  --nw-dry: #b4541a;       --nw-dry-soft: #fcf2ea;       /* needs water; = warn */
+  --nw-wet: #1f6aa5;       --nw-wet-soft: #e1edf7;       /* too wet / moisture, water blue */
+  --nw-low: #8a5d00;       --nw-low-soft: #f5ecd3;       /* low battery, amber */
+  --nw-offline: #5b616b;   --nw-offline-soft: #e9e7e1;   /* no recent report; = muted */
+  --nw-danger: #b3261e;    --nw-danger-soft: #f9e2e0;    /* errors, delete, critical */
+  --nw-danger-ink: #ffffff;                              /* text on a solid danger button */
+}
+
+:root[data-theme="dark"] {
+  --nw-ok: #3fc79a;        --nw-ok-soft: #16302a;
+  --nw-dry: #e58a4f;       --nw-dry-soft: #3a2418;
+  --nw-wet: #6db3e8;       --nw-wet-soft: #17283a;
+  --nw-low: #e0a93a;       --nw-low-soft: #35290f;
+  --nw-offline: #a2a7af;   --nw-offline-soft: #22262c;
+  --nw-danger: #e27163;    --nw-danger-soft: #3b1d1b;
+  --nw-danger-ink: #1a0b0a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --nw-ok: #3fc79a;      --nw-ok-soft: #16302a;
+    --nw-dry: #e58a4f;     --nw-dry-soft: #3a2418;
+    --nw-wet: #6db3e8;     --nw-wet-soft: #17283a;
+    --nw-low: #e0a93a;     --nw-low-soft: #35290f;
+    --nw-offline: #a2a7af; --nw-offline-soft: #22262c;
+    --nw-danger: #e27163;  --nw-danger-soft: #3b1d1b;
+    --nw-danger-ink: #1a0b0a;
+  }
+}
