@@ -70,7 +70,20 @@ Decision A-032 (Arsany, approved 2026-11-06), implemented in `src/labels.py::lab
 - **FR-E02 claims cover wetting + sensor fault only.** Fast-drying and waterlogged stay weak labels, shown in the last two columns and **not** an FR-E02 claim. **No threshold re-tuning** after seeing zero train fast-drying positives: percentile constants are frozen (`FROZEN_WEAK_LABEL_RULE`, guarded by tests).
 - Real data, `scripts/run_mendeley.py`, seed 0, no synthetic faults, all splits pooled, months in UTC. Counts are data counts, not results. Ticks are 15-min ticks of the pipeline (masked ticks included).
 - Weak labels are not masked by sector: all 49 val fast-drying ticks sit in sector 5 (Aug) and the 14 test ones in sector 4 (Jul); train has 0. Waterlogged is 0 everywhere. Sensor-fault classes have 0 real positives (faults are synthetic only; not injected here).
-- Per-split positive counts were not recomputed (the pooled table is what was run).
+- **No fast-drying metric may be reported from val:** all 49 val fast-drying ticks lie in excluded sector 5, so they are outside any FR-E02 claim; fast-drying and waterlogged labels stay outside every FR-E02 claim.
+
+Per-split positive counts (real data, seed 0, pad 2; sector 5 excluded):
+
+| Split | Pos: watering | Pos: rain | Generic wetting events (ignored) | Ignore-mask ticks | Negative ticks |
+|---|---|---|---|---|---|
+| train | 126 | 52 | 386 | 12,999 | 33,538 |
+| val | 24 | 8 | 75 | 2,494 | 6,306 |
+| test | 34 | 6 | 95 | 2,589 | 6,682 |
+| total | 184 | 66 | 556 | 18,082 | 46,526 |
+
+(Generic events include sector 5's 243; sector 5's explained events are not positives.) Val has only 32 and test 40 positives: any per-split metric is very noisy.
+
+**Ignore-pad sensitivity (Theo C1), `IGNORE_PAD_TICKS` 2 vs 4.** Contaminated negative = negative tick within 2 h after a generic onset whose m is still >= 10 points above the pre-onset value (m two ticks before the onset). Pad 2: 46,526 negatives, 1,174 contaminated (2.52 %). Pad 4: 45,274 negatives, 681 contaminated (1.50 %). Pad 4 removes 1,252 negatives (2.7 %) and 493 contaminated ones. The effect is **not negligible**, so the default stays 2 only provisionally and the decision is open (reported to Nora/Theo; nothing changed silently). The definition of "contaminated" is my own proxy, not a ground truth.
 
 | Month | Sector | Ticks | Pos: watering (valve) | Pos: rain | Generic wetting events | Ignore-mask ticks | Negative ticks | Weak fast-drying | Weak waterlogged |
 |---|---|---|---|---|---|---|---|---|---|
