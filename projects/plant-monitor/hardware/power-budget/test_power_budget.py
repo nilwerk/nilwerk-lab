@@ -180,6 +180,17 @@ class DocMatchesScript(unittest.TestCase):
             self.assertIsNotNone(m, name)
             self.assertEqual(m.group(1).strip(), body.strip(), f"{name} stale: run --update-doc")
 
+    def test_every_doc_block_has_a_section_and_nfr12_table_is_intact(self):
+        secs = pb.report_sections()
+        self.assertEqual(set(re.findall(r"<!-- BEGIN:(\w+) -->", DOC)), set(secs))   # all blocks, none stale or missing
+        nfr = secs["nfr12"]
+        self.assertIn("NFR-12 limit", nfr)
+        self.assertIn("**50**", nfr)
+        head = nfr.splitlines()[0]
+        self.assertEqual(head.count("|") - 1, 4)                                     # 4 columns, not the cells table
+        self.assertEqual(len(nfr.splitlines()), 2 + 4)                               # header, rule, best/typical/worst/limit
+        self.assertNotIn("T x W x L", nfr)
+
     def test_headline_numbers_in_section_1(self):
         sec1 = DOC.split("## 2.")[0]
         t = pb.TYPICAL

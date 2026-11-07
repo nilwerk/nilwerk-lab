@@ -165,9 +165,10 @@ Definition to put in the requirement: **whole-board deep-sleep current measured 
 <!-- BEGIN:nfr12 -->
 | case (other terms as in the case) | board sleep estimate uA | max sleep uA for 1000 mAh rated, 2190 h | limit / estimate |
 | --- | --- | --- | --- |
-| EEMB LP603449 bare cell (A-020) | 1100 | 1000 | 6.3 x 34.5 x 50 | yes | 12.8 | 4.5 | 1.4 | PASS | 134 |
-| Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate) | 450 | 430 | 5.2 x 30 x 30 | yes | 5.5 | 1.9 | 0.6 | FAIL | -74 |
-| Jauch LP603443JU+PCM+2 wires (DigiKey alternative) | 900 | 850 | 6.5 x 34.5 x 45 | NO (see note) | 10.8 | 3.8 | 1.2 | PASS | 80 |
+| best | 8.3 | 288 | 34.7 |
+| typical | 13.2 | 134 | 10.2 |
+| worst | 31.7 | -400 | n/a (cannot reach) |
+| **NFR-12 limit** = floor(0.4 x typical limit to 25 uA) |  | **50** | 3.8 |
 <!-- END:nfr12 -->
 
 
@@ -229,7 +230,7 @@ Capacity check against section 5: the typical case needs about 670 mAh rated by 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | EEMB LP603449 bare cell (A-020) | 1100 | 1000 | 6.3 x 34.5 x 50 | yes | 12.8 | 4.5 | 1.4 | PASS | 134 |
 | Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate) | 450 | 430 | 5.2 x 30 x 30 | yes | 5.5 | 1.9 | 0.6 | FAIL | -74 |
-| Jauch LP603443JU+PCM+2 wires (DigiKey alternative) | 900 | 850 | 6.5 x 34.5 x 45 | NO (see note) | 10.8 | 3.8 | 1.2 | PASS | 80 |
+| Jauch LP603443JU+PCM+2 wires (DigiKey alternative) | 900 | 850 | 6.5 x 34.5 x 45 | no, thicker: input to Yara | 10.8 | 3.8 | 1.2 | PASS | 80 |
 <!-- END:cells -->
 
 

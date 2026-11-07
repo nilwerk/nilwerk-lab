@@ -368,15 +368,15 @@ def report_sections() -> dict[str, str]:
                      f"{lim / sleep_current_ua(p):.1f}" if lim > 0 else "n/a (cannot reach)"])
     rows.append([f"**NFR-12 limit** = floor({NFR12_MARGIN:g} x typical limit to {NFR12_STEP_UA:g} uA)",
                  "", f"**{nfr12_limit_ua():.0f}**", f"{nfr12_limit_ua() / sleep_current_ua(TYPICAL):.1f}"])
-    rows = []
+    crows = []   # own variable per table: never reuse `rows` (it clobbered the NFR-12 table once)
     for name, (typ, mn, (t, w, l), _src) in CELLS.items():
         ht, hb, hw = (derated_hours(p, mn) / HOURS_PER_MONTH for p in (TYPICAL, BEST, WORST))
         fits = t <= BAY_MM[2] and w <= BAY_MM[1] and l <= BAY_MM[0]
-        rows.append([name, f"{typ:.0f}", f"{mn:.0f}", f"{t:g} x {w:g} x {l:g}", "yes" if fits else "NO (see note)",
+        crows.append([name, f"{typ:.0f}", f"{mn:.0f}", f"{t:g} x {w:g} x {l:g}", "yes" if fits else "no, thicker: input to Yara",
                      f"{hb:.1f}", f"{ht:.1f}", f"{hw:.1f}", "PASS" if ht * HOURS_PER_MONTH >= NFR01_HOURS else "FAIL",
                      f"{max_sleep_current_ua(TYPICAL, mn):.0f}"])
     sec["cells"] = _table(["cell", "typ mAh", "MIN mAh", "T x W x L mm", "fits 51 x 34.5 x 6.3", "months best",
-                           "months typical", "months worst", "NFR-01 typical", "max sleep uA (typical terms)"], rows)
+                           "months typical", "months worst", "NFR-01 typical", "max sleep uA (typical terms)"], crows)
     sec["nfr12"] = _table(["case (other terms as in the case)", "board sleep estimate uA",
                            f"max sleep uA for {CELL_RATED_MIN_MAH:.0f} mAh rated, {NFR01_HOURS:.0f} h",
                            "limit / estimate"], rows)

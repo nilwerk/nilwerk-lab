@@ -2,13 +2,21 @@
 
 Author: Emil (PCB Designer) · Read live **2026-11-07** (Berlin evening) · Nothing was ordered or bought (hard rule); the cart in section 6 is a list for Arsany to click.
 
+## Decision box for Arsany (neutral)
+
+1. **Jauch LP503030JU (A-034 candidate): does not meet NFR-01 as specified.** 430 mAh minimum gives 1.9 months typical against 3 months; about 668 mAh rated is needed. It fits the bay.
+2. **Jauch LP603443JU+PCM+2 wires (DigiKey): meets NFR-01** (3.8 months typical, 850 mAh minimum). It is 6.5 mm thick per DigiKey, 0.2 mm above the 6.3 mm **minimum** bay; enclosure v3 is not built, so this is an input to Yara, not a collision. Its datasheet says **IEC 62133: NO** (UN 38.3 yes); the candidate LP503030JU says IEC 62133-2 yes. **Decision for you:** whether the missing IEC 62133 matters for your use (CE/sale); I do not assess it.
+3. **Open for both:** swelling margin; pack drawing (ask Jauch, batterytechnology@jauch.com is on the datasheet, I send nothing); LP603443JU has no NTC and no 2nd IC; DigiKey lists 28 weeks lead time against 516 in stock (ask DigiKey/Jauch before ordering).
+4. **Third option:** keep the EEMB 603449 (4.5 months, but no verified source, PCM or price).
+5. **Your call:** cell, whether the bay may grow, and the order. I never order.
+
 ## Answer first
 
 | Question | Jauch **LP503030JU**+PCM+2IC+NTC (the A-034 candidate) | Jauch **LP603443JU**+PCM+2 wires (found on DigiKey while checking) |
 |---|---|---|
 | Fits NFR-01 (3 months, rule A-021: 0.8 x **minimum** rated mAh / average current)? | **NO.** 430 mAh minimum gives **1.9 months typical** (best 5.5, worst 0.6). About **668 mAh rated** is needed for the typical case | **YES.** 850 mAh minimum gives **3.8 months typical** (best 10.8, worst 1.2, the worst stack is a stress bound) |
-| Fits the A-020 bay 51 x 34.5 x 6.3 mm? | **YES**, with margin: 5.2 x 30 x 30 mm (21 mm spare in length, 4.5 mm in width, 1.1 mm in height) | **NO, by 0.2 mm in height** (6.5 mm per DigiKey vs 6.3 mm bay) and **zero margin in width** (34.5 mm); length 45 mm fits |
-| Recommendation | **Do not buy it for this product.** It only works for NFR-01 with a stack of firmware levers that is not designed yet (typical lever package: 3.06 months, no margin) | **Recommended DigiKey cell, if Yara/Arsany can give the bay 6.5 mm height and a few tenths of width** (the bay is A-020's envelope of the 603449; nothing is built yet). Otherwise ask Jauch for a PCM cell in the 603449 envelope |
+| Fits the A-020 bay 51 x 34.5 x 6.3 mm? | **YES**, with margin: 5.2 x 30 x 30 mm (21 mm spare in length, 4.5 mm in width, 1.1 mm in height) | **Not at the 6.3 mm minimum:** 6.5 mm per DigiKey is 0.2 mm thicker, width 34.5 mm leaves zero margin; length 45 mm fits. The bay (`pcb-enclosure-bay.md`) is a minimum and enclosure v3 is not built, so +0.2 mm is an input to Yara, not a collision. Swelling margin is open for both cells; DigiKey 6.5 mm vs Jauch list 6.0 mm bare cell: ask Jauch for the pack drawing |
+| Recommendation | **Does not meet NFR-01 as specified.** It would only reach 3 months with a stack of firmware levers that is not designed yet (typical lever package: 3.06 months, no margin) | **Recommended DigiKey cell, if Yara can take 6.5 mm height and Arsany accepts the open points (IEC 62133 NO, no NTC/2nd IC).** Otherwise ask Jauch for a PCM cell in the 603449 envelope |
 
 So the plain answer to "fits NFR-01 **and** the bay" for the cell named in A-034 is **NO** (bay yes, NFR-01 no).
 
@@ -71,7 +79,7 @@ For the LP503030JU the right resistor: 0.5C = 215 mA gives R = 1100 / 215 = 5.1 
 
 - "Molex 78172-3" is read as the **Molex 78172-0003**, Pico-EZmate receptacle crimp housing, **3 circuits, 1.20 mm pitch** (web results; Molex's own page returned an error, **the exact string "78172-3" was not found anywhere**, so this is **unverified** until the cell's datasheet or Jauch confirms it). Three circuits = battery +, battery -, NTC.
 - Our board has **J2 = JST S2B-PH-SM4-TB, 2 pins, 2.0 mm**: **not compatible** (different family, pitch and pin count).
-- Mating header on the board: **Molex 78171-0003** (Pico-EZmate header, 3 circuits, SMD), LCSC/JLC **C564183** (JLC Extended, stock 22,604, 0.2864 USD at 1, 0.237 at 50, read live), as BOM line **J2b** (alternative to J2). That 78171 header mates with the 78172 housing is the Pico-EZmate family pairing (web results) and **unverified** against a Molex mating drawing. It adds one Extended part to the JLC order (+3.07 USD per order) and removes J2 (also Extended), so the fee count stays the same.
+- Mating header on the board: **Molex 78171-0003** (Pico-EZmate header, 3 circuits, SMD), LCSC/JLC **C564183** (JLC Extended, stock 22,604, 0.2864 USD at 1, 0.237 at 50, read live; **LCSC describes C564183 as right angle: check the Molex mating drawing and the board edge**), as BOM line **J2b** (alternative to J2). That 78171 header mates with the 78172 housing is the Pico-EZmate family pairing (web results) and **unverified** against a Molex mating drawing. It adds one Extended part to the JLC order (+3.07 USD per order) and removes J2 (also Extended), so the fee count stays the same.
 - Alternative without changing the board: a 2 x 3-pin adapter pigtail (Pico-EZmate to JST PH) loses the NTC, so the TP4056 TEMP pin must be grounded and cell temperature protection is lost.
 - Polarity: **the pin order of the cell's plug is not in the datasheet**; check against J2b pin 1 on receipt before the first connection (hard hardware rule, a reversed cell destroys the board).
 
@@ -86,7 +94,7 @@ For the LP503030JU the right resistor: 0.5C = 215 mA gives R = 1100 / 215 = 5.1 
 | Lead time | ships in about 6 days from Jauch | **28 weeks** listed (manufacturer standard lead time; inconsistent with the 516 in stock, ask before ordering) |
 | MOQ / pack | not stated, minimum selectable 1; tray | not stated, 1; tray |
 | Shipping | free from EUR 66.58 on Jauch Quartz orders | not read |
-| Datasheet | `jauch.com/downloadfile/6656dfa0.../lp503030ju.pdf` | `jauch.com/downloadfile/5bf529ea.../850mah_-_lp603443ju_1s1p_2_wire_70mm.pdf` (Jauch no. 246512, Rev. 1.1, 10/2022): 900 typ / 850 min mAh, charge max 1.0C = 900 mA (0 to 15 C 0.2C, 45 to 50 C 0.5C at 4.1 V), discharge max 900 mA, PCM OC 4.28 +-0.02 V, OD 3.00 +-0.05 V, over-current 3.0 to 6.0 A, **no NTC, no 2nd IC, bare wires**, IEC 62133 **NO**, UN 38.3 yes, about 20 g; DigiKey size 45.0 x 34.5 x 6.5 mm |
+| Datasheet | `jauch.com/downloadfile/6656dfa0.../lp503030ju.pdf` | `https://www.jauch.com/downloadfile/677e3a8d45c2839aafeab5156381835e3/matd_246512_20200507_850mah_-_lp603443ju_1s1p_2_wire_70mm.pdf` (Jauch no. 246512, **Rev. 1.2, 12/2024**, retrieved 2026-11-07; the older Rev. 1.1 of 10/2022 has the same values): 900 typ / 850 min mAh, charge max 1.0C = 900 mA (0 to 15 C 0.2C, 45 to 50 C 0.5C at 4.1 V), discharge max 900 mA, PCM OC 4.28 +-0.02 V, OD 3.00 +-0.05 V, over-current 3.0 to 6.0 A, **no NTC, no 2nd IC, bare wires**, IEC 62133 **NO**, UN 38.3 yes, about 20 g; DigiKey size 45.0 x 34.5 x 6.5 mm |
 
 ## 6. DigiKey cart for Arsany (3 demo units + 2 spare = quantity 5; never ordered by me)
 
@@ -114,7 +122,19 @@ The JLC/LCSC items are board-assembly or hand-work parts and are not part of the
 | Price / stock | none found, **unverified** | EUR 8.47 at 1; 85 in stock; ships in about 6 days | USD 11.11 at 1; 516 in stock; lead time 28 weeks listed |
 | Source datasheet | EEMB, read | Jauch, read (no drawing) | Jauch, read |
 
-**Recommendation: choose the Jauch LP603443JU+PCM+2 wires (DigiKey 1908-...-ND) if the bay can take 6.5 x 34.5 x 45 mm (Yara and Arsany to confirm in enclosure v3, A-020 bay is only a note so far).** It is the only DigiKey cell I found that passes NFR-01 and is close to the bay. Its price of the missing NTC is a grounded TEMP pin (no cell temperature protection beyond the PCM; the 4.P1 checklist item). **Do not buy the LP503030JU:** it fails NFR-01 by a wide margin (1.9 against 3 months), needs a different connector, a different charge resistor and a firmware lever package that is neither designed nor measured. If the bay cannot change, the alternative is to ask Jauch (batterytechnology@jauch.com is on their datasheet; I send nothing) for a 603449-size cell with PCM, or keep the EEMB 603449 with a purchase spec (PCM, plug) and a source that I could not verify.
+**Recommendation: choose the Jauch LP603443JU+PCM+2 wires (DigiKey 1908-...-ND) if the bay can take 6.5 x 34.5 x 45 mm (Yara and Arsany to confirm in enclosure v3, A-020 bay is only a note so far).** It is the only DigiKey cell I found that passes NFR-01 and is close to the bay. **IEC 62133 is NO on its datasheet** (UN 38.3 yes); flagged to Arsany as a decision, not assessed here. Its price of the missing NTC is a grounded TEMP pin (no cell temperature protection beyond the PCM; the 4.P1 checklist item). **The LP503030JU does not meet NFR-01 as specified:** it falls short by a wide margin (1.9 against 3 months), needs a different connector, a different charge resistor and a firmware lever package that is neither designed nor measured. If the bay cannot change, the alternative is to ask Jauch (batterytechnology@jauch.com is on their datasheet; I send nothing) for a 603449-size cell with PCM, or keep the EEMB 603449 with a purchase spec (PCM, plug) and a source that I could not verify.
+
+## 7b. Risks per cell (separate lines)
+
+| Risk | LP503030JU | LP603443JU |
+|---|---|---|
+| NFR-01 | **fails** (1.9 months typical) | passes (3.8) |
+| IEC 62133 | yes (62133-2:2017) | **NO** (UN 38.3 yes); decision for Arsany, not assessed |
+| Protection | PCM + 2nd IC + NTC | PCM only: **no NTC, no 2nd IC**; TEMP pin grounded |
+| Charge below 15 C | max 0.2C (0 to 15 C) cannot be enforced by the TP4056 | same rule, 0.2C = 180 mA, exceeded at R9 = 2.4k (458 mA) |
+| Fit | fits with margin | +0.2 mm over the 6.3 mm minimum bay, zero width margin; swelling margin open; DigiKey 6.5 mm vs Jauch list 6.0 mm bare cell: pack drawing needed |
+| Supply | 85 in stock, ships in about 6 days | **28 weeks listed vs 516 in stock: ask DigiKey/Jauch before ordering** |
+| Connector | Molex 78172-3 inferred, J2b needed, polarity unknown | bare wires, own connector or pigtail |
 
 ## 8. Open and unverified
 
