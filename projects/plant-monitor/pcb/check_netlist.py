@@ -129,7 +129,11 @@ for row in csv.DictReader(open(BOM_DRAFT)):
         draft[r] = (row["lcsc_pn"], int(row["qty_per_board"]) / len(expand(row["ref"])))
 mine = {p.ref: p.lcsc for p in D.PARTS if p.in_bom}
 ADDED = {"R13": "I2C pull-up", "R14": "I2C pull-up", "R15": "DW01A CS resistor", "R16": "GPIO2 pull-up (Theo C4)"}
+REMOVED = {"Q2": "A-045 Option A (divider switch dropped)", "R6": "A-045 Option A (Q2 gate pull-down dropped)"}   # still in hardware/bom/bom-draft.csv
 for r, (lcsc, _) in sorted(draft.items()):
+    if r in REMOVED:
+        check(r not in mine, f"BOM draft {r} {lcsc} removed from the schematic: {REMOVED[r]}")
+        continue
     check(r in mine and mine[r] == lcsc, f"BOM draft {r} {lcsc} = schematic {mine.get(r)}")
 extra = sorted(set(mine) - set(draft))
 check(set(extra) == set(ADDED), f"schematic parts not in BOM draft are exactly the declared additions {ADDED}: {extra}")
@@ -143,6 +147,7 @@ for row in csv.DictReader(open(BOM_DRAFT)):
     if row["alternative"].strip().lower() != "yes":
         want[row["lcsc_pn"]] += int(row["qty_per_board"])
 want["C21190"] += 1; want["C23162"] += 2; want["C25804"] += 1   # R15, R13+R14, R16
+want["C20917"] -= 1; want["C25804"] -= 1                          # Q2 and R6 removed (A-045 Option A)
 for l, n in sorted(want.items()):
     check(cnt.get(l, 0) == n, f"qty of {l}: schematic {cnt.get(l, 0)} = BOM draft (+declared additions) {n}")
 bom_csv = {}
@@ -154,9 +159,17 @@ check(bom_csv == mine, "pcb/bom.csv equals the schematic (regenerate with gen_sc
 # ---------------- 4 R9 / charger ----------------
 r9 = next(p for p in D.PARTS if p.ref == "R9")
 i_ma = 1100.0 / (D.R9_OHM / 1000.0)
-check(abs(i_ma / D.CELL_MIN_MAH - 0.46) < 0.01 and i_ma * 1.15 / D.CELL_MIN_MAH < 1.0,
-      f"R9 {D.R9_OHM} ohm -> {i_ma:.0f} mA = {i_ma/D.CELL_MIN_MAH:.2f}C of {D.CELL_MIN_MAH} mAh; +15 % tolerance {i_ma*1.15:.0f} mA < 1C")
-check(r9.value == "2.4k" and r9.lcsc == "C22940", "R9 = 2.4k C22940 as required by the 2.5 BOM (A-034 open, parametrised in design.py)")
+check(i_ma / D.CELL_MIN_MAH <= 0.5 and i_ma * 1.15 <= D.CELL_MAX_CHARGE_MA,
+      f"R9 {D.R9_OHM} ohm -> {i_ma:.0f} mA = {i_ma/D.CELL_MIN_MAH:.2f}C of {D.CELL_MIN_MAH} mAh (<= 0.5C); +15 % tolerance {i_ma*1.15:.0f} mA <= cell max charge {D.CELL_MAX_CHARGE_MA} mA")
+check(r9.value == "2.4k" and r9.lcsc == "C22940", "R9 = 2.4k C22940 (EEMB LP603449-PCM, A-034 decided; parametrised in design.py)")
+check(i_ma + 10 <= 500, f"VBUS draw {i_ma:.0f} mA charge + about 10 mA (one LED 3 mA, TP4056 supply) <= USB 2.0 500 mA; the board load comes from the cell (A-046 Option A: no power path), +15 % tolerance {i_ma*1.15:.0f} mA would exceed 500 mA (open point 3)")
+check(not any(p.ref in ("Q2", "R6") for p in D.PARTS) and not any("BAT_SENS_EN" in [x[2] for x in p.pins] for p in D.PARTS),
+      "A-045 Option A: no Q2, no R6, no BAT_SENS_EN net")
+r7, r8 = (next(p for p in D.PARTS if p.ref == r) for r in ("R7", "R8"))
+check({x[2] for x in r7.pins} == {"VBAT", "BAT_SENS"} and {x[2] for x in r8.pins} == {"BAT_SENS", "GND"} and r7.value == r8.value == "1M",
+      "A-045: battery divider R7 (VBAT-BAT_SENS) + R8 (BAT_SENS-GND), 1M + 1M permanent: BAT_SENS max 2.1 V at 4.2 V")
+tp = next(p for p in D.PARTS if p.ref == "U3")
+check(any(x[1] == "TEMP" and x[2] == "GND" for x in tp.pins), "TP4056 TEMP tied to GND (the decided cell has no NTC)")
 
 # ---------------- 5 strapping / pin sanity ----------------
 u1 = {n: (nm, net) for n, nm, net, s in next(p for p in D.PARTS if p.ref == "U1").pins}
@@ -169,8 +182,8 @@ u5 = {n: net for n, nm, net, s in next(p for p in D.PARTS if p.ref == "U5").pins
 check(u5 == {"1": "NC", "2": "3V3", "3": "I2C_SCL", "4": "I2C_SDA", "5": "GND", "6": "NC"}, "U5 AHT20 6-pin DFN map equals datasheet Table 5 (NC,VDD,SCL,SDA,GND,NC)")
 gpio_used = [net for n, (nm, net) in u1.items() if nm.startswith("IO") and net != "NC"]
 check(len(gpio_used) == len(set(gpio_used)), f"each GPIO net used once: {len(gpio_used)}")
-check(all(n in (0, 1, 2, 3, 4, 5) for n in [int(re.match(r'IO(\d+)', nm)[1]) for n, (nm, net) in u1.items() if net in ("SOIL_PWR", "FACTORY_RST_N", "BAT_SENS_EN", "BAT_SENS")]),
-      "pins that must hold/wake in deep sleep (IO0..IO5 = RTC GPIO): BAT_SENS, BAT_SENS_EN, SOIL_PWR, FACTORY_RST_N")
+check(all(n in (0, 1, 2, 3, 4, 5) for n in [int(re.match(r'IO(\d+)', nm)[1]) for n, (nm, net) in u1.items() if net in ("SOIL_PWR", "FACTORY_RST_N", "BAT_SENS")]),
+      "pins that must hold/wake in deep sleep (IO0..IO5 = RTC GPIO): BAT_SENS, SOIL_PWR, FACTORY_RST_N")
 
 # ---------------- 6 sleep budget vs NFR-12 ----------------
 SLEEP = D_SLEEP = [  # (path, typ uA, worst uA, source/status)
@@ -179,13 +192,13 @@ SLEEP = D_SLEEP = [  # (path, typ uA, worst uA, source/status)
     ("TP4056 BAT drain, USB unplugged (U3)", 3.0, 6.0, "assumption (datasheet ~2-6 uA shutdown/standby, p.2 not re-read)"),
     ("DW01A operating current (U4)", 3.0, 6.0, "assumption (datasheet not read, ~3 uA typ)"),
     ("8205A leakage (Q1)", 0.05, 1.0, "assumption (both FETs on, Vds ~0)"),
-    ("Battery divider R7+R8, Q2 off", 0.0, 0.1, "Q2 AO3400A off-state leakage nA; if Q2 is on: 3.7 V / 2 MOhm = 1.85 uA (measure only)"),
+    ("Battery divider R7+R8, permanent (A-045 Option A)", 2.1, 2.1, "4.2 V (full cell) / 2 MOhm; 1.85 uA at 3.7 V nominal; 1 % resistors"),
     ("AHT20 sleep (U5)", 0.25, 1.0, "power budget value (AHT20 datasheet 2024-07: sleep <= 0.2 uA max)"),
     ("BH1750 power-down (U6)", 0.01, 1.0, "datasheet unverified; needs a power-down command before sleep"),
     ("U7 soil gate, VCC = IO3 low", 0.1, 1.0, "IO3 must be held low in deep sleep (RTC hold); leakage only"),
     ("MLCC leakage C1-C14 (about 100 uF total on VBAT/3V3)", 0.1, 1.0, "assumption (>= 100 Mohm insulation resistance class)"),
     ("USBLC6 / LEDs / CC resistors, VBUS = 0", 0.0, 0.5, "no supply, only I/O leakage (USBLC6 datasheet not read)"),
-    ("Pull-ups R3-R5, R16, R13/R14, gate pull-down R6", 0.0, 0.0, "all nodes at the rail or GPIO low in sleep: no DC path (check: IO8/IO9/EN high, IO1 low)"),
+    ("Pull-ups R3-R5, R16, R13/R14", 0.0, 0.0, "all nodes at the rail in sleep: no DC path (check: IO8/IO9/EN high)"),
 ]
 typ = sum(r[1] for r in SLEEP); worst = sum(r[2] for r in SLEEP)
 print(f"\nSleep budget (battery terminal, USB unplugged): typical {typ:.1f} uA, worst {worst:.1f} uA, NFR-12 limit {D.NFR12_MAX_UA:.0f} uA, target {D.NFR12_TARGET_UA:.0f} uA")
@@ -196,10 +209,10 @@ check(worst <= D.NFR12_MAX_UA, f"worst sleep sum {worst:.1f} uA <= NFR-12 limit 
 # ---------------- 7 generated doc table (drift check) ----------------
 def render_md():
     L = ["# Pin map and sleep-leakage table (generated by check_netlist.py --write; do not edit by hand)", "",
-         "Requirements: NFR-01 (3 months), NFR-12 (whole-board deep sleep <= 50 uA, design target 25 uA). Matches design.py; "
+         "Requirements: NFR-01 (best and typical >= 3 months, worst > 1 month), NFR-12 (whole-board deep sleep <= 50 uA, design target 25 uA). Matches design.py; "
          "`firmware/main/board.h` does not exist yet, Mira must copy this table.", "", "## ESP32-C3-MINI-1 pin map", "",
          "| Module pin | Function | Net | Note |", "|---|---|---|---|"]
-    notes = {"IO0/ADC1_0": "ADC1_CH0, RTC", "IO1": "RTC, drives Q2 gate (R6 pull-down)", "IO2 (strap)": "strap, pulled up by R16",
+    notes = {"IO0/ADC1_0": "ADC1_CH0, RTC", "IO1": "free (was BAT_SENS_EN; A-045 Option A removed Q2/R6)", "IO2 (strap)": "strap, pulled up by R16",
              "IO3": "RTC, holds U7 supply LOW in deep sleep", "IO4": "RTC, PCNT edge count", "IO5": "RTC wake, pinhole reset (internal pull-up)",
              "IO8 (strap)": "R4 pull-up", "IO9 (strap)": "R5 pull-up, BOOT switch", "IO18/USB_D-": "USB Serial/JTAG", "IO19/USB_D+": "USB Serial/JTAG"}
     for n, nm, net, side in next(p for p in D.PARTS if p.ref == "U1").pins:

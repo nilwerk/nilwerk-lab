@@ -3,23 +3,28 @@
 Every part: ref, symbol type, value, footprint, LCSC number, MPN, pins [(num, name, net, side)], flags.
 Net "NC" = pin intentionally unconnected (gets a no-connect flag).  Pin numbers marked pin_verified=False were
 written from memory/listing, NOT from a read datasheet: they must be checked against the datasheet before 4.P2.
-Requirements: NFR-01 (3 months battery life, A-020), NFR-12 (whole-board deep sleep <= 50 uA, design target 25 uA).
+Requirements: NFR-01 (best and typical case >= 3 months, worst case > 1 month; relaxed by Arsany 2026-11-08), NFR-12 (whole-board deep sleep <= 50 uA, design target 25 uA).
+Decisions applied 2026-11-08 (Arsany): A-034 cell = EEMB LP603449-PCM from Amazon.de (ASIN B08FD39Y5R); A-045 Option A (no Q2/R6, permanent
+divider R7/R8, IO1 free); A-046 Option A (no power path in v1: the board needs a cell).
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
 
-NFR01_MONTHS = 3          # NFR-01 (A-020); single parameter, same name as the power budget
+NFR01_MONTHS = 3          # NFR-01 best and typical case (A-020); single parameter, same name as the power budget
+NFR01_WORST_MONTHS = 1    # NFR-01 worst case: MORE than this (relaxed by Arsany 2026-11-08)
 NFR12_MAX_UA = 50.0       # NFR-12, A-027
 NFR12_TARGET_UA = 25.0
 
 # ---------------------------------------------------------------------------------------------
 # CHARGE CURRENT (R9).  TP4056 datasheet REV_2.4 p.9: R_PROG[kOhm] = 1100 / I_BAT[mA].
-# DECISION A-034 IS STILL OPEN (cell: EEMB 603449 1000 mAh min vs Jauch LP603443JU 850 mAh min).
-# Change ONLY this block when the cell is decided; the schematic value, the BOM CSV and the check
-# script all derive from it.  Target 0.5C of the MINIMUM rated capacity, rounded to an E24 value.
-CELL_MIN_MAH = 1000        # 603449 class.  LP603443JU: 850 -> 0.5C = 425 mA -> 2.6k exact, E24 2.7k (407 mA)
-R9_OHM = 2400              # E24; 1100/2.4 = 458 mA = 0.46C of 1000 mAh (0.54C of 850 mAh: still < 1C)
-R9_LCSC = "C22940"         # 0603WAF2401T5E.  For 2.7k: 0603WAF2701T5E, LCSC number not looked up (unverified)
+# A-034 DECIDED 2026-11-08: EEMB LP603449-PCM (Amazon.de B08FD39Y5R): 1000 mAh minimum (1100 typical), PCM built in,
+# maximum charging current 1100 mA per the listing (A+ text).  Target <= 0.5C of the MINIMUM capacity (500 mA),
+# rounded to an E24 value that keeps the LCSC number already verified.  Change ONLY this block when the cell changes;
+# the schematic value, the BOM CSV and the check script all derive from it.
+CELL_MIN_MAH = 1000        # EEMB LP603449-PCM, minimum capacity (listing bullet; EEMB datasheet read 2026-11-07)
+CELL_MAX_CHARGE_MA = 1100  # listing A+ text: "Maximum charging current: 1100 mA"
+R9_OHM = 2400              # E24; 1100/2.4 = 458 mA = 0.46C of 1000 mAh; +15 % TP4056 tolerance 527 mA = 0.53C < 1C (1100 mA)
+R9_LCSC = "C22940"         # 0603WAF2401T5E.  0.50C exactly would be 2.2k (500 mA): LCSC number not looked up, kept 2.4k (0.46C)
 # ---------------------------------------------------------------------------------------------
 I_CHG_MA = 1100.0 / (R9_OHM / 1000.0)
 
@@ -68,7 +73,7 @@ B = "1 MCU"
 gnd_pads = ["1", "2", "11", "14"] + [str(i) for i in range(36, 54)]
 add("U1", "ESP32-C3-MINI-1", "ESP32-C3-MINI-1-N4", "RF_Module:ESP32-C3-MINI-1", "C2838502", "ESP32-C3-MINI-1-N4",
     [("3", "3V3", "3V3", "L"), ("8", "EN", "EN", "L"),
-     ("12", "IO0/ADC1_0", "BAT_SENS", "L"), ("13", "IO1", "BAT_SENS_EN", "L"),
+     ("12", "IO0/ADC1_0", "BAT_SENS", "L"), ("13", "IO1", "NC", "L"),
      ("5", "IO2 (strap)", "GPIO2_STRAP", "L"), ("6", "IO3", "SOIL_PWR", "L"), ("18", "IO4", "SOIL_OUT", "L"),
      ("19", "IO5", "FACTORY_RST_N", "L"),
      ("20", "IO6", "I2C_SDA", "R"), ("21", "IO7", "I2C_SCL", "R"), ("22", "IO8 (strap)", "GPIO8_STRAP", "R"),
@@ -119,10 +124,10 @@ add("U3", "TP4056", "TP4056", "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.
     [("4", "VCC", "VBUS", "L"), ("8", "CE", "VBUS", "L"), ("2", "PROG", "PROG", "L"), ("1", "TEMP", "GND", "L"),
      ("5", "BAT", "VBAT", "R"), ("6", "STDBY", "STDBY_N", "R"), ("7", "CHRG", "CHRG_N", "R"),
      ("3", "GND", "GND", "R"), ("9", "EP", "GND", "R")],
-    "TEMP tied to GND = temperature sense disabled (datasheet p.7): the 2-pin cell has no NTC, OPEN POINT 2. "
+    "TEMP tied to GND = temperature sense disabled (datasheet p.7): the decided cell (EEMB LP603449-PCM, A-034) lists no NTC (wire count not stated in the listing). "
     "CE tied high = always enabled.", block=B)
 res("R9", f"{R9_OHM/1000:g}k", R9_LCSC, "0603WAF2401T5E", "PROG", "GND", B,
-    f"R_PROG = 1100/I_BAT -> {I_CHG_MA:.0f} mA = {I_CHG_MA/CELL_MIN_MAH:.2f}C of {CELL_MIN_MAH} mAh. A-034 OPEN: see CHARGE CURRENT block in design.py")
+    f"R_PROG = 1100/I_BAT -> {I_CHG_MA:.0f} mA = {I_CHG_MA/CELL_MIN_MAH:.2f}C of {CELL_MIN_MAH} mAh (cell max charge {CELL_MAX_CHARGE_MA} mA). A-034 decided: see CHARGE CURRENT block in design.py")
 cap("C1", *C10U, "VBUS", "GND", B, "TP4056 VCC input")
 cap("C2", *C10U, "VBAT", "GND", B, "TP4056 BAT output")
 res("R10", "1k", "C21190", "0603WAF1001T5E", "VBUS", "LED_CHRG_A", B, "CHRG LED series; no current when USB is unplugged")
@@ -134,13 +139,14 @@ add("D3", "LED", "LED green STDBY", "LED_SMD:LED_0805_2012Metric", "C2297", "KT-
 add("J2", "JSTPH2", "JST PH 2-pin (cell)", "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal", "C295747",
     "S2B-PH-SM4-TB(LF)(SN)",
     [("1", "CELL+", "VBAT", "R"), ("2", "CELL-", "CELL_NEG", "R"), ("MP1", "MP", "NC", "R"), ("MP2", "MP", "NC", "R")],
-    "CHECK PLUG POLARITY against the cell before first connection (many cells ship reversed). No NTC pin on a 2-pin "
-    "cell. Variant J2b (Jauch 3-pin Molex Pico-EZmate C564183) would add NTC -> TP4056 TEMP (unwire TEMP-GND).",
+    "Cell EEMB LP603449-PCM (A-034): listing says 'JST plug', PITCH AND POLARITY UNVERIFIED (read the plug label / photo 3 on the Amazon listing: "
+    "PH 2.0 mm is assumed). CHECK PLUG POLARITY with a meter before first connection (an Amazon review of this listing reports a reversed plug). "
+    "2-pin cell, no NTC: TP4056 TEMP stays tied to GND. Variant J2b (3-pin Molex C564183, Jauch cell) is NOT used.",
     block=B)
 add("U4", "DW01A", "DW01A", "Package_TO_SOT_SMD:SOT-23-6", "C351410", "DW01A",
     [("5", "VCC", "VBAT", "L"), ("6", "VSS", "CELL_NEG", "L"), ("2", "CS", "DW_CS", "R"), ("1", "OD", "DW_OD", "R"),
      ("3", "OC", "DW_OC", "R"), ("4", "TD", "NC", "R")],
-    "Cell protection. Pins verified against LCSC C351410 datasheet (pin 2 is called VM there = the CS/sense input). Not needed if the cell has a PCM, OPEN POINT 4.",
+    "Cell protection. Pins verified against LCSC C351410 datasheet (pin 2 is called VM there = the CS/sense input). The decided cell has its own PCM, so U4/Q1 are a second, redundant protection (open point 4: keep or delete, decision for Arsany).",
     block=B)
 add("Q1", "FS8205", "8205A dual N-MOSFET", "Package_SO:TSSOP-8_4.4x3mm_P0.65mm", "C5148694", "8205A",
     [("4", "G1", "DW_OD", "L"), ("5", "G2", "DW_OC", "L"),
@@ -160,12 +166,9 @@ add("U2", "XC6220", "XC6220B331MR-G (3.3 V)", "Package_TO_SOT_SMD:SOT-23-5", "C8
 cap("C3", *C10U, "VBAT", "GND", B, "LDO input")
 cap("C14", "22uF", "C59461", "CL10A226MQ8NRNC", "3V3", "GND", B, "LDO output / Wi-Fi burst")
 cap("C13", "1uF", "C15849", "CL10A105KB8NNNC", "3V3", "GND", B, "extra 1 uF on the rail near the sensors")
-res("R7", "1M", "C22935", "0603WAF1004T5E", "VBAT", "BAT_SENS", B, "divider top")
-res("R8", "1M", "C22935", "0603WAF1004T5E", "BAT_SENS", "BATDIV_LOW", B, "divider bottom, switched by Q2 (divider = 0 uA when off)")
-add("Q2", "NMOS", "AO3400A", "Package_TO_SOT_SMD:SOT-23", "C20917", "AO3400A",
-    [("1", "G", "BAT_SENS_EN", "L"), ("2", "S", "GND", "R"), ("3", "D", "BATDIV_LOW", "R")],
-    "Divider switch. OPEN POINT 1: with Q2 off, BAT_SENS floats to VBAT (up to 4.2 V) on IO0.", block=B)
-res("R6", *R10K, "BAT_SENS_EN", "GND", B, "Q2 gate pull-down (BOM draft says pull-up: gate needs pull-down), keeps divider off during reset")
+res("R7", "1M", "C22935", "0603WAF1004T5E", "VBAT", "BAT_SENS", B, "divider top (permanent, A-045 Option A)")
+res("R8", "1M", "C22935", "0603WAF1004T5E", "BAT_SENS", "GND", B,
+    "divider bottom. A-045 Option A (Arsany 2026-11-08): permanent divider, Q2 and R6 dropped; 4.2 V / 2 MOhm = 2.1 uA, BAT_SENS never above 2.1 V")
 cap("C11", *C100N, "BAT_SENS", "GND", B, "ADC source-impedance reservoir (500 k source)")
 
 # ------------------------------- sensors ------------------------------------------------------
@@ -200,8 +203,8 @@ add("E1", "PROBE", "Soil probe electrodes (PCB copper)", "NW:SOIL_PROBE_STAKE", 
 
 TITLE = "Plant Monitor board (Plan 4.P1)"
 NOTES = [
-    "NFR-01: 3 months battery life (A-020). NFR-12: whole-board deep sleep <= 50 uA, target 25 uA (A-027).",
-    f"R9 charge-current resistor: I = 1100/R9 = {I_CHG_MA:.0f} mA. Cell decision A-034 OPEN: change CELL_MIN_MAH/R9_OHM in pcb/design.py only.",
-    "Power: USB 5 V -> TP4056 -> cell (via DW01A + 8205A) = VBAT; XC6220 3.3 V LDO runs from VBAT (no power path: board needs a cell).",
+    "NFR-01: best and typical case >= 3 months, worst case > 1 month (Arsany 2026-11-08). NFR-12: whole-board deep sleep <= 50 uA, target 25 uA (A-027).",
+    f"R9 charge-current resistor: I = 1100/R9 = {I_CHG_MA:.0f} mA = {I_CHG_MA/CELL_MIN_MAH:.2f}C of the EEMB LP603449-PCM (A-034 decided 2026-11-08, 1000 mAh min): change CELL_MIN_MAH/R9_OHM in pcb/design.py only.",
+    "Power: USB 5 V -> TP4056 -> cell (via DW01A + 8205A) = VBAT; XC6220 3.3 V LDO runs from VBAT. A-046 Option A: no power path in v1, the board needs a cell. A-045 Option A: permanent battery divider R7/R8 (no Q2/R6).",
     "Strapping: IO9 high (R5), IO8 high (R4), IO2 high (R16). Pin table: pcb/pinmap-sleep.md, must match firmware board.h (not yet in repo).",
 ]

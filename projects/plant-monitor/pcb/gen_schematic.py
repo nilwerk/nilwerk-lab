@@ -98,8 +98,8 @@ def sheet() -> str:
     out = ["(kicad_sch", "  (version 20250114)", '  (generator "nilwerk_gen_schematic")', '  (generator_version "9.0")',
            f"  (uuid {q(ROOT)})", '  (paper "A1")',
            f"  (title_block (title {q(D.TITLE)}) (date \"2026-11-08\") (rev \"P1\") (company \"Nilwerk\")"
-           f" (comment 1 \"NFR-01 3 months (A-020); NFR-12 <= 50 uA, target 25 uA (A-027)\")"
-           f" (comment 2 \"R9 = {D.R9_OHM/1000:g}k -> {D.I_CHG_MA:.0f} mA; cell A-034 OPEN\"))",
+           f" (comment 1 \"NFR-01 best/typ 3 mo, worst > 1 mo (Arsany 2026-11-08); NFR-12 <= 50 uA, target 25 uA (A-027)\")"
+           f" (comment 2 \"R9 = {D.R9_OHM/1000:g}k -> {D.I_CHG_MA:.0f} mA = {D.I_CHG_MA/D.CELL_MIN_MAH:.2f}C; cell EEMB LP603449-PCM (A-034 decided)\"))",
            "  (lib_symbols"]
     out += [lib_symbol(p) for p in syms.values()]
     out.append("  )")
