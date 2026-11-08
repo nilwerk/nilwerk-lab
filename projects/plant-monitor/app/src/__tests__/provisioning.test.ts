@@ -3,7 +3,7 @@ import { parseLabel, advertisedName } from '../provisioning/label';
 import { createFakeProvisioning, FAKE_LABEL, FAKE_SENSOR, FAKE_WIFI } from '../provisioning/fakeProvisioning';
 import { ProvisioningError, LOCATION_TYPES, SOIL_TYPES } from '../provisioning/types';
 import { initialSetup, setupReducer, elapsedSeconds, formatClock, STEP_NUMBER, type SetupState, type SetupAction } from '../screens/setup/setupState';
-import { validateDeviceName, validateSsid, validatePlantName, validateArea, validateCity, validateSpecies } from '../validation';
+import { validateDeviceName, validateSsid, validatePlantName, validateArea, validateCity, validateSpecies, validateWifiPassword } from '../validation';
 import fs from 'fs';
 import path from 'path';
 
@@ -91,6 +91,16 @@ describe('setup validation (FR-A03, FR-A04)', () => {
     expect(validateSsid('')).not.toBeNull(); expect(validateSsid('é'.repeat(17))).not.toBeNull(); expect(validateSsid('Home')).toBeNull();
     expect(validatePlantName('')).not.toBeNull(); expect(validateArea('')).not.toBeNull(); expect(validateCity('')).not.toBeNull();
     expect(validateSpecies('')).toBeNull(); expect(validateSpecies('x'.repeat(121))).not.toBeNull();
+  });
+  test('Wi-Fi password: 8-63 chars for WPA2, empty only for open networks (PR #56 C2)', () => {
+    expect(validateWifiPassword('')?.key).toBe('validation.wifiPassword.required');
+    expect(validateWifiPassword('x'.repeat(7))?.key).toBe('validation.wifiPassword.length');
+    expect(validateWifiPassword('x'.repeat(8))).toBeNull();
+    expect(validateWifiPassword('x'.repeat(63))).toBeNull();
+    expect(validateWifiPassword('x'.repeat(64))?.key).toBe('validation.wifiPassword.length');
+    expect(validateWifiPassword('        ')).toBeNull(); // 8 spaces are a legal passphrase, not trimmed
+    expect(validateWifiPassword('', false)).toBeNull();
+    expect(validateWifiPassword('secret-pass', false)?.key).toBe('validation.wifiPassword.open');
   });
   test('location and soil lists match db-schema.sql', () => {
     const sql = fs.readFileSync(path.resolve(__dirname, '../../../docs/interfaces/db-schema.sql'), 'utf8');

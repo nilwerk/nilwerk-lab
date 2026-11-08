@@ -189,6 +189,8 @@
   "validation.ssid.required": "Enter the network name.",
   "validation.ssid.long": "A network name has at most 32 bytes.",
   "validation.wifiPassword.required": "Enter the Wi-Fi password.",
+  "validation.wifiPassword.length": "A Wi-Fi password has {min} to {max} characters.",
+  "validation.wifiPassword.open": "This network is open, so it needs no password.",
   "validation.plantName.required": "Enter the plant name.",
   "validation.area.required": "Enter a room or area.",
   "validation.city.required": "Enter a city.",

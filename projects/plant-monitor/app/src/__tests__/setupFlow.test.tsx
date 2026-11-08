@@ -149,9 +149,17 @@ describe('device setup flow', () => {
     expect(await screen.findByText('Enter the network name.')).toBeTruthy();
   });
 
+  test('Wi-Fi step rejects a 7-character password (WPA2 needs 8-63, PR #56 C2)', async () => {
+    await mount();
+    await toWifi();
+    await type('Wi-Fi password', 'x'.repeat(7));
+    await tap('Continue');
+    expect(await screen.findByText('A Wi-Fi password has 8 to 63 characters.')).toBeTruthy();
+  });
+
   test('wrong Wi-Fi password: error screen, re-enter keeps the network, then succeeds', async () => {
     await mount();
-    await toName('wrong');
+    await toName('wrong-password');
     await type('Sensor name', 'Basil');
     await tap('Connect sensor');
     expect(await header("Wi-Fi didn't work")).toBeTruthy();
