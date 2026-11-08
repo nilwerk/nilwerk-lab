@@ -168,6 +168,10 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres   # superuser; test.sh creates/drops nw_test_* databases
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4      # edge function tests run TypeScript natively (Node >= 22.6)
+        with:
+          node-version: 22
+      - run: pip install pyyaml          # cloud/test/openapi_check.py
       - name: Cloud DB tests (projects/plant-monitor/cloud/test.sh)
         run: bash projects/plant-monitor/cloud/test.sh
 

@@ -2,8 +2,8 @@
 # Local development only: `supabase start` runs everything in Docker, no account, no cost.
 # Production = ONE free Supabase project in an EU region (A-025 zero-cost rule, NFR-07 EU data residency),
 # e.g. Frankfurt (eu-central-1). Creating it is Arsany's click, not an agent's; see ../README.md.
-# No secrets here. Secret NAMES used by later tasks (4.B2+): SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY,
-# SUPABASE_URL (GitHub/Supabase secrets, never committed).
+# No secrets here. Secret NAMES (A-035, new Supabase key model): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY
+# (GitHub/Supabase secrets, read from the environment only, never committed).
 project_id = "plant-monitor"
 
 [api]
@@ -37,3 +37,12 @@ file_size_limit = "10MiB"      # plant photos (FR-A05) are compressed client-sid
 [studio]
 enabled = true
 port = 54323
+
+# Edge functions (4.B2). The device endpoints authenticate with their own bearer tokens (ADR-004), not a Supabase JWT, so the
+# platform JWT check is off for all three; claim-token verifies the user JWT itself (auth.getUser) in the function.
+[functions.ingest]
+verify_jwt = false
+[functions.device-claim]
+verify_jwt = false
+[functions.claim-token]
+verify_jwt = false

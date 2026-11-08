@@ -4,6 +4,7 @@
 #   - default: starts a throw-away local cluster in a temp dir, stops and deletes it at the end
 #   - DATABASE_URL=postgres://user:pw@host:port/postgres (superuser): uses that server, creates/drops nw_test_* databases
 # Exit code != 0 on any failure. Output ends with "ALL CLOUD TESTS PASSED".
+# NW_ONLY=api runs only the edge-function stage (used by test/mutation.sh).
 set -euo pipefail
 cd "$(dirname "$0")"
 HERE="$PWD"
@@ -45,6 +46,7 @@ newdb() { # name, seed(yes/no)
   if [ "$2" = yes ]; then psqlx "$1" -f supabase/seed.sql; fi
 }
 
+if [ "${NW_ONLY:-}" != api ]; then
 # --- 1b. migration 2 must FAIL (not skip) when pg_cron is missing and the opt-out flag is not set
 psqlx postgres -c "drop database if exists nw_test_cron" -c "create database nw_test_cron"
 if PGOPTIONS="" psqlx nw_test_cron -f "$MIG/20261107000002_schedules.sql" >/dev/null 2>&1; then
@@ -67,5 +69,21 @@ echo "== 2.4 contract test (docs/interfaces/db-schema.test.sql) on the migrated 
 newdb nw_test_contract no
 psqlx nw_test_contract -f "$HERE/../docs/interfaces/db-schema.test.sql" 2>&1 | sed 's/^psql:[^ ]* //'
 
-for d in nw_test_rls nw_test_ret nw_test_contract; do psqlx postgres -c "drop database $d" >/dev/null; done
+fi
+
+# --- 5a. OpenAPI == code (needs python3 + PyYAML)
+echo "== OpenAPI matches the edge functions (test/openapi_check.py)"
+python3 test/openapi_check.py || { echo "FAIL: openapi_check.py"; exit 1; }
+
+# --- 5. edge functions 4.B2 (TypeScript handlers against the migrated DB; token hashing, claim, ingest idempotency, token isolation)
+echo "== edge functions (functions/test/api.test.ts) against local Postgres"
+if ! node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(a>22||(a===22&&b>=6)?0:1)'; then
+  echo "FAIL: Node >= 22.6 is required for the edge function tests (found $(node -v 2>/dev/null || echo none))"; exit 1; fi
+newdb nw_test_api yes
+if [ -n "${DATABASE_URL:-}" ]; then export NW_TEST_DB_URL="$BASE/nw_test_api"
+else export NW_TEST_DB_URL="postgresql://postgres@/nw_test_api?host=$TMP&port=$PORT"; fi
+node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec functions/test/api.test.ts
+unset NW_TEST_DB_URL
+
+for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
 echo "ALL CLOUD TESTS PASSED"
