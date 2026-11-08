@@ -4,6 +4,10 @@ Draft by Mira (Firmware + Edge AI) for Nora to issue as a GitHub issue (label `p
 
 **Status of the firmware: written and unit-tested on a PC only. It has NEVER run on a board.** This work order is the first time it touches hardware. Expect problems and report them; a FAIL with a good log is a useful result.
 
+## Status for reviewers (PR #57)
+- **CI:** the `firmware` job (ESP-IDF v5.4 build for esp32c3 plus host tests) is GREEN on head `62bec99`, run 42494238390 (checked 2026-11-08 with `gh run view`: conclusion success; the other jobs were skipped as unaffected). So the ESP-IDF layer (`hal_esp32.c`, `main.c`) does compile. It still has never run on a board.
+- **Dev-kit calibration does not carry over (C3):** the dry/wet numbers you measure in Step 8 are for the dev-kit analog probe only. The custom board reads its soil probe with PCNT (pulse counts), so they do NOT apply there; it needs its own calibration.
+
 ## Why
 The product measures soil moisture, air temperature, air humidity, light and battery voltage in every report (FR-D01, FR-D02: every report carries all five values, 24 reports per day). Before we build the reporting on top, we need to know that the five readings are correct and that the soil probe supply is switched off during sleep (NFR-12: whole-board deep sleep at most 50 uA, and an on soil supply would break that). You are testing the first firmware that reads the five sensors.
 
@@ -106,6 +110,10 @@ Comment on the issue with:
 5. A5 (NFR-12): GPIO3 (soil supply) reads at most 0.05 V during deep sleep, both cycles (Step 9). Only this one NFR-12 aspect is tested here; the 50 uA limit itself is task 5.2/4.P5 on the real board.
 6. A6 (FR-D01): vbat_mv within 50 mV of the multimeter value (Step 10; the 50 mV limit is Mira's proposal).
 7. FR-D02 (24 reports per day) is NOT tested here: there is no Wi-Fi/reporting yet. This order only checks that each report could carry the five values.
+
+## Notes for the next firmware slices (TODOs, not part of this bench order)
+- **4.F1b (PCNT soil reader) needs a report-schema decision first (PR #57 C2):** `cal.dry_raw` / `cal.wet_raw` in `docs/interfaces/device-report.schema.json` are 12-bit ADC counts (max 4095). PCNT counts of the custom-board oscillator are not bounded like that and are a different quantity. Options (Theo decides via the Lead): widen the schema range, add a probe-type field, or scale/define PCNT counts into the same range. Do not write the PCNT reader against the current schema until this is decided.
+- **4.F2 / 4.F3 TODO, Wi-Fi TX gate (from Emil's LDO simulation):** the firmware must not start Wi-Fi TX (report, provisioning, OTA) while the cell voltage is below about 3.3 V (provisional; M8 decides the final value). At a ~350 mA TX peak the XC6220 LDO has almost no headroom (see `pcb/README.md` C5), so a low cell would sag the 3.3 V rail towards brown-out. Use the battery reading from this slice (`nw_battery`) before every radio start, skip or defer the report below the gate, and add a host test for the gate once the value is fixed.
 
 ## Due
 Proposal (Nora decides): Wed 2026-11-11 18:00 Berlin = 19:00 Cairo (Cairo is one hour ahead of Berlin in November). Check-in Mon 2026-11-09 evening: build done (Step 1) and the first `NWBENCH` lines (Step 4), or "BLOCKED:" with what you tried. Expected effort: about 4-6 hours.

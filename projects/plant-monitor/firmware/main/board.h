@@ -10,6 +10,10 @@
  *    Same GPIOs as the custom board, so one wiring serves both. Only the divider resistors and the soil read differ.
  *  - PLANT_BOARD_CUSTOM: the custom PCB. Its soil probe is a relaxation oscillator counted with PCNT on IO4
  *    (pinmap line 15), NOT an analog voltage. That reader is not written yet: soil reads return NW_ERR_UNSUPPORTED.
+ *
+ * Soil calibration (PR #57 C3): the dry/wet numbers measured on the dev kit (analog probe, 12-bit ADC counts, WO-firmware-4.F1
+ * Step 8) do NOT apply to the custom board. There the probe is a relaxation oscillator read with PCNT, so its numbers
+ * (pulses per window) are a different quantity and must be calibrated again on the custom board (task 5.x).
  */
 #ifndef BOARD_H
 #define BOARD_H
