@@ -5,5 +5,5 @@
 - Task: 4.A3 (UI skeleton) · Persona: Leo (Full-stack Developer) · Requirements: FR-A03, FR-D03, FR-A04, FR-A05, FR-A02, FR-D02, NFR-03
 - Stacked on `agent/fullstack/a052-legal-line`, which is stacked on `agent/fullstack/a048-contact` (PR #52): merge order #52, A-052, then this.
 - Mutants checked (each fails a test): Wi-Fi password kept in state after linking, setup closes after 6 instead of 5 wrong codes, cancelled camera treated as a photo
-- Agent minutes and human estimate: see PR text (about 35 min agent time, about 3 days of human work incl. design review)
+- Agent minutes: 7.7 for both parts (16:09:39 to 16:17:21 wall clock; A-052 took the first 4) · Agent's own human-hour estimate: 20 h for 4.A3 UI (screens, state machine, fake, tests, screenshots)
 - Unverified: never run with Bluetooth or on a phone; the "0:07" timer in the done screenshot is a scripted run, not a measured first-time user; Wi-Fi password field is a plain secure text input (no OS keychain/autofill test); screens follow the wireframes S10-S16 text but were not compared pixel by pixel; the BLE service UUID is TBD in the contract.
