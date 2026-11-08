@@ -1,8 +1,8 @@
 """Parametric battery bay (tray + flat lid; retention screws wait for the PCB outline, 4.P1) for enclosure v3, CadQuery.
 
 Print orientation: tray open side up, lid flat (plate on the bed). No supports: the wire notch is open to
-the top rim (no bridge), the lid lip is a vertical extrusion. (NFR-05 seal, screws, board
-region come later with 4.P1.)
+the top rim (no bridge); the lid is a flat plate (no lip yet). (Lid lip / retention, NFR-05 seal,
+screws, board region come later with 4.P1.)
 """
 import math
 import params as P

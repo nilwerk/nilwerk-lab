@@ -1,6 +1,6 @@
-# 4.E3 Battery bay study: the bigger Jauch cell fits, the box grows by 0.2 mm
+# 4.E3 Battery bay study: the thicker Jauch cell fits, the box grows by 0.2 mm
 
-**What it shows:** two parametric CadQuery battery bays for the plant monitor, one for the planned EEMB 603449 and one for the Jauch LP603443JU (A-034). Section cuts of the real exported meshes (`compare_section.png`) and an exploded render (`B_jauch603443_exploded.png`): the cell (amber) sits in a 1.6 mm PETG tray, no supports. Opening the bay from 6.3 to 7.4 mm makes the module 0.2 mm taller and 6 mm shorter.
+**What it shows:** two parametric CadQuery battery bays for the plant monitor, one for the planned EEMB 603449 and one for the Jauch LP603443JU (A-034). Section cuts of the real exported meshes (`compare_section.png`) and an exploded render (`B_jauch603443_exploded.png`): the cell (amber) sits in a 1.6 mm PETG tray, no supports. The Jauch cell is 6 mm shorter and 0.2 mm thicker than the EEMB cell (smaller volume); the bay cavity opens from 7.2 to 7.4 mm, so the module is 0.2 mm taller and 6 mm shorter.
 
 - Task: 4.E3 slice 1 · PR: link added by Lead · Persona: Yara (3D Product Designer)
 - Agent minutes: about 13 (07:45 to 07:58 Berlin, see Agent Log) · Agent's own human-hour estimate: 8 h
