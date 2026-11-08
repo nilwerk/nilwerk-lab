@@ -128,7 +128,7 @@ for row in csv.DictReader(open(BOM_DRAFT)):
     for r in expand(row["ref"]):
         draft[r] = (row["lcsc_pn"], int(row["qty_per_board"]) / len(expand(row["ref"])))
 mine = {p.ref: p.lcsc for p in D.PARTS if p.in_bom}
-ADDED = {"R13": "I2C pull-up", "R14": "I2C pull-up", "R15": "DW01A CS resistor"}
+ADDED = {"R13": "I2C pull-up", "R14": "I2C pull-up", "R15": "DW01A CS resistor", "R16": "GPIO2 pull-up (Theo C4)"}
 for r, (lcsc, _) in sorted(draft.items()):
     check(r in mine and mine[r] == lcsc, f"BOM draft {r} {lcsc} = schematic {mine.get(r)}")
 extra = sorted(set(mine) - set(draft))
@@ -142,7 +142,7 @@ want = defaultdict(int)
 for row in csv.DictReader(open(BOM_DRAFT)):
     if row["alternative"].strip().lower() != "yes":
         want[row["lcsc_pn"]] += int(row["qty_per_board"])
-want["C21190"] += 1; want["C23162"] += 2   # R15, R13+R14
+want["C21190"] += 1; want["C23162"] += 2; want["C25804"] += 1   # R15, R13+R14, R16
 for l, n in sorted(want.items()):
     check(cnt.get(l, 0) == n, f"qty of {l}: schematic {cnt.get(l, 0)} = BOM draft (+declared additions) {n}")
 bom_csv = {}
@@ -163,7 +163,10 @@ u1 = {n: (nm, net) for n, nm, net, s in next(p for p in D.PARTS if p.ref == "U1"
 check(u1["23"][1] == "BOOT_N" and any(p.ref == "R5" and ("3V3" in [x[2] for x in p.pins]) and ("BOOT_N" in [x[2] for x in p.pins]) for p in D.PARTS),
       "GPIO9 (strap) has pull-up R5 and BOOT switch to GND")
 check(u1["22"][1] == "GPIO8_STRAP" and any(p.ref == "R4" for p in D.PARTS), "GPIO8 (strap) pulled high by R4")
-check(u1["5"][1] == "NC", "GPIO2 (strap) left unconnected (see open point 5)")
+check(u1["5"][1] == "GPIO2_STRAP" and any(p.ref == "R16" and p.value == "10k" and {x[2] for x in p.pins} == {"3V3", "GPIO2_STRAP"} for p in D.PARTS),
+      "GPIO2 (strap) pulled up to 3V3 by R16 10k (Espressif datasheet v2.2 s.4.1)")
+u5 = {n: net for n, nm, net, s in next(p for p in D.PARTS if p.ref == "U5").pins}
+check(u5 == {"1": "NC", "2": "3V3", "3": "I2C_SCL", "4": "I2C_SDA", "5": "GND", "6": "NC"}, "U5 AHT20 6-pin DFN map equals datasheet Table 5 (NC,VDD,SCL,SDA,GND,NC)")
 gpio_used = [net for n, (nm, net) in u1.items() if nm.startswith("IO") and net != "NC"]
 check(len(gpio_used) == len(set(gpio_used)), f"each GPIO net used once: {len(gpio_used)}")
 check(all(n in (0, 1, 2, 3, 4, 5) for n in [int(re.match(r'IO(\d+)', nm)[1]) for n, (nm, net) in u1.items() if net in ("SOIL_PWR", "FACTORY_RST_N", "BAT_SENS_EN", "BAT_SENS")]),
@@ -172,17 +175,17 @@ check(all(n in (0, 1, 2, 3, 4, 5) for n in [int(re.match(r'IO(\d+)', nm)[1]) for
 # ---------------- 6 sleep budget vs NFR-12 ----------------
 SLEEP = D_SLEEP = [  # (path, typ uA, worst uA, source/status)
     ("ESP32-C3 deep sleep, RTC timer + RTC memory", 5.0, 10.0, "datasheet read (series v2.4 Table 5-9); module flash leakage worst = assumption"),
-    ("XC6220B331 LDO quiescent (U2)", 8.0, 10.0, "LCSC listing 8 uA, datasheet NOT read; power budget assumed 2 uA typ: now 6 uA worse"),
+    ("XC6220B331 LDO quiescent (U2)", 8.0, 10.0, "XC6220 datasheet: 8 uA typ (PS mode), 18 uA max; power budget assumed 2 uA typ: 6 uA worse"),
     ("TP4056 BAT drain, USB unplugged (U3)", 3.0, 6.0, "assumption (datasheet ~2-6 uA shutdown/standby, p.2 not re-read)"),
     ("DW01A operating current (U4)", 3.0, 6.0, "assumption (datasheet not read, ~3 uA typ)"),
     ("8205A leakage (Q1)", 0.05, 1.0, "assumption (both FETs on, Vds ~0)"),
     ("Battery divider R7+R8, Q2 off", 0.0, 0.1, "Q2 AO3400A off-state leakage nA; if Q2 is on: 3.7 V / 2 MOhm = 1.85 uA (measure only)"),
-    ("AHT20 sleep (U5)", 0.25, 1.0, "datasheet unverified (power budget value)"),
+    ("AHT20 sleep (U5)", 0.25, 1.0, "power budget value (AHT20 datasheet 2024-07: sleep <= 0.2 uA max)"),
     ("BH1750 power-down (U6)", 0.01, 1.0, "datasheet unverified; needs a power-down command before sleep"),
     ("U7 soil gate, VCC = IO3 low", 0.1, 1.0, "IO3 must be held low in deep sleep (RTC hold); leakage only"),
     ("MLCC leakage C1-C14 (about 100 uF total on VBAT/3V3)", 0.1, 1.0, "assumption (>= 100 Mohm insulation resistance class)"),
     ("USBLC6 / LEDs / CC resistors, VBUS = 0", 0.0, 0.5, "no supply, only I/O leakage (USBLC6 datasheet not read)"),
-    ("Pull-ups R3-R5, R13/R14, gate pull-down R6", 0.0, 0.0, "all nodes at the rail or GPIO low in sleep: no DC path (check: IO8/IO9/EN high, IO1 low)"),
+    ("Pull-ups R3-R5, R16, R13/R14, gate pull-down R6", 0.0, 0.0, "all nodes at the rail or GPIO low in sleep: no DC path (check: IO8/IO9/EN high, IO1 low)"),
 ]
 typ = sum(r[1] for r in SLEEP); worst = sum(r[2] for r in SLEEP)
 print(f"\nSleep budget (battery terminal, USB unplugged): typical {typ:.1f} uA, worst {worst:.1f} uA, NFR-12 limit {D.NFR12_MAX_UA:.0f} uA, target {D.NFR12_TARGET_UA:.0f} uA")
@@ -196,7 +199,7 @@ def render_md():
          "Requirements: NFR-01 (3 months), NFR-12 (whole-board deep sleep <= 50 uA, design target 25 uA). Matches design.py; "
          "`firmware/main/board.h` does not exist yet, Mira must copy this table.", "", "## ESP32-C3-MINI-1 pin map", "",
          "| Module pin | Function | Net | Note |", "|---|---|---|---|"]
-    notes = {"IO0/ADC1_0": "ADC1_CH0, RTC", "IO1": "RTC, drives Q2 gate (R6 pull-down)", "IO2 (strap)": "strap, left open (open point 5)",
+    notes = {"IO0/ADC1_0": "ADC1_CH0, RTC", "IO1": "RTC, drives Q2 gate (R6 pull-down)", "IO2 (strap)": "strap, pulled up by R16",
              "IO3": "RTC, holds U7 supply LOW in deep sleep", "IO4": "RTC, PCNT edge count", "IO5": "RTC wake, pinhole reset (internal pull-up)",
              "IO8 (strap)": "R4 pull-up", "IO9 (strap)": "R5 pull-up, BOOT switch", "IO18/USB_D-": "USB Serial/JTAG", "IO19/USB_D+": "USB Serial/JTAG"}
     for n, nm, net, side in next(p for p in D.PARTS if p.ref == "U1").pins:

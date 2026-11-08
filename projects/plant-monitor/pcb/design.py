@@ -69,21 +69,22 @@ gnd_pads = ["1", "2", "11", "14"] + [str(i) for i in range(36, 54)]
 add("U1", "ESP32-C3-MINI-1", "ESP32-C3-MINI-1-N4", "RF_Module:ESP32-C3-MINI-1", "C2838502", "ESP32-C3-MINI-1-N4",
     [("3", "3V3", "3V3", "L"), ("8", "EN", "EN", "L"),
      ("12", "IO0/ADC1_0", "BAT_SENS", "L"), ("13", "IO1", "BAT_SENS_EN", "L"),
-     ("5", "IO2 (strap)", "NC", "L"), ("6", "IO3", "SOIL_PWR", "L"), ("18", "IO4", "SOIL_OUT", "L"),
+     ("5", "IO2 (strap)", "GPIO2_STRAP", "L"), ("6", "IO3", "SOIL_PWR", "L"), ("18", "IO4", "SOIL_OUT", "L"),
      ("19", "IO5", "FACTORY_RST_N", "L"),
      ("20", "IO6", "I2C_SDA", "R"), ("21", "IO7", "I2C_SCL", "R"), ("22", "IO8 (strap)", "GPIO8_STRAP", "R"),
      ("23", "IO9 (strap)", "BOOT_N", "R"), ("16", "IO10", "NC", "R"),
      ("26", "IO18/USB_D-", "USB_DN", "R"), ("27", "IO19/USB_D+", "USB_DP", "R"),
      ("30", "RXD0/IO20", "NC", "R"), ("31", "TXD0/IO21", "NC", "R")]
     + [(p, "GND", "GND", "B") for p in gnd_pads],
-    "FR-D01. Pin numbers from memory of the module datasheet (not read): verify. IO2/IO10/UART unused.",
-    pin_verified=False, block=B)
+    "FR-D01. Pin numbers verified by Theo against Espressif ESP32-C3-MINI-1 datasheet v2.2 Table 3-1 (PR #41 review). IO2 pulled up by R16; IO10/UART unused.",
+    block=B)
 cap("C5", *C100N[:1], C100N[1], C100N[2], "3V3", "GND", B, "U1 decoupling")
 cap("C4", *C10U[:1], C10U[1], C10U[2], "3V3", "GND", B, "U1 bulk")
 res("R3", *R10K, "3V3", "EN", B, "EN pull-up; EN RC = R3 x C12 = 10 ms")
 cap("C12", "1uF", "C15849", "CL10A105KB8NNNC", "EN", "GND", B, "EN reset delay")
 res("R4", *R10K, "3V3", "GPIO8_STRAP", B, "GPIO8 strap high (needed for download boot)")
 res("R5", *R10K, "3V3", "BOOT_N", B, "GPIO9 strap: high = SPI boot, BOOT switch pulls low")
+res("R16", *R10K, "3V3", "GPIO2_STRAP", B, "ADDED by 4.P1 fix round (Theo C4): ESP32-C3-MINI-1 datasheet v2.2 s.4.1 recommends a pull-up on GPIO2 (glitches); node at the rail, no sleep current")
 add("SW1", "SW4P", "BOOT", "NW:SW_TS-1187A-B-A-B_5.1x5.1", "C318884", "TS-1187A-B-A-B",
     [("1", "1", "BOOT_N", "L"), ("2", "2", "BOOT_N", "L"), ("3", "3", "GND", "R"), ("4", "4", "GND", "R")],
     "BOOT (GPIO9 low at reset = download mode)", custom_fp=True, block=B)
@@ -102,8 +103,8 @@ add("J1", "USBC16", "USB-C (power + USB-JTAG data)", "Connector_USB:USB_C_Recept
      ("A5", "CC1", "CC1", "L"), ("B5", "CC2", "CC2", "L"), ("A8", "SBU1", "NC", "L"), ("B8", "SBU2", "NC", "L"),
      ("A6", "DP1", "USB_DP", "R"), ("B6", "DP2", "USB_DP", "R"), ("A7", "DN1", "USB_DN", "R"), ("B7", "DN2", "USB_DN", "R"),
      ("S1", "SHIELD", "GND", "R")],
-    "BOM calls it power only; D+/D- are wired to IO19/IO18 (USB Serial/JTAG) so D1 has a job: OPEN POINT 6",
-    pin_verified=False, block=B)
+    "BOM calls it power only; D+/D- are wired to IO19/IO18 (USB Serial/JTAG) so D1 has a job: OPEN POINT 6. Signal-to-pad map verified against the HRO TYPE-C-31-M-12 drawing (LCSC C165948); shield pad numbers belong to the 4.P2 footprint.",
+    block=B)
 res("R1", "5.1k", "C23186", "0603WAF5101T5E", "CC1", "GND", B, "USB-C sink Rd")
 res("R2", "5.1k", "C23186", "0603WAF5101T5E", "CC2", "GND", B, "USB-C sink Rd")
 add("D1", "USBLC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "C7519", "USBLC6-2SC6",
@@ -139,14 +140,14 @@ add("J2", "JSTPH2", "JST PH 2-pin (cell)", "Connector_JST:JST_PH_S2B-PH-SM4-TB_1
 add("U4", "DW01A", "DW01A", "Package_TO_SOT_SMD:SOT-23-6", "C351410", "DW01A",
     [("5", "VCC", "VBAT", "L"), ("6", "VSS", "CELL_NEG", "L"), ("2", "CS", "DW_CS", "R"), ("1", "OD", "DW_OD", "R"),
      ("3", "OC", "DW_OC", "R"), ("4", "TD", "NC", "R")],
-    "Cell protection. Datasheet not read (BOM flag 5). Not needed if the cell has a PCM, OPEN POINT 4.",
-    pin_verified=False, block=B)
+    "Cell protection. Pins verified against LCSC C351410 datasheet (pin 2 is called VM there = the CS/sense input). Not needed if the cell has a PCM, OPEN POINT 4.",
+    block=B)
 add("Q1", "FS8205", "8205A dual N-MOSFET", "Package_SO:TSSOP-8_4.4x3mm_P0.65mm", "C5148694", "8205A",
     [("4", "G1", "DW_OD", "L"), ("5", "G2", "DW_OC", "L"),
      ("2", "S1", "CELL_NEG", "R"), ("3", "S1", "CELL_NEG", "R"), ("1", "D1/2", "FET_MID", "R"), ("8", "D1/2", "FET_MID", "R"),
      ("6", "S2", "GND", "R"), ("7", "S2", "GND", "R")],
-    "FET1 (S1 = B-) gate = OD blocks discharge; FET2 (S2 = P- = GND) gate = OC blocks charge. Pin map from memory, "
-    "many 8205A listings are SOT-23-6 (BOM note): verify footprint.", pin_verified=False, block=B)
+    "FET1 (S1 = B-) gate = OD blocks discharge; FET2 (S2 = P- = GND) gate = OC blocks charge. LCSC C5148694 (HXY) is TSSOP-8; "
+    "pin map 1 D1, 2-3 S1, 4 G1, 5 G2, 6-7 S2, 8 D2 read from the package drawing in the datasheet (no numbered table printed).", block=B)
 res("R15", "1k", "C21190", "0603WAF1001T5E", "DW_CS", "GND", B, "ADDED by 4.P1 (not in BOM draft): DW01A CS series resistor to P-")
 cap("C9", *C100N, "VBAT", "CELL_NEG", B, "DW01A VCC-VSS")
 
@@ -155,7 +156,7 @@ B = "4 Power rail + battery sense"
 add("U2", "XC6220", "XC6220B331MR-G (3.3 V)", "Package_TO_SOT_SMD:SOT-23-5", "C86534", "XC6220B331MR-G",
     [("1", "VIN", "VBAT", "L"), ("3", "CE", "VBAT", "L"), ("2", "VSS", "GND", "R"), ("5", "VOUT", "3V3", "R"),
      ("4", "NC", "NC", "R")],
-    "Iq 8 uA per LCSC listing (datasheet not read). CE tied to VIN. Pin map from memory: verify.", pin_verified=False, block=B)
+    "Iq 8 uA typ (datasheet, PS mode, IOUT 0.1 mA; 18 uA max A/B series). CE tied to VIN. SOT-25 pins verified: VIN 1, VSS 2, CE 3, NC 4, VOUT 5.", block=B)
 cap("C3", *C10U, "VBAT", "GND", B, "LDO input")
 cap("C14", "22uF", "C59461", "CL10A226MQ8NRNC", "3V3", "GND", B, "LDO output / Wi-Fi burst")
 cap("C13", "1uF", "C15849", "CL10A105KB8NNNC", "3V3", "GND", B, "extra 1 uF on the rail near the sensors")
@@ -169,15 +170,18 @@ cap("C11", *C100N, "BAT_SENS", "GND", B, "ADC source-impedance reservoir (500 k 
 
 # ------------------------------- sensors ------------------------------------------------------
 B = "5 Sensors + soil front end"
-add("U5", "AHT20", "AHT20", "NW:AHT20_DFN_3x3", "C2757850", "AHT20",
-    [("1", "SDA", "I2C_SDA", "L"), ("4", "SCL", "I2C_SCL", "L"), ("3", "VDD", "3V3", "R"), ("2", "GND", "GND", "R")],
-    "Pin numbers and package (4 vs 6 pin DFN) UNVERIFIED; BOM note 8: pick one AHT20 footprint in 4.P1/4.P2. I2C 0x38.",
-    pin_verified=False, custom_fp=True, block=B)
+add("U5", "AHT20", "AHT20", "NW:AHT20_DFN-6_3x3", "C2757850", "AHT20",
+    [("4", "SDA", "I2C_SDA", "L"), ("3", "SCL", "I2C_SCL", "L"), ("2", "VDD", "3V3", "R"), ("5", "GND", "GND", "R"),
+     ("1", "NC", "NC", "R"), ("6", "NC", "NC", "R")],
+    "Fix for Theo C1: LCSC C2757850 (Aosong/ASAIR AHT20, datasheet 2024-07 linked from the LCSC page) is a 6-pin DFN 3.0 x 3.0 x 1.0 mm: "
+    "1 NC, 2 VDD, 3 SCL, 4 SDA, 5 GND, 6 NC (Table 5, top view). Custom footprint still to be drawn in 4.P2 from the datasheet figure 1. I2C 0x38.",
+    custom_fp=True, block=B)
 cap("C6", *C100N, "3V3", "GND", B, "AHT20 decoupling")
 add("U6", "BH1750", "BH1750FVI", "NW:WSOF-6_BH1750FVI", "C78960", "BH1750FVI-TR",
     [("1", "VCC", "3V3", "L"), ("5", "DVI", "3V3", "L"), ("2", "ADDR", "GND", "L"),
      ("4", "SDA", "I2C_SDA", "R"), ("6", "SCL", "I2C_SCL", "R"), ("3", "GND", "GND", "R")],
-    "ADDR low = 0x23. DVI tied to VCC (datasheet not read: OPEN POINT 7). Pin map from memory.", pin_verified=False,
+    "ADDR low = 0x23. Pins verified against LCSC C78960 datasheet (1 VCC, 2 ADDR, 3 GND, 4 SDA, 5 DVI, 6 SCL). DVI tied to VCC directly: "
+    "datasheet wants DVI low >= 1 us after VCC (RC example 1k/1uF) or a reset: OPEN POINT 7, firmware must also re-init after power-up.",
     custom_fp=True, block=B)
 cap("C7", *C100N, "3V3", "GND", B, "BH1750 decoupling")
 res("R13", "4.7k", "C23162", "0603WAF4701T5E", "3V3", "I2C_SDA", B,
@@ -199,5 +203,5 @@ NOTES = [
     "NFR-01: 3 months battery life (A-020). NFR-12: whole-board deep sleep <= 50 uA, target 25 uA (A-027).",
     f"R9 charge-current resistor: I = 1100/R9 = {I_CHG_MA:.0f} mA. Cell decision A-034 OPEN: change CELL_MIN_MAH/R9_OHM in pcb/design.py only.",
     "Power: USB 5 V -> TP4056 -> cell (via DW01A + 8205A) = VBAT; XC6220 3.3 V LDO runs from VBAT (no power path: board needs a cell).",
-    "Strapping: IO9 high (R5), IO8 high (R4), IO2 unconnected. Pin table: pcb/pinmap-sleep.md, must match firmware board.h (not yet in repo).",
+    "Strapping: IO9 high (R5), IO8 high (R4), IO2 high (R16). Pin table: pcb/pinmap-sleep.md, must match firmware board.h (not yet in repo).",
 ]
