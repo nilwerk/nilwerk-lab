@@ -13,9 +13,9 @@ We asked an AI to draw a circuit board. A week later we are a team.
 
 On Sunday 1 November our founder, Arsany, asked Claude, an AI assistant: "Can you design a simple 3D model and a PCB?" It could. Out came plant stake v1: a printable enclosure and a plan for the circuit board. The same day he gave it requirements and asked it to review its own design. Version 2 came back rechargeable, with a replaceable moisture probe and more sensors (a first draft; its battery life is not measured).
 
-So he built a team: ten AI agents with job titles, personalities and skills (a lead, an architect, QA, DevOps, firmware, full-stack, cloud AI, PCB design, 3D design and sales). Every code change goes through the same gate: the architect reviews it, QA tests it, the pipeline checks it, and a human merges it; reports and docs go through the human merge.
+So he built a team: ten AI agents with job titles, personalities and skills (a lead, an architect, QA, DevOps, firmware, full-stack, cloud AI, PCB design, 3D design and sales). A code change is meant to go through the same gate: the architect reviews it, QA tests it, the pipeline checks it, and our founder decides on the merge. In practice most did; reports and docs go through the same human merge.
 
-The first week in short. First working day (Tue 3 Nov): four proposals by the evening; that week Arsany orders the first dev kits after checking the list himself. Second working day: a hardware integrator, a human engineer in Egypt, joins. Third working day: the first app screens. Friday: nine tasks in review in the Plan, waiting for a human. Saturday: the team works too, and ten pull requests were merged by 20:46.
+The first week in short. First working day (Tue 3 Nov): four proposals by the evening; that week Arsany orders the first dev kits after checking the list himself. Second working day: a human joins as our junior hardware integrator, working from abroad. Third working day: the first app screens. Friday: nine tasks in review in the Plan, waiting for a human. Saturday: the team works too, and ten pull requests were merged by 20:46.
 
 Honest numbers: 99 minutes of agent time on 3-5 November, without the lead's own time (measured by our lead agent). The agents estimate that the same work would be about 145 working hours for a human engineer without AI (an estimate, and we are testing it).
 
@@ -31,17 +31,17 @@ nilwerk.de · @nilwerk
 
 Wir haben eine KI gebeten, eine Platine zu zeichnen. Eine Woche später sind wir ein Team.
 
-Am Sonntag, 1. November, fragte unser Gründer Arsany Claude, einen KI-Assistenten: „Kannst du ein einfaches 3D-Modell und eine Platine entwerfen?“ Das klappte. Heraus kam Pflanzensensor v1: ein druckbares Gehäuse und ein Plan für die Platine. Am selben Tag gab er Anforderungen dazu und ließ die KI ihr eigenes Design prüfen. Version 2 kam wiederaufladbar zurück, mit austauschbarer Feuchtesonde und mehr Sensoren (ein erster Entwurf; die Akkulaufzeit ist nicht gemessen).
+Am Sonntag, 1. November, fragte unser Gründer Arsany Claude, einen KI-Assistenten: „Kannst du ein einfaches 3D-Modell und eine Platine entwerfen?“ Das klappte. Heraus kam Pflanzensensor v1: ein druckbares Gehäuse und ein Plan für die Platine. Am selben Tag gab er ihr Anforderungen dazu und ließ die KI ihr eigenes Design prüfen. Version 2 kam wiederaufladbar zurück, mit austauschbarer Feuchtesonde und mehr Sensoren (ein erster Entwurf; die Akkulaufzeit ist nicht gemessen).
 
-Also baute er ein Team: zehn KI-Agenten mit Jobtitel, Persönlichkeit und Fähigkeiten (Leitung, Architekt, QA, DevOps, Firmware, Full-Stack, Cloud-KI, Platinen-Design, 3D-Design und Vertrieb). Jede Codeänderung geht durch dasselbe Tor: Der Architekt prüft sie, QA testet sie, die Pipeline kontrolliert sie, und ein Mensch mergt sie; Berichte und Dokumente gehen durch den Merge eines Menschen.
+Also baute er ein Team: zehn KI-Agenten mit Jobtitel, Persönlichkeit und Fähigkeiten (Leitung, Architekt, QA, DevOps, Firmware, Full-Stack, Cloud-KI, Platinendesign, 3D-Design und Vertrieb). Eine Codeänderung soll durch dasselbe Tor gehen: Der Architekt prüft sie, QA testet sie, die Pipeline kontrolliert sie, und unser Gründer entscheidet über den Merge. In der Praxis taten das die meisten; Berichte und Dokumente gehen durch denselben Merge eines Menschen.
 
-Die erste Woche in Kürze. Erster Arbeitstag (Di 3. Nov): am Abend vier Vorschläge; in dieser Woche bestellt Arsany die ersten Entwicklungs-Kits, nachdem er die Liste selbst geprüft hat. Zweiter Arbeitstag: ein Hardware-Integrator, ein Ingenieur in Ägypten, stößt dazu. Dritter Arbeitstag: die ersten App-Bildschirme. Freitag: neun Aufgaben warten auf die Prüfung durch einen Menschen. Samstag: Auch am Wochenende arbeitet das Team; bis 20:46 Uhr wurden zehn Pull Requests gemergt.
+Die erste Woche in Kürze. Erster Arbeitstag (Di 3. Nov): am Abend vier Vorschläge; in dieser Woche bestellt Arsany die ersten Entwicklungs-Kits, nachdem er die Liste selbst geprüft hat. Zweiter Arbeitstag: ein Mensch stößt als junger Hardware-Integrator aus dem Ausland dazu. Dritter Arbeitstag: die ersten App-Bildschirme. Freitag: neun Aufgaben warten auf die Prüfung durch einen Menschen. Samstag: Auch am Wochenende arbeitet das Team; bis 20:46 Uhr wurden zehn Pull Requests gemergt.
 
-Ehrliche Zahlen: 99 Agentenminuten am 3.-5. November, ohne die Zeit der Leitung (gemessen von unserem Leitungs-Agenten). Die Agenten schätzen, dass dieselbe Arbeit etwa 145 Arbeitsstunden von Menschen ohne KI bedeuten würde (eine Schätzung, die wir überprüfen).
+Ehrliche Zahlen: 99 Agentenminuten vom 3. bis 5. November, ohne die Zeit der Leitung (gemessen von unserem Leitungs-Agenten). Die Agenten schätzen, dass ein Mensch ohne KI für dieselbe Arbeit etwa 145 Arbeitsstunden bräuchte (eine Schätzung, die wir überprüfen).
 
-Für Ingenieure: v2 (erster Entwurf vom 1. Nov) = 400-mAh-LiPo, USB-C, kapazitive Sonde, AHT20 + BH1750. Die Akkulaufzeit ist nicht gemessen; die spätere Berechnung ergibt typisch etwa 4,5 Monate, im schlechtesten Fall 1,4 Monate, Bench-Test steht aus. Erster Arbeitstag: 4 Pull Requests, jeder vom Architekten-Agenten geprüft, vom QA-Agenten getestet und von der Pipeline kontrolliert; zwei bekamen am nächsten Tag einen zweiten, unabhängigen Prüfer. Quellen: Tagesberichte 3.-6. Nov, Repo-Historie.
+Für Ingenieure: v2 (erster Entwurf vom 1. Nov) = 400-mAh-LiPo, USB-C, kapazitive Sonde, AHT20 + BH1750. Die Akkulaufzeit ist nicht gemessen; die spätere Berechnung ergibt typisch etwa 4,5 Monate, im ungünstigsten Fall 1,4 Monate; ein Labortest steht aus. Erster Arbeitstag: 4 Pull Requests, jeder vom Architekten-Agenten geprüft, vom QA-Agenten getestet und von der Pipeline kontrolliert; zwei bekamen am nächsten Tag einen zweiten, unabhängigen Prüfer. Quellen: Tagesberichte 3. bis 6. Nov, Repo-Historie.
 
-KI-Agenten, geleitet und geprüft von Menschen. Ab jetzt: jeden Tag eine Folge, das Nilwerk Logbuch.
+KI-Agenten, geleitet und geprüft von Menschen. Ab jetzt: jeden Tag eine Folge, das Nilwerk-Logbuch.
 
 nilwerk.de · @nilwerk
 

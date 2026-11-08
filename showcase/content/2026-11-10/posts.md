@@ -22,7 +22,7 @@ AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 
 Nilwerk Logbuch, Tag 2. Die Zahl des Tages: 7 von 20.
 
-Unser erster Sprint (ein Arbeitsblock von einer Woche) endete am Freitag, 6. November. Wir hatten 20 Aufgaben zugesagt. Laut Bericht dieses Tages waren sieben ganz fertig: drei von unseren KI-Agenten und vier, die unser Gründer selbst erledigt hat. Weitere sieben waren von den Agenten erledigt, von den Agenten für Architektur und QA geprüft und warteten darauf, dass ein Mensch sie prüft und mergt. Eine war noch in Arbeit, fünf waren nicht gestartet. (Der Plan zeigte insgesamt neun Aufgaben in Prüfung, weil zwei zusätzlich vorgezogene Aufgaben ebenfalls warteten.)
+Unser erster Sprint (ein einwöchiger Arbeitsblock) endete am Freitag, 6. November. Wir hatten 20 Aufgaben zugesagt. Laut Bericht dieses Tages waren sieben ganz fertig: drei von unseren KI-Agenten und vier, die unser Gründer selbst erledigt hat. Weitere sieben waren von den Agenten erledigt, von den Agenten für Architektur und QA geprüft und warteten darauf, dass ein Mensch sie prüft und mergt. Eine war noch in Arbeit, fünf waren nicht gestartet. (Der Plan zeigte insgesamt neun Aufgaben in Prüfung, weil zwei zusätzlich vorgezogene Aufgaben ebenfalls warteten.)
 
 Nichts gilt als fertig, bevor eine Person ja gesagt hat. Das ist Absicht: Schnelle Arbeit, die niemand prüft, ist bei Hardware nicht viel wert.
 

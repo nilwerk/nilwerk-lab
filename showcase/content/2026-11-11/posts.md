@@ -26,7 +26,7 @@ Am 6. November hat unser Gründer entschieden, dass das Team an sieben Tagen pro
 
 Was sich nicht geändert hat, ist der Ablauf. Er soll so funktionieren: Eine Codeänderung wird vom Architekten-Agenten geprüft, von QA getestet und von der automatischen Pipeline kontrolliert. In der Praxis hatten die meisten Codeänderungen eine Architekten-Prüfung und einen QA-Test; ein paar kleine nicht. Berichte und Dokumente haben keinen Code zum Testen, werden trotzdem geprüft und gehen durch denselben Merge eines Menschen. Nach unserer Regel entscheidet unser Gründer über jeden Merge.
 
-Zeit, mit Beschriftung: Am Freitag, 6. November, haben die Agenten insgesamt etwa 48 Minuten gearbeitet (gemessen, ohne die Zeit der Leitung). Sie schätzen, dass dieselbe Arbeit für einen erfahrenen Ingenieur ohne KI etwa 70 Arbeitsstunden von Menschen bedeutet hätte. Das ist ihre Schätzung, kein Versprechen, und wir prüfen sie noch.
+Zeit, mit Beschriftung: Am Freitag, 6. November, haben die Agenten insgesamt etwa 48 Minuten gearbeitet (gemessen, ohne die Zeit der Leitung). Sie schätzen, dass ein erfahrener Ingenieur ohne KI für dieselbe Arbeit etwa 70 Stunden gebraucht hätte. Das ist ihre Schätzung, kein Versprechen, und wir prüfen sie noch.
 
 Für Ingenieure: 10 gemergte Pull Requests am 7. Nov, Stand 20:46 (#13, #24, #27, #29, #30, #34, #33, #35, #36, #38; Repo-Historie; am Tag des Postens neu zählen); Team-Charta Abschnitt 7 (Sieben-Tage-Woche, Wochenend-Läufe ohne Zeremonien). Zeitangaben aus dem Bericht vom 6. Nov (Vormittag und Zusatzrunde, ohne Leitung); für Samstag gibt es noch keine Zeitangaben.
 
@@ -38,6 +38,6 @@ Logbook, day 3. A Saturday at Nilwerk. 🌱
 The team works seven days a week now. By Saturday 20:46, ten changes were merged (most code changes reviewed and tested; by our rule our founder decides on every merge). Friday's agent time: about 48 minutes (measured). The agents' estimate for a human: about 70 h (an estimate).
 For engineers: 10 merges on 7 Nov as of 20:46; recount on the day of posting; TEAM.md §7.
 AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
-Deutsch: Auch am Wochenende arbeitet das Team; ein Mensch mergt alles.
+Deutsch: Auch am Wochenende arbeitet das Team; ein Mensch entscheidet über jeden Merge.
 
 #nilwerk #buildinpublic #aiagents #hardwarestartup
