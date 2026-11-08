@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Texts of the three company posts (Mon 9, Tue 10, Wed 11 Nov 2026), 4 slides each, EN + DE.
 Facts as of Sun 8 Nov 2026, 18:54 Berlin; every claim has a row in claim-check.md. Speech bubbles are persona voice
-written by Poppy from the evidence, never a quote of a human. German is UNCHECKED until Theo or Nora have checked it."""
+written by Poppy from the evidence, never a quote of a human. German was reviewed by Theo (PR #62); his six fixes (C2) are applied."""
 
 # each text: dict(en=..., de=...)
 def L(en, de):
@@ -15,7 +15,7 @@ POSTS = {
                  head=L(["Why does", "Nilwerk exist?"], ["Warum gibt es", "Nilwerk?"]),
                  av="pr-social", name="Poppy",
                  bubble=L("Hi, I'm Poppy, the team's storyteller. Pull up a chair. The story starts with one question, on a Sunday.",
-                          "Hallo, ich bin Poppy, die Geschichtenerzählerin des Teams. Setz dich. Die Geschichte beginnt mit einer Frage, an einem Sonntag."),
+                          "Hallo, ich bin Poppy, die Geschichtenerzählerin des Teams. Setzt euch. Die Geschichte beginnt mit einer Frage, an einem Sonntag."),
                  sub=L("Swipe: four slides, two minutes.", "Wischen: vier Folien, zwei Minuten."),
                  status=L("THE STORY SO FAR · AS OF 8 NOV", "DIE GESCHICHTE BISHER · STAND 8. NOV"),
                  eng=L("Everything below lives in one repo: ESP32-C3 firmware, KiCad boards, CadQuery enclosures, an Expo app, a cloud backend. Each claim carries a label.",
@@ -32,7 +32,7 @@ POSTS = {
             dict(kind="six", kicker=L("NILWERK STORY · WHY · 3/4", "NILWERK STORY · WARUM · 3/4"),
                  head=L(["A gadget needs", "six skills."], ["Ein Gerät braucht", "sechs Fähigkeiten."]),
                  body=L("Firmware, a circuit board, a case, an app, a cloud and tests. Small companies rarely have all six in one room. So the idea became: one team that covers all six, run by AI agents, led and reviewed by humans.",
-                        "Firmware, Platine, Gehäuse, App, Cloud und Tests. Kleine Firmen haben selten alle sechs an einem Tisch. Also entstand die Idee: ein Team, das alle sechs abdeckt, getragen von KI-Agenten, geleitet und geprüft von Menschen."),
+                        "Firmware, Platine, Gehäuse, App, Cloud und Tests. Kleine Firmen haben selten alle sechs an einem Tisch. Also entstand die Idee: ein Team, das alle sechs abdeckt, aus KI-Agenten, geleitet und geprüft von Menschen."),
                  tiles=[("firmware", "Mira", L("Firmware", "Firmware")), ("pcb", "Emil", L("Circuit board", "Platine")), ("mechanical", "Yara", L("Case", "Gehäuse")),
                         ("fullstack", "Leo", L("App", "App")), ("cloud-ai", "Sana", L("Cloud", "Cloud")), ("qa", "Ines", L("Tests", "Tests"))],
                  status=L("SIX DISCIPLINES · ONE DEVICE", "SECHS DISZIPLINEN · EIN GERÄT"),
@@ -41,9 +41,9 @@ POSTS = {
             dict(kind="story", kicker=L("NILWERK STORY · WHY · 4/4", "NILWERK STORY · WARUM · 4/4"),
                  head=L(["And we show", "our work."], ["Und wir zeigen,", "wie wir arbeiten."]),
                  body=L("Every number wears a label: measured, simulated or estimated. Our own plant monitor is the test case: a prototype, not a product for sale. In six days, from 3 to 8 November, 48 changes were merged. Follow along: one post a day.",
-                        "Jede Zahl trägt ein Etikett: gemessen, simuliert oder geschätzt. Unser eigener Pflanzenmonitor ist der Testfall: ein Prototyp, kein Produkt zum Verkauf. In sechs Tagen, vom 3. bis 8. November, wurden 48 Änderungen übernommen. Folge uns: ein Beitrag pro Tag."),
+                        "Jede Zahl trägt ein Etikett: gemessen, simuliert oder geschätzt. Unser eigener Pflanzenmonitor ist der Testfall: ein Prototyp, kein Produkt zum Verkauf. In sechs Tagen, vom 3. bis 8. November, wurden 48 Änderungen zusammengeführt. Folgt uns: ein Beitrag pro Tag."),
                  av="pr-social", name="Poppy",
-                 bubble=L("Ooh, what's the proof? My favourite question. Ask it of us every day.", "Ooh, was ist der Beweis? Meine Lieblingsfrage. Stell sie uns jeden Tag."),
+                 bubble=L("Ooh, what's the proof? My favourite question. Ask it of us every day.", "Ooh, was ist der Beweis? Meine Lieblingsfrage. Stellt sie uns jeden Tag."),
                  status=L("COUNTED · AS OF 8 NOV 18:54", "GEZÄHLT · STAND 8. NOV 18:54"),
                  eng=L("48 = merge commits on main, 3 to 8 Nov (git log, first-parent). They include docs, reports and showcase changes, not only code. Nothing is bench-tested yet.",
                        "48 = Merge-Commits auf main, 3. bis 8. Nov (git log, first-parent). Darin stecken auch Doku, Berichte und Showcase, nicht nur Code. Noch nichts am Prüfstand getestet.")),
@@ -55,7 +55,7 @@ POSTS = {
              L("Slide 3: six tiles with the team's drawn avatars: firmware, circuit board, case, app, cloud and tests.",
                "Folie 3: sechs Kacheln mit den gezeichneten Avataren des Teams: Firmware, Platine, Gehäuse, App, Cloud und Tests."),
              L("Slide 4: we show our work with labels measured, simulated or estimated; 48 changes merged from 3 to 8 November.",
-               "Folie 4: Wir zeigen unsere Arbeit mit den Etiketten gemessen, simuliert oder geschätzt; 48 Änderungen vom 3. bis 8. November übernommen.")],
+               "Folie 4: Wir zeigen unsere Arbeit mit den Etiketten gemessen, simuliert oder geschätzt; 48 Änderungen vom 3. bis 8. November zusammengeführt.")],
         caption=L(
             """Why does Nilwerk exist? 🌱
 
@@ -77,7 +77,7 @@ Also haben wir ein Team gebaut, das alle sechs kann: KI-Agenten, geleitet und ge
 
 Ooh, was ist der Beweis? Fragt uns jeden Tag. Ab jetzt gibt es täglich einen Beitrag.
 
-Für Ingenieure: ESP32-C3-Firmware, KiCad-Platinen, CadQuery-Gehäuse, Expo-App, Cloud-Backend. 48 übernommene Änderungen vom 3. bis 8. Nov (gezählt 8. Nov, 18:54; inkl. Doku).
+Für Ingenieure: ESP32-C3-Firmware, KiCad-Platinen, CadQuery-Gehäuse, Expo-App, Cloud-Backend. 48 zusammengeführte Änderungen vom 3. bis 8. Nov (gezählt 8. Nov, 18:54; inkl. Doku).
 
 nilwerk.de · @nilwerk"""),
     ),
@@ -93,7 +93,7 @@ nilwerk.de · @nilwerk"""),
                  sub=L("Swipe: builders, checkers, humans.", "Wischen: Entwickler, Prüfer, Menschen."),
                  status=L("11 AI AGENTS · 2 HUMANS", "11 KI-AGENTEN · 2 MENSCHEN"),
                  eng=L("Each agent has a role file, a persona and a playbook of lessons in the repo. Personas shape tone, never permissions: the hard rules apply to everyone.",
-                       "Jeder Agent hat im Repo eine Rollendatei, eine Persona und ein Lernblatt. Personas prägen den Ton, nie die Rechte: Die harten Regeln gelten für alle.")),
+                       "Jeder Agent hat im Repo eine Rollendatei, eine Persona und ein Playbook mit Lektionen. Personas prägen den Ton, nie die Rechte: Die harten Regeln gelten für alle.")),
             dict(kind="roster", kicker=L("NILWERK STORY · WHO · 2/4", "NILWERK STORY · WER · 2/4"),
                  head=L(["The builders."], ["Die Entwickler."]),
                  rows=[("firmware", "Mira", L("Firmware + edge AI", "Firmware + Edge-KI"), L("What does it cost in µA?", "Was kostet das in µA?")),
@@ -191,13 +191,13 @@ nilwerk.de · @nilwerk"""),
                  eng=L("One pull request per slice. Definition of done: architect approved, QA pass, pipeline green, then the founder's merge. Docs and report PRs have no architect verdict.",
                        "Ein Pull Request pro Teilstück. Fertig heißt: Architekt freigegeben, QA bestanden, Pipeline grün, dann der Merge des Gründers. Doku- und Berichts-PRs haben kein Architektenurteil.")),
             dict(kind="stats", kicker=L("NILWERK STORY · HOW · 3/4", "NILWERK STORY · WIE · 3/4"),
-                 head=L(["Seven days a week.", "Real reviews."], ["Sieben Tage pro Woche.", "Echte Prüfung."]),
-                 body=L("Weekends count: the team works every day. And review is not a formality. One reviewing agent found a sensor drawn with the wrong pins before any board existed. Our edge-AI model found 27 % of wetting events against a 95 % goal, and we printed the miss.",
-                        "Wochenenden zählen: Das Team arbeitet jeden Tag. Und Prüfung ist keine Formalität. Ein prüfender Agent fand einen Sensor mit falschen Pins, bevor es eine Platine gab. Unser Edge-KI-Modell fand 27 % der Nässeereignisse bei einem Ziel von 95 %, und wir haben die Lücke veröffentlicht."),
-                 tiles=[("7", L("days a week", "Tage pro Woche")), ("13", L("merges on Sat 7 Nov", "Merges am Sa 7. Nov")), ("4 vs 6", L("pins in the sketch vs the datasheet", "Pins in der Skizze vs Datenblatt"))],
+                 head=L(["Seven days a week.", "Real reviews."], ["Sieben Tage die Woche.", "Echte Prüfung."]),
+                 body=L("Weekends count: the team works every day. And review is not a formality. One reviewing agent found a sensor pin map that did not match its datasheet before any board existed. Our edge-AI model found 27 % of wetting events against a 95 % goal, and we printed the miss.",
+                        "Wochenenden zählen: Das Team arbeitet jeden Tag. Und Prüfung ist keine Formalität. Ein prüfender Agent fand eine Sensor-Pinbelegung, die nicht zum Datenblatt passte, bevor es eine Platine gab. Unser Edge-KI-Modell fand 27 % der Nässeereignisse bei einem Ziel von 95 %, und wir haben die Lücke veröffentlicht."),
+                 tiles=[("7", L("days a week", "Tage die Woche")), ("13", L("merges on Sat 7 Nov", "Merges am Sa 7. Nov")), ("1", L("pin map that differed from its datasheet", "Pinbelegung wich vom Datenblatt ab"))],
                  status=L("COUNTED · SAT 7 NOV · TARGET NOT MET", "GEZÄHLT · SA 7. NOV · ZIEL NICHT ERREICHT"),
-                 eng=L("13 = merge commits on 7 Nov (git log, Berlin time, counted 8 Nov). Edge AI: recall 27 % validation / 40 % test (8 of 20 events), target 95 %. Pin catch: AHT20, reviewed on 8 Nov.",
-                       "13 = Merge-Commits am 7. Nov (git log, Berliner Zeit, gezählt am 8. Nov). Edge-KI: Recall 27 % Validierung / 40 % Test (8 von 20), Ziel 95 %. Pin-Fund: AHT20, geprüft am 8. Nov.")),
+                 eng=L("13 = merge commits on 7 Nov (git log, Berlin time, counted 8 Nov). Edge AI: recall 27 % validation / 40 % test (8 of 20 events), target 95 %. Pin catch: AHT20, reviewed on 8 Nov.",
+                       "13 = Merge-Commits am 7. Nov (git log, Berliner Zeit, gezählt am 8. Nov). Edge-KI: Recall 27 % Validierung / 40 % Test (8 von 20), Ziel 95 %. Pin-Fund: AHT20, geprüft am 8. Nov.")),
             dict(kind="story", kicker=L("NILWERK STORY · HOW · 4/4", "NILWERK STORY · WIE · 4/4"),
                  head=L(["The human", "decides."], ["Der Mensch", "entscheidet."]),
                  body=L("By our rule nothing is done until Arsany says yes, weekend or not. Work that needs hands goes to a human hardware integrator as a written work order. What he measures, we publish. What nobody has measured yet, we label.",
@@ -207,14 +207,14 @@ nilwerk.de · @nilwerk"""),
                           "Schnell ist schön. Geprüft ist besser. Ab morgen startet das Agenten-Tagebuch: ein Agent, ein echter Erfolg pro Tag."),
                  status=L("A RULE, NOT A STATISTIC", "EINE REGEL, KEINE STATISTIK"),
                  eng=L("The merge decision is the founder's by rule (team charter); gates are never marked passed by an agent. Not measured: how long a human review takes.",
-                       "Die Merge-Entscheidung liegt nach Regel (Team-Charta) beim Gründer; Gates markiert nie ein Agent als bestanden. Nicht gemessen: wie lange eine menschliche Prüfung dauert.")),
+                       "Die Merge-Entscheidung liegt nach Regel (Team-Charta) beim Gründer; Freigaben (Gates) markiert nie ein Agent als bestanden. Nicht gemessen: wie lange eine menschliche Prüfung dauert.")),
         ],
         alt=[L("Cover card: Nora, the lead agent, in a speech bubble: at 07:30 she picks the day's tasks, one per builder.",
                "Titelkarte: Nora, der Lead-Agent, in einer Sprechblase: Um 07:30 wählt sie die Tagesaufgaben, eine pro Entwickler."),
              L("Slide 2: six steps with avatars: plan (Nora), build (builders), review (Theo), test (Ines), pipeline (Kai), decide (Arsany).",
                "Folie 2: sechs Schritte mit Avataren: planen (Nora), bauen (Entwickler), prüfen (Theo), testen (Ines), Pipeline (Kai), entscheiden (Arsany)."),
-             L("Slide 3: three tiles: seven days a week, 13 merges on Saturday 7 November, 4 pins in the sketch versus 6 on the datasheet.",
-               "Folie 3: drei Kacheln: sieben Tage pro Woche, 13 Merges am Samstag, 7. November, 4 Pins in der Skizze gegenüber 6 im Datenblatt."),
+             L("Slide 3: three tiles: seven days a week, 13 merges on Saturday 7 November, one sensor pin map that did not match its datasheet, caught before any board existed.",
+               "Folie 3: drei Kacheln: sieben Tage die Woche, 13 Merges am Samstag, 7. November, eine Sensor-Pinbelegung, die nicht zum Datenblatt passte, vor dem Bau einer Platine entdeckt."),
              L("Slide 4: the human decides: nothing is done until the founder says yes; Poppy announces the Agent Diary.",
                "Folie 4: Der Mensch entscheidet: Nichts ist fertig, bis der Gründer Ja sagt; Poppy kündigt das Agenten-Tagebuch an.")],
         caption=L(
@@ -223,13 +223,13 @@ nilwerk.de · @nilwerk"""),
 07:30 Nora plans the day: one task per builder, the smallest useful slice.
 Then the builders build, in parallel. Theo reviews against the requirements. Ines tests and shows the log. Kai checks the pipeline. And Arsany decides on the merge.
 
-The team works seven days a week: 13 merges on Saturday 7 Nov alone. And review is not a formality: a reviewing agent caught a sensor drawn with 4 wrong pins (the datasheet has 6) before any board existed. Our edge-AI model found 27 % of wetting events against a 95 % goal, and we printed the miss.
+The team works seven days a week: 13 merges on Saturday 7 Nov alone. And review is not a formality: a reviewing agent caught a sensor pin map that did not match its datasheet before any board existed. Our edge-AI model found 27 % of wetting events against a 95 % goal, and we printed the miss.
 
 By our rule nothing is done until a human says yes. Fast is nice. Checked is better.
 
 Tomorrow the Agent Diary starts: one agent, one real achievement a day.
 
-For engineers: one PR per slice; done = architect approved + QA pass + pipeline green + founder's merge. 13 = merge commits on 7 Nov (counted 8 Nov). Edge AI recall 27 % val / 40 % test, 95 % goal.
+For engineers: one PR per slice; done = architect approved + QA pass + pipeline green + founder's merge. 13 = merge commits on 7 Nov (counted 8 Nov). Edge AI recall 27 % val / 40 % test, 95 % goal.
 
 nilwerk.de · @nilwerk
 #buildinpublic #AIagents #hardware #workflow #engineering""",
@@ -238,13 +238,13 @@ nilwerk.de · @nilwerk
 07:30 Nora plant den Tag: eine Aufgabe pro Entwickler, das kleinste nützliche Stück.
 Dann bauen die Entwickler parallel. Theo prüft gegen die Anforderungen. Ines testet und zeigt das Log. Kai prüft die Pipeline. Und Arsany entscheidet über den Merge.
 
-Das Team arbeitet sieben Tage pro Woche: allein am Samstag, 7. Nov, gab es 13 Merges. Und Prüfung ist keine Formalität: Ein prüfender Agent fand einen Sensor mit 4 falschen Pins (das Datenblatt hat 6), bevor es eine Platine gab. Unser Edge-KI-Modell fand 27 % der Nässeereignisse bei einem Ziel von 95 %, und wir haben die Lücke veröffentlicht.
+Das Team arbeitet sieben Tage die Woche: allein am Samstag, 7. Nov, gab es 13 Merges. Und Prüfung ist keine Formalität: Ein prüfender Agent fand eine Sensor-Pinbelegung, die nicht zum Datenblatt passte, bevor es eine Platine gab. Unser Edge-KI-Modell fand 27 % der Nässeereignisse bei einem Ziel von 95 %, und wir haben die Lücke veröffentlicht.
 
 Nach unserer Regel ist nichts fertig, bis ein Mensch Ja sagt. Schnell ist schön. Geprüft ist besser.
 
 Morgen startet das Agenten-Tagebuch: ein Agent, ein echter Erfolg pro Tag.
 
-Für Ingenieure: ein PR pro Teilstück; fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. 13 = Merge-Commits am 7. Nov (gezählt am 8. Nov). Edge-KI-Trefferquote (Recall) 27 % Validierung / 40 % Test, Ziel 95 %.
+Für Ingenieure: ein PR pro Teilstück; fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. 13 = Merge-Commits am 7. Nov (gezählt am 8. Nov). Edge-KI-Trefferquote (Recall) 27 % Validierung / 40 % Test, Ziel 95 %.
 
 nilwerk.de · @nilwerk"""),
     ),

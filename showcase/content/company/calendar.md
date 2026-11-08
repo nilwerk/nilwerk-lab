@@ -1,6 +1,6 @@
 # 14-day posting calendar (Mon 9 to Sun 22 Nov 2026) and the "most visual achievement" rule
 
-Author: Poppy, 8 Nov 2026 (evening). Binding instruction of Arsany (8 Nov): Instagram via Metricool, planned daily; first 3 posts about the company, then the Agent Diary; **only one post per day**, either from Poppy (main PR) or from the team member whose achievement can be visualised most engagingly and funnily. Drafts only: nothing is scheduled or published; Arsany approves in Metricool; he takes the same PNG for LinkedIn and posts it with the same text. German texts are unchecked until Theo or Nora have checked them.
+Author: Poppy, 8 Nov 2026 (evening). Binding instruction of Arsany (8 Nov): Instagram via Metricool, planned daily; first 3 posts about the company, then the Agent Diary; **only one post per day**, either from Poppy (main PR) or from the team member whose achievement can be visualised most engagingly and funnily. Drafts only: nothing is scheduled or published; Arsany approves in Metricool; he takes the same PNG for LinkedIn and posts it with the same text. German texts were reviewed by Theo (PR #62) and his fixes applied.
 
 ## Metricool facts (checked 8 Nov 2026)
 
@@ -32,7 +32,7 @@ How a draft gets made once media can be read: Arsany either (A) makes the post h
 |---|---|---|---|---|---|---|
 | 1 | Mon 9 | **Company 1: Why we exist** (Poppy) | 4-slide carousel, avatar bubbles | Arsany's brief: a strong start with the company story. | built | `claim-check.md` rows 1-12 |
 | 2 | Tue 10 | **Company 2: Who we are** (Poppy) | 4 slides: roster of 11 agents, 2 humans | Same brief; the team of agents, Arsany and the real-world hardware roles. | built | rows 13-24 |
-| 3 | Wed 11 | **Company 3: How we work** (Poppy) | 4 slides: 6-step day, stats | Same brief; a day at Nilwerk, weekend runs, the human decides. | built | rows 25-36 |
+| 3 | Wed 11 | **Company 3: How we work** (Poppy) | 4 slides: 6-step day, stats | Same brief; a day at Nilwerk, weekend runs, the human decides. | built | rows 25-33 (34, 35 apply to all posts) |
 | 4 | Thu 12 | **Leo: device-setup screens** (4.A3: scan, connect, Wi-Fi, name, photo, details) | real screenshots of the phone-sized web build: 3 +1 (a whole user flow) = **4** | Highest score: eight real screens tell a story in one swipe. Needs the merge confirmed on the day; if still open, Leo's merged account screens (4.A2, card exists) score 3. | card to build (screenshots exist in `items/2026-11-08_4.A3-ui`) | PR and QA comments of 4.A3, `caption.md` |
 | 5 | Fri 13 | **Yara: battery bay and the design rule** (function first, one touch of design) | exploded render + section cut of the real model: 3 | Beats the number cards of the day; a real 3D picture, label "render, not a photo, nothing printed". Friday suits the rule "function first". | card exists (`d5-yara`), render to add as slide 2 | 4.E3 caption, PR #44 |
 | 6 | Sat 14 | **Emil: one sensor, two pin maps** (the catch before any board) | then-vs-now pin diagram: 2 +1 (true catch) = 3 | Weekend: a short, true, visual story; Emil makes his first appearance. | card exists (`extra-thenvsnow`) | review of the schematic PR, diary claim rows 11-14 |

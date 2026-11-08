@@ -14,7 +14,16 @@ sys.path.insert(0, str(HERE))
 import build_diary as bd  # noqa: E402
 from company_data import POSTS  # noqa: E402
 
-T, wrap, lines_block, chip, logo, footer, eng_block, wrapper = bd.T, bd.wrap, bd.lines_block, bd.chip, bd.logo, bd.footer, bd.eng_block, bd.wrapper
+_wrap0 = bd.wrap
+
+
+def wrap(text, *a, **k):
+    """Keep a non-breaking space (e.g. in "27 %") inside one word; str.split() would split it."""
+    return [l.replace("\ue000", "\u00a0") for l in _wrap0(text.replace("\u00a0", "\ue000"), *a, **k)]
+
+
+bd.wrap = wrap  # eng_block and others wrap through the module global
+T, lines_block, chip, logo, footer, eng_block, wrapper = bd.T, bd.lines_block, bd.chip, bd.logo, bd.footer, bd.eng_block, bd.wrapper
 
 
 def avatar(name, x, y, size, uid):
