@@ -31,17 +31,17 @@ nilwerk.de · @nilwerk
 
 Wir haben eine KI gebeten, eine Platine zu zeichnen. Eine Woche später sind wir ein Team.
 
-Am Sonntag, 1. November, fragte unser Gründer Arsany Claude, einen KI-Assistenten: „Kannst du ein einfaches 3D-Modell und eine Platine entwerfen?“ Das klappte. Heraus kam Pflanzensensor v1: ein druckbares Gehäuse und ein Plan für die Platine. Am selben Tag gab er Anforderungen dazu und ließ die KI ihr eigenes Design prüfen. Version 2 kam wiederaufladbar zurück, mit austauschbarer Feuchtesonde und mehr Sensoren (ein erster Entwurf; die Akkulaufzeit ist nicht gemessen).
+Am Sonntag, 1. November, fragte unser Gründer Arsany Claude, einen KI-Assistenten: „Kannst du ein einfaches 3D-Modell und eine Platine entwerfen?“ Das klappte. Heraus kam Pflanzensensor v1: ein druckbares Gehäuse und ein Plan für die Platine. Am selben Tag gab er ihr Anforderungen dazu und ließ die KI ihr eigenes Design prüfen. Version 2 kam wiederaufladbar zurück, mit austauschbarer Feuchtesonde und mehr Sensoren (ein erster Entwurf; die Akkulaufzeit ist nicht gemessen).
 
-Also baute er ein Team: zehn KI-Agenten mit Jobtitel, Persönlichkeit und Fähigkeiten (Leitung, Architekt, QA, DevOps, Firmware, Full-Stack, Cloud-KI, Platinen-Design, 3D-Design und Vertrieb). Jede Codeänderung geht durch dasselbe Tor: Der Architekt prüft sie, QA testet sie, die Pipeline kontrolliert sie, und ein Mensch mergt sie; Berichte und Dokumente gehen durch den Merge eines Menschen.
+Also baute er ein Team: zehn KI-Agenten mit Jobtitel, Persönlichkeit und Fähigkeiten (Leitung, Architekt, QA, DevOps, Firmware, Full-Stack, Cloud-KI, Platinendesign, 3D-Design und Vertrieb). Jede Codeänderung geht durch dasselbe Tor: Der Architekt prüft sie, QA testet sie, die Pipeline kontrolliert sie, und ein Mensch mergt sie; Berichte und Dokumente gehen durch den Merge eines Menschen.
 
 Die erste Woche in Kürze. Erster Arbeitstag (Di 3. Nov): am Abend vier Vorschläge; in dieser Woche bestellt Arsany die ersten Entwicklungs-Kits, nachdem er die Liste selbst geprüft hat. Zweiter Arbeitstag: ein Hardware-Integrator, ein Ingenieur in Ägypten, stößt dazu. Dritter Arbeitstag: die ersten App-Bildschirme. Freitag: neun Aufgaben warten auf die Prüfung durch einen Menschen. Samstag: Auch am Wochenende arbeitet das Team; bis 20:46 Uhr wurden zehn Pull Requests gemergt.
 
-Ehrliche Zahlen: 99 Agentenminuten am 3.-5. November, ohne die Zeit der Leitung (gemessen von unserem Leitungs-Agenten). Die Agenten schätzen, dass dieselbe Arbeit etwa 145 Arbeitsstunden von Menschen ohne KI bedeuten würde (eine Schätzung, die wir überprüfen).
+Ehrliche Zahlen: 99 Agentenminuten vom 3. bis 5. November, ohne die Zeit der Leitung (gemessen von unserem Leitungs-Agenten). Die Agenten schätzen, dass ein Mensch ohne KI für dieselbe Arbeit etwa 145 Arbeitsstunden bräuchte (eine Schätzung, die wir überprüfen).
 
-Für Ingenieure: v2 (erster Entwurf vom 1. Nov) = 400-mAh-LiPo, USB-C, kapazitive Sonde, AHT20 + BH1750. Die Akkulaufzeit ist nicht gemessen; die spätere Berechnung ergibt typisch etwa 4,5 Monate, im schlechtesten Fall 1,4 Monate, Bench-Test steht aus. Erster Arbeitstag: 4 Pull Requests, jeder vom Architekten-Agenten geprüft, vom QA-Agenten getestet und von der Pipeline kontrolliert; zwei bekamen am nächsten Tag einen zweiten, unabhängigen Prüfer. Quellen: Tagesberichte 3.-6. Nov, Repo-Historie.
+Für Ingenieure: v2 (erster Entwurf vom 1. Nov) = 400-mAh-LiPo, USB-C, kapazitive Sonde, AHT20 + BH1750. Die Akkulaufzeit ist nicht gemessen; die spätere Berechnung ergibt typisch etwa 4,5 Monate, im ungünstigsten Fall 1,4 Monate; ein Labortest steht aus. Erster Arbeitstag: 4 Pull Requests, jeder vom Architekten-Agenten geprüft, vom QA-Agenten getestet und von der Pipeline kontrolliert; zwei bekamen am nächsten Tag einen zweiten, unabhängigen Prüfer. Quellen: Tagesberichte 3. bis 6. Nov, Repo-Historie.
 
-KI-Agenten, geleitet und geprüft von Menschen. Ab jetzt: jeden Tag eine Folge, das Nilwerk Logbuch.
+KI-Agenten, geleitet und geprüft von Menschen. Ab jetzt: jeden Tag eine Folge, das Nilwerk-Logbuch.
 
 nilwerk.de · @nilwerk
 
