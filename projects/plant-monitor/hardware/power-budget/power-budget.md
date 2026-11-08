@@ -2,39 +2,45 @@
 
 Author: Emil (PCB Designer) · Date: 2026-11-04 · Status: **draft for the G2 review, all inputs are estimates**
 Calculator: [`power_budget.py`](power_budget.py) (Python 3.11, stdlib only) · Tests: [`test_power_budget.py`](test_power_budget.py)
-Traces to: NFR-01 (best and typical >= 3 months, worst > 1 month: A-020, flexed 2026-11-08, ADR-015; 6 months is an information-only stretch goal), FR-D01 (15-min sampling), FR-D02 (hourly report), FR-E03/E04 (critical wake, inference), ADR-012 (second MQTT publish), PR #2 items 12 and 19.
+Traces to: NFR-01 (best and typical case >= 3 months, worst case > 1 month: relaxed by Arsany 2026-11-08, see section 12 and ADR-015; 3 months was A-020; 6 months is an information-only stretch goal), FR-D01 (15-min sampling), FR-D02 (hourly report), FR-E03/E04 (critical wake, inference), ADR-012 (second MQTT publish), PR #2 items 12 and 19.
 
 **Nothing in this document is a measurement.** Every current and time is either quoted from a repo document, recalled from a datasheet that has not been read (the ESP32-C3 series datasheet was read on 2026-11-07, section 11), or an engineering assumption. Each is tagged in section 4. Task 5.4 replaces them (section 9).
 
 ## 1. Result
 
-Headline figures apply **Arsany's NFR-01 rule literally** (PR #2 item 12, acceptance matrix): projected life = **0.8 x rated capacity / average current >= 2190 h (NFR-01, 3 months, A-020)**. **Flexed 2026-11-08 (Arsany, ADR-015): the 2190 h line applies to the best and typical scenarios; the worst scenario passes if projected life > 730 h (1 month).** The generated tables below still print "vs 2190 h" for every row: for worst rows read the months column against 1 month (verdict code to be updated by Emil, ADR-015 follow-up). There is **no self-discharge term** in that rule. Self-discharge is shown only as a separately labelled **extra-margin** line ("+SD" / "extra"), never in a verdict.
+Headline figures apply **Arsany's NFR-01 rule literally** (PR #2 item 12, acceptance matrix): projected life = **0.8 x rated capacity / average current**, compared per scenario with the **relaxed NFR-01 (Arsany, 2026-11-08, A-034 answer): best and typical case >= 2190 h (3 months), worst case > 730 h (more than 1 month)** (before 2026-11-08 the worst case had to reach 3 months too; section 12). There is **no self-discharge term** in that rule. Self-discharge is shown only as a separately labelled **extra-margin** line ("+SD" / "extra"), never in a verdict.
 
 | Question | Answer (estimates) |
 |---|---|
 | Average load, typical | **5.9 mAh/day** = 0.244 mA (sleep 0.3, 96 sample wakes 1.8, 24 hourly Wi-Fi sessions + 1 critical wake 3.8) |
 | Rated 1S LiPo needed for 3 months (2190 h), typical, per the rule | **about 670 mAh rated** (0.8 x 668 = 534 mAh derated = the 2190 h load) |
 | Best / worst case, per the rule | best **about 240 mAh**, worst **about 2180 mAh** (every parameter at its worst at once; a **stress bound** to be measured in 5.4, not a design point) |
-| Does a 1500 mAh-class cell make it? (rule) | Typical: **yes, 6.7 months** (1200 mAh derated / 0.244 mA = 4917 h >= 2190 h). A 2000 mAh-class cell: typical **9.0 months**, best 25.5, worst 2.7. **The BOM cell (603449, 1000 mAh minimum): typical 4.5 months = PASS for 3 months with 1.5x margin** (4.9 at 1100 mAh nominal); best 12.8; worst stack 1.4 months (stress bound, fails) |
+| Does a 1500 mAh-class cell make it? (rule) | Typical: **yes, 6.7 months** (1200 mAh derated / 0.244 mA = 4917 h >= 2190 h). A 2000 mAh-class cell: typical **9.0 months**, best 25.5, worst 2.7. **The BOM cell (603449, 1000 mAh minimum): typical 4.5 months = PASS for 3 months with 1.5x margin** (4.9 at 1100 mAh nominal); best 12.8; worst stack 1.4 months (stress bound; **passes the relaxed worst-case rule, > 1 month**) |
 | Extra margin line (not the rule): with cell self-discharge, assumed 2 %/month | 1500 mAh: **5.8 months** (still passes 3 months); 2000 mAh: **7.3 months**; 1000 mAh: 4.0 months; rated capacity needed 722 mAh instead of 668 mAh |
 | What dominates | Wi-Fi sessions are **65 %** of the budget, sample wakes 30 %, deep sleep only **5 %** |
 | Deep-sleep limit for the requirement (PR #2 item 19) | Per the rule, typical Wi-Fi and sampling terms: **500 uA whole board for a 2000 mAh rated cell, 317 uA for 1500 mAh** (with self-discharge: 445 uA and 276 uA). The accepted requirement is **<= 50 uA**, design target <= 25 uA (NFR-12, A-027), far inside these limits; table in section 6 |
 | Biggest levers (section 7) | Light sleep during the soil warm-up: **-0.78 mAh/day (-13 %)**; fast connect + hub every 2nd report: **-1.4 mAh/day**; hub unreachable every hour costs **+1.4 mAh/day** |
-| Verdict on NFR-01 | **Best (12.8) and typical (4.5 months, rated capacity needed about 670 mAh) pass** 3 months with the 1000 mAh-minimum BOM cell, and the **worst-case stack (1.4 months) passes the new > 1 month line** with 1.4x margin (ADR-015); it is a stress bound with every parameter at its worst at once, to be measured in 5.4, not designed to. Under the old single-figure rule the worst stack failed. Everything hinges on Wi-Fi connect time and current, which only 5.4 can settle, and on the cell that fits the enclosure (section 8). The levers are in section 7 |
+| Verdict on NFR-01 | **Typical case passes** the 3-month requirement with the 1000 mAh-minimum BOM cell (4.5 months, rated capacity needed about 670 mAh). The worst-case stack (1.4 months at 1000 mAh, 1.36 with the as-built sleep currents, margin 1.36x over the 1-month limit) is a stress bound with every parameter at its worst at once; **under the relaxed rule it passes**, and it is still to be measured in 5.4. Everything hinges on Wi-Fi connect time and current, which only 5.4 can settle, and on the cell that fits the enclosure (section 8). The levers are in section 7 |
 
-**Closed (A-020, acceptance matrix NFR-01; flexed 2026-11-08, ADR-015: best/typical 2190 h, worst 730 h):** NFR-01 is 3 months (2190 h) for best and typical by the literal rule, no self-discharge term; "+SD" and the 6-month stretch goal (4380 h) are information lines only. A LiPo loses roughly 1-3 % per month by itself (assumption, no datasheet); at 2 %/month the typical 1000 mAh cell still reaches 4.0 months, the needed rated capacity rises from 668 to 722 mAh.
+**NFR-01 (A-020, relaxed 2026-11-08):** best and typical case 3 months (2190 h), worst case more than 1 month (730 h), all by the literal rule, no self-discharge term; "+SD" and the 6-month stretch goal (4380 h) are information lines only. A LiPo loses roughly 1-3 % per month by itself (assumption, no datasheet); at 2 %/month the typical 1000 mAh cell still reaches 4.0 months, the needed rated capacity rises from 668 to 722 mAh.
 
-Verdict table for the A-020 cell, 603449 (generated; the verdict uses the 1000 mAh minimum, A-021; the 1100 mAh typical value is information only):
+Verdict table for the decided cell, EEMB LP603449-PCM from Amazon (A-034 decided 2026-11-08; generated; the verdict uses the 1000 mAh minimum, A-021; the 1100 mAh typical value is information only). "model baseline" = the section 4 parameters; "as-built sleep" = the board after A-045 (sleep currents of `pcb/pinmap-sleep.md`: LDO 8 uA, divider 2.1 uA permanent, section 12):
 
 <!-- BEGIN:cell -->
-| cell capacity | case | derated mAh | average uA | life h (rule) | months (rule) | vs 2190 h | extra: months incl. SD |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1000 mAh minimum (verdict, A-021) | best | 800 | 86 | 9317 | 12.8 | PASS | 11.0 |
-| 1000 mAh minimum (verdict, A-021) | typical | 800 | 244 | 3278 | 4.5 | PASS | 4.0 |
-| 1000 mAh minimum (verdict, A-021) | worst | 800 | 797 | 1004 | 1.4 | FAIL | 1.3 |
-| 1100 mAh typical (info only) | best | 880 | 86 | 10249 | 14.0 | PASS | 11.9 |
-| 1100 mAh typical (info only) | typical | 880 | 244 | 3606 | 4.9 | PASS | 4.4 |
-| 1100 mAh typical (info only) | worst | 880 | 797 | 1104 | 1.5 | FAIL | 1.4 |
+| cell capacity | sleep basis | case | derated mAh | average uA | life h (rule) | months (rule) | NFR-01 needs | verdict | extra: months incl. SD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mAh minimum (verdict, A-021) | model baseline | best | 800 | 86 | 9317 | 12.8 | >= 2190 h | PASS | 11.0 |
+| 1000 mAh minimum (verdict, A-021) | model baseline | typical | 800 | 244 | 3278 | 4.5 | >= 2190 h | PASS | 4.0 |
+| 1000 mAh minimum (verdict, A-021) | model baseline | worst | 800 | 797 | 1004 | 1.4 | > 730 h | PASS | 1.3 |
+| 1000 mAh minimum (verdict, A-021) | as-built sleep | best | 800 | 99 | 8065 | 11.0 | >= 2190 h | PASS | 9.7 |
+| 1000 mAh minimum (verdict, A-021) | as-built sleep | typical | 800 | 252 | 3169 | 4.3 | >= 2190 h | PASS | 3.9 |
+| 1000 mAh minimum (verdict, A-021) | as-built sleep | worst | 800 | 805 | 994 | 1.4 | > 730 h | PASS | 1.3 |
+| 1100 mAh typical (info only) | model baseline | best | 880 | 86 | 10249 | 14.0 | >= 2190 h | PASS | 11.9 |
+| 1100 mAh typical (info only) | model baseline | typical | 880 | 244 | 3606 | 4.9 | >= 2190 h | PASS | 4.4 |
+| 1100 mAh typical (info only) | model baseline | worst | 880 | 797 | 1104 | 1.5 | > 730 h | PASS | 1.4 |
+| 1100 mAh typical (info only) | as-built sleep | best | 880 | 99 | 8872 | 12.2 | >= 2190 h | PASS | 10.6 |
+| 1100 mAh typical (info only) | as-built sleep | typical | 880 | 252 | 3486 | 4.8 | >= 2190 h | PASS | 4.3 |
+| 1100 mAh typical (info only) | as-built sleep | worst | 880 | 805 | 1093 | 1.5 | > 730 h | PASS | 1.4 |
 <!-- END:cell -->
 
 The **NFR-12 value (50 uA, design target 25 uA) is accepted by Arsany (A-027)**; the derivation behind it is in section 6.
@@ -44,7 +50,7 @@ The **NFR-12 value (50 uA, design target 25 uA) is accepted by Arsany (A-027)**;
 - **Capacity rule (Arsany, PR #2 item 12), applied literally:** use the **rated** capacity of the chosen 1S LiPo with **20 % derating**; projected life = derated capacity / average current >= 2190 h (NFR-01, 3 months); no self-discharge term. Both numbers are stated everywhere (rated and derated = 0.8 x rated).
 - **Low-battery warning at 3.4 V** (source: Arsany's answer "ok" to Needs Arsany **A-008.2**, "low-battery 3.4 V", in the PR #2 thread; confirmed by Theo's architect review of this PR; PR #15's schema uses 3400 mV as default). Consequences: (a) the 3 months are counted to the point of the warning, the charge left below 3.4 V is a reserve and is **not** counted; (b) the 20 % derating is taken to cover the capacity that is unusable above 3.4 V, temperature and ageing, and self-discharge (closed, section 1) (`usable_fraction` = 1.0 in the model); 5.4 must check this with a discharge curve at the real load (section 9); (c) with a 3.3 V LDO the headroom at the warning point is only 100 mV, so dropout under Wi-Fi TX peaks must be simulated in 4.P1 (LDO dropout sim, role file) or a lower-dropout/boost-buck path chosen.
 - **Scope of the load:** 15-min wake (soil, AHT20, BH1750, battery ADC, both edge-AI models) + hourly Wi-Fi report (cloud POST **and** MQTT publish to the Pi hub, ADR-012) + critical-event Wi-Fi wakes (edge-ai-concept 2.4: at most one per class per 6 h). **Excluded:** BLE setup (setup mode only, ADR-011), OTA downloads, Wi-Fi outage retries, charging losses, USB-powered time. These add load: OTA and outages must be bounded in 4.F (e.g. OTA only above a battery threshold, already in ADR-009; backoff already in architecture section 5).
-- NFR-01 = 3 months = **2190 h** for best and typical, **> 1 month = 730 h** for worst (A-020, flexed 2026-11-08, ADR-015; `NFR01_MONTHS` x 730 h in `power_budget.py`); the 6-month stretch goal is 4380 h, information only.
+- NFR-01 = 3 months = **2190 h** (A-020; `NFR01_MONTHS` x 730 h in `power_budget.py`); the 6-month stretch goal is 4380 h, information only.
 
 ## 3. Model
 
@@ -217,20 +223,22 @@ Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (negativ
 - The second MQTT publish (ADR-012) costs 0.69 mAh/day in this model (5.86 vs 5.17), 12 % of the budget; ADR-012 estimated 0.67 mAh/day, so the two agree (both unmeasured).
 - The 30-min sampling fallback does **not** change FR-E03 as it would double the latency to about 30 min, so it conflicts with the owner-confirmed wording; prefer the Wi-Fi levers (fast connect, hub every 2nd report) and the light-sleep warm-up. Critical wakes at the rate cap cost 39 % more than the base case, so the cap (or a daily limit) is a battery decision for Mira/Theo.
 
-## 8. Cell and bay (A-020 answered)
+## 8. Cell and bay (A-020 answered, A-034 decided 2026-11-08)
+
+**Decided cell (A-034, Arsany 2026-11-08): EEMB LP603449-PCM, Amazon.de ASIN B08FD39Y5R** (1100 mAh typical / 1000 mAh minimum per the listing bullet, PCM built in, JST plug, no NTC mentioned, 51 x 34.5 x 6.3 mm; facts and what is unverified: [`../bom/cell-decision-A034.md`](../bom/cell-decision-A034.md)). It is the cell the A-020 bay was drawn for. The candidate table below is regenerated with it first; the Jauch cells stay as information.
 
 The cell is the **603449 LiPo, 3.7 V, 1100 mAh typical / 1000 mAh minimum, about 22 g, 51 x 34.5 x 6.3 mm (L x W x H)** (A-020). The EEMB LP603449 datasheet (read 2026-11-07, see `../bom/bom-draft.md`) gives <= 50 x 34.5 x 6.3 mm, 1000 mAh minimum, 1C maximum charge, bare cell with solder tabs; protection circuit and connector depend on the purchase spec. The envelope is recorded as the bay input for the PCB outline and enclosure v3 in [`../../docs/interfaces/pcb-enclosure-bay.md`](../../docs/interfaces/pcb-enclosure-bay.md).
 
 Capacity check against section 5: the typical case needs about 670 mAh rated by the rule and the 1000 mAh minimum gives 4.5 months, so the cell is sufficient with a factor 1.5; the worst-case stack (about 2180 mAh needed) cannot be met by any cell that fits this bay, so the levers in section 7 and the measurements in section 9 matter more than capacity.
 
-**A-034 (battery from DigiKey): candidates against NFR-01** (generated; details, datasheet pages and options in [`../bom/cell-decision-A034.md`](../bom/cell-decision-A034.md)). The Jauch LP503030JU candidate has only 430 mAh minimum and **fails** the 3-month rule in the typical case; "fits" compares the envelope with the A-020 bay and ignores swelling and wire clearance.
+**A-034 (battery from DigiKey): candidates against NFR-01** (generated; details, datasheet pages and options in [`../bom/cell-decision-A034.md`](../bom/cell-decision-A034.md)). The Jauch LP503030JU candidate has only 430 mAh minimum and **fails** NFR-01 even under the relaxed rule (typical 1.9 months, worst 0.6 months); "fits" compares the envelope with the A-020 bay and ignores swelling and wire clearance.
 
 <!-- BEGIN:cells -->
-| cell | typ mAh | MIN mAh | T x W x L mm | fits 51 x 34.5 x 6.3 | months best | months typical | months worst | NFR-01 typical | max sleep uA (typical terms) |
+| cell | typ mAh | MIN mAh | T x W x L mm | fits 51 x 34.5 x 6.3 | months best | months typical | months worst | NFR-01 (best, typ >= 3; worst > 1) | max sleep uA (typical terms) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| EEMB LP603449 bare cell (A-020) | 1100 | 1000 | 6.3 x 34.5 x 50 | yes | 12.8 | 4.5 | 1.4 | PASS | 134 |
-| Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate) | 450 | 430 | 5.2 x 30 x 30 | yes | 5.5 | 1.9 | 0.6 | FAIL | -74 |
-| Jauch LP603443JU+PCM+2 wires (DigiKey alternative) | 900 | 850 | 6.5 x 34.5 x 45 | no, thicker: input to Yara | 10.8 | 3.8 | 1.2 | PASS | 80 |
+| EEMB LP603449-PCM, Amazon B08FD39Y5R (A-034 decided) | 1100 | 1000 | 6.3 x 34.5 x 51 | yes | 11.0 | 4.3 | 1.4 | PASS | 134 |
+| Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate) | 450 | 430 | 5.2 x 30 x 30 | yes | 4.8 | 1.9 | 0.6 | FAIL: typical, worst | -74 |
+| Jauch LP603443JU+PCM+2 wires (DigiKey alternative) | 900 | 850 | 6.5 x 34.5 x 45 | no, thicker: input to Yara | 9.4 | 3.7 | 1.2 | PASS | 80 |
 <!-- END:cells -->
 
 
@@ -256,7 +264,7 @@ After M1-M6 the script is run with the measured values (edit `TYPICAL`, tag each
 
 ## 10. Open points
 
-- **Closed:** self-discharge in the NFR-01 rule: no (A-020, acceptance matrix); NFR-01 is best/typical >= 3 months and worst > 1 month (flexed 2026-11-08, ADR-015); the 1000 mAh-minimum BOM cell passes all three (12.8 / 4.5 / 1.4 months).
+- **Closed:** self-discharge in the NFR-01 rule: no (A-020, acceptance matrix); NFR-01 is relaxed (best and typical >= 3 months, worst > 1 month, Arsany 2026-11-08) and the decided 1000 mAh-minimum cell passes all three scenarios (section 12).
 - **Needs Yara / Arsany:** only Yara's usable bay inside enclosure v3 (swelling and wire clearance) is still open, see [`../../docs/interfaces/pcb-enclosure-bay.md`](../../docs/interfaces/pcb-enclosure-bay.md); cell purchase and any order (Arsany orders, hard rule); a current meter for 5.4 (purchase is Arsany's).
 - **Datasheet tags:** the four ESP32-C3 rows are now **DR** (section 11). Still D?: Aosong AHT20, ROHM BH1750FVI, ESP32-C3-MINI-1 module datasheet (flash leakage).
 
@@ -270,3 +278,24 @@ What the datasheet says against the model: deep sleep 5 uA agrees; CPU 160 MHz i
 - **For Theo:** the deep-sleep limit in section 6 as a requirement (the Wi-Fi-session figure is a design target only, 5.5 s typical); whether the 3 months are counted to the 3.4 V warning (assumed here); please check the hub-unreachable figure (+1.4 vs your +0.2 mAh/day).
 - **For Mira (firmware):** fast Wi-Fi connect (cached channel/BSSID, static IP or DHCP lease reuse), SNTP not on every session, hub publish every 2nd report if needed, hub back-off when unreachable, light sleep during the soil warm-up, critical-wake cap per day; each is a lever in section 7.
 - **For me, next in 4.P1/4.P3:** pick a low-Iq LDO and charger/protection (sum of their quiescent currents goes in section 4), battery divider with a switch, and the LDO dropout simulation at 3.4 V.
+
+## 12. Update 2026-11-08: A-034 decided, NFR-01 relaxed, board as built after A-045
+
+**Decisions (Arsany, 2026-11-08):** (1) A-034: he buys the EEMB LP603449-PCM from Amazon.de (ASIN B08FD39Y5R). (2) NFR-01 is relaxed: **best and typical case >= 3 months, worst case more than 1 month** ("best case >= 3 months, worst cases accepted as long as they are more than 1 month"). I keep the typical case at 3 months (he named best and worst only; the stricter reading costs nothing for this cell: 4.3 months). If he meant no typical threshold, the verdicts do not change. The Requirements doc (Google Doc) and the acceptance matrix (NFR-01 row, line 118) still say 3 months for every case; they are the Lead's to update, not edited here. (3) A-045 Option A (permanent battery divider R7/R8, no Q2/R6) and A-046 Option A (no power path) were approved for the schematic.
+
+**Scenario definitions (the three columns of section 4, unchanged):**
+- **best:** datasheet-typical or better for every term, the firmware levers not used; 15-min wake, 24 reports/day, no critical wakes, Wi-Fi association 1.0 s, cloud 0.8 s, hub 0.5 s, TX share 3 %.
+- **typical:** the planning case: association 2.5 s, cloud 2.0 s, hub 1.0 s, 1 critical wake per day, TX share 8 %, TX 260 mA.
+- **worst:** every parameter at its worst at once (association 6 s, cloud 5 s, hub 3 s, 4 critical wakes per day, TX 340 mA, TX share 15 %, sleep terms at their worst). It is a stress bound that is very unlikely to occur together; the new rule asks only that it still lasts more than 1 month.
+
+**As-built sleep (after A-045):** the schematic has the divider R7 + R8 = 2 MOhm permanently on VBAT (4.2 V / 2 MOhm = 2.1 uA, BAT_SENS never above 2.1 V), XC6220 8 uA (datasheet), charger + protection + leakage as in `pcb/pinmap-sleep.md`: typical **21.6 uA**, worst **39.6 uA** (NFR-12: target 25, limit 50 uA). Section 4 still holds the older assumptions (13.2 / 31.7 uA); open point 10 of the PCB README said the budget would be updated, and the "as-built sleep" rows above do that without touching the baseline rows. The effect is small: typical 4.49 to 4.34 months, worst 1.37 to 1.36.
+
+**Verdict, EEMB LP603449-PCM, 1000 mAh minimum, rule 0.8 x C / I_avg (generated table in section 1):**
+
+| Scenario | Months (as-built sleep) | Needs | Verdict |
+|---|---|---|---|
+| best | 11.0 | >= 3 | PASS |
+| typical | 4.3 | >= 3 | PASS (1.45x margin) |
+| worst | 1.36 | > 1 | PASS (1.36x margin over 730 h) |
+
+The cell does **not** fail the relaxed rule. With the extra self-discharge line (2 %/month, not part of the rule) the worst case is 1.3 months, still above 1. All inputs are still unmeasured (section 9, M1 to M9 decide); the 1.36 months worst case has the least margin and is the number to watch in 5.4.

@@ -1,4 +1,66 @@
-# Cell decision after A-034 (battery from DigiKey)
+# Cell decision after A-034 (battery from DigiKey, then Amazon)
+
+## DECISION 2026-11-08 (Arsany, answered): he buys the EEMB LP603449-PCM from Amazon.de
+
+Author: Emil (PCB Designer) · Listing read live **2026-11-08** (Berlin afternoon, page HTML fetched with curl through the session proxy) · Nothing was ordered or bought (hard rule); the cart below is a list for Arsany to click. Everything below the line "Earlier analysis" is the 2026-11-07 DigiKey analysis and is **superseded by this decision** (kept for the record).
+
+**Arsany's words (A-034):** buy this cell, `https://www.amazon.de/-/en/EEMB-Battery-Batteries-Protective-Insulation/dp/B08FD39Y5R/` (keywords he searched: "lipo LP503030JU PCM 2IC NTC"). "Let's flex the battery time: best case >= 3 months, worst cases accepted as long as they are more than 1 month." So NFR-01 is relaxed to: **best and typical >= 3 months, worst > 1 month.**
+
+### Decision box for Arsany (neutral)
+
+1. **The listing is not the Jauch LP503030JU.** It is the **EEMB LP603449-PCM**, the same 603449-class cell the A-020 bay was drawn for (not a 503030, no 2IC, no NTC). If you wanted the small LP503030JU, this is a different cell: say so before ordering.
+2. **It meets the relaxed NFR-01 in all three scenarios** at the 1000 mAh minimum: best 11.0 months, typical 4.3, worst 1.36 (needs: best and typical >= 3, worst > 1). Worst case has the least margin (1.36x over 1 month). It passes down to a minimum capacity of **735 mAh** (worst case binds); the unverified A+ text of the listing swaps min and typical (see section A), the bullet and EEMB's datasheet say 1000 minimum.
+3. **Fits the bay** (51 x 34.5 x 6.3 mm is exactly the A-020 envelope), no bay change.
+4. **Still unverified from the page and yours to read before ordering:** price, delivery date and seller, the plug pitch and the wire polarity (listing photo 3 / plug label), wire count and length. One reviewer of this listing wrote the polarity was reversed for his device and he swapped the pins: **check polarity with a meter before connecting.**
+5. **Board:** R9 stays 2.4k (458 mA = 0.46C, <= 0.5C, within the 1100 mA cell maximum); J2 stays the JST PH 2-pin only if the plug is PH 2.0 (unverified); TP4056 TEMP stays grounded (no NTC on this cell). U4/Q1 are redundant with the cell's PCM (your call, open point 4 of `pcb/README.md`).
+6. **Your call:** the order. I never order.
+
+### A. Cell facts read from the Amazon.de listing (2026-11-08)
+
+Source: `amazon.de/dp/B08FD39Y5R`, page title "EEMB 3.7 V 1100 mAh Lipo Battery 603449 Lithium Polymer Batteries with JST Plug, Protective Board and Insulation Coating"; brand EEMB ("Visit the EEMB Store", text says "manufacturer direct"; the seller of the offer is not readable), model number LP603449-PCM, ASIN B08FD39Y5R, 4.4 of 5 stars (1,475 ratings), best sellers rank 150 in Rechargeable Household Batteries.
+
+| Item | Value on the listing | Status |
+|---|---|---|
+| Capacity | bullet: **typical 1100 mAh, minimum 1000 mAh**; structured spec "1000 mAh" | read. The A+ image text reads "Min. Capacity: 1100 mAh / Typical capacity: 1000 mAh" (swapped); I use 1000 minimum (bullet, structured field and the EEMB LP603449 datasheet read 2026-11-07 agree). Break-even for the relaxed NFR-01 is 735 mAh minimum |
+| Voltage | 3.7 V nominal; charge limit 4.200 +- 0.020 V; shutdown 2.750 +- 0.005 V (A+ text) | read |
+| Max charge / discharge | 1100 mA / 2200 mA; charge 0 to 45 C, discharge -20 to +60 C (A+ text) | read |
+| Dimensions L x W x H | **51 x 34.5 x 6.3 mm** (bullet); structured field "34 x 51 x 6 mm" | read. Tolerance and swelling not stated: **unverified** |
+| Weight | about 22 g | read |
+| Protection | "PCM protection function: overcharge, over-discharge, over-current, short circuit protection", protective board and insulation coating (title) | read; PCM chip, thresholds and a second IC not stated |
+| NTC | **not mentioned**: treated as no NTC (2-wire cell) | not stated: unverified. The cell is not the "2IC NTC" part |
+| Connector | "JST plug" (title), "check the size of the plug and battery before purchasing, see the third picture" | pitch (PH 2.0, SH 1.0, GH 1.25 ...), wire count, wire length and polarity **unverified**: read photo 3 |
+| Certifications | "UN 38.3 compliant; more than 400 EEMB batteries are UL certified, search MH20555"; IEC 62133 not stated | read; IEC 62133 **unverified** (compare the open decision in the superseded text below) |
+| Price | **not readable**: my fetch had no buy box (delivery location United States, "cannot be dispatched to your selected delivery location") | **unverified**: Arsany reads it |
+| Delivery / seller / stock | same: not readable | **unverified**; pack sizes in the selector: 1, 4, 10, 40, 100 |
+| Returns | 30-day return right per Amazon.de policy text | read |
+
+### B. NFR-01 verdict (relaxed rule: best and typical >= 3 months, worst > 1 month), rule 0.8 x 1000 mAh / average current
+
+| Scenario | Months at the 1000 mAh minimum (as-built sleep 21.6 / 39.6 uA) | Months (model baseline sleep) | Needs | Verdict |
+|---|---|---|---|---|
+| best | 11.0 | 12.8 | >= 3 | **PASS** |
+| typical | 4.3 | 4.5 | >= 3 | **PASS** (1.45x) |
+| worst (stress bound, everything at its worst at once) | 1.36 | 1.4 | > 1 | **PASS** (1.36x) |
+
+Definitions of best, typical, worst are in `hardware/power-budget/power-budget.md` section 12. All currents are unmeasured (5.4 decides). With the extra self-discharge line (2 %/month, not part of the rule) the worst case is 1.3 months, still above 1. Under the same relaxed rule the Jauch LP503030JU (430 mAh) would still **fail** typical (1.9) and worst (0.6).
+
+### C. Cart for Arsany (never ordered by me)
+
+| # | Item | Qty | Price | Note |
+|---|---|---|---|---|
+| 1 | EEMB 3.7 V 1100 mAh LiPo 603449 with JST plug and protective board, Amazon.de ASIN **B08FD39Y5R** (`https://www.amazon.de/dp/B08FD39Y5R`), model LP603449-PCM | **5** = 3 demo units + 2 spare (the selector offers pack sizes 1 and 4: choose 4 + 1 or 5 x 1 by price) | **unverified**, read in your cart | before paying: read photo 3 (plug pitch, wire colours), confirm the page says Amazon.de ships to you and the delivery date; keep the receipt |
+| 2 (only if photo 3 shows a plug that is not JST PH 2.0) | mating part for J2: JST PHR-2 housing (LCSC C157955) with SPH-002T-P0.5S contacts (C111515), or a ready PH 2.0 pigtail | 5 | unverified (see the superseded text below, JLC parts search 2026-11-07) | needs a crimp tool or Peter; the board side J2 would otherwise have to change |
+
+### D. What Arsany must read off the page (I could not)
+
+1. Price per unit and per pack, delivery date, seller / "ships from".
+2. Photo 3 (and any other photo showing the plug): connector family and pitch, wire count (2 or 3), wire length, which wire is red.
+3. Whether the PCM board is visible (a protection board on the cell end) and the date code.
+4. Whether anything on the page shows an NTC or a third wire (the listing text does not).
+5. Optional: ask EEMB through Amazon messages ("contact us via Amazon message", answers within 24 h per the listing) for the cell drawing with tolerance and the plug type. I send nothing.
+
+### Earlier analysis (2026-11-07, DigiKey), superseded
+
 
 Author: Emil (PCB Designer) · Read live **2026-11-07** (Berlin evening) · Nothing was ordered or bought (hard rule); the cart in section 6 is a list for Arsany to click.
 

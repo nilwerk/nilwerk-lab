@@ -36,18 +36,21 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, replace
 
-NFR01_MONTHS = 3.0           # NFR-01 best/typical (A-020: 3 months; worst case only > 1 month = 730 h, ADR-015 2026-11-08; 6 months is an information-only stretch goal)
+NFR01_MONTHS = 3.0           # NFR-01 best and typical case (A-020: 3 months; 6 months is an information-only stretch goal)
+NFR01_WORST_MONTHS = 1.0     # NFR-01 relaxed by Arsany 2026-11-08 (A-034 answer, ADR-015): worst case must be MORE than 1 month
 HOURS_PER_MONTH = 730.0      # 4380 h = 6 months, 2190 h = 3 months (acceptance matrix, 5.4)
 NFR01_HOURS = NFR01_MONTHS * HOURS_PER_MONTH
+NFR01_WORST_HOURS = NFR01_WORST_MONTHS * HOURS_PER_MONTH
 STRETCH_HOURS = 6 * HOURS_PER_MONTH   # 6-month stretch goal, information line only
 CELL_RATED_TYP_MAH = 1100.0   # A-020: 603449 LiPo 3.7 V, typical capacity (EEMB LP603449 datasheet: 1100 nominal)
 CELL_RATED_MIN_MAH = 1000.0   # A-020: minimum capacity; the NFR-01 verdict uses this (A-021)
 # Cell candidates (A-034): name -> (typical mAh, MINIMUM mAh, envelope T x W x L mm, source).  The verdict uses the minimum.
 CELLS = {
-    "EEMB LP603449 bare cell (A-020)": (1100.0, 1000.0, (6.3, 34.5, 50.0), "EEMB datasheet, read 2026-11-07"),
+    "EEMB LP603449-PCM, Amazon B08FD39Y5R (A-034 decided)": (1100.0, 1000.0, (6.3, 34.5, 51.0), "Amazon.de listing text read 2026-11-08 (bullet: typ 1100 / min 1000 mAh, 51 x 34.5 x 6.3 mm); EEMB datasheet read 2026-11-07"),
     "Jauch LP503030JU+PCM+2IC+NTC (A-034 candidate)": (450.0, 430.0, (5.2, 30.0, 30.0), "Jauch datasheet LP503030JU v1.0; size from Jauch product list"),
     "Jauch LP603443JU+PCM+2 wires (DigiKey alternative)": (900.0, 850.0, (6.5, 34.5, 45.0), "Jauch datasheet 246512 Rev 1.1; size from DigiKey"),
 }
+CELL_DECIDED = next(iter(CELLS))   # first entry = the cell Arsany buys (A-034, 2026-11-08)
 BAY_MM = (51.0, 34.5, 6.3)   # A-020: cell envelope L x W x H, mm (input note for PCB outline / enclosure v3, 4.E3)
 NFR12_MARGIN = 0.4            # NFR-12 limit = this share of the typical-case limit (134 uA -> 53.8), rounded down ...
 NFR12_STEP_UA = 25.0          # ... to a multiple of this (uA) -> 50 uA (accepted by Arsany, A-027)
@@ -90,6 +93,7 @@ class Params:
     # --- optional: soil warm-up spent in light sleep instead of CPU active --
     t_warmup_s: float = 0.0        # part of t_sense_s that is pure soil warm-up (CPU idle-able)
     i_warmup_cpu_ma: float = -1.0  # CPU current during warm-up; negative = same as i_cpu_ma (no lever)
+    v_div: float = 3.7             # voltage across the battery divider R7+R8 (V); 3.7 = nominal, 4.2 = full cell (as-built)
 
 
 # source tag for every field (checked by the unit test)
@@ -120,6 +124,7 @@ SOURCES: dict[str, str] = {
     "self_discharge_pct_month": "assumption: commonly quoted LiPo figure of 1-3 % per month, no datasheet read; cell not chosen",
     "t_warmup_s": "edge-ai-concept 2.4: warm-up >= 1.5 s (best/worst are assumptions); the share of t_sense_s in which the CPU only waits",
     "i_warmup_cpu_ma": "assumption: default = i_cpu_ma (CPU busy-waits, the model baseline); the light-sleep lever sets an assumption (datasheet-unverified: ESP32-C3 light-sleep current, order of 0.1-1 mA incl. peripherals; measure in M3)",
+    "v_div": "computed: 3.7 V nominal cell voltage in the baseline scenarios; the as-built set uses 4.2 V (full cell, permanent divider R7+R8 = 2 MOhm, A-045)",
     "usable_fraction": "assumption: the 20 % derating is taken to cover capacity unusable below 3.4 V; to be checked in 5.4 with a discharge curve at the real load",
 }
 
@@ -137,11 +142,21 @@ WORST = Params(10, 5, 10, 1.0, 1.0, 1.0, 1.0,
                3.0, 1.0, 2.0)
 SCENARIOS = {"best": BEST, "typical": TYPICAL, "worst": WORST}
 
+# As-built board sleep (schematic after A-045 Option A: permanent divider R7+R8 = 2 MOhm, no Q2/R6), taken from the
+# leakage table pcb/pinmap-sleep.md: XC6220 Iq 8 uA typ (datasheet) / 10 uA worst (pinmap), charger + protection + MLCC
+# leakage 6.15 / 14.5 uA (TP4056 3 + DW01A 3 + 8205A 0.05 + MLCC 0.1; worst 6 + 6 + 1 + 1 + 0.5 USBLC6), divider 4.2 V / 2 MOhm = 2.1 uA.
+# Best uses the typical part currents (the parts are chosen, only the MCU/sensor spread remains).  Everything else = baseline scenario.
+AS_BUILT = {
+    "best": replace(BEST, i_ldo_iq_ua=8.0, i_charger_prot_ua=6.15, r_divider_mohm=2.0, v_div=4.2),
+    "typical": replace(TYPICAL, i_ldo_iq_ua=8.0, i_charger_prot_ua=6.15, r_divider_mohm=2.0, v_div=4.2),
+    "worst": replace(WORST, i_ldo_iq_ua=10.0, i_charger_prot_ua=14.5, r_divider_mohm=2.0, v_div=4.2),
+}
+
 
 # --------------------------------------------------------------------------
-def sleep_current_ua(p: Params, v_batt: float = 3.7) -> float:
+def sleep_current_ua(p: Params, v_batt: float | None = None) -> float:
     """Whole-board deep-sleep current in uA (battery terminal, USB unplugged)."""
-    divider = v_batt / p.r_divider_mohm          # V / MOhm = uA
+    divider = (p.v_div if v_batt is None else v_batt) / p.r_divider_mohm   # V / MOhm = uA
     return (p.i_mcu_sleep_ua + p.i_ldo_iq_ua + p.i_charger_prot_ua + divider
             + p.i_aht20_sleep_ua + p.i_bh1750_pd_ua + p.i_soil_gate_leak_ua)
 
@@ -228,6 +243,29 @@ def derated_hours(p: Params, rated_mah: float, derating: float = DERATING) -> fl
     return derating * p.usable_fraction * rated_mah / avg_current_ma(p)
 
 
+def nfr01_pass(case: str, hours: float) -> bool:
+    """NFR-01 as relaxed by Arsany on 2026-11-08 (A-034 answer): best AND typical case >= 3 months
+    (NFR01_HOURS, as before), worst case MORE than 1 month (strictly greater than NFR01_WORST_HOURS).
+    The typical threshold is kept because Arsany named 'best case >= 3 months' and never relaxed the typical case."""
+    if case == "worst":
+        return hours > NFR01_WORST_HOURS
+    return hours >= NFR01_HOURS
+
+
+def nfr01_need_h(case: str) -> float:
+    return NFR01_WORST_HOURS if case == "worst" else NFR01_HOURS
+
+
+def nfr01_verdict(rated_min_mah: float, sleep: dict | None = None) -> dict[str, tuple[float, bool]]:
+    """{case: (months, passes)} at the MINIMUM rated capacity (A-021 rule) for the given scenario set."""
+    sc = SCENARIOS if sleep is None else sleep
+    out = {}
+    for n, p in sc.items():
+        h = derated_hours(p, rated_min_mah)
+        out[n] = (h / HOURS_PER_MONTH, nfr01_pass(n, h))
+    return out
+
+
 def nfr12_limit_ua(p: Params = None, rated_mah: float = CELL_RATED_MIN_MAH,
                    margin: float = NFR12_MARGIN, step_ua: float = NFR12_STEP_UA) -> float:
     """NFR-12 whole-board deep-sleep limit (uA), derived, not chosen:
@@ -281,8 +319,8 @@ HEADINGS = {
     "scenarios": "### Scenario results\n",
     "life": "### Life in months per rated capacity (rule: 0.8 x rated / average current; +SD = extra-margin line with self-discharge)\n",
     "sleep_limit": "### Deep-sleep limit (whole board) that still reaches NFR-01 (3 months), uA (rule; +SD = extra-margin line)\n",
-    "cell": f"### A-020 cell (603449, 1S LiPo): NFR-01 verdict at {NFR01_HOURS:.0f} h\n",
-    "cells": f"### Cell candidates against NFR-01 ({NFR01_HOURS:.0f} h), minimum rated capacity (A-021 rule)\n",
+    "cell": f"### Decided cell (EEMB LP603449-PCM, 603449 1S LiPo): NFR-01 verdict per scenario (best and typical >= {NFR01_HOURS:.0f} h, worst > {NFR01_WORST_HOURS:.0f} h)\n",
+    "cells": f"### Cell candidates against NFR-01 (best, typical >= {NFR01_MONTHS:g} months, worst > {NFR01_WORST_MONTHS:g} month), minimum rated capacity (A-021 rule), as-built board sleep\n",
     "nfr12": "### Derived NFR-12 sleep-current limit (A-020 cell)\n",
     "sensitivity": "### Sensitivity, one parameter at a time around TYPICAL\n",
     "levers": "### What-if levers (TYPICAL as base)\n",
@@ -352,14 +390,16 @@ def report_sections() -> dict[str, str]:
 
     rows = []
     for cap_name, cap in (("minimum (verdict, A-021)", CELL_RATED_MIN_MAH), ("typical (info only)", CELL_RATED_TYP_MAH)):
-        for n, p in SCENARIOS.items():
-            h = derated_hours(p, cap)
-            hs = life_days(p, cap, **SD) * 24
-            rows.append([f"{cap:.0f} mAh {cap_name}", n, f"{DERATING * cap:.0f}", f"{avg_current_ma(p) * 1000:.0f}",
-                         f"{h:.0f}", f"{h / HOURS_PER_MONTH:.1f}",
-                         "PASS" if h >= NFR01_HOURS else "FAIL", f"{hs / HOURS_PER_MONTH:.1f}"])
-    sec["cell"] = _table(["cell capacity", "case", "derated mAh", "average uA", "life h (rule)",
-                          "months (rule)", f"vs {NFR01_HOURS:.0f} h", "extra: months incl. SD"], rows)
+        for basis, scen in (("model baseline", SCENARIOS), ("as-built sleep", AS_BUILT)):
+            for n, p in scen.items():
+                h = derated_hours(p, cap)
+                hs = life_days(p, cap, **SD) * 24
+                rows.append([f"{cap:.0f} mAh {cap_name}", basis, n, f"{DERATING * cap:.0f}", f"{avg_current_ma(p) * 1000:.0f}",
+                             f"{h:.0f}", f"{h / HOURS_PER_MONTH:.1f}",
+                             f"{'>' if n == 'worst' else '>='} {nfr01_need_h(n):.0f} h",
+                             "PASS" if nfr01_pass(n, h) else "FAIL", f"{hs / HOURS_PER_MONTH:.1f}"])
+    sec["cell"] = _table(["cell capacity", "sleep basis", "case", "derated mAh", "average uA", "life h (rule)",
+                          "months (rule)", "NFR-01 needs", "verdict", "extra: months incl. SD"], rows)
 
     rows = []
     for n, p in SCENARIOS.items():
@@ -370,13 +410,14 @@ def report_sections() -> dict[str, str]:
                  "", f"**{nfr12_limit_ua():.0f}**", f"{nfr12_limit_ua() / sleep_current_ua(TYPICAL):.1f}"])
     crows = []   # own variable per table: never reuse `rows` (it clobbered the NFR-12 table once)
     for name, (typ, mn, (t, w, l), _src) in CELLS.items():
-        ht, hb, hw = (derated_hours(p, mn) / HOURS_PER_MONTH for p in (TYPICAL, BEST, WORST))
+        v = nfr01_verdict(mn, AS_BUILT)
         fits = t <= BAY_MM[2] and w <= BAY_MM[1] and l <= BAY_MM[0]
         crows.append([name, f"{typ:.0f}", f"{mn:.0f}", f"{t:g} x {w:g} x {l:g}", "yes" if fits else "no, thicker: input to Yara",
-                     f"{hb:.1f}", f"{ht:.1f}", f"{hw:.1f}", "PASS" if ht * HOURS_PER_MONTH >= NFR01_HOURS else "FAIL",
-                     f"{max_sleep_current_ua(TYPICAL, mn):.0f}"])
+                      f"{v['best'][0]:.1f}", f"{v['typical'][0]:.1f}", f"{v['worst'][0]:.1f}",
+                      "PASS" if all(ok for _m, ok in v.values()) else "FAIL: " + ", ".join(k for k, (_m, ok) in v.items() if not ok),
+                      f"{max_sleep_current_ua(TYPICAL, mn):.0f}"])
     sec["cells"] = _table(["cell", "typ mAh", "MIN mAh", "T x W x L mm", "fits 51 x 34.5 x 6.3", "months best",
-                           "months typical", "months worst", "NFR-01 typical", "max sleep uA (typical terms)"], crows)
+                           "months typical", "months worst", "NFR-01 (best, typ >= 3; worst > 1)", "max sleep uA (typical terms)"], crows)
     sec["nfr12"] = _table(["case (other terms as in the case)", "board sleep estimate uA",
                            f"max sleep uA for {CELL_RATED_MIN_MAH:.0f} mAh rated, {NFR01_HOURS:.0f} h",
                            "limit / estimate"], rows)

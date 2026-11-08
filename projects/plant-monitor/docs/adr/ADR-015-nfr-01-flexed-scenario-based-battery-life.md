@@ -1,6 +1,6 @@
 # ADR-015: NFR-01 flexed: scenario-based battery life
 
-Status: Accepted (owner decision, Arsany, 2026-11-08, binding) · Date: 2026-11-08 · Deciders: Arsany (decision), Theo (record) · Amends: A-020/A-021 (NFR-01 = 3 months for one figure); the formula of A-021 is unchanged
+Status: accepted (Arsany 2026-11-08, A-051; scenario definitions accepted; binding) · Date: 2026-11-08 · Deciders: Arsany (decision), Theo (record) · Amends: A-020/A-021 (NFR-01 = 3 months for one figure); the formula of A-021 is unchanged
 
 ## Context
 NFR-01 was a single pass/fail figure: projected life >= 3 months (2190 h) = 0.8 x rated capacity / average current (A-020/A-021). The power budget (`hardware/power-budget/power-budget.md`) shows the estimate spread: best 12.8, typical 4.5, worst-stack 1.4 months for the BOM cell (603449, 1000 mAh minimum). The worst stack puts every parameter at its worst at once; under the single-figure rule it was a permanent FAIL that nobody could design to (R-02). Arsany decided to flex the requirement by scenario.
@@ -21,6 +21,8 @@ NFR-01 was a single pass/fail figure: projected life >= 3 months (2190 h) = 0.8 
 | EEMB LP603449 (1000) | 12.8 | 4.5 | 1.4 | PASS (worst margin 1.4x over 1 month) |
 | Jauch LP603443JU (850) | 10.8 | 3.8 | 1.2 | PASS (worst margin 1.2x, thin) |
 | Jauch LP503030JU (430) | 5.5 | 1.9 | 0.6 | **FAIL** (typical < 3, worst < 1); the flex does not rescue it |
+
+Update 2026-11-08 (after PR #41): the cell is now fixed and ordered by Arsany, EEMB LP603449-PCM (A-034, `hardware/bom/cell-decision-A034.md`). The table row above is the decided cell; the verdict table in `power-budget.md` section 1 now also shows an "as-built sleep" basis (A-045).
 The flex only changes the worst-case row. It does not lower the typical-case bar, so cell sizing (A-034) is not relaxed. The worst case being only 1.2 to 1.4x over the new line means the worst-case measurement in 5.4 must be done honestly; a weaker result than the estimate is a real risk (R-02 stays open).
 
 ## Alternatives
