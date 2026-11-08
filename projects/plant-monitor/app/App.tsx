@@ -44,14 +44,14 @@ export function Root({ contactEmail, banner }: { contactEmail: string; banner?: 
     // a signed-out user can never be on a signed-in route
     const r: Route = route === 'signUp' || route === 'signIn' ? route : 'welcome';
     screen = r === 'welcome'
-      ? <WelcomeScreen onCreate={() => setRoute('signUp')} onSignIn={() => setRoute('signIn')} />
+      ? <WelcomeScreen contactEmail={contactEmail} onCreate={() => setRoute('signUp')} onSignIn={() => setRoute('signIn')} />
       : <AuthFormScreen mode={r} onSwitch={() => setRoute(r === 'signUp' ? 'signIn' : 'signUp')} onBack={() => setRoute('welcome')} />;
   } else if (route === 'delete') {
     screen = <DeleteAccountScreen onCancel={() => setRoute('profile')} />;
   } else if (route === 'premium') {
     screen = <PremiumScreen contactEmail={contactEmail} onBack={() => setRoute('profile')} />;
   } else {
-    screen = <ProfileScreen onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} />;
+    screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} />;
   }
   return <SafeAreaView style={{ flex: 1, backgroundColor: th.color.bg }}>{banner ? <Notice kind="info" text={banner} /> : null}{screen}</SafeAreaView>;
 }

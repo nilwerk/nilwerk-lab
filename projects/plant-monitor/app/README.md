@@ -23,6 +23,9 @@ Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`)
 ## Layout
 `App.tsx` shell and routes · `src/auth/` (`types.ts` contract, `supabaseAuth.ts` real, `fakeAuth.ts` mock, `authState.ts` reducer, `storage.ts` chunked SecureStore) · `src/screens/` · `src/ui/` (primitives, FR map) · `src/validation.ts` · `src/i18n.ts` · tests in `src/__tests__/`.
 
+## Legal line (A-052, DRAFT: needs Arsany/legal review)
+One line (`src/ui/LegalLine.tsx`, string `legal.line`) on Welcome, Profile and the Premium sheet names the contact address (CONTACT_EMAIL, default `nilwerk.team@gmail.com`; falls back to the default if the Premium link is hidden) and says e-mail is processed by Google. It states nothing else legally. A real privacy notice / Impressum is still to be written and reviewed before any store release.
+
 ## Not done / known gaps (4.A2)
 - Never run against a real Supabase project or on a phone. Web build + jsdom-free render tests only.
 - `DELETE /account` is in the OpenAPI contract but no edge function exists on `main` yet; delete will fail against a real backend until it is built (the app then shows "Nothing was removed").

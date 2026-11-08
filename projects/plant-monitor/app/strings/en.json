@@ -88,5 +88,7 @@
   "a11y.logo": "Plant Monitor logo",
   "a11y.back": "Go back",
   "a11y.screenTitle": "{title} screen",
+  "legal.line": "Contact and privacy: {email}. E-mail is processed by Google (Gmail).",
+  "legal.contactLabel": "Contact and privacy information",
   "app.mockBanner": "Mock backend (no real account)"
 }

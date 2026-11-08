@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react-nativ
 import { Root } from '../../App';
 import { AuthProvider } from '../auth/AuthContext';
 import { createFakeAuth } from '../auth/fakeAuth';
+import { t } from '../i18n';
 import { SCREEN_FR } from '../ui/frIds';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import fs from 'fs';
@@ -119,6 +120,36 @@ describe('signed-in flow', () => {
     await tap('Delete everything');
     expect(await screen.findByText(/Nothing was removed/)).toBeTruthy();
     expect(svc.accounts).toHaveLength(1);
+  });
+});
+
+describe('legal line (A-052, draft)', () => {
+  const LINE = 'Contact and privacy: hello@example.invalid. E-mail is processed by Google (Gmail).';
+  test('welcome, profile and premium all show contact + Google processor', async () => {
+    const svc = createFakeAuth();
+    await svc.signUp('sam@example.com', 'long-enough-1', 'Sam');
+    await svc.signOut();
+    await mount(svc);
+    expect(await screen.findByText(LINE)).toBeTruthy();
+    await tap('I already have an account');
+    await type('E-mail', 'sam@example.com');
+    await type('Password', 'long-enough-1');
+    await tap('Sign in');
+    await screen.findByRole('header', { name: 'Profile' });
+    expect(await screen.findByText(LINE)).toBeTruthy();
+    await tap('What is Premium?');
+    expect(await screen.findByText(LINE)).toBeTruthy();
+  });
+  test('an empty CONTACT_EMAIL hides the Premium link but the legal line keeps the default contact', async () => {
+    await mount(createFakeAuth(), '');
+    expect(await screen.findByText(/nilwerk\.team@gmail\.com\. E-mail is processed by Google/)).toBeTruthy();
+  });
+  test('the line makes no claim beyond contact and processor', () => {
+    expect(t('legal.line', { email: 'x@y.z' })).toBe('Contact and privacy: x@y.z. E-mail is processed by Google (Gmail).');
+  });
+  test('source is marked as a draft for review', () => {
+    const src = fs.readFileSync(path.resolve(__dirname, '../ui/LegalLine.tsx'), 'utf8');
+    expect(src).toMatch(/DRAFT.*needs Arsany\/legal review/);
   });
 });
 

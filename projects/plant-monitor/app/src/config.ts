@@ -5,6 +5,9 @@ import Constants from 'expo-constants';
 // Nilwerk's one shared mailbox for now (A-048, Arsany 2026-11-08: only this one until there are more customers). Public contact address, not a secret.
 export const DEFAULT_CONTACT_EMAIL = 'nilwerk.team@gmail.com';
 
+// The address shown in the legal line (A-052): the configured contact, or the default when the Premium link is hidden (the Impressum contact must never be empty).
+export const legalContact = (configured: string): string => configured || DEFAULT_CONTACT_EMAIL;
+
 export interface AppConfig { supabaseUrl: string; supabasePublishableKey: string; contactEmail: string }
 
 export function readConfig(extra: Record<string, unknown> | undefined = Constants.expoConfig?.extra): AppConfig {
