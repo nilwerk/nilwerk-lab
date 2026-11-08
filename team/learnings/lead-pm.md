@@ -18,6 +18,7 @@ Updated in the Friday retro PR; max ~60 rules. Never relaxes TEAM.md §5 hard ru
 
 ## Sprint S1 planning accuracy
 Committed 20; Arsany/agent tasks reached In review quickly (agents: ~1–10 min per slice, own human estimates 1–15 h per slice). Human tasks (2.5, 2.8→draft, 2.9, 3.x) are the sprint risk, not agent work.
+- Git: every agent (and every Lead session) works in its OWN git worktree from the first git command, never checks out/edits/commits in the shared clone; push with `git push origin HEAD:refs/heads/<branch>` (fast-forward only, never force); before opening or continuing a task branch list `origin/agent/*/<task-id>` for every role prefix; before reporting verify `git log origin/main..origin/<branch>` shows only your own commits; stacked PRs state their merge order and are retargeted to `main` after the parent merges. *Why:* two Lead sessions produced a duplicate 4.B2 (PR #45 kept, A-050) and parallel agents collided in the shared clone. *Source:* A-055, Arsany 2026-11-08; TEAM.md §11.
 - Work 7 days a week and run extra same-day rounds when Arsany asks (TEAM.md §7). Weekend runs: no ceremonies, still stand-up + report; Monday planning counts Sat/Sun capacity. *Why:* owner decision 2026-11-06. *Source:* chat.
 
 ## Estimation factors (from finished projects)
