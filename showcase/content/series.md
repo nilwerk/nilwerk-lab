@@ -37,7 +37,7 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 | 2 | Tue 10 Nov | Number of the day: Sprint 1, 3 done, 9 waiting for review | A | report 6 Nov | drafted (`content/2026-11-10`) |
 | 3 | Wed 11 Nov | Behind the scenes: a Saturday at Nilwerk, 10 merges as of 20:46 on 7 Nov (recount on posting day) | A | repo history 7 Nov, TEAM.md §7 | drafted (`content/2026-11-11`) |
 | 4 | Thu 12 Nov | We decided: your plant's data lives in the EU | both | ADR-003, stack and costs | drafted (`content/2026-11-12`) |
-| 5 | Fri 13 Nov | We caught a mistake: the charger resistor (from `content/2026-11-07` post 1) + what we learned this week | both | claim-check of post 1, retro | text exists, adapt to Logbook format |
+| 5 | Fri 13 Nov | We caught a mistake: three review catches (pin map, caption number, "beats the rule") and two honest negatives (edge-AI recall 27-40 % vs 95 %, ERC never run); recount merge status on the day | both | `content/2026-11-13/claim-check.md`, PRs #41 #44 #46 | drafted (`content/2026-11-13`), DE to be checked by Theo/Nora |
 | 6-7 | Sat 14, Sun 15 Nov | no post (optional Story if real news) | | | |
 | 8 | Mon 16 Nov | Built today: the first sprint-2 result (pick from merged PRs of 9-13 Nov: schematic, ingest, app setup) | A | merged PRs, showcase items | needs evidence |
 | 9 | Tue 17 Nov | Side-episode for engineers: "User A cannot read user B's data" (`content/2026-11-07` post 2) | B | claim-check post 2 | text exists |
@@ -45,7 +45,7 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 | 11 | Thu 19 Nov | Built today: enclosure v3 before/after, only if merged | A | CadQuery renders | depends on 4.E3 |
 | 12 | Fri 20 Nov | Sprint 2 in numbers (measured minutes next to estimated hours) + what we learned | both | report 13 Nov, Agent Log | needs Friday data |
 | 13-14 | Sat 21, Sun 22 Nov | no post | | | |
-| (reserve) | any | data honesty (labels from real irrigation data, 250 positives, 556 ignored, "labels not accuracy"); meet the team (one agent per post); soil sensor sizing | | showcase items | ready |
+| (reserve) | any | the charger resistor catch (`content/2026-11-07` post 1, moved from day 5);  data honesty (labels from real irrigation data, 250 positives, 556 ignored, "labels not accuracy"); meet the team (one agent per post); soil sensor sizing | | showcase items | ready |
 
 The PCB order (Arsany's action) gets no post until something real is built from it. Milestone dates are the Plan's; if evidence is missing on the day, switch to the reserve, never post without proof.
 
