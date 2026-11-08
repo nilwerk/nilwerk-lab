@@ -113,7 +113,7 @@ def render_md(r: dict) -> str:
            "- **Circular labels.** The onset label is itself a rise rule (>= 10 points in 2 ticks) plus a valve/rain flag. Recall therefore measures agreement with that label, "
            "not independent detection of watering; the valve/rain flag only decides what is ignored. Real watering recall needs bench data (4.AI3).",
            "- **p_fast and the rule threshold were chosen on VAL with 1-2 false positives at stake**, so they are noisy; the seed spread above shows it.",
-           "- **Model A is not trained.** Only the baseline is evaluated. 5 % of ticks are uncensored and nearly all have label 0 to 12 h (soil already dry or about to be re-wetted: the drip site waters every ~12 h), "
+           "- **Model A is not trained.** Only the baseline is evaluated. Only 3-11 % of ticks are uncensored (train 1,280, val 748, test 1,000) and nearly all have label 0 to 12 h (soil already dry or about to be re-wetted: the drip site waters every ~12 h), "
            "so 'always predict the median (0 h)' beats the baseline on val. MAE <= 12 h is met trivially and says nothing about 24-72 h forecasts: there are 0 val and 0 test ticks in 48-72 h. FR-E01 cannot be assessed on this dataset.",
            "- **Not covered:** sensor fault and out-of-soil (no real positives, synthetic only), fast drying / waterlogged (weak labels, outside FR-E02), ISMN, ProjectPlant, on-board latency and RAM."]
     return "\n".join(L_) + "\n"

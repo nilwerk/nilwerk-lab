@@ -1,7 +1,7 @@
 # Data card: Mendeley Soil Moisture, Irrigation Actuator and Weather Dataset
 
 Status: **downloaded and inspected on 2026-11-06 (A-007 resolved).** Loader: `src/loaders.py`; counts reproduced by
-`scripts/run_mendeley.py`; fetch: `scripts/fetch_mendeley.sh`. No model has been trained; all numbers below are data
+`scripts/run_mendeley.py`; fetch: `scripts/fetch_mendeley.sh`. Training (task 4.AI2, 2026-11-08) is documented in the section "Training and evaluation (4.AI2)" below; all other numbers are data
 counts, not results.
 
 | Field | Value |
@@ -120,6 +120,19 @@ Per-split positive counts (real data, seed 0, pad 4; **sector 5: all ticks ignor
 | 2025-09 | s4 | 1689 | 0 | 3 | 5 | 45 | 1641 | 0 | 0 |
 | 2025-09 | s5 | 1689 | 0 | 0 | 3 | 1689 | 0 | 0 | 0 |
 | **Total** | s1,s2,s4,s5 | **64858** | **184** | **66** | **556** | **19334** | **45274** | **63** | **0** |
+
+## Training and evaluation (4.AI2, 2026-11-08)
+
+Code: `src/train.py`, `scripts/train_all.py <raw_dir> <out_dir>` (needs `requirements-train.txt`: TensorFlow 2.21 CPU). Outputs committed: `reports/model-b-wetting-v0.md|json`, `models/model_b_wetting_int8.tflite`, `reports/size_report.json`. Re-run on the same ZIP (checksum above) reproduces the .tflite byte for byte (compared on two runs). Real rows only (`inject=False`): no synthetic data in any metric. Report header carries the commit of the code.
+
+How this dataset is used, and what limits it:
+- **Model B wetting (2 classes: normal / wetting).** Positives and ignore mask exactly per A-032 (pad 4, sector 5 ignored). Input = last 8 ticks (2 h) of moisture differences plus `m_now` and slope: 18 int8 values; valve, rain and weather columns are never inputs. Splits and calibration as in `prep.preprocess`; `p_fast` chosen on val only.
+- **Scorable positives:** of 32 val / 40 test positives only **15 / 20** have 12 consecutive valid samples before them (probe gaps; train 68 of 178). The other positives are in no metric. Window 8 instead of concept 24 ticks: a 28-tick context would keep only 11 / 12.
+- **Result (seed 0, float, TEST):** wetting recall 35 % (95 % interval 18-57 %), precision 100 % (7 of 7 alerts), 0 false alerts per unit-week; VAL recall 27 %, precision 67 %. Rule baseline (8 pts/h): TEST recall 80 %, precision 14 %, 25 false alerts per unit-week. Over 5 seeds TEST recall is 10-45 %. **FR-E02 (recall >= 95 %, <= 1 false alert per unit-week) is not met.** Full per-class tables: `reports/model-b-wetting-v0.md`.
+- **Labels are circular:** the onset label is a rise rule (>= 10 points / 2 ticks), so recall is agreement with that label, not proof of detecting watering.
+- **Model A:** only the average-interval baseline is evaluated. Uncensored metric ticks are 3-11 % of ticks (train 1,280, val 748 of 8,832, test 1,000 of 9,311); labels sit almost entirely in 0-12 h (val 744, test 899; 48-72 h: 0 and 0), median label 0 h, and the "always predict the median" reference beats the baseline on val (0.53 h vs 3.46 h MAE). This site (drip irrigation every ~12 h) has almost no 24-72 h dry-downs, so **FR-E01 cannot be assessed on this dataset**; it needs a pot-like source (ISMN is research/demo only) or our own units.
+- **Not trained / not claimed:** sensor fault and out-of-soil (no real positives), fast drying, waterlogged (weak labels; 0 train positives; percentile constants stay frozen).
+- **Size (FR-E04):** int8 flatbuffer 3,664 B of 30 KB (measured on host); RAM estimate 334 B (activation tensors 46 B + feature ring 288 B) of 20 KB, an estimate: interpreter overhead and latency on the ESP32-C3 are not run (4.AI3).
 
 ## Known risks
 - Drip-irrigated farm, not pots; one season, one site; probe depth unknown; valve telemetry must never be a feature; fault labels are derived and noisy; recording is dense only in Aug-Sep so train/val/test are mostly late-summer vs spring-sparse; ERA5 rain/temperature are site-wide proxies.
