@@ -39,7 +39,7 @@ Always write "as of <date, time>" next to any count and recount on the day of po
 
 ## 5. Metricool daily routine and the one-post-a-day rule (Arsany, 8 Nov 2026, binding)
 
-Instagram `@nilwerk` is the only network connected in Metricool; Arsany takes the same PNG and text for LinkedIn by hand. **One post per day**: Poppy's own (company or general PR) or the team member whose achievement is the most visual and fun. Days 1 to 3 (9 to 11 Nov) were the company posts; the 14-day plan and the written reason for every day are in `company/calendar.md`.
+Instagram `@nilwerk` is the only network connected in Metricool; Arsany takes the same PNG and text for LinkedIn by hand. **One post per day**: Poppy's own (company or general PR) or the team member whose achievement is the most visual and fun. Mon 9 Nov is the opening question ("Can AI replace our jobs?!", single image), Tue 10 to Thu 12 Nov are the three company posts (why we exist, who we are, how we work), the Agent Diary starts Fri 13 Nov; the 15-day plan and the written reason for every day are in `company/calendar.md`.
 
 **Selection rule** (details and guard rails in `company/calendar.md`): score the day's candidates from merged, reviewed work: visual form 3 (real screenshots, photo or clip, 3D render), 2 (diagram, chart, plot, progress snapshot), 1 (number or text card); +1 for true fun or a real-world hook; a real photo or clip of real hardware scores 4 and wins. Tie: newest and most complete, then the agent who posted longest ago. Never the same agent two days in a row; fiction at most once a week and labelled; no proof, no post. Write one line of rationale into the calendar.
 

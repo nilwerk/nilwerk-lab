@@ -1,4 +1,4 @@
-# Claim check: company posts, days 1-3
+# Claim check: company posts, opener (post 0) and posts 1-3
 
 As of **Sun 8 Nov 2026, 18:54 Berlin**. Types: F fact of record, D decision or rule, M measured (agent-run), C counted from git, E estimated, P persona voice, none = no number. PR ids and comment ids stay here, never on images. Recount every changing number on the posting day. Theo checks the technical rows; Theo or Nora the German.
 
@@ -36,12 +36,21 @@ As of **Sun 8 Nov 2026, 18:54 Berlin**. Types: F fact of record, D decision or r
 | 30 | 3 | A reviewing agent found a sensor pin map that did not match its datasheet, before any board existed (no package or pin count is claimed: which package C2757850 is stays unresolved) | F | architect review of PR #41, comment 6718450327 (U5 AHT20 row); diary claim rows 11-12 | tile "1": one catch; reworded after Theo's condition C1 on PR #62 |
 | 31 | 3 | Edge-AI model found 27 % (validation) and 40 % (test) of wetting events against a 95 % goal; the miss was published | M | PR #46 body, QA comment 6718564565; diary claim rows 6-7 | 8 of 20 events; label "target not met" on the image; PR #46 is merged on main (merge e11aa8f, 8 Nov), so "published" is the report on main |
 | 32 | 3 | Work needing hands goes to the human integrator as a written work order; what he measures we publish, what is unmeasured we label | D | TEAM.md section 12, playbook | |
-| 33 | 3 | "Tomorrow the Agent Diary starts: one agent, one real achievement a day" | D | `diary/README.md`; `calendar.md` (day 4 = Thu 12 Nov) | holds only if Arsany approves the calendar |
+| 33 | 3 | "Tomorrow the Agent Diary starts: one agent, one real achievement a day" | D | `diary/README.md`; `calendar.md` (How post = Thu 12 Nov, first diary post = Fri 13 Nov, so "tomorrow" still holds after the opener moved everything by one day) | holds only if Arsany approves the calendar |
 | 34 | all | "AI agents, led and reviewed by humans" in the footer | F | brand-kit 5b | |
 | 35 | all | No AI-generated imagery; avatars are the team's drawn SVGs; images built by `build_company.py` | F | `team/avatars/*.svg` | no Instagram AI flag needed |
+| 36 | 0 | Headline question "Can AI replace our jobs?!" | D | Arsany's brief of 8 Nov 2026 (owner, binding) | a question, not a claim |
+| 37 | 0 | "AI agents produced 48 merged changes in six days" (3 to 8 Nov) | C | same count as row 8: `git log origin/main --merges --first-parent` on 8 Nov 18:54 = 48 | "produced" not "built and checked": docs and report PRs have no architect verdict (row 27); includes docs, said in the image label; historic range, no recount needed (never "PRs": row 8 note) |
+| 38 | 0 | "By our rule a human still decides, merges, orders and signs off" | D | TEAM.md sections 4, 5 (rows 16, 18) | a rule, not an observed fact about each PR (shared GitHub login, row 16) |
+| 39 | 0 | "a human will build the hardware" (future tense) | D | TEAM.md section 12; rows 17, 19 | no board is built yet (engineers' line says so; recheck on the day) |
+| 40 | 0 | "It replaced typing, not judgment. Our experience, not a verdict on anyone's job." | D | Arsany's brief of 8 Nov; opinion of the team from its own week | no claim that AI does or does not replace anyone's job; no number attached |
+| 41 | 0 | Scene "Agents graduate day": 11 agents in graduation caps, the founder with a "human merges" stamp | F | drawn by `build_company.py` (`render_opener`) from `team/avatars/*.svg` and `human-public.svg`; caps and stamp are drawings | **ILLUSTRATION**: labelled in the image (dashed chip, "NOT A PHOTO, NOT A REAL EVENT"), in the alt text and in the first caption paragraph; no AI-generated imagery, no Instagram AI flag needed; `integrator.svg` not used; the stamp covers the badge of `human-public.svg` |
+| 42 | 0 | Eleven agents (Nora, Theo, Ines, Kai, Mira, Leo, Sana, Emil, Yara, Poppy, Max) and the founder | F | rows 13, 14 | German text of post 0 is **not yet checked** by Theo or Nora |
+| 43 | 0 | "Tomorrow: why Nilwerk exists" | D | `calendar.md` (Tue 10 Nov = post 1, Why we exist) | holds only if Arsany approves the calendar |
+| 44 | 0 | Hashtags #buildinpublic #AIagents #hardware #startup #futureofwork | none | | no claim |
 
 ## Not claimed anywhere (checked)
-No price, shop, delivery date, customer, lead, A-ID, private URL, human name beyond the founder's, "first", "best", "fastest", "autonomous", "X times faster", human-hour or minute-saving figure, battery-life figure, or a statement that a person merged a specific PR.
+No price, shop, delivery date, customer, lead, A-ID, private URL, human name beyond the founder's, "first", "best", "fastest", "autonomous", "X times faster", human-hour or minute-saving figure, battery-life figure, or a statement that a person merged a specific PR, or that AI replaces (or does not replace) any job.
 
 ## Checks run
 `python3 -I showcase/brand/check_svg_wellformed.py` and the builder's bounding-box check (`check_bbox.js`: no text past the margins); every PNG viewed (EN and DE) after the last build, see the result report.

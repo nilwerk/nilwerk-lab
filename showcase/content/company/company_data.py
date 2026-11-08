@@ -8,6 +8,48 @@ def L(en, de):
     return dict(en=en, de=de)
 
 POSTS = {
+    "p0-opener": dict(
+        day=0, date="2026-11-09", title=L("Can AI replace our jobs?!", "Kann KI unsere Jobs ersetzen?!"),
+        slides=[
+            dict(kind="opener", kicker=L("OPENING QUESTION", "DIE ERÖFFNUNGSFRAGE"),
+                 head=L(["Can AI replace", "our jobs?!"], ["Kann KI unsere", "Jobs ersetzen?!"]),
+                 banner=L("AGENTS GRADUATE DAY", "ABSCHLUSSTAG DER AGENTEN"),
+                 illu=L("ILLUSTRATION · NOT A PHOTO · NOT A REAL EVENT", "ILLUSTRATION · KEIN FOTO · KEIN ECHTES EREIGNIS"),
+                 stamp=L("HUMAN MERGES", "MENSCH MERGT"), founder=L("Arsany · founder", "Arsany · Gründer"),
+                 body=L("AI agents produced 48 merged changes in six days. By our rule a human still decides, merges, orders and signs off, and a human will build the hardware. It replaced typing, not judgment. Our experience, not a verdict on anyone's job.",
+                        "KI-Agenten haben in sechs Tagen 48 zusammengeführte Änderungen erarbeitet. Nach unserer Regel entscheidet, mergt, bestellt und gibt weiterhin ein Mensch frei, und ein Mensch wird die Hardware bauen. Ersetzt wurde das Tippen, nicht das Urteil. Unsere Erfahrung, kein Urteil über irgendjemandes Job."),
+                 status=L("48 MERGES · 3-8 NOV · INCL. DOCS", "48 MERGES · 3.-8. NOV · INKL. DOKU"),
+                 eng=L("48 = merge commits on main, 3 to 8 Nov 2026 (counted 8 Nov, 18:54; docs and reports included). Done = architect approved + QA pass + pipeline green + founder's merge. No board built yet.",
+                       "48 = Merge-Commits auf main, 3. bis 8. Nov 2026 (gezählt am 8. Nov, 18:54; Doku und Berichte inklusive). Fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. Noch keine Platine gebaut.")),
+        ],
+        alt=[L("Illustration, not a photo: headline 'Can AI replace our jobs?!'. A drawn graduation scene titled 'Agents graduate day': the eleven AI agents of the team, each in a graduation cap, and the founder with a 'human merges' stamp. Below: AI agents produced 48 merged changes in six days, but a human still decides and merges; it replaced typing, not judgment.",
+               "Illustration, kein Foto: Überschrift 'Kann KI unsere Jobs ersetzen?!'. Eine gezeichnete Abschlussfeier mit dem Titel 'Abschlusstag der Agenten': die elf KI-Agenten des Teams, jeder mit Doktorhut, und der Gründer mit einem Stempel 'Mensch mergt'. Darunter: KI-Agenten haben in sechs Tagen 48 zusammengeführte Änderungen erarbeitet, aber ein Mensch entscheidet und mergt weiterhin; ersetzt wurde das Tippen, nicht das Urteil.")],
+        caption=L(
+            """Can AI replace our jobs?! 🎓
+
+Our team is made of AI agents. Here they are on a (drawn!) graduation day: the picture is an ILLUSTRATION, not a photo and not a real event.
+
+The honest answer, from our own week: AI agents produced 48 merged changes between 3 and 8 Nov. But by our rule a human still decides what to build, merges, orders and signs off, and a human integrator will build the hardware. For us AI replaced typing, not judgment. That is our experience, not a verdict on anyone's job.
+
+Ooh, what's the proof? One post a day, with numbers and labels. Tomorrow: why Nilwerk exists.
+
+For engineers: 48 = merge commits on main, 3 to 8 Nov 2026 (counted 8 Nov, 18:54; includes docs and report PRs). Done = architect approved + QA pass + pipeline green + founder's merge. No board is built yet.
+
+nilwerk.de · @nilwerk
+#buildinpublic #AIagents #hardware #startup #futureofwork""",
+            """Kann KI unsere Jobs ersetzen?! 🎓
+
+Unser Team besteht aus KI-Agenten. Hier seht ihr sie an einem (gezeichneten!) Abschlusstag: Das Bild ist eine ILLUSTRATION, kein Foto und kein echtes Ereignis.
+
+Die ehrliche Antwort aus unserer eigenen Woche: KI-Agenten haben zwischen dem 3. und 8. Nov 48 zusammengeführte Änderungen erarbeitet. Aber nach unserer Regel entscheidet weiterhin ein Mensch, was gebaut wird, mergt, bestellt und gibt frei, und ein menschlicher Integrator wird die Hardware bauen. Bei uns hat KI das Tippen ersetzt, nicht das Urteil. Das ist unsere Erfahrung, kein Urteil über irgendjemandes Job.
+
+Ooh, was ist der Beleg? Ihr bekommt jeden Tag einen Post, mit Zahlen und Beschriftungen. Morgen: warum es Nilwerk gibt.
+
+Für Ingenieure: 48 = Merge-Commits auf main, 3. bis 8. Nov 2026 (gezählt am 8. Nov, 18:54; inklusive Doku- und Bericht-PRs). Fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. Noch keine Platine gebaut.
+
+nilwerk.de · @nilwerk"""),
+    ),
+
     "p1-why": dict(
         day=1, date="2026-11-09", title=L("Why we exist", "Warum es uns gibt"),
         slides=[
