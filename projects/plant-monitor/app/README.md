@@ -24,7 +24,7 @@ Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`)
 `App.tsx` shell and routes · `src/auth/` (`types.ts` contract, `supabaseAuth.ts` real, `fakeAuth.ts` mock, `authState.ts` reducer, `storage.ts` chunked SecureStore) · `src/screens/` · `src/ui/` (primitives, FR map) · `src/validation.ts` · `src/i18n.ts` · tests in `src/__tests__/`.
 
 ## Legal line (A-052, DRAFT: needs Arsany/legal review)
-One line (`src/ui/LegalLine.tsx`, string `legal.line`) on Welcome, Profile and the Premium sheet names the contact address (CONTACT_EMAIL, default `nilwerk.team@gmail.com`; falls back to the default if the Premium link is hidden) and says e-mail is processed by Google. It states nothing else legally. A real privacy notice / Impressum is still to be written and reviewed before any store release.
+One line (`src/ui/LegalLine.tsx`, string `legal.line`) on Welcome, Profile and the Premium sheet names the contact address (CONTACT_EMAIL, default `nilwerk.team@gmail.com`; falls back to the default if the Premium link is hidden) and says e-mail is processed by Google. It cites NFR-07 (privacy) and states nothing else legally. **Open point for the legal review (PR #55 C2):** the line says nothing about Expo push notifications or any other non-EU service; this must be decided before a store release. A real privacy notice / Impressum is still to be written and reviewed before any store release.
 
 ## Not done / known gaps (4.A2)
 - Never run against a real Supabase project or on a phone. Web build + jsdom-free render tests only.

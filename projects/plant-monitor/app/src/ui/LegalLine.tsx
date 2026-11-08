@@ -1,6 +1,7 @@
-// Privacy / Impressum line (A-052, approved by Arsany 2026-11-08).
+// Privacy / Impressum line (A-052, approved by Arsany 2026-11-08). Cites NFR-07 (privacy: EU hosting, export, deletion).
 // DRAFT: needs Arsany/legal review before store release. It states only the contact address and the fact that mail is processed by Google.
 // It makes no other legal claim (no controller, no retention, no GDPR basis); do not add any without legal review.
+// OPEN POINT for the legal review: the line says nothing about Expo push or other non-EU services; decide before store release.
 import React from 'react';
 import { Text } from 'react-native';
 import { legalContact } from '../config';
