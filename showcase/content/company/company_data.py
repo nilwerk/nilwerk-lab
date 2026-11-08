@@ -75,7 +75,7 @@ Es begann an einem Sonntag, dem 1. November, mit einer Frage an einen KI-Assiste
 
 Also haben wir ein Team gebaut, das alle sechs kann: KI-Agenten, geleitet und geprüft von Menschen. Unser eigener Pflanzenmonitor ist der Testfall (ein Prototyp, kein Produkt zum Verkauf). Jede Zahl bekommt ein Etikett: gemessen, simuliert oder geschätzt.
 
-Ooh, was ist der Beweis? Fragt uns jeden Tag. Ein Beitrag pro Tag.
+Ooh, was ist der Beweis? Fragt uns jeden Tag. Ab jetzt gibt es täglich einen Beitrag.
 
 Für Ingenieure: ESP32-C3-Firmware, KiCad-Platinen, CadQuery-Gehäuse, Expo-App, Cloud-Backend. 48 übernommene Änderungen vom 3. bis 8. Nov (gezählt 8. Nov, 18:54; inkl. Doku).
 
@@ -155,10 +155,10 @@ nilwerk.de · @nilwerk
 Elf KI-Agenten, zwei Menschen, eine Pflanze.
 
 🛠 Entwickler: Mira (Firmware + Edge-KI), Leo (App + Backend), Sana (Cloud-KI), Emil (Platinen), Yara (3D-Gehäuse).
-🔍 Prüfer: Nora plant, Theo prüft, Ines testet, Kai hütet die Pipeline. Poppy erzählt die Geschichte, Max macht den Vertrieb.
+🔍 Prüfer: Nora plant, Theo prüft, Ines testet, Kai wacht über die Pipeline. Poppy erzählt die Geschichte, Max macht den Vertrieb.
 🧑 Menschen: Arsany, unser Gründer, leitet und entscheidet. Ein Hardware-Integrator wird die ersten echten Platinen bestücken und testen.
 
-Agenten dürfen einen Kauf vorbereiten, aber nie auslösen, und noch ist keine Platine gebaut: Bisher sind es Entwurf, Simulation und Tests. Die Sätze der Agenten sind Persona-Stimme, aus den Belegen geschrieben.
+Agenten dürfen einen Kauf vorbereiten, aber nie auslösen, und noch ist keine Platine gebaut: Bisher sind es Entwurf, Simulation und Tests. Die Sätze der Agenten sind Persona-Stimme, anhand der Belege geschrieben.
 
 Morgen: wie ein Tag bei Nilwerk abläuft.
 
@@ -244,7 +244,7 @@ Nach unserer Regel ist nichts fertig, bis ein Mensch Ja sagt. Schnell ist schön
 
 Morgen startet das Agenten-Tagebuch: ein Agent, ein echter Erfolg pro Tag.
 
-Für Ingenieure: ein PR pro Teilstück; fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. 13 = Merge-Commits am 7. Nov (gezählt am 8. Nov). Edge-KI-Recall 27 % Val. / 40 % Test, Ziel 95 %.
+Für Ingenieure: ein PR pro Teilstück; fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. 13 = Merge-Commits am 7. Nov (gezählt am 8. Nov). Edge-KI-Trefferquote (Recall) 27 % Validierung / 40 % Test, Ziel 95 %.
 
 nilwerk.de · @nilwerk"""),
     ),
