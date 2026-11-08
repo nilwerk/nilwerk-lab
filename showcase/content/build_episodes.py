@@ -53,12 +53,53 @@ EPISODES = {
                    TONE_A_TOKEN="accent", TILE_B_LABEL="ALTERNATIVEN ABGELEHNT", TILE_B_VALUE="3", TILE_B_SUB1="darunter Firebase", TILE_B_SUB2="und ein selbst", TILE_B_SUB3="betriebener Server",
                    TONE_B_TOKEN="accent", STATUS="ENTSCHEIDUNG · NICHT LIVE · NUR LOKAL GETESTET",
                    SRC1="Entscheidung ADR-003, 3. Nov 2026: Supabase, EU-Region", SRC2="Hilfsdienste können pseudonyme Daten außerhalb der EU verarbeiten")}),
+    "2026-11-13": ("day5-caught-a-mistake", "light", {
+        "en": dict(KICKER="LOGBOOK · DAY 5 · WE CAUGHT A MISTAKE", H1="A review caught", H2="a charger resistor", H3="before any order.",
+                   INTRO1="A tiny part sets how fast the battery charges.", INTRO2="Our reviewing AI agent flagged the wrong value.",
+                   TILE_A_LABEL="BEFORE · R9 = 1.2 kOhm", TILE_A_VALUE="~0.9 A", TILE_A_SUB1="about 0.9C on a", TILE_A_SUB2="1000 mAh cell,", TILE_A_SUB3="flagged in review",
+                   TONE_A_TOKEN="warn", TILE_B_LABEL="AFTER · R9 = 2.4 kOhm", TILE_B_VALUE="458 mA", TILE_B_SUB1="0.46C of 1000 mAh", TILE_B_SUB2="worst case 527 mA", TILE_B_SUB3="(+15 % tolerance)",
+                   TONE_B_TOKEN="accent", STATUS="CALCULATED · NOT YET BENCH-TESTED",
+                   SRC1="R9 sets charge current (TP4056 datasheet), BOM rev. 2", SRC2="Calculated, not yet measured on a real board"),
+        "de": dict(KICKER="LOGBUCH · TAG 5 · FEHLER GEFUNDEN", H1="Ein Review fand", H2="einen Widerstand", H3="vor der Bestellung.",
+                   INTRO1="Ein winziges Bauteil bestimmt das Ladetempo.", INTRO2="Unser prüfender KI-Agent markierte den falschen Wert.",
+                   TILE_A_LABEL="DAVOR · R9 = 1,2 kΩ", TILE_A_VALUE="~0,9 A", TILE_A_SUB1="etwa 0,9C bei einer", TILE_A_SUB2="Zelle mit 1000 mAh,", TILE_A_SUB3="im Review markiert",
+                   TONE_A_TOKEN="warn", TILE_B_LABEL="DANACH · R9 = 2,4 kΩ", TILE_B_VALUE="458 mA", TILE_B_SUB1="0,46C von 1000 mAh", TILE_B_SUB2="schlimmster Fall 527 mA", TILE_B_SUB3="(+15 % Toleranz)",
+                   TONE_B_TOKEN="accent", STATUS="BERECHNET · NOCH NICHT GEMESSEN",
+                   SRC1="R9 legt den Ladestrom fest (TP4056-Datenblatt), BOM Rev. 2", SRC2="Berechnet, noch nicht an einer Platine gemessen")}),
+    "2026-11-14": ("day6-sprint2-template", "light", {
+        "en": dict(KICKER="LOGBOOK · DAY 6 · SPRINT 2 IN NUMBERS", H1="Sprint 2, as of", H2="[day, time]:", H3="the numbers.",
+                   INTRO1="SAMPLE LAYOUT: fill the values on the day", INTRO2="from the Plan and the Agent Log.",
+                   TILE_A_LABEL="DONE · AS OF [TIME]", TILE_A_VALUE="n / n", TILE_A_SUB1="tasks done of the", TILE_A_SUB2="tasks committed", TILE_A_SUB3="(source: Plan)",
+                   TONE_A_TOKEN="accent", TILE_B_LABEL="AGENT MIN · MEASURED", TILE_B_VALUE="n min", TILE_B_SUB1="without the lead's time,", TILE_B_SUB2="from the Agent Log;", TILE_B_SUB3="hours = estimate",
+                   TONE_B_TOKEN="warn", STATUS="SAMPLE LAYOUT · FILL ON THE DAY",
+                   SRC1="Plan status, merge count, Agent Log: add source and time", SRC2="Recount on the day of posting"),
+        "de": dict(KICKER="LOGBUCH · TAG 6 · SPRINT 2 IN ZAHLEN", H1="Sprint 2, Stand", H2="[Tag, Uhrzeit]:", H3="die Zahlen.",
+                   INTRO1="MUSTERLAYOUT: Werte am Tag selbst eintragen", INTRO2="aus Plan und Agent Log.",
+                   TILE_A_LABEL="FERTIG · STAND [UHRZEIT]", TILE_A_VALUE="n / n", TILE_A_SUB1="Aufgaben fertig von den", TILE_A_SUB2="zugesagten Aufgaben", TILE_A_SUB3="(Quelle: Plan)",
+                   TONE_A_TOKEN="accent", TILE_B_LABEL="AGENTEN-MIN · GEMESSEN", TILE_B_VALUE="n min", TILE_B_SUB1="ohne Zeit der Leitung,", TILE_B_SUB2="aus dem Agent Log;", TILE_B_SUB3="Stunden = Schätzung",
+                   TONE_B_TOKEN="warn", STATUS="MUSTERLAYOUT · AM TAG AUSFÜLLEN",
+                   SRC1="Plan-Status, Merges, Agent Log: Quelle und Zeit eintragen", SRC2="Am Tag des Postens neu zählen")}),
+    "2026-11-15": ("day7-how-a-change-moves", "light", {
+        "en": dict(KICKER="LOGBOOK · DAY 7 · BEHIND THE SCENES", H1="Who checks the", H2="work of AI", H3="agents?",
+                   INTRO1="The path of a code change: builder, architect,", INTRO2="QA, pipeline, then a human merges.",
+                   TILE_A_LABEL="MERGED · SAT 7 NOV", TILE_A_VALUE="13", TILE_A_SUB1="pull requests merged,", TILE_A_SUB2="whole day, counted", TILE_A_SUB3="on 8 Nov, 15:07",
+                   TONE_A_TOKEN="accent", TILE_B_LABEL="STEPS OF A CODE CHANGE", TILE_B_VALUE="4", TILE_B_SUB1="architect, QA, pipeline,", TILE_B_SUB2="then a human", TILE_B_SUB3="decides to merge",
+                   TONE_B_TOKEN="accent", STATUS="COUNTED · AS OF 8 NOV 15:07",
+                   SRC1="TEAM.md section 3; git log of 7 Nov, counted 8 Nov 15:07", SRC2="Recount on the day of posting"),
+        "de": dict(KICKER="LOGBUCH · TAG 7 · HINTER DEN KULISSEN", H1="Wer prüft die", H2="Arbeit von", H3="KI-Agenten?",
+                   INTRO1="Der Weg einer Codeänderung: Entwickler, Architekt,", INTRO2="QA, Pipeline, dann mergt ein Mensch.",
+                   TILE_A_LABEL="GEMERGT · SA 7. NOV", TILE_A_VALUE="13", TILE_A_SUB1="Pull Requests gemergt,", TILE_A_SUB2="ganzer Tag, gezählt", TILE_A_SUB3="am 8. Nov, 15:07",
+                   TONE_A_TOKEN="accent", TILE_B_LABEL="SCHRITTE EINER CODEÄNDERUNG", TILE_B_VALUE="4", TILE_B_SUB1="Architekt, QA, Pipeline,", TILE_B_SUB2="dann entscheidet ein", TILE_B_SUB3="Mensch über den Merge",
+                   TONE_B_TOKEN="accent", STATUS="GEZÄHLT · STAND 8. NOV 15:07",
+                   SRC1="Team-Charta Abschnitt 3; git log vom 7. Nov, gezählt 8. Nov 15:07", SRC2="Am Tag des Postens neu zählen")}),
 }
 SIZES = {"portrait-1080x1350": "post-portrait-1080x1350", "linkedin-1200x627": "post-linkedin-1200x627"}
 
 if __name__ == "__main__":
     jobs = []
     for date, (slug, theme, langs) in EPISODES.items():
+        if len(sys.argv) > 1 and date not in sys.argv[1:]:
+            continue  # optional: render only the given dates (arguments)
         out = HERE / date / "images"
         out.mkdir(parents=True, exist_ok=True)
         for lang, fields in langs.items():

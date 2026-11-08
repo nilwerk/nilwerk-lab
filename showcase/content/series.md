@@ -37,8 +37,9 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 | 2 | Tue 10 Nov | Number of the day: Sprint 1, 3 done, 9 waiting for review | A | report 6 Nov | drafted (`content/2026-11-10`) |
 | 3 | Wed 11 Nov | Behind the scenes: a Saturday at Nilwerk, 10 merges as of 20:46 on 7 Nov (recount on posting day) | A | repo history 7 Nov, TEAM.md §7 | drafted (`content/2026-11-11`) |
 | 4 | Thu 12 Nov | We decided: your plant's data lives in the EU | both | ADR-003, stack and costs | drafted (`content/2026-11-12`) |
-| 5 | Fri 13 Nov | We caught a mistake: the charger resistor (from `content/2026-11-07` post 1) + what we learned this week | both | claim-check of post 1, retro | text exists, adapt to Logbook format |
-| 6-7 | Sat 14, Sun 15 Nov | no post (optional Story if real news) | | | |
+| 5 | Fri 13 Nov | We caught a mistake: the charger resistor | both | claim-check of post 1, retro | drafted (`content/2026-11-13`) |
+| 6 | Sat 14 Nov | Sprint 2 in numbers: template, filled on the day from the Agent Log | both | Plan, Agent Log | template (`content/2026-11-14`) |
+| 7 | Sun 15 Nov | Behind the scenes: how a change moves through the team (13 merges on Sat 7 Nov, counted 8 Nov 15:07) | both | TEAM.md, git log | drafted (`content/2026-11-15`) |
 | 8 | Mon 16 Nov | Built today: the first sprint-2 result (pick from merged PRs of 9-13 Nov: schematic, ingest, app setup) | A | merged PRs, showcase items | needs evidence |
 | 9 | Tue 17 Nov | Side-episode for engineers: "User A cannot read user B's data" (`content/2026-11-07` post 2) | B | claim-check post 2 | text exists |
 | 10 | Wed 18 Nov | Number of the day: what the power budget says (requirement 3 months, calculated typical 4.5 months, simulated) | both | `power-budget.md` | needs draft |

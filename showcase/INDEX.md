@@ -9,6 +9,7 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 - `content/` — post drafts and the content calendar: `calendar.md` (9-20 Nov 2026), `2026-11-07/` (two drafted posts with images and claim-check)
 - `learning/pr-skills-plan.md` — PR and social skills: ranked free/paid resources, tools, Claude skills check, 30-day schedule
 - `content/series.md` — **Nilwerk Logbook**: series format, episode types, daily routine and the 14-day calendar (replaces `content/calendar.md`); drafts for days 2-4 in `content/2026-11-10`, `-11`, `-12`
+- `content/DAILY.md` — Poppy's daily checklist (read, recount commands, posting-day checklist); `content/about-nilwerk.md` — profile boilerplate EN/DE (50 and 100 words, two layers, claim-checked); episodes days 5-7 in `content/2026-11-13`, `-14` (sprint-2 template), `-15`
 - `stories/origin/` — origin story canon and first carousel (pre-brand look, to be re-rendered if the brand is approved)
 
 ## Items
