@@ -24,6 +24,7 @@ import math
 import numpy as np
 import pandas as pd
 
+import evaluate as EV
 import features as F
 import labels as L
 import prep
@@ -59,6 +60,7 @@ def build_wetting_windows(split_df: pd.DataFrame) -> dict:
         g = g.reset_index(drop=True)
         m = g["m_u8"].to_numpy(dtype=np.int64)
         ok = g["m"].notna().to_numpy()
+        use = EV.wetting_usable(g).to_numpy()      # ONE definition of 'usable' (A-032): pos | neg, raises if the labels do not partition
         n = len(g)
         if n < CONTEXT:
             continue
@@ -71,8 +73,7 @@ def build_wetting_windows(split_df: pd.DataFrame) -> dict:
             d4 = np.clip(m[idx] - m[idx - 4], -128, 127)
             slope = F.clip(F.rshift_round(F.slope_x64(m[t - WINDOW + 1: t + 1]), 3), -128, 127)
             xs.append(np.concatenate([d1, d4, [int(m[t]), slope]]))
-            pos, neg = bool(g.at[t, "lbl_wetting_pos"]), bool(g.at[t, "lbl_wetting_neg"])
-            lab = LABEL_POS if pos else (LABEL_NEG if neg else LABEL_IGNORE)
+            lab = (LABEL_POS if g.at[t, "lbl_wetting_pos"] else LABEL_NEG) if use[t] else LABEL_IGNORE
             meta.append((lab, g.at[t, "event"], g.at[t, "plant"], g.at[t, "time"], bool(g.at[t, "lbl_wetting_ignore"])))
     X = np.array(xs, dtype=np.int64).reshape(-1, N_INPUTS)
     lab, ev, plant, tm, ign = (list(c) for c in zip(*meta)) if meta else ([], [], [], [], [])
@@ -96,7 +97,9 @@ def rule_predict(X: np.ndarray, rise_pts: float = RULE_RISE_PTS) -> np.ndarray:
 
 
 def usable(win: dict) -> np.ndarray:
-    """Mask of windows that count: positives and negatives only (A-032: ignore ticks are dropped everywhere)."""
+    """Mask of windows that count: positives and negatives only (A-032: ignore ticks are dropped everywhere).
+    Not a second definition: LABEL_IGNORE is assigned in build_wetting_windows from `evaluate.wetting_usable`, the single
+    source of truth for 'usable'. 'Scorable' = usable AND a window exists (CONTEXT consecutive valid samples), see the report."""
     return win["y"] != LABEL_IGNORE
 
 

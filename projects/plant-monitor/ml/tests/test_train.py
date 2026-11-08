@@ -164,3 +164,15 @@ def test_training_is_deterministic_per_seed_and_int8_matches_budget():  # FR-E04
     assert rep["input_quant"] == [pytest.approx(1 / 128), 0]             # device feeds its integer features unchanged
     pi = T.tflite_predict_p1(tfl, X[:50])
     assert pi.shape == (50,) and ((pi >= 0) & (pi <= 1)).all()
+
+
+def test_a032_windows_use_the_single_usable_helper_and_fail_loudly():
+    """Merge reconciliation with PR #49: train windows take 'usable' from evaluate.wetting_usable, so a broken label
+    partition raises here too instead of being silently labelled."""
+    import evaluate as EV
+    f = seg_frame([20.0] * 20 + [40.0] * 15, events={20: prep.EVENT_WATERING})
+    w = T.build_wetting_windows(f)
+    use = EV.wetting_usable(f).to_numpy()
+    assert (w["y"] != T.LABEL_IGNORE).sum() == sum(1 for t in range(T.CONTEXT - 1, len(f)) if use[t])
+    with pytest.raises(ValueError, match="partition"):
+        T.build_wetting_windows(f.assign(lbl_wetting_neg=False, lbl_wetting_pos=False, lbl_wetting_ignore=False))
