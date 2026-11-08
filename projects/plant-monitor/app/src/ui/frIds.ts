@@ -6,5 +6,6 @@ export const SCREEN_FR = {
   signIn: ['FR-A01'],                        // S02 Sign in
   profile: ['FR-A01', 'FR-P04', 'NFR-06'],   // S03 Profile (plan mirrors profiles.is_premium; own row only under RLS)
   deleteAccount: ['FR-A01', 'NFR-07'],       // S04 Delete account (DELETE /account, 0 rows remain)
+  setup: ['FR-A03', 'FR-D03', 'FR-A04', 'FR-A05', 'NFR-03'], // S10-S16 device setup (A-023: no hub step); FR-D02/D07/A02 also cited in SetupSteps
   premium: ['FR-P04'],                       // S40 Premium sheet (A-024: activated by Nilwerk + contact link)
 } as const;
