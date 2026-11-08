@@ -221,7 +221,7 @@ def thenvsnow(lang, theme="light"):
     sc, _ = chip(72, 1092, "REVIEW FINDING · FIXED · NO BOARD YET" if en else "PRÜFBEFUND · BEHOBEN · NOCH KEINE PLATINE", "var(--nw-warn)", 20, 44)
     b.append(sc)
     eng = ("Source: architect review of the schematic PR, 8 Nov. The check script now asserts the map; QA closed it from the artefact, not the datasheet. Footprint still to draw."
-           if en else "Quelle: Architektenprüfung des Schaltplan-PR, 8. Nov. Das Prüfskript fordert die Belegung jetzt ein; QA schloss den Fund am Artefakt, nicht am Datenblatt. Footprint noch zu zeichnen.")
+           if en else "Quelle: Architektenprüfung des Schaltplan-PR, 8. Nov. Das Prüfskript fordert die Belegung jetzt ein; QA hat den Fund anhand der Datei geschlossen, nicht anhand des Datenblatts. Footprint noch zu zeichnen.")
     b.append(eng_block(lang, eng, 1180, 3))
     b.append(footer(lang))
     return wrapper("\n".join(b), "Then versus now: the humidity sensor drawn with 4 wrong pins in the first draft, and with the 6-pin map from its datasheet in the fixed schematic.", "tvn", theme)
@@ -232,7 +232,7 @@ def tracker(lang, theme="light"):
     en = lang == "en"
     rows = [  # avatar, name, piece EN/DE, proof EN/DE, built, reviewed, tested, merged  (PR states of 8 Nov)
         ("pcb", "Emil", ("Circuit schematic", "Schaltplan"), ("netlist check + ERC exit 0 in CI", "Netzlistenprüfung + ERC Exit 0 in CI"), 1, 1, 1, 1),
-        ("fullstack", "Leo", ("App account screens", "App-Konto-Bildschirme"), ("54 tests pass", "54 Tests grün"), 1, 1, 1, 1),
+        ("fullstack", "Leo", ("App account screens", "App-Konto-Screens"), ("54 tests pass", "54 Tests grün"), 1, 1, 1, 1),
         ("cloud-ai", "Sana", ("Cloud claim + ingest", "Cloud: Koppeln + Annahme"), ("13 tests, 26 of 26 mutants", "13 Tests, 26 von 26 Mutanten"), 1, 1, 1, 0),
         ("mechanical", "Yara", ("Battery bay (3D)", "Akku-Aussparung (3D)"), ("22 tests pass", "22 Tests grün"), 1, 1, 1, 0),
         ("firmware", "Mira", ("Edge-AI model", "Edge-KI-Modell"), ("134 tests; target missed", "134 Tests; Ziel verfehlt"), 1, 1, 1, 0),
@@ -240,7 +240,7 @@ def tracker(lang, theme="light"):
     b = [logo()]
     kc, _ = chip(72, 176, "PROGRESS · SUN 8 NOV" if en else "FORTSCHRITT · SO 8. NOV", "var(--nw-accent)", 24, 52, "var(--nw-accent-soft)", ls=1.2)
     b.append(kc)
-    hl = ["Five builds.", "Two merged.", "Review comes first."] if en else ["Fünf Bausteine.", "Zwei übernommen.", "Erst die Prüfung."]
+    hl = ["Five builds.", "Two merged.", "Review comes first."] if en else ["Fünf Arbeitspakete.", "Zwei übernommen.", "Erst die Prüfung."]
     sizes = (80, 80, 80) if en else (76, 76, 60)
     for i, (t, col) in enumerate(zip(hl, ("var(--nw-ink)", "var(--nw-ink)", "var(--nw-accent)"))):
         b.append(T(72, 310 + i * 82, t, sizes[i], "sg", 700, col, ls=-2.4))

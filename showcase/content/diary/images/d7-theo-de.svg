@@ -9,7 +9,8 @@
 <svg x="72" y="252" width="228" height="228" viewBox="0 0 120 120"><defs><clipPath id="clip-architect-d7"><rect width="120" height="120" rx="28"/></clipPath></defs><g clip-path="url(#clip-architect-d7)"><rect width="120" height="120" fill="#3b4a8c" opacity=".16"/><circle cx="60" cy="58" r="40" fill="#3b4a8c" opacity=".18"/><path d="M22 120c2-22 18-34 38-34s36 12 38 34Z" fill="#3b4a8c"/><path d="M53 72h14v14c-2 3-5 4-7 4s-5-1-7-4Z" fill="#c98e6a"/><path d="M50 88l10 8 10-8" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2"/><ellipse cx="60" cy="54" rx="17" ry="19" fill="#c98e6a"/><path d="M42 50c0-14 8-21 19-21 10 0 17 6 17 17l-1 4c-3-6-9-10-20-11 4 3 6 6 6 8-8-2-14-1-20 5Z" fill="#1d1b1a"/><circle cx="53.5" cy="55" r="1.8" fill="#1c1c1c"/><circle cx="66.5" cy="55" r="1.8" fill="#1c1c1c"/><path d="M55 63.5c3 2.5 7 2.5 10 0" fill="none" stroke="#1c1c1c" stroke-width="1.6" stroke-linecap="round"/><g fill="none" stroke="#1c1c1c" stroke-width="1.6"><circle cx="53.5" cy="55" r="5"/><circle cx="66.5" cy="55" r="5"/><path d="M58.5 55h3"/></g></g><g transform="translate(96 96)"><circle r="14" fill="#3b4a8c" stroke="#fff" stroke-width="3"/><path d="M-7 -7H7V7H-7Z M-7 0H7 M0 -7V7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
 <text x="340" y="326" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="88" letter-spacing="-2.5" fill="#15181d">Theo</text>
 <rect x="340" y="352" width="352" height="40" rx="8" fill="none" stroke="#0f7a5c" stroke-width="2"/><text x="360" y="378" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="19" letter-spacing="0.6" fill="#0f7a5c">SYSTEMARCHITEKT · KI-AGENT</text>
-<text x="340" y="432" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#5b616b">Fragt immer: Wo steht der Vertrag dafür?</text>
+<text x="340" y="432" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#5b616b">Fragt immer: Wo ist das als Schnittstelle</text>
+<text x="340" y="468" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#5b616b">festgeschrieben?</text>
 <rect x="72" y="520" width="936" height="250" rx="30" fill="#ffffff" stroke="#0f7a5c" stroke-width="3"/>
 <path d="M110 520L136 486L180 520Z" fill="#ffffff" stroke="#0f7a5c" stroke-width="3" stroke-linejoin="round"/>
 <line x1="114" y1="520" x2="176" y2="520" stroke="#ffffff" stroke-width="6"/>
@@ -21,15 +22,15 @@
 <rect x="72" y="792" width="936" height="274" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
 <rect x="72" y="792" width="936" height="10" rx="5" fill="#0f7a5c"/>
 <text x="100" y="842" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="22" letter-spacing="1" fill="#0f7a5c">ERFOLG DES TAGES</text>
-<text x="100" y="888" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Der Gründer lockerte die Akku-Regel: bester Fall</text>
-<text x="100" y="928" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">mindestens 3 Monate, schlechtester nur über 1. Theo</text>
-<text x="100" y="968" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">schrieb die Entscheidungsakte und zog zehn Dokumente</text>
-<text x="100" y="1008" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">nach. Der gewählte Akku besteht nach Schätzung</text>
-<text x="100" y="1048" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">(typisch über 4 Monate). Nicht im Labor getestet.</text>
+<text x="100" y="888" font-family="Inter, sans-serif" font-weight="400" font-size="29" fill="#15181d">Der Gründer lockerte die Akku-Regel: bester Fall</text>
+<text x="100" y="927" font-family="Inter, sans-serif" font-weight="400" font-size="29" fill="#15181d">mindestens 3 Monate, schlechtester nur über 1. Theo</text>
+<text x="100" y="966" font-family="Inter, sans-serif" font-weight="400" font-size="29" fill="#15181d">schrieb das Entscheidungsdokument (ADR) und zog zehn</text>
+<text x="100" y="1005" font-family="Inter, sans-serif" font-weight="400" font-size="29" fill="#15181d">Dokumente nach. Der gewählte Akku besteht nach Schätzung</text>
+<text x="100" y="1044" font-family="Inter, sans-serif" font-weight="400" font-size="29" fill="#15181d">(typisch über 4 Monate). Nicht im Labor getestet.</text>
 <rect x="72" y="1086" width="716" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1114" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">ENTSCHEIDUNG · GESCHÄTZT · NICHT GETESTET · PR OFFEN</text>
 <text x="72" y="1164" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FÜR INGENIEURE</text>
-<text x="72" y="1192" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">ADR-015: bestanden = best &gt;= 2190 h, typisch &gt;= 2190 h, schlechtester &gt; 730 h;</text>
-<text x="72" y="1216" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Formel unverändert (0,8 x Nennkapazität min. / mittlerer Strom). Szenarien</text>
-<text x="72" y="1240" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">sind Theos Vorschlag, zu bestätigen. Energiebudget-Tests 25 OK, Stückliste 12</text>
-<text x="72" y="1264" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">OK. Ströme sind Schätzungen.</text>
+<text x="72" y="1192" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">ADR-015: bestanden = bester Fall &gt;= 2190 h, typisch &gt;= 2190 h, schlechtester &gt;</text>
+<text x="72" y="1216" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">730 h; Formel unverändert (0,8 x Nennkapazität min. / mittlerer Strom).</text>
+<text x="72" y="1240" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Szenarien sind Theos Vorschlag, zu bestätigen. Energiebudget-Tests 25 OK,</text>
+<text x="72" y="1264" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Stückliste 12 OK. Ströme sind Schätzungen.</text>
 <line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">KI-Agenten, geleitet und geprüft von Menschen</text></svg>

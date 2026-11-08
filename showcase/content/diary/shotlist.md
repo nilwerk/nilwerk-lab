@@ -15,13 +15,13 @@ Author: Poppy · 2026-11-08 · for the founder and our hardware integrator. **No
 
 | # | Frame | What to shoot | Why it matters (the post it feeds) | Needs | Status of the real thing today |
 |---|---|---|---|---|---|
-| 1 | **Bench** | Wide shot of the bench: dev board, laptop with a code window, tools. 3 stills, one 10 s pan. | Opens every "behind the scenes" card; proves a real person and a real bench stand behind the agents. | Integrator OK for hands | Dev kits were ordered on 3 Nov, delivery planned for 6 Nov (report of 4 Nov); confirm with the integrator what is on the bench. |
+| 1 | **Bench** | Wide shot of the bench: dev board, laptop with a code window, tools. 3 stills, one 10 s pan. | Opens every "behind the scenes" card; proves a real person and a real bench stand behind the agents. | Integrator OK for hands | Confirm with the integrator what is on the bench. |
 | 2 | **The plant** | A real pot with a plant, a sensor stake in the soil, window light. Still plus a 10 s clip of the stake being pushed in. | Replaces the "ILLUSTRATION" card with a real picture; the plant is the whole point. | A plant, a soil sensor (dev kit) | Dev sensors exist; no Nilwerk board yet, so say "dev kit" in the caption. |
 | 3 | **PCB close-up** | Dev board or bare module on a ruler, macro, both sides. | Pairs with Emil's pin-map card: the real part next to the datasheet drawing. | Ruler, light | Our own board does not exist yet (layout not started). Shoot the dev kit; never call it "our PCB". |
 | 4 | **3D print** | The Bambu Lab P1S printing a test piece, or the printed battery bay once Yara's bay is printed. A 15 s clip of layers building. | Pairs with Yara's card; the first physical enclosure part. | P1S access, PETG, a sliced file | Nothing printed yet (the model is not printed; no slicer run). Shoot a test print and say so. |
 | 5 | **Screen + hand** | The plant app on a real phone, a thumb tapping through welcome, sign-up, profile. 15 s screen recording is better than a photo. | Pairs with Leo's card: the web screenshots become a phone. | Expo web build opened on a phone | The app is a web build with a stand-in backend; show it as such. |
 | 6 | **The window** | The plant on the sill, the phone next to it, daylight. One still. | The "where this is heading" picture, once a prototype sends one real reading. | A running prototype | Not possible yet; keep the illustration until then. |
-| 7 | **The battery** | The ordered cell, unopened or unplugged, next to a ruler, then in the bay print once both exist. | The "first real part" card (Emil, Wed 11 Nov). | The cell has arrived | Ordered per the open PR text; arrival not known. |
+| 7 | **The battery** | The ordered cell, unopened or unplugged, next to a ruler, then in the bay print once both exist. | The "first real part" card (Emil, Wed 11 Nov). | The cell has arrived | Ordered per Arsany (chat, 8 Nov); arrival not known. |
 | 8 | **Unboxing** (optional) | 10 s clip: opening the parcel with the cell. | Same card, as a Story. | Parcel | Only if it arrives in time. |
 
 ## Where each real shot goes in week 1

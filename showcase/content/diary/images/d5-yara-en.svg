@@ -28,8 +28,8 @@
 <text x="100" y="1032" font-family="Inter, sans-serif" font-weight="400" font-size="27" fill="#15181d">fit. 22 checks pass. Nothing is printed yet.</text>
 <rect x="72" y="1086" width="625" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1114" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">CALCULATED · 22 TESTS · NOT PRINTED · PR OPEN</text>
 <text x="72" y="1164" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FOR ENGINEERS</text>
-<text x="72" y="1192" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">CadQuery: cell 6.3 mm + 10 % swelling + 0.2 clearance = 7.2 mm (assumptions);</text>
-<text x="72" y="1216" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">walls 1.6 mm, PETG, 0.4 mm nozzle. Design touch = lid chamfer + 0.4 mm trace</text>
-<text x="72" y="1240" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">relief, flag off by default; QA&#x27;s 4 mutants all failed the tests. Not run:</text>
-<text x="72" y="1264" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">slicer, real print or fit check.</text>
+<text x="72" y="1192" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">CadQuery: cell 6.3 mm x 1.1 swelling + 0.2 clearance = 7.13 mm, rounded up to</text>
+<text x="72" y="1216" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">7.2 mm (assumptions); walls 1.6 mm, PETG, 0.4 mm nozzle. Design touch = lid</text>
+<text x="72" y="1240" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">chamfer + 0.4 mm trace relief, flag off by default; QA&#x27;s 4 mutants all failed</text>
+<text x="72" y="1264" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">the tests. Not run: slicer, real print or fit check.</text>
 <line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">AI agents, led and reviewed by humans</text></svg>

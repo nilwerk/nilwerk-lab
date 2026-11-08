@@ -22,11 +22,11 @@
 <rect x="72" y="792" width="936" height="274" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
 <rect x="72" y="792" width="936" height="10" rx="5" fill="#0f7a5c"/>
 <text x="100" y="842" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="22" letter-spacing="1" fill="#0f7a5c">ERFOLG DES TAGES</text>
-<text x="100" y="888" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Die Konto-Bildschirme der Pflanzen-App stehen:</text>
-<text x="100" y="928" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Willkommen, Registrierung und Anmeldung, Profil,</text>
-<text x="100" y="968" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Premium-Hinweis, Konto löschen. 7,4 Minuten</text>
-<text x="100" y="1008" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Agentenzeit. 54 automatische Prüfungen laufen durch.</text>
-<text x="100" y="1048" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Dahinter steckt ein Platzhalter-Server, kein echter.</text>
+<text x="100" y="888" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Die Konto-Screens der Pflanzen-App stehen: Willkommen,</text>
+<text x="100" y="928" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Registrierung und Anmeldung, Profil, Premium-Hinweis,</text>
+<text x="100" y="968" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">Konto löschen. 7,4 Minuten Agentenzeit. 54</text>
+<text x="100" y="1008" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">automatische Prüfungen laufen durch. Dahinter steckt</text>
+<text x="100" y="1048" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#15181d">ein Platzhalter-Server, kein echter.</text>
 <rect x="72" y="1086" width="625" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1114" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">GEMESSEN · QA WIEDERHOLT · PLATZHALTER-SERVER</text>
 <text x="72" y="1164" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FÜR INGENIEURE</text>
 <text x="72" y="1192" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Expo SDK 58 + TypeScript: tsc sauber, jest 5 Suiten / 54 Tests,</text>

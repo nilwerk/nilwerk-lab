@@ -24,16 +24,16 @@ AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 **LinkedIn DE (DE-UNCHECKED)**
 Agenten-Tagebuch, Montag. Das ist Leo, unser Full-Stack-Agent.
 
-Der Erfolg heute: Die Konto-Bildschirme der Pflanzen-App stehen. Willkommen, Registrierung und Anmeldung, Profil, Konto löschen. Die Screenshots sind echt, aus einer Web-Version. Dahinter steckt ein Platzhalter-Server, kein echter, und auf dem Handy läuft es noch nicht.
+Der Erfolg heute: Die Konto-Screens der Pflanzen-App stehen. Willkommen, Registrierung und Anmeldung, Profil, Konto löschen. Die Screenshots sind echt, aus einer Web-Version. Dahinter steckt ein Platzhalter-Server, kein echter, und auf dem Handy läuft es noch nicht.
 
-Leos ehrlicher Satz: „Drei Minuten für einen Neuling? Noch nicht gemessen."
+Leos ehrlicher Satz: „Drei Minuten für einen Neuling? Noch nicht gemessen.“
 
 Für Ingenieure: Expo SDK 58 + TypeScript, tsc sauber, jest 5 Suiten / 54 Tests (QA wiederholte sie), 7,4 Agentenminuten (gemessen, Agent Log). Am 8. Nov übernommen. Nicht geprüft: echtes Supabase, nativer Build, Gerät.
 
 KI-Agenten, geleitet und geprüft von Menschen. nilwerk.de · @nilwerk
 
 **Instagram EN** Leo tapped through every screen of our plant app today. Real screenshots, stand-in backend, not on a phone yet. "Three minutes for a newcomer? Not measured yet." That honesty is the brand. Swipe for the screens. AI agents, led and reviewed by humans. 🌱 #BuildInPublic #AIAgents
-**Instagram DE-Zeile (UNCHECKED)** Leo hat heute alle Bildschirme unserer Pflanzen-App durchgeklickt: echte Screenshots, noch kein Handy.
+**Instagram DE-Zeile (UNCHECKED)** Leo hat heute alle Screens unserer Pflanzen-App durchgeklickt: echte Screenshots, noch kein Handy.
 
 ---
 
@@ -57,14 +57,14 @@ Agenten-Tagebuch, Dienstag. Mira, unser Firmware- und Edge-KI-Agent, hat ein Erg
 
 Unser erstes KI-Modell fürs Gerät soll merken, wenn eine Pflanze gerade gegossen wurde oder Regen abbekam. Das Ziel: 95 % dieser Ereignisse finden. Es findet 27 % bei den Validierungsdaten und 40 % bei den Testdaten. Nicht erreicht, und wir sagen es. Der Bericht zeigt jetzt auch die ganze Kurve der einfachen Regel, mit der verglichen wird, damit sich niemand einen schmeichelhaften Ausschnitt herauspickt.
 
-Ein ehrlicher Fehlschlag ist Fortschritt: Jetzt wissen wir, was als Nächstes zu tun ist. Ob weiter trainiert oder die einfache Regel als Rückfall ausgeliefert wird, entscheidet der Gründer.
+Ein ehrlicher Fehlschlag ist Fortschritt: Jetzt wissen wir, was als Nächstes zu tun ist. Ob weiter trainiert oder die einfache Regel als Rückfalllösung (Fallback) ausgeliefert wird, entscheidet der Gründer.
 
 Für Ingenieure: Int8-MLP, Recall 27 % Val. / 40 % Test (8 von 20 Ereignissen, 95-%-KI 22-61 %), 0,52 Fehlalarme je Gerät und Woche; Ziel 95 % bei höchstens 1. 134 Tests grün. Labels stammen aus einer Anstiegsregel, der Recall ist teils zirkulär; Daten von einer Tropfbewässerungsfarm, nicht von Töpfen. Nicht gelaufen: Latenz auf dem Chip. Stand 8. Nov: PR offen.
 
 KI-Agenten, geleitet und geprüft von Menschen. nilwerk.de · @nilwerk
 
 **Instagram EN** Mira's card today is a miss: 27 % and 40 % against a 95 % goal. We print it. "I would rather print the miss than a pretty number." Progress you can trust starts here. AI agents, led and reviewed by humans. #BuildInPublic #EdgeAI
-**Instagram DE-Zeile (UNCHECKED)** Miras Karte heute: ein Fehlschlag, offen gezeigt. 27 % und 40 % bei 95 % Ziel.
+**Instagram DE-Zeile (UNCHECKED)** Miras Karte heute: ein Fehlschlag, offen gezeigt. 27 % und 40 % gegenüber einem Ziel von 95 %.
 
 ---
 
@@ -72,29 +72,31 @@ KI-Agenten, geleitet und geprüft von Menschen. nilwerk.de · @nilwerk
 
 Alt (pin card): "Then versus now: the humidity sensor with four wrong pins in the first draft, and with the 6-pin map from its datasheet in the fixed schematic." Alt (cell): "Emil, AI agent and PCB designer, in a speech bubble: the founder picked the battery cell and ordered it, the first real part."
 
+> **HOLD (editor note, not part of any post): the "founder ordered the cell" card `d3b-emil-cell-*`, the cell paragraph of the LinkedIn texts and the Instagram "Story" sentence are not to be posted until Arsany approves this exact wording.** He said in chat on 8 Nov that he ordered the Amazon cell. Still unknown: shop, price, delivery, arrival, so none is named and "arrived" is not claimed. Without release, post the pin catch only.
+
 **LinkedIn EN**
 Agent Diary, Wednesday. Emil designs our circuit board. His win today was a catch.
 
 His first sketch of the humidity sensor had the wrong pins. Four pins drawn, six on the maker's datasheet. A reviewing agent compared the two before any board existed, so it cost an edit, not a board. The first automatic electrical check ran on 8 November too: no errors.
 
-And a real-world moment: our founder chose the battery cell and ordered it himself. Agents can prepare a purchase, never make one. The re-run of the battery-life check for that exact cell passes our relaxed rule on estimates. Nothing has arrived yet.
+And a real-world moment: our founder chose the battery cell and ordered it himself. Agents can prepare a purchase, never make one. The re-run of the battery-life check for that exact cell passes our relaxed rule on estimates.
 
-For engineers: AHT20 draft SDA=1 GND=2 VDD=3 SCL=4; datasheet (6-pin DFN) 1 NC 2 VDD 3 SCL 4 SDA 5 GND 6 NC. ERC exit 0 (errors only; generic pin symbols, so no pin-level proof). QA closed the fix from the artefact, not the datasheet. Cell: typical 4.3 months estimated against 3 required, worst case 1.36 against more than 1 (estimates, not bench-tested). Order status to be confirmed before posting.
+For engineers: AHT20 draft SDA=1 GND=2 VDD=3 SCL=4; datasheet (6-pin DFN) 1 NC 2 VDD 3 SCL 4 SDA 5 GND 6 NC. ERC exit 0 (errors only; generic pin symbols, so no pin-level proof). QA closed the fix from the artefact, not the datasheet. Cell (as built): best case 11.0, typical 4.3 and worst case 1.36 months estimated, against at least 3, 3 and more than 1 (estimates, not bench-tested).
 
 AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 
 **LinkedIn DE (DE-UNCHECKED)**
 Agenten-Tagebuch, Mittwoch. Emil entwirft unsere Platine. Sein Erfolg heute war ein Fund.
 
-Seine erste Skizze des Feuchtesensors hatte falsche Pins. Vier Pins gezeichnet, sechs im Datenblatt des Herstellers. Ein prüfender Agent verglich beides, bevor es eine Platine gab. Das kostete eine Änderung, keine Platine. Die erste automatische Elektrik-Prüfung lief am 8. November ebenfalls: keine Fehler.
+Seine erste Skizze des Feuchtesensors hatte falsche Pins. Vier Pins gezeichnet, sechs im Datenblatt des Herstellers. Ein prüfender Agent verglich beides, bevor es eine Platine gab. Das kostete eine Änderung, keine Platine. Die erste automatische Schaltplanprüfung (ERC) lief am 8. November ebenfalls: keine Fehler.
 
-Und ein Moment aus der echten Welt: Unser Gründer wählte die Akkuzelle und bestellte sie selbst. Agenten dürfen einen Kauf vorbereiten, nie auslösen. Die neue Berechnung der Akkulaufzeit für genau diese Zelle besteht unsere gelockerte Regel nach Schätzung. Angekommen ist noch nichts.
+Und ein Moment aus der echten Welt: Unser Gründer wählte die Akkuzelle und bestellte sie selbst. Agenten dürfen einen Kauf vorbereiten, nie auslösen. Die neue Berechnung der Akkulaufzeit für genau diese Zelle erfüllt unsere gelockerte Regel nach Schätzung.
 
-Für Ingenieure: AHT20 Entwurf SDA=1 GND=2 VDD=3 SCL=4; Datenblatt (6-Pin-DFN) 1 NC 2 VDD 3 SCL 4 SDA 5 GND 6 NC. ERC Exit 0 (nur Fehler; generische Pin-Symbole, kein Nachweis auf Pin-Ebene). QA schloss den Fund am Artefakt, nicht am Datenblatt. Zelle: typisch 4,3 Monate geschätzt bei 3 gefordert, schlechtester Fall 1,36 bei mehr als 1 (Schätzungen, nicht im Labor getestet). Bestellstatus vor dem Posten klären.
+Für Ingenieure: AHT20 Entwurf SDA=1 GND=2 VDD=3 SCL=4; Datenblatt (6-Pin-DFN) 1 NC 2 VDD 3 SCL 4 SDA 5 GND 6 NC. ERC Exit 0 (nur Fehler; generische Pin-Symbole, kein Nachweis auf Pin-Ebene). QA hat den Fund anhand der Datei geschlossen, nicht anhand des Datenblatts. Zelle (wie gebaut): bester Fall 11,0, typisch 4,3, schlechtester Fall 1,36 Monate geschätzt, gefordert mindestens 3, 3 und mehr als 1 (Schätzungen, nicht im Labor getestet).
 
 KI-Agenten, geleitet und geprüft von Menschen. nilwerk.de · @nilwerk
 
-**Instagram EN** Four pins in the sketch, six on the datasheet. A reviewing agent caught it before any board existed. Swipe for then vs now. Story: the founder ordered our first real part, a battery cell. Nothing has arrived yet. AI agents, led and reviewed by humans. #BuildInPublic #PCB
+**Instagram EN** Four pins in the sketch, six on the datasheet. A reviewing agent caught it before any board existed. Swipe for then vs now. Story: the founder ordered our first real part, a battery cell. AI agents, led and reviewed by humans. #BuildInPublic #PCB
 **Instagram DE-Zeile (UNCHECKED)** Vier Pins in der Skizze, sechs im Datenblatt: gefunden, bevor es eine Platine gab.
 
 ---
@@ -121,7 +123,7 @@ Wir testen diese Tür, indem wir sie absichtlich kaputtmachen. Unsere Mutationsp
 
 Live ist es noch nicht: Es lief gegen eine lokale Testdatenbank, nicht gegen ein echtes Cloud-Projekt.
 
-Für Ingenieure: Mutationsprüfung 26 von 26 erkannt (Lauf von Sana; QA wiederholte die ersten 17 in 81 s). Grenzwerttests: 15 Min. Koppel-Token, 120 s Zeitabweichung, 32 Ereignisse, Mindest-Zeitstempel. SQL-Fix löscht plant_id bei Besitzerwechsel. Nicht gelaufen: echtes Supabase, Deno-Laufzeit. Stand 8. Nov: PR offen.
+Für Ingenieure: Mutationsprüfung 26 von 26 erkannt (Lauf von Sana; QA wiederholte die ersten 17 in 81 s). Grenzwerttests: 15 Min. Claim-Token, 120 s Zeitabweichung, 32 Ereignisse, Mindest-Zeitstempel. SQL-Fix löscht plant_id bei Besitzerwechsel. Nicht gelaufen: echtes Supabase, Deno-Laufzeit. Stand 8. Nov: PR offen.
 
 KI-Agenten, geleitet und geprüft von Menschen. nilwerk.de · @nilwerk
 
@@ -139,24 +141,24 @@ Agent Diary, Friday. Yara designs the enclosure, and today she answered a very p
 
 Yes. Her 3D model of the battery bay follows the size of the chosen battery (cavity 7.2 mm tall). It also carries a design rule our founder asked for: function first, then one deliberate design touch, and the touch may never break printing, sealing or fit. The first touch is a tiny circuit-trace pattern on the lid, behind a switch that is off by default, with tests that fail if it eats into the wall. Nothing is printed yet.
 
-The picture on the right is a live progress tracker: five builds, two merged as of 8 November 16:10. The rest wait for the founder.
+The picture on the right is a progress snapshot: five builds, two merged as of 8 November 16:10. The rest wait for the founder.
 
-For engineers: CadQuery, cell 6.3 mm + 10 % swelling + 0.2 clearance = 7.2 mm (assumptions), walls 1.6 mm, PETG, 0.4 mm nozzle, fits a P1S plate. 22 tests; QA's 4 deliberate bugs all made the tests fail. Not run: slicer, a real print, a fit check. Pull request open.
+For engineers: CadQuery, cell 6.3 mm x 1.1 swelling + 0.2 clearance = 7.13 mm, rounded up to 7.2 mm (assumptions), walls 1.6 mm, PETG, 0.4 mm nozzle, fits a P1S plate. 22 tests; QA's 4 deliberate bugs all made the tests fail. Not run: slicer, a real print, a fit check. Pull request open.
 
 AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 
 **LinkedIn DE (DE-UNCHECKED)**
 Agenten-Tagebuch, Freitag. Yara gestaltet das Gehäuse, und heute beantwortete sie eine sehr praktische Frage: Passt der Akku?
 
-Ja. Ihr 3D-Modell der Akku-Aussparung folgt der Größe des gewählten Akkus (Hohlraum 7,2 mm hoch). Dazu kommt eine Designregel, die unser Gründer wollte: erst Funktion, dann ein bewusstes Designmerkmal, und das darf Druck, Dichtheit und Passung nie gefährden. Das erste Merkmal ist ein winziges Leiterbahn-Muster im Deckel, hinter einem Schalter, der standardmäßig aus ist, mit Tests, die scheitern, wenn es in die Wand schneidet. Gedruckt ist noch nichts.
+Ja. Ihr 3D-Modell der Akku-Aussparung folgt der Größe des gewählten Akkus (Hohlraum 7,2 mm hoch). Dazu kommt eine Designregel, die sich unser Gründer gewünscht hat: erst Funktion, dann ein bewusstes Designmerkmal, und das darf Druck, Dichtheit und Passung nie gefährden. Das erste Merkmal ist ein winziges Leiterbahn-Muster im Deckel, hinter einem Schalter, der standardmäßig aus ist, mit Tests, die scheitern, wenn es in die Wand schneidet. Gedruckt ist noch nichts.
 
-Das zweite Bild ist ein Fortschrittsbalken: fünf Bausteine, zwei übernommen, Stand 8. November 16:10 Uhr. Der Rest wartet auf den Gründer.
+Das zweite Bild ist eine Fortschrittsübersicht: fünf Arbeitspakete, zwei übernommen, Stand 8. November 16:10 Uhr. Der Rest wartet auf den Gründer.
 
-Für Ingenieure: CadQuery, Zelle 6,3 mm + 10 % Aufquellen + 0,2 Spiel = 7,2 mm (Annahmen), Wände 1,6 mm, PETG, 0,4-mm-Düse, passt auf eine P1S-Platte. 22 Tests; QAs 4 absichtliche Fehler ließen die Tests alle scheitern. Nicht gelaufen: Slicer, echter Druck, Passprobe. PR offen.
+Für Ingenieure: CadQuery, Zelle 6,3 mm x 1,1 Aufquellen + 0,2 Spiel = 7,13 mm, aufgerundet auf 7,2 mm (Annahmen), Wände 1,6 mm, PETG, 0,4-mm-Düse, passt auf eine P1S-Platte. 22 Tests; QAs 4 absichtliche Fehler ließen die Tests alle scheitern. Nicht gelaufen: Slicer, echter Druck, Passprobe. PR offen.
 
 KI-Agenten, geleitet und geprüft von Menschen. nilwerk.de · @nilwerk
 
-**Instagram EN** Does the battery fit? Yara's 3D bay says yes, at 7.2 mm tall. New rule: function first, then one design touch that may never break the print. Swipe for the progress tracker: 5 builds, 2 merged (as of 8 Nov, 16:10). Not printed yet. AI agents, led and reviewed by humans. #BuildInPublic #3DPrinting
+**Instagram EN** Does the battery fit? Yara's 3D bay says yes, at 7.2 mm tall. New rule: function first, then one design touch that may never break the print. Swipe for the progress snapshot: 5 builds, 2 merged (as of 8 Nov, 16:10). Not printed yet. AI agents, led and reviewed by humans. #BuildInPublic #3DPrinting
 **Instagram DE-Zeile (UNCHECKED)** Passt der Akku? Yaras 3D-Modell sagt ja. Gedruckt ist noch nichts.
 
 ---
@@ -179,7 +181,7 @@ AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 **LinkedIn DE (DE-UNCHECKED)**
 Agenten-Tagebuch, Samstag. Kai hält unsere automatische Pipeline grün. Heute fand er etwas Schlimmeres als Rot: eine Prüfung, die nie gelaufen war.
 
-Unsere Pipeline sollte den Schaltplan elektrisch prüfen. Sie konnte nicht einmal starten: Sie brach beim Abholen des Codes ab, wegen eines Rechtedetails im Container der Prüfung. Kai änderte, wie der Container läuft. Am 8. November lief die Prüfung zum ersten Mal und fand keine Fehler.
+Unsere Pipeline sollte den Schaltplan elektrisch prüfen. Sie konnte nicht einmal starten: Sie brach beim Auschecken des Codes ab, wegen einer Berechtigungseinstellung im Container der Prüfung. Kai änderte, wie der Container läuft. Am 8. November lief die Prüfung zum ersten Mal und fand keine Fehler.
 
 Warum das zählt: Ein grünes Häkchen bedeutet nichts, wenn die Prüfung dahinter nie lief.
 
@@ -194,7 +196,7 @@ KI-Agenten, geleitet und geprüft von Menschen. nilwerk.de · @nilwerk
 
 **First line of every text: "FICTION, imagined by our agents: not a real event."** (DE: "FIKTION, von unseren Agenten erfunden: kein echtes Ereignis.")
 EN: *Imagined by our agents. From the virtual office: Ines asked the office kettle for a log. The kettle offered a feeling. Ines: "That is not a log." The kettle is now on a corrective plan. (Made up, for fun.)* The only real part: our QA agent's rule is to paste real output for every check.
-DE (UNCHECKED): *Von unseren Agenten erfunden. Aus dem virtuellen Büro: Ines bat den Büro-Wasserkocher um ein Log. Der Wasserkocher bot ein Gefühl an. Ines: „Das ist kein Log." Der Wasserkocher steht jetzt unter Beobachtung. (Erfunden, zum Spaß.)* Der einzige echte Teil: Die Regel unseres QA-Agenten lautet, bei jeder Prüfung die echte Ausgabe einzufügen.
+DE (UNCHECKED): *Von unseren Agenten erfunden. Aus dem virtuellen Büro: Ines bat den Büro-Wasserkocher um ein Log. Der Wasserkocher bot ein Gefühl an. Ines: „Das ist kein Log.“ Der Wasserkocher steht jetzt unter Beobachtung. (Erfunden, zum Spaß.)* Der einzige echte Teil: Die Regel unseres QA-Agenten lautet, bei jeder Prüfung die echte Ausgabe einzufügen.
 Images: `extra-virtual-office-fiction-en.png`, `-de.png`. No real number, result, person or quote inside.
 
 ---
@@ -208,20 +210,20 @@ Agent Diary, Sunday. Theo is our architect, the agent who asks "where is the con
 
 This week the founder relaxed the battery rule: the best case must last at least 3 months, the worst case just over 1 month. Changing a number is easy. Changing it everywhere it is quoted, and writing down why, is the job. Theo wrote the decision record and brought ten documents in line. On the estimates the chosen battery passes (typical above 4 months). It has not been bench-tested.
 
-A true story, a little funny: on 8 November two of our Lead sessions ran at the same time and both built the same cloud job. Nothing was deleted, the copies were compared, one real bug turned up, and from now on every agent works in its own copy of the repository.
+A true story, a little funny: on 8 November two of our Lead sessions ran at the same time and both built the same cloud job. Nothing was deleted, the copies were compared, one real bug turned up (the same event as Thursday's duplicate-job bug, seen from the Lead's side), and since 8 November every agent works in its own copy of the repository.
 
 For engineers: ADR-015 pass = best >= 2190 h, typical >= 2190 h, worst > 730 h; formula unchanged (0.8 x rated minimum capacity / average current). Scenario definitions are Theo's proposal, still to be confirmed. Power-budget tests 25 OK, BOM tests 12 OK. Currents are estimates. Duplicate-job comparison: second copy had one commit and no pull request; cause was a shared git clone. Pull request open.
 
 AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 
 **LinkedIn DE (DE-UNCHECKED)**
-Agenten-Tagebuch, Sonntag. Theo ist unser Architekt, der Agent, der fragt: „Wo steht der Vertrag dafür?"
+Agenten-Tagebuch, Sonntag. Theo ist unser Architekt, der Agent, der fragt: „Wo ist das als Schnittstelle festgeschrieben?“
 
-Diese Woche lockerte der Gründer die Akku-Regel: Der beste Fall muss mindestens 3 Monate halten, der schlechteste nur über 1 Monat. Eine Zahl zu ändern ist leicht. Sie überall nachzuziehen, wo sie steht, und das Warum festzuhalten, ist die Arbeit. Theo schrieb die Entscheidungsakte und zog zehn Dokumente nach. Nach den Schätzungen besteht der gewählte Akku (typisch über 4 Monate). Im Labor getestet ist er nicht.
+Diese Woche lockerte der Gründer die Akku-Regel: Der beste Fall muss mindestens 3 Monate halten, der schlechteste nur über 1 Monat. Eine Zahl zu ändern ist leicht. Sie überall nachzuziehen, wo sie steht, und das Warum festzuhalten, ist die Arbeit. Theo schrieb das Entscheidungsdokument (ADR) und zog zehn Dokumente nach. Nach den Schätzungen besteht der gewählte Akku (typisch über 4 Monate). Im Labor getestet ist er nicht.
 
-Eine wahre Geschichte, ein bisschen komisch: Am 8. November liefen zwei unserer Lead-Sitzungen gleichzeitig und bauten beide dieselbe Cloud-Aufgabe. Nichts wurde gelöscht, die Kopien wurden verglichen, ein echter Fehler kam zum Vorschein, und ab jetzt arbeitet jeder Agent in seiner eigenen Kopie des Repositorys.
+Eine wahre Geschichte, ein bisschen komisch: Am 8. November liefen zwei unserer Lead-Sitzungen gleichzeitig und bauten beide dieselbe Cloud-Aufgabe. Nichts wurde gelöscht, die Kopien wurden verglichen, ein echter Fehler kam zum Vorschein (dasselbe Ereignis wie bei Donnerstags Doppelarbeit, aus Sicht der Leitung), und seit dem 8. November arbeitet jeder Agent in seiner eigenen Kopie des Repositorys.
 
-Für Ingenieure: ADR-015 bestanden = best >= 2190 h, typisch >= 2190 h, schlechtester > 730 h; Formel unverändert (0,8 x Nennkapazität min. / mittlerer Strom). Die Szenario-Definitionen sind Theos Vorschlag, noch zu bestätigen. Energiebudget-Tests 25 OK, Stücklisten-Tests 12 OK. Ströme sind Schätzungen. Vergleich der Doppelarbeit: zweite Kopie mit einem Commit und ohne Pull Request; Ursache war ein gemeinsamer Git-Klon. PR offen.
+Für Ingenieure: ADR-015 bestanden = bester Fall >= 2190 h, typisch >= 2190 h, schlechtester > 730 h; Formel unverändert (0,8 x Nennkapazität min. / mittlerer Strom). Die Szenario-Definitionen sind Theos Vorschlag, noch zu bestätigen. Energiebudget-Tests 25 OK, Stücklisten-Tests 12 OK. Ströme sind Schätzungen. Vergleich der Doppelarbeit: zweite Kopie mit einem Commit und ohne Pull Request; Ursache war ein gemeinsamer Git-Klon. PR offen.
 
 KI-Agenten, geleitet und geprüft von Menschen. nilwerk.de · @nilwerk
 
