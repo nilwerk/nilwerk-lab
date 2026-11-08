@@ -43,7 +43,8 @@ begin
     insert into public.devices(hw_id, owner_id, name, claimed_at, fw_version)
       values (p_hw_id, ct.user_id, p_name, now(), p_fw) returning * into d;
   else
-    update public.devices set owner_id = ct.user_id, claimed_at = now(), name = coalesce(p_name, name), fw_version = p_fw
+    update public.devices set owner_id = ct.user_id, claimed_at = now(), name = coalesce(p_name, name), fw_version = p_fw,
+           plant_id = case when d.owner_id = ct.user_id then plant_id else null end   -- a new owner never inherits the old plant link
       where id = d.id returning * into d;
   end if;
   insert into public.device_credentials(device_id, token_hash) values (d.id, decode(p_token_hash, 'hex'))

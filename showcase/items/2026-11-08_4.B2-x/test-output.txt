@@ -1,0 +1,30 @@
+ rollup_readings 
+-----------------
+             144
+(1 row)
+
+✔ NFR-06: sha256Hex is the real SHA-256 (known vector) and never the identity (6.135311ms)
+✔ FR-D04: validateReport agrees with device-report.schema.json fixtures (valid accepted, invalid rejected, 193 samples -> 413) (2.716763ms)
+✔ NFR-06: handlers send only SHA-256 digests to the database, never plaintext tokens; 401/405 shortcuts (40.542123ms)
+✔ FR-D03, FR-A03, NFR-06: claim token -> device token, hash only stored, single use (339.979863ms)
+✔ FR-D03: expired and unknown claim tokens are refused; hw_id of another user -> 409 and token stays usable (273.988646ms)
+✔ FR-A02: unlimited devices per user (7+ devices for one user), but at most 10 open claim tokens (1007.457311ms)
+✔ FR-D04, FR-D02: 96 buffered samples in one batch are stored; replay is idempotent on (device, ts) (310.057856ms)
+✔ FR-D01: out-of-range samples are stored with plausible=false, not rejected; ts is shifted when the device clock is off (139.88391ms)
+✔ FR-E03, FR-A07: events stored idempotently; critical ones set critical=true and raise an alert; hourly config/forecast/cal update the device (231.164589ms)
+✔ NFR-06: device A's token cannot write device B; the body cannot name a device; B's rows are untouched (306.196875ms)
+✔ NFR-06: unknown, malformed, revoked and released tokens get 401 and write nothing (323.735327ms)
+✔ FR-D03, FR-A08: re-claiming by the same user rotates the token (old one dies); a released device can be claimed by another user (491.803613ms)
+✔ NFR-06, RLS: API roles cannot call the functions or read credentials/claim tokens (409.813926ms)
+✔ FR-D03: a claim token lives 15 minutes (not 14, not 150) (100.868302ms)
+✔ device-report.schema.json: sent_at skew tolerance is exactly 120 s (ts shifted only beyond it) (449.401947ms)
+✔ FR-D04, FR-E03: events are capped at 32 per report, samples/events/sent_at need ts >= 1700000000 (0.895712ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4592.485267
+ALL CLOUD TESTS PASSED

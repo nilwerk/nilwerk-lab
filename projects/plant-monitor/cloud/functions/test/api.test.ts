@@ -207,11 +207,14 @@ test("FR-D03, FR-A08: re-claiming by the same user rotates the token (old one di
   assert.equal((await ingest(tokA, report(samples(1, T0 + 950000)))).body.error, "token_invalid", "old token replaced");
   tokA = re.body.device_token;
   assert.equal((await ingest(tokA, report(samples(1, T0 + 950000)))).status, 200);
-  q(`update public.devices set owner_id = null, plant_id = null where id = :'d'`, { d: devA });
+  // release (FR-A08): owner cleared, plant link deliberately LEFT in place; the next claim by another user must drop it
+  const plantA = q(`insert into public.plants(owner_id,name,location_type,soil_type) values (:'u','P','house','potting') returning id`, { u: A }).split("\n")[0];
+  q(`update public.devices set owner_id = null, plant_id = :'p' where id = :'d'`, { d: devA, p: plantA });
   q(`update public.device_credentials set revoked_at = now() where device_id = :'d'`, { d: devA });
   const moved = await claim("jwt-b", "nw-aaaaaaaaaaaa");
   assert.equal(moved.status, 200);
   assert.equal(q(`select owner_id from public.devices where id = :'d'`, { d: devA }), B);
+  assert.equal(q(`select plant_id is null from public.devices where id = :'d'`, { d: devA }), "t", "new owner does not inherit the previous owner's plant");
   assert.equal((await ingest(tokA, report(samples(1, T0 + 960000)))).body.error, "token_invalid", "previous owner's token is dead");
   assert.equal((await ingest(moved.body.device_token, report(samples(1, T0 + 960000)))).status, 200);
   assert.equal(q(`select count(distinct owner_id) from public.readings where device_id = :'d'`, { d: devA }), "2", "history stays with the owner at recording time (FR-A08)");
@@ -231,4 +234,47 @@ test("NFR-06, RLS: API roles cannot call the functions or read credentials/claim
   }
   assert.ok(Number(q(`select count(*) from public.device_credentials`)) >= 2, "rows exist for the superuser");
   assert.ok(psql(url!, `set role service_role; select public.device_config('${devB}')`).ok, "service_role may call them");
+});
+
+// ---------------------------------------------------------------- boundary tests (QA gaps from the PR #45 review)
+test("FR-D03: a claim token lives 15 minutes (not 14, not 150)", db, async () => {
+  const ct = await claimToken("jwt-a");
+  const secs = Number(q(`select extract(epoch from expires_at - now())::int from public.claim_tokens where encode(token_hash,'hex') = :'h'`, { h: await sha256Hex(ct.body.claim_token) }));
+  assert.ok(secs >= 15 * 60 - 5 && secs <= 15 * 60, `lifetime ${secs} s, expected 900 s`);
+  const api = (Date.parse(ct.body.expires_at) - Date.now()) / 1000;
+  assert.ok(api > 15 * 60 - 10 && api <= 15 * 60 + 1, `expires_at in the response is ${api} s ahead`);
+  q(`delete from public.claim_tokens where user_id = :'u' and used_at is null`, { u: A });
+});
+
+test("device-report.schema.json: sent_at skew tolerance is exactly 120 s (ts shifted only beyond it)", db, async () => {
+  const recv = T0 + 5_000_000;   // fixed server receive time, passed explicitly so the boundary is exact
+  const dev = await claim("jwt-a", "nw-5ce000000001");   // fresh device: tokA/devA were released and re-claimed by earlier tests
+  const hash = await sha256Hex(dev.body.device_token);
+  const ts = (k: number) => T0 + 6_000_000 + k;
+  const run = (k: number, skew: number) => {
+    const rep = { v: 1, sent_at: recv - skew, trigger: "scheduled", fw: "0.1.0", samples: [{ ts: ts(k), moisture_pct: 40 }] };
+    q(`select public.ingest_batch(:'h', :'r'::jsonb, to_timestamp(:'t'))`, { h: hash, r: JSON.stringify(rep), t: String(recv) });
+    return Number(q(`select count(*) from public.readings where device_id = :'d' and ts = to_timestamp(:'t')`, { d: dev.body.device_id, t: String(ts(k) + (Math.abs(skew) <= 120 ? 0 : skew)) }));
+  };
+  assert.equal(run(1, 120), 1, "device 120 s behind: not shifted");
+  assert.equal(run(2, -120), 1, "device 120 s ahead: not shifted");
+  assert.equal(run(3, 121), 1, "device 121 s behind: shifted by +121 s");
+  assert.equal(run(4, -121), 1, "device 121 s ahead: shifted by -121 s");
+  // the unshifted rows really are at the original ts, the shifted ones are not
+  assert.equal(Number(q(`select count(*) from public.readings where device_id = :'d' and ts in (to_timestamp(:'a'), to_timestamp(:'b'))`, { d: dev.body.device_id, a: String(ts(3)), b: String(ts(4)) })), 0);
+});
+
+test("FR-D04, FR-E03: events are capped at 32 per report, samples/events/sent_at need ts >= 1700000000", () => {
+  const valid = JSON.parse(readFileSync(join(fx, "device-report.valid.json"), "utf8"));
+  const evs = (n: number) => Array.from({ length: n }, (_, i) => ({ ts: T0 - 60 * i, type: "wetting" }));
+  assert.equal(validateReport({ ...valid, events: evs(32) }), null, "32 events accepted");
+  assert.equal(validateReport({ ...valid, events: evs(33) })?.status, 400, "33 events rejected");
+  assert.equal(validateReport({ ...valid, events: evs(31) }), null);
+  const MIN = 1700000000;
+  assert.equal(validateReport({ ...valid, sent_at: MIN }), null, "sent_at = MIN_TS accepted");
+  assert.equal(validateReport({ ...valid, sent_at: MIN - 1 })?.status, 400, "sent_at = MIN_TS - 1 rejected");
+  assert.equal(validateReport({ ...valid, samples: [{ ts: MIN }] }), null, "sample ts = MIN_TS accepted");
+  assert.equal(validateReport({ ...valid, samples: [{ ts: MIN - 1 }] })?.status, 400, "sample ts = MIN_TS - 1 rejected");
+  assert.equal(validateReport({ ...valid, events: [{ ts: MIN, type: "wetting" }] }), null, "event ts = MIN_TS accepted");
+  assert.equal(validateReport({ ...valid, events: [{ ts: MIN - 1, type: "wetting" }] })?.status, 400, "event ts = MIN_TS - 1 rejected");
 });

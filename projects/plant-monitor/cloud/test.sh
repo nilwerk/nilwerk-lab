@@ -4,7 +4,7 @@
 #   - default: starts a throw-away local cluster in a temp dir, stops and deletes it at the end
 #   - DATABASE_URL=postgres://user:pw@host:port/postgres (superuser): uses that server, creates/drops nw_test_* databases
 # Exit code != 0 on any failure. Output ends with "ALL CLOUD TESTS PASSED".
-# NW_ONLY=api runs only the edge-function stage (used by test/mutation.sh).
+# NW_ONLY=api runs only the edge-function stage (used by test/mutation.sh); NW_SKIP_OPENAPI=1 also skips the OpenAPI check (mutation.sh only).
 set -euo pipefail
 cd "$(dirname "$0")"
 HERE="$PWD"
@@ -73,7 +73,7 @@ fi
 
 # --- 5a. OpenAPI == code (needs python3 + PyYAML)
 echo "== OpenAPI matches the edge functions (test/openapi_check.py)"
-python3 test/openapi_check.py || { echo "FAIL: openapi_check.py"; exit 1; }
+if [ -z "${NW_SKIP_OPENAPI:-}" ]; then python3 test/openapi_check.py || { echo "FAIL: openapi_check.py"; exit 1; }; else echo "skipped (NW_SKIP_OPENAPI set by test/mutation.sh so the TypeScript tests are what kills the mutant)"; fi
 
 # --- 5. edge functions 4.B2 (TypeScript handlers against the migrated DB; token hashing, claim, ingest idempotency, token isolation)
 echo "== edge functions (functions/test/api.test.ts) against local Postgres"
