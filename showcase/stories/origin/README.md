@@ -10,7 +10,7 @@ facts and no others. Interactive version: the "How Nilwerk Started" artifact pag
 - **Tue 3 Nov (first working day)** — Nora plans sprint 1 at 07:30; 4 PRs; Theo reviews all, Ines tests, Kai pipeline. Summary with
   questions for Arsany: about 1 h of his time (his statement).
 - **Tue 3 Nov** — Arsany orders the first dev kits after checking the list himself (daily reports 3 and 4 Nov; the earlier canon said Wed 4 Nov).
-- **Wed 4 Nov (second working day)** — a junior engineer in Egypt joins as hardware integrator (no human names in public posts yet — Arsany, 2026-11-05).
+- **Wed 4 Nov (second working day)** — a junior hardware integrator (a human, working from abroad) joins (no human names in public posts yet — Arsany, 2026-11-05).
 - **Thu 5 Nov (third working day)** — app wireframes (PR #19). Poppy hired the same evening.
 - **Numbers (3 days):** 15 PRs (8 merged), 99.2 agent-minutes; agents' own human estimates 144.5 h (an estimate, label it).
 

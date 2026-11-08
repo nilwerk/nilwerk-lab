@@ -1,6 +1,6 @@
 # Interface note: battery bay, PCB outline and enclosure v3
 
-Author: Emil (PCB Designer) · Date: 2026-11-06 · Status: **input note** for the PCB outline (4.P2) and enclosure v3 (4.E3, Yara) · Source: Arsany's answer to A-020
+Author: Emil (PCB Designer) · Date: 2026-11-06 · Updated: 2026-11-08 (cell decided) · Status: **input note** for the PCB outline (4.P2) and enclosure v3 (4.E3, Yara) · Source: Arsany's answer to A-020
 
 ## Battery cell (A-020)
 
@@ -23,7 +23,22 @@ Single source: `mechanical/params.py` (inputs and allowances) and `mechanical/ba
 
 | Cell | Usable cavity | Bay module outer (tray + lid, bay only) |
 |---|---|---|
-| EEMB 603449 (A-020) | 53.0 x 35.1 x 7.2 | 56.2 x 38.3 x 10.4 |
-| Jauch LP603443JU (A-034) | 47.0 x 35.1 x 7.4 | 50.2 x 38.3 x 10.6 |
+| **EEMB LP603449-PCM (A-020, A-034: selected, ordered)** | 53.0 x 35.1 x 7.2 | 56.2 x 38.3 x 10.4 |
+| Jauch LP603443JU (not selected, study only) | 47.0 x 35.1 x 7.4 | 50.2 x 38.3 x 10.6 |
 
 Board, USB-C, seal and lid retention are not included (wait for the PCB outline). Values change only through `params.py`; do not copy them elsewhere.
+
+## Update 2026-11-08: the cell is decided (A-034), dimensions for Yara
+
+Arsany buys the **EEMB LP603449-PCM, Amazon.de ASIN B08FD39Y5R** (listing read 2026-11-08, details and unverified items in `hardware/bom/cell-decision-A034.md`). It is the same 603449-class cell the A-020 bay was drawn for; **the bay envelope does not change.**
+
+| Item | Value | Status |
+|---|---|---|
+| Cell (nominal) L x W x H | **51 x 34.5 x 6.3 mm** | Amazon listing bullet; the listing's structured field says 34 x 51 x 6 mm; EEMB's datasheet (read 2026-11-07) says <= 50 x 34.5 x 6.3 mm |
+| Tolerance, swelling | not stated | **unverified**. Yara adds her own allowance (a LiPo swells with age; one reviewer wrote his unit did not fit "as stated"); Arsany can measure the first real cell. I set no number |
+| Mass | about 22 g | listing |
+| Capacity | 1100 mAh typical / 1000 mAh minimum, 3.7 V | listing bullet |
+| Protection | PCM board built in (on the cell, size and position not stated) | listing; the PCM sits at one end of the cell and its wires leave there: **unverified, check the first cell** |
+| Connector and wires | JST plug (pitch unverified, PH 2.0 mm assumed), 2 wires assumed, **length not stated** | unverified: needs Arsany's read of photo 3. The PCB side is J2 JST PH 2-pin SMD (S2B-PH-SM4-TB, right angle, about 6 x 4.5 mm footprint plus the mating housing) |
+
+What Yara needs to plan: a bay of at least 51 x 34.5 x 6.3 mm plus her own tolerance, swelling and wire-routing clearance (the plug end needs room for the wires to bend, length unknown until the cell arrives), the cell sitting beside or under the PCB (4.P2 decides the outline; any outline change is announced to the Lead the same day), and a polarity warning on the assembly drawing (check the plug polarity with a meter before connecting).

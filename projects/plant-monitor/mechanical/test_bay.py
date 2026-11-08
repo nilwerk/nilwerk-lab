@@ -139,7 +139,7 @@ def test_design_touch_printable_and_seal_safe(k):
     d, plain, m = bay.dims(k), mesh(bay.lid(k, design=False)), mesh(bay.lid(k, design=True))
     assert m.is_watertight and m.volume < plain.volume                       # material only removed
     assert m.extents == pytest.approx(plain.extents, abs=1e-3)               # same outer size (bay numbers untouched)
-    assert P.RELIEF_DEPTH >= 0.4 and P.RELIEF_W >= 0.8 and P.RELIEF_DEPTH <= P.LID / 2   # feature rule, >= 0.8 mm skin left
+    assert P.RELIEF_DEPTH >= 0.4 and P.RELIEF_W >= 0.8 and P.LID - P.RELIEF_DEPTH >= P.MIN_WALL_RULE   # feature rule, skin left >= 1.2 mm wall floor
     down = m.face_normals[:, 2] < -0.5
     assert np.all(np.abs(m.triangles_center[down][:, 2]) < 1e-3)             # still no overhang: no supports
     # trace stays >= 3 mm inside the lid outline
@@ -147,7 +147,13 @@ def test_design_touch_printable_and_seal_safe(k):
         assert abs(x) <= d["out_l"] / 2 - 3.0 and abs(y) <= d["out_w"] / 2 - 3.0
 
 
-def test_design_touch_leaves_tray_and_cavity_unchanged():
-    k = KEYS[1]
-    assert mesh(bay.tray(k)).volume == pytest.approx(mesh(bay.tray(k)).volume)
-    assert bay.dims(k)["out_h"] == pytest.approx(10.6) and bay.dims(k)["bay_h"] == pytest.approx(7.4)
+@pytest.mark.parametrize("k", KEYS)
+def test_design_touch_flag_leaves_tray_and_dims_unchanged(k, monkeypatch):
+    """Flag off vs on: tray mesh, bay dims must be identical; only the lid may change."""
+    off_dims, off_tray = bay.dims(k), mesh(bay.tray(k))
+    off_lid = mesh(bay.lid(k))
+    monkeypatch.setattr(P, "DESIGN_TOUCH", True)
+    on_tray, on_lid = mesh(bay.tray(k)), mesh(bay.lid(k))
+    assert bay.dims(k) == off_dims
+    assert on_tray.volume == pytest.approx(off_tray.volume) and on_tray.extents == pytest.approx(off_tray.extents)
+    assert on_lid.volume < off_lid.volume          # the flag really switches the lid (test can fail)

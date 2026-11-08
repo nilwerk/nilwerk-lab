@@ -106,7 +106,8 @@ class Rule(unittest.TestCase):
         self.assertAlmostEqual(pb.derated_hours(t, pb.CELL_RATED_MIN_MAH), hours, places=6)
         self.assertGreaterEqual(hours, pb.NFR01_HOURS)                       # typical passes 3 months
         self.assertAlmostEqual(hours / pb.HOURS_PER_MONTH, 4.5, delta=0.05)
-        self.assertLess(pb.derated_hours(pb.WORST, 1000), pb.NFR01_HOURS)    # stress bound fails
+        self.assertLess(pb.derated_hours(pb.WORST, 1000), pb.NFR01_HOURS)    # below 3 months, but the worst case only needs > 1 month
+        self.assertTrue(pb.nfr01_pass("worst", pb.derated_hours(pb.WORST, 1000)))   # relaxed NFR-01 (Arsany 2026-11-08): 1.4 > 1
         self.assertGreaterEqual(pb.derated_hours(pb.BEST, 1000), pb.NFR01_HOURS)
         p = pb.with_(t, self_discharge_pct_month=50.0)                       # absurd value must not change the rule
         self.assertAlmostEqual(pb.derated_hours(p, 1000), pb.derated_hours(t, 1000))
@@ -132,6 +133,40 @@ class Rule(unittest.TestCase):
         self.assertTrue(t <= pb.BAY_MM[2] and w <= pb.BAY_MM[1] and l <= pb.BAY_MM[0])
         t, w, l = pb.CELLS[jauch_big][2]
         self.assertGreater(t, pb.BAY_MM[2])
+
+    def test_relaxed_nfr01_rule(self):
+        """Arsany 2026-11-08 (A-034 answer): best and typical >= 3 months, worst > 1 month (strictly)."""
+        self.assertEqual((pb.NFR01_MONTHS, pb.NFR01_WORST_MONTHS), (3.0, 1.0))
+        self.assertEqual(pb.NFR01_WORST_HOURS, 730.0)
+        self.assertTrue(pb.nfr01_pass("best", 2190.0))
+        self.assertFalse(pb.nfr01_pass("best", 2189.9))
+        self.assertFalse(pb.nfr01_pass("typical", 2000.0))
+        self.assertTrue(pb.nfr01_pass("worst", 730.1))
+        self.assertFalse(pb.nfr01_pass("worst", 730.0))                      # exactly 1 month is NOT 'more than 1 month'
+
+    def test_as_built_sleep_matches_pinmap_after_a045(self):
+        """A-045 Option A: permanent divider 2 MOhm at 4.2 V = 2.1 uA; sums equal pcb/pinmap-sleep.md (21.6 typ, 39.6 worst)."""
+        self.assertAlmostEqual(pb.sleep_current_ua(pb.AS_BUILT["typical"]), 21.61, delta=0.02)
+        self.assertAlmostEqual(pb.sleep_current_ua(pb.AS_BUILT["worst"]), 39.6, delta=0.05)
+        self.assertAlmostEqual(4.2 / pb.AS_BUILT["typical"].r_divider_mohm, 2.1)
+        self.assertLess(pb.sleep_current_ua(pb.AS_BUILT["typical"]), 25.0)       # NFR-12 design target
+        self.assertLess(pb.sleep_current_ua(pb.AS_BUILT["worst"]), 50.0)         # NFR-12 limit
+
+    def test_decided_cell_passes_relaxed_nfr01_in_every_scenario(self):
+        """A-034: EEMB LP603449-PCM (Amazon B08FD39Y5R), 1000 mAh minimum."""
+        self.assertIn("EEMB LP603449-PCM", pb.CELL_DECIDED)
+        self.assertEqual(pb.CELLS[pb.CELL_DECIDED][:2], (1100.0, 1000.0))
+        for sc in (pb.SCENARIOS, pb.AS_BUILT):
+            v = pb.nfr01_verdict(1000.0, sc)
+            self.assertTrue(all(ok for _m, ok in v.values()), v)
+        v = pb.nfr01_verdict(1000.0, pb.AS_BUILT)
+        self.assertAlmostEqual(v["best"][0], 11.05, delta=0.05)
+        self.assertAlmostEqual(v["typical"][0], 4.34, delta=0.03)
+        self.assertAlmostEqual(v["worst"][0], 1.36, delta=0.02)
+        # the Jauch LP503030JU still fails typical and worst even under the relaxed rule
+        small = pb.nfr01_verdict(430.0, pb.AS_BUILT)
+        self.assertFalse(small["typical"][1])
+        self.assertFalse(small["worst"][1])
 
     def test_nfr12_limit_is_derived(self):
         lim = pb.max_sleep_current_ua(pb.TYPICAL, 1000)

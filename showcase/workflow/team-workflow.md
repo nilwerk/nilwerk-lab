@@ -50,9 +50,14 @@ flowchart LR
   R --> M
 ```
 
+## Seven days, parallel builders (as run on 8 Nov 2026)
+
+The team works seven days a week. On Sunday 8 Nov five builders ran in parallel, each for roughly 6 to 16 minutes of agent time (measured), and every result then went through an architect review and a QA test before any human merge. Review comments are first-class output: on that day they caught a wrong pin map, a wrong number in a caption and a misleading baseline comparison (PRs #41, #44, #46, status as of 8 Nov: open, waiting for a human).
+
 ## What makes it trustworthy
 
 - **Nothing is "done" without evidence:** architecture approval, QA pass, green pipeline, and a human merge.
 - **Every agent measures its time** for every task, so estimates for customers are based on real data.
 - **The team learns:** after each sprint every agent turns its lessons into rules in its own playbook.
+- **Honest negatives are published:** a missed target (the first edge-AI model) and a check that has not run yet (circuit ERC) are reported as such, never hidden.
 - **Humans stay in charge** of money, orders, sign-offs and anything that leaves the company.

@@ -2,7 +2,7 @@
 
 Author: Yara (3D Product Designer) · 2026-11-08 · Scope: battery bay only. Board outline, USB-C cut-out, light window, vents, seal and stake wait for 4.P1 (no PCB outline yet).
 
-## Verdict for Arsany (3 lines)
+## Verdict for Arsany (3 lines) - superseded: baseline is now the EEMB 603449 bay; Jauch = not selected (study)
 1. **Geometry: yes, the Jauch LP603443JU fits.** The Jauch cell is not bigger: it is 6 mm shorter, 0.2 mm thicker (6.5 vs 6.3 mm) and smaller in volume (10.1 vs 11.1 cm3 envelope). The real change is the bay cavity height, **7.2 mm (EEMB) to 7.4 mm (Jauch)** (6.5 mm cell + 10 % swelling + 0.2 mm clearance, snapped to whole 0.2 mm layers): the module gets only **+0.2 mm taller** (10.4 to 10.6 mm), the same width and **6 mm shorter** (56.2 to 50.2 mm) than the EEMB bay. Usable cavity values for Emil (4.P2): see [pcb-enclosure-bay.md](../docs/interfaces/pcb-enclosure-bay.md).
 2. **Printability is the same for both:** 1.6 mm walls, floor and lid (rule >= 1.2 mm), PETG, 0.4 mm nozzle, no supports, both parts fit the P1S by a wide margin.
 3. **Open, not geometry:** the 6.5 mm is the DigiKey figure (Jauch's list says 6.0 mm bare cell: ask Jauch for the pack drawing before the bay is frozen); swelling 10 % and 0.3 mm per side are my assumptions; IEC 62133 = NO on this cell is your call (A-034 note), I do not assess it.
@@ -10,13 +10,13 @@ Author: Yara (3D Product Designer) · 2026-11-08 · Scope: battery bay only. Boa
 ## Design intent (added 2026-11-08, Arsany on PR #44: functional and practical, plus a touch of design that fits the product)
 **Target environment.** Plant Monitor is a small sensor stake for plant pots, balcony and indoor plants: soil stake, UV and splash exposure, a light window that must see the sky, seen daily on a windowsill or balcony rail. So: function first (splash-proof, light window, electronics above the soil, PETG black/grey/white only, 0.4 mm nozzle, P1S, no supports), then one deliberate design touch that belongs there.
 **Concept (sketch level, not a verified design).** Calm matte grey/black body with softened edges so it looks at home among plants and does not read as a lab gadget, and one signature detail: the nilwerk PCB-trace motif engraved shallowly into the lid (a straight run, a 45 degree bend, ending in a pad ring, the same language as the logo). Optional later: a leaf-like softened profile line on the stake head and a white/grey colour split via AMS (brand paper `#f6f4ef`, ink `#15181d`, accent green `#0f7a5c` are inspiration only, the phase is black/grey/white PETG).
-**Parameters (all in `params.py`, flag `DESIGN_TOUCH`, default off).** `EDGE_CHAMFER` 0.6 mm lid top edge; `RELIEF_DEPTH` 0.4 mm (>= 0.4 mm feature rule, 0.8 mm skin left in a 1.6 mm lid); `RELIEF_W` 0.8 mm (2 lines); `RELIEF_PAD_D` 3.0 mm; trace geometry from the lid size in `bay.trace_path()`.
-**Implemented (cheap slice):** `bay.lid(key, design=True)` / `bay.design_touch()`: chamfer + engraved trace on the lid top; render `renders/B_jauch603443_lid_design_touch.png` (3D view + exact plan cut). Tests (4 new, 21 total): off by default, watertight, same outer size, material only removed, no overhang, trace >= 3 mm inside the outline. The verified bay numbers and committed `out/` exports are unchanged (flag off); the engraving sits on the lid top, away from the seal land.
+**Parameters (all in `params.py`, flag `DESIGN_TOUCH`, default off).** `EDGE_CHAMFER` 0.6 mm lid top edge; `RELIEF_DEPTH` 0.4 mm (>= 0.4 mm feature rule; 1.6 - 0.4 = 1.2 mm skin left in the lid, exactly the 1.2 mm wall floor, no margin: a deeper relief needs a thicker lid; asserted in the test); `RELIEF_W` 0.8 mm (2 lines); `RELIEF_PAD_D` 3.0 mm; trace geometry from the lid size in `bay.trace_path()`.
+**Implemented (cheap slice):** `bay.lid(key, design=True)` / `bay.design_touch()`: chamfer + engraved trace on the lid top; render `renders/B_jauch603443_lid_design_touch.png` (3D view + exact plan cut). Tests (5 collected design-touch tests, 22 total): off by default, watertight, same outer size, material only removed, no overhang, trace >= 3 mm inside the outline. The verified bay numbers and committed `out/` exports are unchanged (flag off); the engraving sits on the lid top, away from the seal land.
 **Not done / open.** Whether Arsany likes the motif (his call; it is one flag to drop it); the touch on the final enclosure top and stake head waits for the board outline (4.P1); no print yet, so engraving legibility at 0.4 mm is untested (prototype check).
-**TODO (next slice):** redo the bay for the new cell once Emil has fixed the cell dimensions (4.P2); do not touch the bay numbers before that.
+**Cell (decided, A-034):** Arsany fixed the **EEMB LP603449-PCM, 51 x 34.5 x 6.3 mm (A-020 bay), ordered**. The EEMB bay `A_eemb603449` (cavity 53.0 x 35.1 x 7.2, module 56.2 x 38.3 x 10.4) is the **product baseline**; the Jauch variant below is **not selected**, kept as a study only (code unchanged). Next: the real bay inside the enclosure once the PCB outline (4.P2) exists.
 
 ## Comparison (all numbers asserted in `test_bay.py`; mm)
-| | EEMB 603449 (A-020 bay) | Jauch LP603443JU (A-034) | Delta |
+| | **EEMB 603449 (baseline, selected)** | Jauch LP603443JU (not selected, study) | Delta |
 |---|---|---|---|
 | Cell L x W x H (input) | 51.0 x 34.5 x 6.3 | 45.0 x 34.5 x 6.5 | -6.0 / 0 / +0.2 |
 | Bay cavity L x W x H (usable, contract for 4.P2: pcb-enclosure-bay.md) | 53.0 x 35.1 x 7.2 | 47.0 x 35.1 x 7.4 | -6.0 / 0 / +0.2 |
@@ -44,7 +44,7 @@ If the 6.5 mm were really 6.0 mm (Jauch list), the cavity would be 6.8 mm: heigh
 - No physical print, no fit test; Peter work order for Prototype 1 comes with the full enclosure.
 
 ## Files
-`params.py` all parameters · `bay.py` CadQuery model (`dims()`, `tray()`, `lid()`) · `build.py` exports to `out/<variant>/` (STEP, STL, 3MF per part) · `render.py` renders to `renders/` · `test_bay.py` 21 tests (17 bay + 4 design touch).
+`params.py` all parameters · `bay.py` CadQuery model (`dims()`, `tray()`, `lid()`) · `build.py` exports to `out/<variant>/` (STEP, STL, 3MF per part) · `render.py` renders to `renders/` · `test_bay.py` 22 tests (17 bay + 5 design touch).
 Renders (`renders/`): `*_hero.png`, `*_exploded.png`, `*_section.png` per variant and `compare_section.png`. They are real renders of the exported STL meshes with matplotlib (painter's algorithm, so depth sorting of the amber cell envelope in the exploded view has small artefacts); the sections are exact cuts of the meshes.
 
 Run (Python 3.11+): `pip install cadquery trimesh numpy matplotlib networkx pytest`, then `python build.py && python render.py && python -m pytest test_bay.py`.
