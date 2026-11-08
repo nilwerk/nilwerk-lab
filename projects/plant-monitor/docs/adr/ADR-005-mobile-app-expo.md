@@ -6,7 +6,7 @@ Status: Accepted (follows Q-03) · Date: 2026-11-03 · Deciders: Arsany (Q-03), 
 FR-A01..A08, FR-P01..P04 UI, NFR-03. One language across app, edge functions and MCP.
 
 ## Decision
-Expo (development build with config plugins for BLE provisioning and notifications), TypeScript, supabase-js for auth/CRUD/Realtime under RLS. The app contains no secrets other than the public anon key. Premium screens call edge functions; the flag is also enforced server-side (ADR-008).
+Expo (development build with config plugins for BLE provisioning and notifications), TypeScript, supabase-js for auth/CRUD/Realtime under RLS. The app contains no secrets other than the public publishable key (`sb_publishable_...`, replaces the legacy anon key). Premium screens call edge functions; the flag is also enforced server-side (ADR-008).
 
 ## Alternatives
 Flutter: equivalent performance, but no shared language and a less maintained ESP provisioning plugin (Q-03).

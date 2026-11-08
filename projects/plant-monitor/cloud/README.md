@@ -32,7 +32,7 @@ Needs Docker and the [Supabase CLI](https://supabase.com/docs/guides/cli): `cd p
 
 ## Production (not done here)
 One free Supabase project in an EU region (A-025 zero-cost rule, NFR-07), e.g. Frankfurt. Creating it, enabling `pg_cron`
-and pushing migrations is Arsany's step (account, terms). Secrets by name only: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+and pushing migrations is Arsany's step (account, terms). Secrets by name only: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY` (GitHub/Supabase secrets, never committed). After pushing migrations run `select jobname, schedule from cron.job;` and expect `nw-offline-scan`, `nw-rollup`, `nw-retention`. Free tier pauses on inactivity (unverified, see `docs/stack-and-costs.md`).
 
 ## Not here yet

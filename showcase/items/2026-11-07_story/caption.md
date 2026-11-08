@@ -7,4 +7,4 @@
 - Images are code-generated; the CAD renders are cut from the first carousel (the Drive originals are not in the repo). No AI flag needed.
 - Agent minutes: from the Agent Log once logged. Own human-hour estimate: about 14 h.
 
-**Still unverified:** German texts not checked by Theo/Nora; technical rows (T) not confirmed by Theo; the canon said parts were ordered on 4 Nov, the reports say 3 Nov (slide says "that week"); the "3 of 20 done" wording (agent-side tasks only) needs Nora's confirmation; learning-plan resources were found by search and not all opened; nothing published.
+**Still unverified:** German texts not checked by Theo/Nora; technical rows (T) not confirmed by Theo; the canon said parts were ordered on 4 Nov, the reports say 3 Nov (slide says "that week"); the sprint-1 partition (7 of 20 done = 3 agents + 4 Arsany) is derived from the 6 Nov report and awaits Nora's confirmation; learning-plan resources were found by search and not all opened; nothing published.
