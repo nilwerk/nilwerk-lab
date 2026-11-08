@@ -1,0 +1,20 @@
+  OCV R_bat                        LDO reading     Vin min  V3V3 min   margin  result
+  3.4 0.15 (README assumption)     A 60mV@300mA      3.346     3.270   +0.270  PASS (REQUIRED)
+  3.4 0.15 (README assumption)     C 95mV@300mA      3.346     3.228   +0.228  PASS (REQUIRED)
+  3.4 0.15 (README assumption)     B 655mV@1A        3.346     3.107   +0.107  PASS (REQUIRED)
+  3.4 0.30 (aged / cold, assumed)  A 60mV@300mA      3.292     3.216   +0.216  PASS (REQUIRED)
+  3.4 0.30 (aged / cold, assumed)  C 95mV@300mA      3.292     3.174   +0.174  PASS (REQUIRED)
+  3.4 0.30 (aged / cold, assumed)  B 655mV@1A        3.292     3.053   +0.053  PASS
+  3.3 0.15 (README assumption)     A 60mV@300mA      3.246     3.170   +0.170  PASS
+  3.3 0.15 (README assumption)     C 95mV@300mA      3.246     3.128   +0.128  PASS
+  3.3 0.15 (README assumption)     B 655mV@1A        3.246     3.007   +0.007  PASS
+  3.3 0.30 (aged / cold, assumed)  A 60mV@300mA      3.192     3.116   +0.116  PASS
+  3.3 0.30 (aged / cold, assumed)  C 95mV@300mA      3.192     3.074   +0.074  PASS
+  3.3 0.30 (aged / cold, assumed)  B 655mV@1A        3.192     2.953   -0.047  FAIL
+  3.0 0.15 (README assumption)     A 60mV@300mA      2.946     2.870   -0.130  FAIL
+  3.0 0.15 (README assumption)     C 95mV@300mA      2.946     2.828   -0.172  FAIL
+  3.0 0.15 (README assumption)     B 655mV@1A        2.946     2.707   -0.293  FAIL
+  3.0 0.30 (aged / cold, assumed)  A 60mV@300mA      2.892     2.816   -0.184  FAIL
+  3.0 0.30 (aged / cold, assumed)  C 95mV@300mA      2.892     2.774   -0.226  FAIL
+  3.0 0.30 (aged / cold, assumed)  B 655mV@1A        2.892     2.653   -0.347  FAIL
+REQUIRED cases failed: 0
