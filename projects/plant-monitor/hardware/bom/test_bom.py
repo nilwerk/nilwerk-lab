@@ -46,12 +46,29 @@ class ChargerLP503030JU(unittest.TestCase):
 
 class AlternativeFlag(unittest.TestCase):
     def test_alternatives_flagged_and_not_in_sums(self):
-        for ref in ("B1", "B2", "B3", "J2b"):
+        for ref in ("B2", "B3", "J2b"):
             self.assertEqual(BY[ref]["alternative"], "yes", ref)
-        for ref in ("J2", "R9", "U7", "U3"):
+        for ref in ("J2", "R9", "U7", "U3", "B1"):
             self.assertNotEqual(BY[ref].get("alternative"), "yes", ref)
         self.assertNotIn("J2b", [r["ref"] for r in bc.priced(ROWS)])   # J2b has a live price but must stay out of the sums
-        self.assertEqual(sum(1 for r in ROWS if r["alternative"] == "yes"), 4)
+        self.assertEqual(sum(1 for r in ROWS if r["alternative"] == "yes"), 3)
+
+
+class SchematicSync(unittest.TestCase):
+    """BOM lines equal the schematic after the A-045 Option A / 4.P1 changes (pcb/check_netlist.py compares the rest)."""
+
+    def test_removed_and_added_lines(self):
+        self.assertNotIn("Q2", BY)                                   # divider switch dropped (A-045 Option A)
+        self.assertEqual(BY["R3-R5"]["qty"], 3)                      # R6 removed
+        self.assertEqual(BY["R13,R14"]["qty"], 2)                    # I2C pull-ups
+        for ref, lcsc in (("R13,R14", "C23162"), ("R15", "C21190"), ("R16", "C25804")):
+            self.assertEqual(BY[ref]["lcsc_pn"], lcsc, ref)
+
+    def test_cell_line_is_the_decided_cell(self):
+        b1 = BY["B1"]
+        self.assertEqual((b1["mpn"], b1["manufacturer"], b1["status"]), ("LP603449-PCM", "EEMB", "unverified"))
+        self.assertIn("3 builds + 2 spare", b1["description"])
+        self.assertNotIn("B1", [r["ref"] for r in bc.priced(ROWS)])  # no price known: outside the sums
 
 
 class Completeness(unittest.TestCase):
@@ -95,6 +112,23 @@ class Costs(unittest.TestCase):
             self.assertIn(f"{v:.2f}", doc)
         self.assertIn(bc.md_variants(ROWS), doc)           # generated tables are pasted verbatim
         self.assertIn(bc.md_lines(ROWS), doc)
+
+
+    def test_prose_has_no_stale_schematic_claims(self):
+        """Removed parts (Q2, R6) may only be mentioned as removed; the live-data date and banner follow the CSV."""
+        import re
+        doc = (HERE / "bom-draft.md").read_text()
+        refs = {r["ref"] for r in ROWS}
+        self.assertFalse({"Q2", "R6"} & refs)
+        for line in doc.splitlines():
+            if re.search(r"\b(Q2|R6)\b", line):
+                self.assertRegex(line, r"deleted|gone|removed", line[:80])
+        self.assertNotIn("Q2 remains", doc)
+        self.assertNotIn("before the three G2 conditions are in the schematic", doc)
+        stamps = {r["verified_utc"] for r in ROWS if r.get("verified_utc")}
+        self.assertEqual(len(stamps), 1)
+        stamp = stamps.pop()                              # e.g. '2026-11-08 15:12Z'
+        self.assertIn(stamp[:10] + " " + stamp[11:16] + " UTC", doc.splitlines()[3])
 
 
 if __name__ == "__main__":

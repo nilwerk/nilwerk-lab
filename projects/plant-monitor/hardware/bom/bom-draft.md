@@ -1,9 +1,9 @@
-# Hardware BOM (Plan 2.5, revision 2 = G2 follow-up, input to 4.P1)
+# Hardware BOM (Plan 2.5, revision 3 = synced with the 4.P1 schematic, 2026-11-08)
 
 Author: Emil (PCB Designer). Branch `agent/pcb/2.5-followup`. CSV: [`bom-draft.csv`](bom-draft.csv) (rebuilt by [`refresh_live.py`](refresh_live.py)), cost tables from [`bom_calc.py`](bom_calc.py), tests in [`test_bom.py`](test_bom.py).
-Live data read **2026-11-07 06:52 UTC (07:52 Berlin)** from `lcsc.com/product-detail/<C#>.html` (stock, price breaks, sales status) and the public JLCPCB parts search (JLC stock, library type, preferred flag). Prices are **USD as shown on LCSC**; stock and prices change daily.
+Live data re-read **2026-11-08 15:12 UTC (16:12 Berlin)** (as in the CSV) from `lcsc.com/product-detail/<C#>.html` (stock, price breaks, sales status) and the public JLCPCB parts search (JLC stock, library type, preferred flag). Prices are **USD as shown on LCSC**; stock and prices change daily.
 
-> **No PCBA order and no purchase before the three G2 conditions are in the schematic and approved.** Nothing was ordered or bought (hard rule). The BOM now *has* the three lines (R9 corrected, cell + connector, soil front end), but (a) the cell has **no verified source, price or stock**, (b) the soil front end is a sized proposal that 4.P1 must draw and simulate. The order stays blocked until 4.P1 has these in the schematic (with the 4.P1 conditions in "Checklist for 4.P1" below met), the cell is sourced and Arsany has approved the order.
+> **No PCBA order and no purchase until Arsany has approved the order.** Nothing was ordered or bought (hard rule). The three G2 conditions (R9, cell + connector, soil front end) are now in the schematic (4.P1 sync, 2026-11-08; this banner supersedes the earlier "three G2 conditions pending" text). Still open: (a) the cell B1 (EEMB LP603449-PCM, A-034) has **no verified price, seller or stock, and its plug pitch and polarity are unverified**: nothing may be ordered until polarity is metered on the received cell; (b) the soil front end is a sized proposal that still needs simulation and measurement (4.P1 / 5.x); (c) the footprints of SW1-3, U5, U6 and E1 are still to be drawn.
 
 ## What changed against the G2 draft
 
@@ -21,10 +21,10 @@ Components + JLC Economic PCBA loading fee (Extended, non-Preferred parts only) 
 
 | | 3 boards | 1000 boards |
 |---|---|---|
-| Components per board (43 pieces, 29 CSV lines, of which 4 are alternatives not in the sums: B1, B2, B3, J2b) | 6.65 USD | 4.06 USD |
+| Components per board (45 pieces, 31 CSV lines, of which 3 are alternatives not in the sums: B2, B3, J2b; B1 is the decided cell, no price) | 6.57 USD | 4.01 USD |
 | Loading fee: 10 Extended non-Preferred parts x 3.07 USD per order | +10.23 USD / board | +0.03 USD / board |
 | Setup 8.18 + stencil 1.53 USD per order | +3.24 USD / board | +0.01 USD / board |
-| **Total per board** | **20.12 USD (EUR 18.11)** | **4.10 USD (EUR 3.69)** |
+| **Total per board** | **20.04 USD (EUR 18.03)** | **4.05 USD (EUR 3.65)** |
 | Same rules as the first draft (fee only, no setup/stencil) | 16.88 USD; first draft said 17.89 | 4.07 USD; first draft said 4.07 |
 | Target about 10 EUR (NFR-09) | **missed at 3 pcs** (the fee and setup dominate: 67 % of the total); components alone are met | met for components alone; the full unit cost is not known (PCB, assembly, cell, shipping missing) |
 
@@ -34,11 +34,12 @@ The 3-board price uses LCSC's first price break (minimum order), as in the first
 
 | Variant | Extended parts paying the fee | 3 boards USD/board (components + fee + setup/stencil) | 1000 boards USD/board |
 |---|---|---|---|
-| A baseline (this BOM) | 10 | 20.12 (EUR 18.11) | 4.10 (EUR 3.69) |
-| B zero-IC soil front end (RC timing on GPIO, no U7/R12, one cap less) | 9 | 19.02 (EUR 17.12) | 4.05 (EUR 3.64) |
-| C = B + cell with built-in protection (no U4/Q1) | 7 | 16.86 (EUR 15.18) | 3.96 (EUR 3.57) |
+| A baseline (this BOM) | 10 | 20.04 (EUR 18.03) | 4.05 (EUR 3.65) |
+| B zero-IC soil front end (RC timing on GPIO, no U7/R12, one cap less) | 9 | 18.94 (EUR 17.04) | 4.00 (EUR 3.60) |
+| C = B + cell with built-in protection (no U4/Q1) | 7 | 16.78 (EUR 15.10) | 3.91 (EUR 3.52) |
+| D = A, delete the second protection (cell has a PCM): no U4/Q1/R15, C9 (one 100 nF) | 8 | 17.86 (EUR 16.08) | 3.96 (EUR 3.56) |
 
-B replaces U7 by timing the RC charge of the probe with ESP32 GPIOs (no extra IC); the ESP32 input thresholds are **not read**, so B is unproven. C additionally buys the cell with a built-in protection module (PCM) and drops DW01A + 8205A; a PCM cell is a different purchase spec and removes board-level protection tuning. Both are for Arsany/4.P1; neither is in the numbers above.
+**D** is the question for Arsany (second protection with a PCM cell, `pcb/README.md` open point 4): it saves 2 Extended parts (U4, Q1) and so 6.14 USD of loading fee per order of 3 boards. B replaces U7 by timing the RC charge of the probe with ESP32 GPIOs (no extra IC); the ESP32 input thresholds are **not read**, so B is unproven. C additionally buys the cell with a built-in protection module (PCM) and drops DW01A + 8205A; a PCM cell is a different purchase spec and removes board-level protection tuning. Both are for Arsany/4.P1; neither is in the numbers above.
 
 ## R9: charger programming resistor for a 1000 mAh cell
 
@@ -69,14 +70,14 @@ Datasheet read: **TP4056 (NanJing Top Power ASIC), REV_2.4**, `https://datasheet
 
 Capacitive probe interface for the PCB-copper electrodes on the stake. The ESP32-C3 has no touch-sensor peripheral, so an oscillator and frequency count is used.
 
-- **U7 SN74LVC1G14DBVR** (TI, C7835, SOT-23-5, Extended, LCSC stock 227,070 / JLC 227,010, 0.0586 USD at 10 pcs, 0.0402 at 1000): Schmitt-trigger inverter. **R12 470 kOhm** (C23178, Basic) from output to input, probe capacitance from input to GND: RC relaxation oscillator. U7 is **powered from an ESP32 GPIO** (low = off, 0 uA; supply current is at most 10 uA per datasheet), so the gate MOSFET Q3 is dropped (Q2 remains as divider switch). The ESP32 counts the output edges with PCNT for a 20 ms gate: wetter soil = more capacitance = lower frequency.
+- **U7 SN74LVC1G14DBVR** (TI, C7835, SOT-23-5, Extended, LCSC stock 227,070 / JLC 227,010, 0.0586 USD at 10 pcs, 0.0402 at 1000): Schmitt-trigger inverter. **R12 470 kOhm** (C23178, Basic) from output to input, probe capacitance from input to GND: RC relaxation oscillator. U7 is **powered from an ESP32 GPIO** (low = off, 0 uA; supply current is at most 10 uA per datasheet), so the gate MOSFET Q3 is dropped (the battery divider has no switch any more: Q2 and R6 were deleted, A-045 Option A). The ESP32 counts the output edges with PCNT for a 20 ms gate: wetter soil = more capacitance = lower frequency.
 - Datasheet read: **SN74LVC1G14, SCES218AA (revised October 2025)**, `https://www.ti.com/lit/ds/symlink/sn74lvc1g14.pdf`, section 5.5 Electrical Characteristics, DBV package, 3 V row: V_T+ 1.50-1.87 V, V_T- 0.84-1.14 V, I_CC <= 10 uA, C_i 4.5 pF typ (3.3 V), delta I_CC <= 500 uA at one input at V_CC - 0.6 V. The table has **no 3.3 V row**; the 3 V row is used for the thresholds and for V_CC in the formula.
 - Script with pass/fail limits: [`../soil-frontend/soil_frontend.py`](../soil-frontend/soil_frontend.py), tests [`../soil-frontend/test_soil_frontend.py`](../soil-frontend/test_soil_frontend.py). Formula f = 1 / (R C [ln((V_CC - V_T-)/(V_CC - V_T+)) + ln(V_T+/V_T-)]). All four threshold corners and R +-1 %. With the probe capacitance **assumed** 5 to 50 pF (+ 4.5 pF input + 3 pF parasitic, also assumed): f = 25 kHz (worst corner, wet) to 351 kHz (dry), nominal 178 kHz dry / 39 kHz wet, at least 506 counts in the 20 ms gate and at least 1821 counts of dry-to-wet spread at the worst corner. All four limits PASS (limits are mine: f >= 10 kHz, f <= 2 MHz, >= 200 counts, >= 100 counts spread).
 - **Not verified:** the electrode capacitance (the assumed 5-50 pF is not from a measurement or datasheet; if it is far outside, R12 must change, a 0603 value change costs nothing), the 3.3 V threshold shift, soil conductivity effects (wet salty soil is a resistive load in parallel to the electrodes and will pull the oscillator), temperature drift of the probe, ESD on the exposed electrodes. This is a sized proposal; the circuit simulation (role rule "soil-sensing front end response") belongs to 4.P1 and the measurement to 5.x. Power cost: delta I_CC bound 0.5 mA during the 20 ms gate x 96 wakes/day = about 0.0003 mAh/day, negligible against the model's 5.9 mAh/day.
 
 ## Lines
 
-Generated by `bom_calc.py` from the CSV; a test keeps this text identical. "Type" = JLCPCB library type on the live part page (`base` = Basic, `expand` = Extended); "Preferred" = JLC preferred flag (only U3 is True). The cell lines **B1** (603449), **B2** (Jauch LP503030JU, A-034 candidate), **B3** (Jauch LP603443JU) and the connector alternative **J2b** are flagged `alternative` in the CSV and are not in the sums (choose one cell and one connector); the cells have no live LCSC price. **Cell decision after A-034: [`cell-decision-A034.md`](cell-decision-A034.md)** (the Jauch LP503030JU fails NFR-01; LP603443JU passes but is 0.2 mm too thick for the A-020 bay).
+Generated by `bom_calc.py` from the CSV; a test keeps this text identical. "Type" = JLCPCB library type on the live part page (`base` = Basic, `expand` = Extended); "Preferred" = JLC preferred flag (only U3 is True). **B1** is the decided cell (EEMB LP603449-PCM, A-034, Arsany 2026-11-08; order 5 = 3 builds + 2 spare; price, plug and polarity unverified) and has no LCSC price, so it is outside the sums as `unverified`. **B2** (Jauch LP503030JU), **B3** (Jauch LP603443JU) and the connector alternative **J2b** are superseded candidates, flagged `alternative` and not in the sums. **Cell decision after A-034: [`cell-decision-A034.md`](cell-decision-A034.md)** (the Jauch LP503030JU fails NFR-01; LP603443JU passes but is 0.2 mm too thick for the A-020 bay).
 
 | Line | Qty | LCSC | Type | Preferred | 3 pcs unit | 1k unit | USD/board 3 | USD/board 1k |
 |---|---|---|---|---|---|---|---|---|
@@ -92,20 +93,22 @@ Generated by `bom_calc.py` from the CSV; a test keeps this text identical. "Type
 | D1 | 1 | C7519 | expand | False | 0.1639 | 0.0897 | 0.164 | 0.090 |
 | J2 | 1 | C295747 | expand | False | 0.2284 | 0.1392 | 0.228 | 0.139 |
 | SW1,SW2,SW3 | 3 | C318884 | base | False | 0.0208 | 0.0141 | 0.062 | 0.042 |
-| Q2 | 1 | C20917 | base | False | 0.0899 | 0.0562 | 0.090 | 0.056 |
 | D2 | 1 | C2286 | base | False | 0.0077 | 0.0059 | 0.008 | 0.006 |
 | D3 | 1 | C2297 | base | False | 0.0166 | 0.0129 | 0.017 | 0.013 |
 | R1,R2 | 2 | C23186 | base | False | 0.0016 | 0.0012 | 0.003 | 0.002 |
-| R3-R6 | 4 | C25804 | base | False | 0.0024 | 0.0019 | 0.010 | 0.008 |
+| R3-R5 | 3 | C25804 | base | False | 0.0022 | 0.0019 | 0.007 | 0.006 |
+| R16 | 1 | C25804 | base | False | 0.0022 | 0.0019 | 0.002 | 0.002 |
 | R7,R8 | 2 | C22935 | base | False | 0.0018 | 0.0014 | 0.004 | 0.003 |
 | R9 | 1 | C22940 | base | False | 0.0026 | 0.0020 | 0.003 | 0.002 |
 | R10,R11 | 2 | C21190 | base | False | 0.0017 | 0.0014 | 0.003 | 0.003 |
 | R12 | 1 | C23178 | base | False | 0.0030 | 0.0024 | 0.003 | 0.002 |
+| R13,R14 | 2 | C23162 | base | False | 0.0028 | 0.0023 | 0.006 | 0.005 |
+| R15 | 1 | C21190 | base | False | 0.0017 | 0.0014 | 0.002 | 0.001 |
 | C1-C4 | 4 | C19702 | base | False | 0.0205 | 0.0119 | 0.082 | 0.048 |
 | C5-C11 | 7 | C14663 | base | False | 0.0157 | 0.0091 | 0.110 | 0.064 |
 | C12,C13 | 2 | C15849 | base | False | 0.0110 | 0.0074 | 0.022 | 0.015 |
 | C14 | 1 | C59461 | base | False | 0.0172 | 0.0114 | 0.017 | 0.011 |
-| **Total components** | 43 pcs | | | | | | **6.65** | **4.06** |
+| **Total components** | 45 pcs | | | | | | **6.57** | **4.01** |
 
 ## Swaps Extended to Basic: what was checked
 
@@ -115,7 +118,7 @@ Method: public JLCPCB parts search, filter library type = Basic, by model keywor
 - **U3 TP4056 (C16581)** is flagged Preferred on JLC: Economic loading fee exempt (FAQ 7), so it no longer counts in the fee although it is "Extended".
 - **No Basic equivalent found for:** TP4056 charger, DW01A, 8205A, USBLC6-2SC6 / any USB ESD array, USB-C 16-pin, JST PH SMD, AHT20, BH1750, Schmitt-trigger gate, ESP32-C3 module.
 - **LDO (U2):** the Basic LDOs in the JLC library are XC6206P332MR-G (C5446, **200 mA** per LCSC listing), HT7533-1 (C14289, **100 mA** per listing), AMS1117-3.3 (C6186, mA-class Iq, excluded in the power budget), none carries the 340 mA Wi-Fi TX peak (datasheet Table 5-7) with a low Iq. XC6220B331MR-G (C86534, listing: 1 A, 8 uA, 655 mV dropout at 1 A) stays Extended. Listing values, not datasheets (**unverified**).
-- **100 nF (C5-C11):** Yageo C14663 has **0 stock on LCSC but about 34 million on JLC** (34,237,410 at the refresh of 2026-11-07 19:52Z, see the CSV); the Samsung alternative C1591 is Extended. Keep C14663 and re-check at order time (the first draft's "7,150 in stock" flag is obsolete).
+- **100 nF (C5-C11):** Yageo C14663 has **0 stock on LCSC but about 34 million on JLC** (34,060,230 at the refresh of 2026-11-08 15:12Z, see the CSV); the Samsung alternative C1591 is Extended. Keep C14663 and re-check at order time (the first draft's "7,150 in stock" flag is obsolete).
 
 Net: Extended parts on the board 11 (the first draft had 11: D3 swapped out, U7 added); fee-bearing parts **10** because U3 is Preferred.
 
@@ -129,7 +132,7 @@ Net: Extended parts on the board 11 (the first draft had 11: D3 swapped out, U7 
 6. **Prices and the 3-board basis:** first LCSC break; real JLC cart prices differ slightly; stock moves daily.
 7. **Minimum order and packaging** as in the first draft (reels at 1k).
 8. **AHT20 variants** (C2757850 used; C503357 DFN-6, AHT20-F C3012622): pick one footprint in 4.P1.
-9. **Q2 AO3400A** now only the battery-divider switch; the strap pull-up count (R3-R6) still includes the former gate pull-up, 4.P1 adjusts.
+9. **Synced with the schematic (2026-11-08, 4.P1 sync):** Q2 deleted and R6 gone (A-045 Option A, divider permanent), R3-R5 qty 3, added R13/R14 (I2C pull-ups), R15 (DW01A CS) and R16 (GPIO2 pull-up); B1 is the decided EEMB LP603449-PCM. `pcb/bom.csv` = this CSV (check_netlist.py compares them). Prices moved by a few cents; live data re-read 2026-11-08 15:12 UTC (LCSC `productCycle` is empty for lines read through the JSON fallback).
 10. **Out of scope here:** schematic (4.P1), layout, enclosure and cell bay (Yara).
 
 ## Checklist for 4.P1 (Theo's conditions, review of PR #30)

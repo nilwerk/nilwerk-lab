@@ -278,5 +278,23 @@ class Provenance(unittest.TestCase):
             self.assertIn(key, text)
 
 
+class RatedVerdictLine(unittest.TestCase):
+    """`--rated` must print the as-built verdict with the relaxed NFR-01 rule (follow-up flagged in PR review)."""
+
+    def test_as_built_1000_mah(self):
+        lines = pb.rated_report(1000).splitlines()
+        self.assertEqual([l.split(":")[0] for l in lines], ["best", "typical", "worst"])
+        self.assertIn("best: 11.05 months", lines[0])
+        self.assertIn("typical: 4.34 months", lines[1])
+        self.assertIn("worst: 1.36 months", lines[2])
+        self.assertTrue(all(l.count("PASS") == 1 for l in lines))
+        self.assertIn("needs > 1 months", lines[2])        # NFR01_WORST_MONTHS, strictly more than
+        self.assertIn("needs >= 3 months", lines[1])
+        self.assertNotIn("-400", lines[2])                  # old line compared the worst case with 3 months
+
+    def test_fail_below_limit(self):
+        self.assertIn("FAIL", pb.rated_report(700).splitlines()[2])   # 0.95 months worst
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -424,6 +424,22 @@ def report_sections() -> dict[str, str]:
     return sec
 
 
+def rated_report(rated_mah: float) -> str:
+    """`--rated` output: as-built board sleep, the relaxed NFR-01 rule (best/typical >= NFR01_MONTHS,
+    worst > NFR01_WORST_MONTHS) with a PASS/FAIL verdict per case; the +SD and sleep-limit figures are extras."""
+    lines = []
+    for n, p in AS_BUILT.items():
+        h = derated_hours(p, rated_mah)
+        need = nfr01_need_h(n)
+        lim = max_sleep_current_ua(p, rated_mah, hours=need)
+        lines.append(f"{n}: {h / HOURS_PER_MONTH:.2f} months (rule, as-built sleep {sleep_current_ua(p):.1f} uA), "
+                     f"NFR-01 needs {'>' if n == 'worst' else '>='} {need / HOURS_PER_MONTH:g} months: "
+                     f"{'PASS' if nfr01_pass(n, h) else 'FAIL'}; "
+                     f"{life_days(p, rated_mah, with_self_discharge=True) / MONTH_DAYS:.1f} months incl. self-discharge (extra); "
+                     f"sleep limit {lim:.0f} uA (rule)")
+    return "\n".join(lines)
+
+
 def report() -> str:
     return "\n".join(f"{HEADINGS[k]}\n{v}\n" for k, v in report_sections().items())
 
@@ -448,10 +464,7 @@ def main() -> None:
     if a.update_doc:
         update_doc(a.update_doc)
     elif a.rated:
-        for n, p in SCENARIOS.items():
-            print(f"{n}: {life_days(p, a.rated) / MONTH_DAYS:.1f} months (rule), "
-                  f"{life_days(p, a.rated, **SD) / MONTH_DAYS:.1f} months incl. self-discharge (extra), "
-                  f"sleep limit {max_sleep_current_ua(p, a.rated):.0f} uA (rule)")
+        print(rated_report(a.rated))
     else:
         print(report())
 

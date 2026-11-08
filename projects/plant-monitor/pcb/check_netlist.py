@@ -128,15 +128,16 @@ for row in csv.DictReader(open(BOM_DRAFT)):
     for r in expand(row["ref"]):
         draft[r] = (row["lcsc_pn"], int(row["qty_per_board"]) / len(expand(row["ref"])))
 mine = {p.ref: p.lcsc for p in D.PARTS if p.in_bom}
-ADDED = {"R13": "I2C pull-up", "R14": "I2C pull-up", "R15": "DW01A CS resistor", "R16": "GPIO2 pull-up (Theo C4)"}
-REMOVED = {"Q2": "A-045 Option A (divider switch dropped)", "R6": "A-045 Option A (Q2 gate pull-down dropped)"}   # still in hardware/bom/bom-draft.csv
+# 2026-11-08 sync: hardware/bom/bom-draft.csv now carries Q2 removed, R3-R5 qty 3, R13-R16 added: no declared differences left.
+ADDED = {}
+REMOVED = {}
 for r, (lcsc, _) in sorted(draft.items()):
     if r in REMOVED:
         check(r not in mine, f"BOM draft {r} {lcsc} removed from the schematic: {REMOVED[r]}")
         continue
     check(r in mine and mine[r] == lcsc, f"BOM draft {r} {lcsc} = schematic {mine.get(r)}")
 extra = sorted(set(mine) - set(draft))
-check(set(extra) == set(ADDED), f"schematic parts not in BOM draft are exactly the declared additions {ADDED}: {extra}")
+check(set(extra) == set(ADDED), f"schematic parts not in BOM draft are exactly the declared additions (none) {ADDED}: {extra}")
 cnt = defaultdict(int)
 for p in D.PARTS:
     if p.in_bom:
@@ -144,10 +145,8 @@ for p in D.PARTS:
 # group-level quantity check (shared LCSC numbers: 1k, 10k, 1uF, 100nF counted across BOM lines)
 want = defaultdict(int)
 for row in csv.DictReader(open(BOM_DRAFT)):
-    if row["alternative"].strip().lower() != "yes":
+    if row["alternative"].strip().lower() != "yes" and row["lcsc_pn"]:   # B1 (cell) has no LCSC line
         want[row["lcsc_pn"]] += int(row["qty_per_board"])
-want["C21190"] += 1; want["C23162"] += 2; want["C25804"] += 1   # R15, R13+R14, R16
-want["C20917"] -= 1; want["C25804"] -= 1                          # Q2 and R6 removed (A-045 Option A)
 for l, n in sorted(want.items()):
     check(cnt.get(l, 0) == n, f"qty of {l}: schematic {cnt.get(l, 0)} = BOM draft (+declared additions) {n}")
 bom_csv = {}
