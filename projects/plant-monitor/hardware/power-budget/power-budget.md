@@ -2,13 +2,13 @@
 
 Author: Emil (PCB Designer) · Date: 2026-11-04 · Status: **draft for the G2 review, all inputs are estimates**
 Calculator: [`power_budget.py`](power_budget.py) (Python 3.11, stdlib only) · Tests: [`test_power_budget.py`](test_power_budget.py)
-Traces to: NFR-01 (3 months, A-020; 6 months is an information-only stretch goal), FR-D01 (15-min sampling), FR-D02 (hourly report), FR-E03/E04 (critical wake, inference), ADR-012 (second MQTT publish), PR #2 items 12 and 19.
+Traces to: NFR-01 (best and typical >= 3 months, worst > 1 month: A-020, flexed 2026-11-08, ADR-015; 6 months is an information-only stretch goal), FR-D01 (15-min sampling), FR-D02 (hourly report), FR-E03/E04 (critical wake, inference), ADR-012 (second MQTT publish), PR #2 items 12 and 19.
 
 **Nothing in this document is a measurement.** Every current and time is either quoted from a repo document, recalled from a datasheet that has not been read (the ESP32-C3 series datasheet was read on 2026-11-07, section 11), or an engineering assumption. Each is tagged in section 4. Task 5.4 replaces them (section 9).
 
 ## 1. Result
 
-Headline figures apply **Arsany's NFR-01 rule literally** (PR #2 item 12, acceptance matrix): projected life = **0.8 x rated capacity / average current >= 2190 h (NFR-01, 3 months, A-020)**. There is **no self-discharge term** in that rule. Self-discharge is shown only as a separately labelled **extra-margin** line ("+SD" / "extra"), never in a verdict.
+Headline figures apply **Arsany's NFR-01 rule literally** (PR #2 item 12, acceptance matrix): projected life = **0.8 x rated capacity / average current >= 2190 h (NFR-01, 3 months, A-020)**. **Flexed 2026-11-08 (Arsany, ADR-015): the 2190 h line applies to the best and typical scenarios; the worst scenario passes if projected life > 730 h (1 month).** The generated tables below still print "vs 2190 h" for every row: for worst rows read the months column against 1 month (verdict code to be updated by Emil, ADR-015 follow-up). There is **no self-discharge term** in that rule. Self-discharge is shown only as a separately labelled **extra-margin** line ("+SD" / "extra"), never in a verdict.
 
 | Question | Answer (estimates) |
 |---|---|
@@ -20,9 +20,9 @@ Headline figures apply **Arsany's NFR-01 rule literally** (PR #2 item 12, accept
 | What dominates | Wi-Fi sessions are **65 %** of the budget, sample wakes 30 %, deep sleep only **5 %** |
 | Deep-sleep limit for the requirement (PR #2 item 19) | Per the rule, typical Wi-Fi and sampling terms: **500 uA whole board for a 2000 mAh rated cell, 317 uA for 1500 mAh** (with self-discharge: 445 uA and 276 uA). The accepted requirement is **<= 50 uA**, design target <= 25 uA (NFR-12, A-027), far inside these limits; table in section 6 |
 | Biggest levers (section 7) | Light sleep during the soil warm-up: **-0.78 mAh/day (-13 %)**; fast connect + hub every 2nd report: **-1.4 mAh/day**; hub unreachable every hour costs **+1.4 mAh/day** |
-| Verdict on NFR-01 | **Typical case passes** the 3-month requirement with the 1000 mAh-minimum BOM cell (4.5 months, rated capacity needed about 670 mAh). The worst-case stack (1.4 months at 1000 mAh) is a stress bound with every parameter at its worst at once; it is to be measured in 5.4, not designed to. Everything hinges on Wi-Fi connect time and current, which only 5.4 can settle, and on the cell that fits the enclosure (section 8). The levers are in section 7 |
+| Verdict on NFR-01 | **Best (12.8) and typical (4.5 months, rated capacity needed about 670 mAh) pass** 3 months with the 1000 mAh-minimum BOM cell, and the **worst-case stack (1.4 months) passes the new > 1 month line** with 1.4x margin (ADR-015); it is a stress bound with every parameter at its worst at once, to be measured in 5.4, not designed to. Under the old single-figure rule the worst stack failed. Everything hinges on Wi-Fi connect time and current, which only 5.4 can settle, and on the cell that fits the enclosure (section 8). The levers are in section 7 |
 
-**Closed (A-020, acceptance matrix NFR-01):** NFR-01 is 3 months (2190 h) by the literal rule, no self-discharge term; "+SD" and the 6-month stretch goal (4380 h) are information lines only. A LiPo loses roughly 1-3 % per month by itself (assumption, no datasheet); at 2 %/month the typical 1000 mAh cell still reaches 4.0 months, the needed rated capacity rises from 668 to 722 mAh.
+**Closed (A-020, acceptance matrix NFR-01; flexed 2026-11-08, ADR-015: best/typical 2190 h, worst 730 h):** NFR-01 is 3 months (2190 h) for best and typical by the literal rule, no self-discharge term; "+SD" and the 6-month stretch goal (4380 h) are information lines only. A LiPo loses roughly 1-3 % per month by itself (assumption, no datasheet); at 2 %/month the typical 1000 mAh cell still reaches 4.0 months, the needed rated capacity rises from 668 to 722 mAh.
 
 Verdict table for the A-020 cell, 603449 (generated; the verdict uses the 1000 mAh minimum, A-021; the 1100 mAh typical value is information only):
 
@@ -44,7 +44,7 @@ The **NFR-12 value (50 uA, design target 25 uA) is accepted by Arsany (A-027)**;
 - **Capacity rule (Arsany, PR #2 item 12), applied literally:** use the **rated** capacity of the chosen 1S LiPo with **20 % derating**; projected life = derated capacity / average current >= 2190 h (NFR-01, 3 months); no self-discharge term. Both numbers are stated everywhere (rated and derated = 0.8 x rated).
 - **Low-battery warning at 3.4 V** (source: Arsany's answer "ok" to Needs Arsany **A-008.2**, "low-battery 3.4 V", in the PR #2 thread; confirmed by Theo's architect review of this PR; PR #15's schema uses 3400 mV as default). Consequences: (a) the 3 months are counted to the point of the warning, the charge left below 3.4 V is a reserve and is **not** counted; (b) the 20 % derating is taken to cover the capacity that is unusable above 3.4 V, temperature and ageing, and self-discharge (closed, section 1) (`usable_fraction` = 1.0 in the model); 5.4 must check this with a discharge curve at the real load (section 9); (c) with a 3.3 V LDO the headroom at the warning point is only 100 mV, so dropout under Wi-Fi TX peaks must be simulated in 4.P1 (LDO dropout sim, role file) or a lower-dropout/boost-buck path chosen.
 - **Scope of the load:** 15-min wake (soil, AHT20, BH1750, battery ADC, both edge-AI models) + hourly Wi-Fi report (cloud POST **and** MQTT publish to the Pi hub, ADR-012) + critical-event Wi-Fi wakes (edge-ai-concept 2.4: at most one per class per 6 h). **Excluded:** BLE setup (setup mode only, ADR-011), OTA downloads, Wi-Fi outage retries, charging losses, USB-powered time. These add load: OTA and outages must be bounded in 4.F (e.g. OTA only above a battery threshold, already in ADR-009; backoff already in architecture section 5).
-- NFR-01 = 3 months = **2190 h** (A-020; `NFR01_MONTHS` x 730 h in `power_budget.py`); the 6-month stretch goal is 4380 h, information only.
+- NFR-01 = 3 months = **2190 h** for best and typical, **> 1 month = 730 h** for worst (A-020, flexed 2026-11-08, ADR-015; `NFR01_MONTHS` x 730 h in `power_budget.py`); the 6-month stretch goal is 4380 h, information only.
 
 ## 3. Model
 
@@ -256,7 +256,7 @@ After M1-M6 the script is run with the measured values (edit `TYPICAL`, tag each
 
 ## 10. Open points
 
-- **Closed:** self-discharge in the NFR-01 rule: no (A-020, acceptance matrix); NFR-01 is 3 months, the 1000 mAh-minimum BOM cell passes the typical case (4.5 months).
+- **Closed:** self-discharge in the NFR-01 rule: no (A-020, acceptance matrix); NFR-01 is best/typical >= 3 months and worst > 1 month (flexed 2026-11-08, ADR-015); the 1000 mAh-minimum BOM cell passes all three (12.8 / 4.5 / 1.4 months).
 - **Needs Yara / Arsany:** only Yara's usable bay inside enclosure v3 (swelling and wire clearance) is still open, see [`../../docs/interfaces/pcb-enclosure-bay.md`](../../docs/interfaces/pcb-enclosure-bay.md); cell purchase and any order (Arsany orders, hard rule); a current meter for 5.4 (purchase is Arsany's).
 - **Datasheet tags:** the four ESP32-C3 rows are now **DR** (section 11). Still D?: Aosong AHT20, ROHM BH1750FVI, ESP32-C3-MINI-1 module datasheet (flash leakage).
 

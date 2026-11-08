@@ -36,7 +36,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, replace
 
-NFR01_MONTHS = 3.0           # NFR-01 (A-020: 3 months; 6 months is an information-only stretch goal)
+NFR01_MONTHS = 3.0           # NFR-01 best/typical (A-020: 3 months; worst case only > 1 month = 730 h, ADR-015 2026-11-08; 6 months is an information-only stretch goal)
 HOURS_PER_MONTH = 730.0      # 4380 h = 6 months, 2190 h = 3 months (acceptance matrix, 5.4)
 NFR01_HOURS = NFR01_MONTHS * HOURS_PER_MONTH
 STRETCH_HOURS = 6 * HOURS_PER_MONTH   # 6-month stretch goal, information line only
