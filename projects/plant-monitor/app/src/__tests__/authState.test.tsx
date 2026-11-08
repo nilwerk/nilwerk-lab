@@ -1,9 +1,15 @@
 // FR-A01 auth state machine + storage chunking + fake service flow
 import { authReducer, initialAuthState } from '../auth/authState';
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react-native';
+import { Text } from 'react-native';
+import { AuthProvider, useAuth } from '../auth/AuthContext';
 import { createFakeAuth } from '../auth/fakeAuth';
 import { chunked, type KeyValueStore } from '../auth/storage';
 import { AuthError } from '../auth/types';
-import { isConfigured, readConfig } from '../config';
+import { DEFAULT_CONTACT_EMAIL, isConfigured, readConfig } from '../config';
+import { contactUrl } from '../screens/PremiumScreen';
+import appConfig from '../../app.config';
 
 const u = { id: 'u1', email: 'a@b.de' };
 
@@ -23,6 +29,14 @@ describe('authReducer', () => {
   test('signedOut action is idempotent', () => {
     const s = authReducer(initialAuthState, { type: 'signedOut' });
     expect(authReducer(s, { type: 'signedOut' })).toBe(s);
+  });
+  test('signedOut action ends the session from every state (A-048 follow-up, QA note #42)', () => {
+    const states = [initialAuthState, { status: 'signedIn', user: u } as const, { status: 'signedOut', user: null } as const];
+    for (const from of states) expect(authReducer(from, { type: 'signedOut' })).toEqual({ status: 'signedOut', user: null });
+  });
+  test('unknown action leaves state untouched', () => {
+    const a = authReducer(initialAuthState, { type: 'session', user: u });
+    expect(authReducer(a, { type: 'nope' } as never)).toBe(a);
   });
 });
 
@@ -93,5 +107,36 @@ describe('config', () => {
     expect(isConfigured(readConfig({ supabaseUrl: 'http://evil.example', supabasePublishableKey: 'k' }))).toBe(false);
     expect(isConfigured(readConfig({ supabaseUrl: 'https://x.supabase.co', supabasePublishableKey: 'sb_publishable_x' }))).toBe(true);
     expect(isConfigured(readConfig({ supabaseUrl: 'http://127.0.0.1:54321', supabasePublishableKey: 'k' }))).toBe(true);
+  });
+});
+
+describe('AuthProvider startup', () => {
+  const Probe = () => <Text>{useAuth().state.status}</Text>;
+  test('getSession rejection does not leave the app stuck on loading: it ends signedOut', async () => {
+    const svc = createFakeAuth();
+    svc.getSession = () => Promise.reject(new Error('storage unreadable'));
+    await render(<AuthProvider service={svc}><Probe /></AuthProvider>);
+    await waitFor(() => expect(screen.getByText('signedOut')).toBeTruthy());
+  });
+});
+
+describe('contact email (A-048)', () => {
+  test('default is the shared Nilwerk mailbox, in the shipped config and when extra is missing', () => {
+    expect(DEFAULT_CONTACT_EMAIL).toBe('nilwerk.team@gmail.com');
+    expect(readConfig({}).contactEmail).toBe('nilwerk.team@gmail.com');
+    expect(readConfig(undefined).contactEmail).toBe('nilwerk.team@gmail.com');
+    const saved = process.env.CONTACT_EMAIL;
+    delete process.env.CONTACT_EMAIL;
+    try {
+      expect(appConfig.extra?.contactEmail).toBe(DEFAULT_CONTACT_EMAIL);
+    } finally { if (saved !== undefined) process.env.CONTACT_EMAIL = saved; }
+  });
+  test('override wins; an explicitly empty value stays empty (link hidden)', () => {
+    expect(readConfig({ contactEmail: ' team@example.org ' }).contactEmail).toBe('team@example.org');
+    expect(readConfig({ contactEmail: '' }).contactEmail).toBe('');
+    expect(contactUrl('')).toBeNull();
+  });
+  test('mailto has the encoded subject (en dash and spaces)', () => {
+    expect(contactUrl(DEFAULT_CONTACT_EMAIL)).toBe('mailto:nilwerk.team@gmail.com?subject=Plant%20Monitor%20%E2%80%93%20Premium%20activation');
   });
 });
