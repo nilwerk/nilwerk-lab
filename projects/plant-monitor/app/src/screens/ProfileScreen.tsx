@@ -4,12 +4,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { useTheme } from '../ui/useTheme';
+import { LegalLine } from '../ui/LegalLine';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
 import type { Profile } from '../auth/types';
 import { validateDisplayName } from '../validation';
 
-export function ProfileScreen({ onPremium, onDelete }: { onPremium: () => void; onDelete: () => void }) {
+export function ProfileScreen({ onPremium, onDelete, contactEmail }: { onPremium: () => void; onDelete: () => void; contactEmail: string }) {
   const th = useTheme();
   const { service, state } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -64,6 +65,7 @@ export function ProfileScreen({ onPremium, onDelete }: { onPremium: () => void; 
       <Body muted>{t('profile.plantsSoon')}</Body>
       <Button label={t('profile.signOut')} variant="secondary" onPress={() => { service.signOut().catch(() => setError(t('auth.error.unknown'))); }} />
       <Button label={t('profile.deleteAccount')} variant="ghost" onPress={onDelete} />
+      <LegalLine contactEmail={contactEmail} />
     </Screen>
   );
 }

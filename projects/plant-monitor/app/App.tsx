@@ -59,7 +59,7 @@ export function Root({ contactEmail, banner }: { contactEmail: string; banner?: 
     // a signed-out user can never be on a signed-in route
     const r: Route = route === 'signUp' || route === 'signIn' ? route : 'welcome';
     screen = r === 'welcome'
-      ? <WelcomeScreen onCreate={() => setRoute('signUp')} onSignIn={() => setRoute('signIn')} />
+      ? <WelcomeScreen contactEmail={contactEmail} onCreate={() => setRoute('signUp')} onSignIn={() => setRoute('signIn')} />
       : <AuthFormScreen mode={r} onSwitch={() => setRoute(r === 'signUp' ? 'signIn' : 'signUp')} onBack={() => setRoute('welcome')} />;
   } else if (route === 'delete') {
     screen = <DeleteAccountScreen onCancel={() => setRoute('profile')} />;
@@ -73,7 +73,7 @@ export function Root({ contactEmail, banner }: { contactEmail: string; banner?: 
   } else if (route === 'removed' && removed) {
     screen = <PlantRemovedScreen {...removed} onDone={() => { setRemoved(null); setRoute('plants'); }} />;
   } else if (route === 'profile') {
-    screen = <ProfileScreen onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} />;
+    screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} />;
   } else {
     screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} />;
   }
