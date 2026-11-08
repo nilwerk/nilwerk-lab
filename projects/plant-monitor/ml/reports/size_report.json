@@ -1,0 +1,28 @@
+{
+ "flatbuffer_bytes": 3664,
+ "flash_budget_bytes": 30720,
+ "flash_ok": true,
+ "activation_bytes_upper_bound": 46,
+ "feature_ring_bytes": 288,
+ "ram_estimate_bytes": 334,
+ "ram_budget_bytes": 20480,
+ "ram_ok_estimate": true,
+ "macs": 432,
+ "input_quant": [
+  0.0078125,
+  0
+ ],
+ "input_shape": [
+  1,
+  18
+ ],
+ "output_quant": [
+  0.00390625,
+  -128
+ ],
+ "not_measured": [
+  "MicroInterpreter instance + TFLM allocator overhead",
+  "Invoke() latency on ESP32-C3 (< 50 ms budget)",
+  "firmware image size with/without AI component"
+ ]
+}
