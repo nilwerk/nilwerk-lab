@@ -25,7 +25,7 @@ Branch B was never turned into a PR, which is why it looks orphaned. B is based 
 | OTA manifest (FR-D05) | not built: `fw_target`/`model_target` = null | built: joins `firmware_releases`, signed Storage URL via `signUrl` |
 | Validation | hand-written `validateReport`, tested against the schema fixtures; `openapi_check.py` ties spec to code in CI | similar hand-written `validate.ts` |
 | `config.toml` `verify_jwt = false` | set for all 3 functions | not set in the repo (only a code comment "deploy with --no-verify-jwt"); a plain `supabase functions deploy` would put the gateway JWT check in front of devices that have no JWT |
-| Function directory | `cloud/functions/...` (not where the Supabase CLI looks by default: `cloud/supabase/functions/`; see "Open risk" below) | `cloud/supabase/functions/...` (default CLI location) |
+| Function directory | `cloud/supabase/functions/...` (moved there in #45, the CLI default; tests in `cloud/test/functions/`) | `cloud/supabase/functions/...` (default CLI location) |
 | Tests | 16 `node:test` tests: handlers + **real PostgreSQL end to end** (psql-backed `Deps`), token isolation A vs B, RLS lock-out of API roles, 10-token cap, unlimited devices, 96-sample buffer, replay, skew, + 15 min / 120 s / 32 events / MIN_TS boundaries | 14 mock-DB handler tests + **`test/device_api.sql`**: SQL-level tests of claim/ingest (counts, alerts open **and resolve**, 96 buffer, overlap, small skew must not shift, released device refused, app roles cannot call functions) |
 | Mutation check | `test/mutation.sh`, 26 mutants, 0 survive (after QA follow-up) | 4 mutants (revoked, unknown token, idempotency, authenticate) |
 | Node requirement | >= 22.6 (`--experimental-strip-types`), CI uses setup-node 22 | >= 22.18, otherwise the TS tests print "NOT RUN" and pass (can silently skip) |
@@ -51,13 +51,13 @@ Branch B was never turned into a PR, which is why it looks orphaned. B is based 
 
 - Different migration versions (`..07000004` and `..08000004`) so both would apply; both define `public.device_config(uuid)` with `create or replace`, and the bodies are equivalent, so the second silently replaces the first (no error, but two sources of truth).
 - Otherwise the function names differ, so the SQL does not collide, but the schema would carry two parallel API sets (`device_claim`/`ingest_batch` and `claim_device`/`ingest_report`) with different error contracts and only one used by the edge functions: dead, `service_role`-callable code that is a needless attack surface.
-- Two `ingest` and two `device-claim` function directories (`cloud/functions` and `cloud/supabase/functions`), two `test.sh` stages, two showcase items and a README/CI conflict.
+- Two `ingest` and two `device-claim` function directories (A before the move to `cloud/supabase/functions`, and B), two `test.sh` stages, two showcase items and a README/CI conflict.
 - B's migration would be applied **before** A's (older version number). A fresh DB is fine; an environment that already applied A's `..08000004` would get B's `..07000004` out of order (`supabase db push` refuses out-of-order migrations without `--include-all`).
 - Not both of them can be real: whichever is chosen, the other migration must never reach main.
 
-## Open risk in A found while comparing (not fixed, unverified)
+## Function directory (resolved in #45)
 
-A's functions live in `cloud/functions/`, while `config.toml` is in `cloud/supabase/`. The Supabase CLI looks for functions in `supabase/functions/` next to `config.toml`; I believe `supabase functions deploy` from `cloud/` would not find them unless each function gets an `entrypoint` in `config.toml` or the folder is moved. I could not check this (no Supabase CLI here), so it belongs on the first-deploy smoke test (Theo's C3). Cheap fix when confirmed: `git mv cloud/functions cloud/supabase/functions` (imports are relative, the tests need path edits only).
+Verified in the Supabase docs (config reference, `functions.<name>.entrypoint`): the default is `supabase/functions/<function_name>/index.ts` next to `config.toml`. A's functions were moved with `git mv` to `cloud/supabase/functions/` and its tests to `cloud/test/functions/` (outside the deploy tree). Still to confirm on the first deploy smoke test (Theo's C3).
 
 ## Recommendation
 

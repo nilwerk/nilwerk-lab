@@ -8,7 +8,7 @@ info:
     (FR-P01, FR-P02) are contracts of 4.B3/4.B4 and are not part of this draft.
     Every operation cites its requirements in `x-requirements`.
     Status: DRAFT; not validated against a live Supabase project.
-    Implemented in task 4.B2 (projects/plant-monitor/cloud/functions/, checked against this file by cloud/test/openapi_check.py):
+    Implemented in task 4.B2 (projects/plant-monitor/cloud/supabase/functions/, checked against this file by cloud/test/openapi_check.py):
     /claim-token, /device-claim, /ingest. Differences from the draft that are NOT built yet are marked "[not in 4.B2]" below.
     All other paths are still contract only.
 servers:
@@ -53,7 +53,7 @@ paths:
         Sent once over HTTPS right after the sensor joined Wi-Fi (TLS 1.2+, pinned CA). Rules:
         - claim token valid, unexpired, unused -> device row created or updated, token marked used.
         - hw_id unknown -> device created (owner = token user).
-        - hw_id known and unowned (released, FR-A08) -> new owner, any old credential revoked.
+        - hw_id known and unowned (released, FR-A08) -> new owner, any old credential revoked, and the previous plant link (`devices.plant_id`) is cleared (unchanged for a same-owner factory reset).
         - hw_id known and owned by the SAME user (factory reset, FR-D07) -> credential rotated.
         - hw_id owned by ANOTHER user -> 409 device_owned; the owner must release it first.
         The device token (32 random bytes, hex) is returned ONCE; only its SHA-256 is stored (ADR-004).

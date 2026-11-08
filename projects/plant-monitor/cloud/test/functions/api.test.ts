@@ -6,8 +6,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { handleClaimToken, handleDeviceClaim, handleIngest } from "../_shared/handlers.ts";
-import { sha256Hex, validateReport, type Deps } from "../_shared/lib.ts";
+import { handleClaimToken, handleDeviceClaim, handleIngest } from "../../supabase/functions/_shared/handlers.ts";
+import { sha256Hex, validateReport, type Deps } from "../../supabase/functions/_shared/lib.ts";
 import { psql, psqlDeps } from "./psql_deps.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));

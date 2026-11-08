@@ -6,14 +6,15 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 SQL=supabase/migrations/20261108000004_device_api.sql
-LIB=functions/_shared/lib.ts
-HAN=functions/_shared/handlers.ts
-BK="$(mktemp -d)"; cp "$SQL" "$BK/sql"; cp "$LIB" "$BK/lib"; cp "$HAN" "$BK/han"
-restore() { cp "$BK/sql" "$SQL"; cp "$BK/lib" "$LIB"; cp "$BK/han" "$HAN"; }
+SQL5=supabase/migrations/20261108000005_devices_plant_check.sql
+LIB=supabase/functions/_shared/lib.ts
+HAN=supabase/functions/_shared/handlers.ts
+BK="$(mktemp -d)"; cp "$SQL" "$BK/sql"; cp "$SQL5" "$BK/sql5"; cp "$LIB" "$BK/lib"; cp "$HAN" "$BK/han"
+restore() { cp "$BK/sql" "$SQL"; cp "$BK/sql5" "$SQL5"; cp "$BK/lib" "$LIB"; cp "$BK/han" "$HAN"; }
 trap 'restore; rm -rf "$BK"' EXIT
 survived=0; total=0
 mutant() { # name file old new
-  local name="$1" file="$2" old="$3" new="$4"
+  local name="$1" file="$2" old="$3" new="$4" stage="${5:-api}"
   restore
   OLD="$old" NEW="$new" python3 - "$file" <<'PY' || { echo "BAD MUTANT (pattern not found): $name"; exit 2; }
 import os, sys
@@ -22,8 +23,8 @@ if s.count(o) != 1: sys.exit(1)
 open(p, "w").write(s.replace(o, os.environ["NEW"]))
 PY
   total=$((total+1))
-  if NW_SKIP_OPENAPI=1 NW_ONLY=api bash ./test.sh >"$BK/out.txt" 2>&1; then echo "SURVIVED  $name"; survived=$((survived+1))
-  else echo "killed    $name  ($(grep -m1 '^✖' "$BK/out.txt" | cut -c1-90))"; fi
+  if NW_SKIP_OPENAPI=1 NW_ONLY="$stage" bash ./test.sh >"$BK/out.txt" 2>&1; then echo "SURVIVED  $name"; survived=$((survived+1))
+  else echo "killed    $name  ($(grep -m1 -e '^✖' -e 'ERROR:' -e 'FAIL' "$BK/out.txt" | cut -c1-110))"; fi
 }
 echo "baseline (no mutation) must pass:"; restore
 NW_SKIP_OPENAPI=1 NW_ONLY=api bash ./test.sh >"$BK/out.txt" 2>&1 && echo "baseline ok" || { echo "baseline FAILS"; grep -A12 "^✖" "$BK/out.txt" | head -40; exit 1; }
@@ -61,6 +62,10 @@ mutant "QA-6 events cap 32 -> 31"                        "$LIB" "r.events.length
 mutant "QA-7 MIN_TS 1700000000 -> 1700000001"            "$LIB" "const MIN_TS = 1700000000;" "const MIN_TS = 1700000001;"
 mutant "QA-8 MIN_TS 1700000000 -> 1699999999"            "$LIB" "const MIN_TS = 1700000000;" "const MIN_TS = 1699999999;"
 mutant "SQL-14 new owner inherits the old owner's plant link" "$SQL" "plant_id = case when d.owner_id = ct.user_id then plant_id else null end" "plant_id = plant_id"
+# N2: devices_update_own must check that the new plant_id belongs to the caller (RLS stage)
+mutant "RLS-1 devices_update_own without plant ownership check" "$SQL5" "    and (plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid())));" "    );" rls
+mutant "RLS-2 policy forbids clearing the plant link (plant_id is null branch removed)" "$SQL5" "(plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid()))" "(exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid()))" rls
+# not a mutant: dropping `p.owner_id = auth.uid()` is equivalent for authenticated users, because plants_select_own already hides foreign plants from the subquery; the explicit check is defence in depth.
 restore
 echo "mutants: $total, survived: $survived"
 [ "$survived" = 0 ] && echo "MUTATION CHECK PASSED (all mutants killed)" || { echo "MUTATION CHECK FAILED"; exit 1; }

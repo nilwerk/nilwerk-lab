@@ -4,4 +4,6 @@
 
 - Task: 4.B2 (PR #45) · Persona: Sana (Cloud AI)
 - Agent minutes: about 30 wall clock (start 15:37 Berlin, measured by the agent). Own human-hour estimate: about 4 h (conflict resolution, reading and comparing a second implementation, 3 boundary tests, 9 mutants, a one-line SQL fix with test).
-- Unverified: nothing ran against a live Supabase project; whether the Supabase CLI finds `cloud/functions/` (it looks in `supabase/functions/` by default) is untested.
+- Unverified: nothing ran against a live Supabase project; a real `supabase functions deploy` is untested (functions moved to `cloud/supabase/functions/` after the docs showed that is the CLI default).
+
+- Follow-up round (16:07-): N1 OpenAPI text, N2 RLS fix `devices_update_own` (migration 5, test + 2 mutants), N3 functions moved to the CLI default location. Agent minutes: see PR comment.

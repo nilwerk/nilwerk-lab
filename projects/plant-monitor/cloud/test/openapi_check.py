@@ -8,8 +8,8 @@ root = os.path.join(here, "..")
 oa_path = os.path.join(root, "..", "docs", "interfaces", "openapi.yaml")
 oa_text = open(oa_path).read(); oa = yaml.safe_load(oa_text)
 schema = json.load(open(os.path.join(root, "..", "docs", "interfaces", "device-report.schema.json")))
-han = open(os.path.join(root, "functions", "_shared", "handlers.ts")).read()
-lib = open(os.path.join(root, "functions", "_shared", "lib.ts")).read()
+han = open(os.path.join(root, "supabase", "functions", "_shared", "handlers.ts")).read()
+lib = open(os.path.join(root, "supabase", "functions", "_shared", "lib.ts")).read()
 sql = open(os.path.join(root, "supabase", "migrations", "20261108000004_device_api.sql")).read()
 fails = []
 def check(ok, msg):
@@ -66,5 +66,5 @@ check(all(f"'{k}'" in sql[sql.index("device_config"):] for k in cfg), f"DeviceCo
 ct = oa["paths"]["/claim-token"]["post"]["responses"]["201"]["content"]["application/json"]["schema"]["required"]
 check(all(k in body_of("handleClaimToken") for k in ct), f"/claim-token 201 fields {ct}")
 for fn in ("ingest", "device-claim", "claim-token"):
-    check(os.path.isfile(os.path.join(root, "functions", fn, "index.ts")), f"functions/{fn}/index.ts exists")
+    check(os.path.isfile(os.path.join(root, "supabase", "functions", fn, "index.ts")), f"supabase/functions/{fn}/index.ts exists")
 sys.exit(1 if fails else 0)
