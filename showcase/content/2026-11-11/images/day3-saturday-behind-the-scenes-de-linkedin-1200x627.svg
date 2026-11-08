@@ -27,7 +27,7 @@
   </g>
   <g font-family="Inter, sans-serif" font-size="23" fill="#5b616b">
     <text x="56" y="400">Das Team arbeitet jetzt an sieben Tagen pro Woche.</text>
-    <text x="56" y="430">Ein Mensch mergt weiterhin jede Änderung.</text>
+    <text x="56" y="430">Unser Gründer entscheidet über jeden Merge.</text>
   </g>
 
   <rect x="56" y="462" width="395" height="34" rx="6" fill="none" stroke="#b4541a" stroke-width="1.5"/>
