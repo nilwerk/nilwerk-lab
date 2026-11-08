@@ -8,7 +8,7 @@
 <text x="72" y="310" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="80" letter-spacing="-2.4" fill="#15181d">Five builds.</text>
 <text x="72" y="392" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="80" letter-spacing="-2.4" fill="#15181d">Two merged.</text>
 <text x="72" y="474" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="80" letter-spacing="-2.4" fill="#0f7a5c">Review comes first.</text>
-<text x="72" y="540" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#5b616b">Each build is checked by a second agent and tested by a</text>
+<text x="72" y="540" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#5b616b">These five were checked by a second agent and tested by a</text>
 <text x="72" y="580" font-family="Inter, sans-serif" font-weight="400" font-size="30" fill="#5b616b">third. Merging is the founder&#x27;s call.</text>
 <rect x="72" y="620" width="936" height="400" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
 <text x="640" y="660" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="17" letter-spacing="0.4" text-anchor="middle" fill="#5b616b">BUILT</text>

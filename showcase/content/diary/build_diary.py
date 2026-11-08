@@ -244,8 +244,8 @@ def tracker(lang, theme="light"):
     sizes = (80, 80, 80) if en else (76, 76, 60)
     for i, (t, col) in enumerate(zip(hl, ("var(--nw-ink)", "var(--nw-ink)", "var(--nw-accent)"))):
         b.append(T(72, 310 + i * 82, t, sizes[i], "sg", 700, col, ls=-2.4))
-    intro = ("Each build is checked by a second agent and tested by a third. Merging is the founder's call."
-             if en else "Jeden Baustein prüft ein zweiter Agent, ein dritter testet. Über die Übernahme (Merge) entscheidet der Gründer.")
+    intro = ("These five were checked by a second agent and tested by a third. Merging is the founder's call."
+             if en else "Diese fünf prüfte ein zweiter Agent, ein dritter testete. Die Übernahme entscheidet der Gründer.")
     b.append(lines_block(72, 540, wrap(intro, 30, 936, "inter"), 30, 40, "inter", 400, "var(--nw-muted)"))
     # grid
     top = 620
@@ -267,7 +267,7 @@ def tracker(lang, theme="light"):
                 b.append(f'<circle cx="{x}" cy="{cy}" r="17" fill="none" stroke="var(--nw-warn)" stroke-width="3" stroke-dasharray="6 5"/>')
     ny = top + 70 + 5 * 66 + 44
     note = ("Also merged on 8 Nov: Kai's pipeline fix, so the circuit check can run at all. Three builds wait for the founder." if en else
-            "Ebenfalls am 8. Nov übernommen: Kais Pipeline-Fix, damit die Schaltungsprüfung überhaupt laufen kann. Drei Bausteine warten auf den Gründer.")
+            "Ebenfalls übernommen: Kais Pipeline-Fix, damit die Schaltungsprüfung läuft. Drei warten auf den Gründer.")
     b.append(lines_block(72, ny, wrap(note, 26, 936, "inter"), 26, 34, "inter", 400, "var(--nw-ink)"))
     sc, _ = chip(72, 1124, f"COUNTED FROM PR STATE · AS OF 8 NOV {ASOF}" if en else f"AUS PR-STATUS GEZÄHLT · STAND 8. NOV {ASOF}", "var(--nw-warn)", 20, 44)
     b.append(sc)
