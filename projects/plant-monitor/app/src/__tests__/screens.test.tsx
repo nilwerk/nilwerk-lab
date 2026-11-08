@@ -151,6 +151,11 @@ describe('legal line (A-052, draft)', () => {
     const src = fs.readFileSync(path.resolve(__dirname, '../ui/LegalLine.tsx'), 'utf8');
     expect(src).toMatch(/DRAFT.*needs Arsany\/legal review/);
   });
+  test('source cites NFR-07 and flags the Expo push / non-EU open point (PR #55 C1, C2)', () => {
+    const src = fs.readFileSync(path.resolve(__dirname, '../ui/LegalLine.tsx'), 'utf8');
+    expect(src).toMatch(/NFR-07/);
+    expect(src).toMatch(/Expo push.*non-EU/);
+  });
 });
 
 describe('requirement citations', () => {
