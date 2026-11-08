@@ -5,5 +5,5 @@
 - Task: A-048 follow-up to 4.A2 · Persona: Leo (Full-stack Developer)
 - Requirements: FR-P04 (contact link), FR-A01 (auth state)
 - Mutants checked (each fails a test): signedOut no-op (2 tests), no getSession-rejection handler (1), wrong default address (2), old subject (1)
-- Agent minutes: ~12 (15:38 to 15:40) · Agent's own human-hour estimate: 1.5 h
+- Agent minutes: 2.8 (15:38:02 to 15:40:44, wall clock) · Agent's own human-hour estimate: 1.5 h
 - Unverified: mail client hand-off not tried on a phone or in a browser; Linking.openURL is mocked in tests. Whether a business mailbox in a consumer app needs an Impressum/privacy line is open (flagged to Arsany, no legal text added).
