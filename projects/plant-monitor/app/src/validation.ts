@@ -44,7 +44,15 @@ const tooLong = (v: string, max: number): FieldResult => (v.trim().length > max 
 
 export const validateDeviceName = (v: string): FieldResult => required(v, 'validation.deviceName.required') ?? tooLong(v, DEVICE_NAME_MAX);
 export const validateSsid = (v: string): FieldResult => required(v, 'validation.ssid.required') ?? (new TextEncoder().encode(v).length > 32 ? { key: 'validation.ssid.long' } : null);
-export const validateWifiPassword = (v: string): FieldResult => required(v, 'validation.wifiPassword.required');
+// WPA2-PSK passphrase is 8-63 characters (PR #56 C2). Not trimmed: spaces are legal. Open networks take no password (empty only).
+export const WIFI_PASSWORD_MIN = 8;
+export const WIFI_PASSWORD_MAX = 63;
+export const validateWifiPassword = (v: string, secure = true): FieldResult => {
+  if (!secure) return v === '' ? null : { key: 'validation.wifiPassword.open' };
+  if (v === '') return { key: 'validation.wifiPassword.required' };
+  const n = new TextEncoder().encode(v).length;
+  return n < WIFI_PASSWORD_MIN || n > WIFI_PASSWORD_MAX ? { key: 'validation.wifiPassword.length', params: { min: WIFI_PASSWORD_MIN, max: WIFI_PASSWORD_MAX } } : null;
+};
 export const validatePlantName = (v: string): FieldResult => required(v, 'validation.plantName.required') ?? tooLong(v, PLANT_NAME_MAX);
 export const validateArea = (v: string): FieldResult => required(v, 'validation.area.required') ?? tooLong(v, AREA_MAX);
 export const validateCity = (v: string): FieldResult => required(v, 'validation.city.required') ?? tooLong(v, CITY_MAX);
