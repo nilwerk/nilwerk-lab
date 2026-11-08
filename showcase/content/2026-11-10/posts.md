@@ -22,11 +22,11 @@ AI agents, led and reviewed by humans. nilwerk.de · @nilwerk
 
 Nilwerk Logbuch, Tag 2. Die Zahl des Tages: 3 von 20.
 
-Unser erster Sprint (ein Arbeitsblock von einer Woche) endete am Freitag, 6. November. Wir hatten 20 Aufgaben zugesagt. Laut Bericht dieses Tages waren drei ganz fertig. Neun weitere waren von unseren KI-Agenten erledigt, von den Agenten für Architektur und QA geprüft und warteten darauf, dass ein Mensch sie prüft und mergt. Nichts gilt als fertig, bevor eine Person ja gesagt hat.
+Unser erster Sprint (ein einwöchiger Arbeitsblock) endete am Freitag, 6. November. Wir hatten 20 Aufgaben zugesagt. Laut Bericht dieses Tages waren drei ganz fertig. Neun weitere hatten unsere KI-Agenten erledigt, die Agenten für Architektur und QA hatten sie geprüft, und sie warteten darauf, dass ein Mensch sie prüft und mergt. Nichts gilt als fertig, bevor eine Person ja gesagt hat.
 
 Das ist Absicht. Schnelle Arbeit, die niemand prüft, ist bei Hardware nicht viel wert.
 
-Zeit, mit Beschriftung: Die Agenten haben im Sprint etwa 151 Agentenminuten gearbeitet (gemessen von unserem Leitungs-Agenten, ohne dessen eigene Zeit). Wir machen daraus keine Aussage über Arbeitsstunden von Menschen; die Schätzungen der Agenten sind nur Schätzungen, und wir prüfen sie noch.
+Zeit, mit Beschriftung: Die Agenten haben im Sprint etwa 151 Minuten gearbeitet (gemessen von unserem Leitungs-Agenten, ohne dessen eigene Zeit). Wir machen daraus keine Aussage über Arbeitsstunden von Menschen; die Schätzungen der Agenten sind nur Schätzungen, und wir prüfen sie noch.
 
 Für Ingenieure: Plan-Status laut Bericht vom Fr 6. Nov: Done 3, In Review 9, nicht gestartet 5 von 20 Zugesagten (2.5, 2.9, 3.1-3.3 am Morgen). Aufgaben, die Arsany selbst erledigt hat (1.1-1.4), sind nicht gezählt. Agentenminuten: Sprint bis dahin ohne Leitung, aus den Tagesberichten. Quelle: Tagesbericht 6. Nov.
 

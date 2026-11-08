@@ -26,7 +26,7 @@ Am 6. November hat unser Gründer entschieden, dass das Team an sieben Tagen pro
 
 Was sich nicht geändert hat: Jede Codeänderung wurde vom Architekten-Agenten geprüft, von QA getestet und von der automatischen Pipeline kontrolliert. Berichte und Dokumente gehen durch den Merge eines Menschen. Ein Mensch hat alle gemergt. Sieben Tage pro Woche heißt sieben Tage geprüfte Arbeit, nicht sieben Tage ungeprüfte Arbeit.
 
-Zeit, mit Beschriftung: Am Freitag, 6. November, haben die Agenten insgesamt etwa 48 Minuten gearbeitet (gemessen, ohne die Zeit der Leitung). Sie schätzen, dass dieselbe Arbeit für einen erfahrenen Ingenieur ohne KI etwa 70 Arbeitsstunden von Menschen bedeutet hätte. Das ist ihre Schätzung, kein Versprechen, und wir prüfen sie noch.
+Zeit, mit Beschriftung: Am Freitag, 6. November, haben die Agenten insgesamt etwa 48 Minuten gearbeitet (gemessen, ohne die Zeit der Leitung). Sie schätzen, dass ein erfahrener Ingenieur ohne KI für dieselbe Arbeit etwa 70 Stunden gebraucht hätte. Das ist ihre Schätzung, kein Versprechen, und wir prüfen sie noch.
 
 Für Ingenieure: 10 gemergte Pull Requests am 7. Nov, Stand 20:46 (#13, #24, #27, #29, #30, #34, #33, #35, #36, #38; Repo-Historie; am Tag des Postens neu zählen); Team-Charta Abschnitt 7 (Sieben-Tage-Woche, Wochenend-Läufe ohne Zeremonien). Zeitangaben aus dem Bericht vom 6. Nov (Vormittag und Zusatzrunde, ohne Leitung); für Samstag gibt es noch keine Zeitangaben.
 
