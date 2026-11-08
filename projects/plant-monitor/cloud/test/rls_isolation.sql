@@ -112,6 +112,18 @@ do $$ declare b text := '00000000-0000-0000-0000-00000000000b'; pb text := '1000
   end loop;
   raise notice 'write ok  forged inserts refused on all 14 tables';
 end $$;
+-- N2 (PR #45): A may not point A's own device at B's plant (devices_update_own with check), but may use/clear its own plant link
+do $$ declare n int; begin
+  begin
+    update public.devices set plant_id = '10000000-0000-0000-0000-00000000000b' where id = '20000000-0000-0000-0000-00000000000a';
+    raise exception 'A pointed its device at B plant';
+  exception when insufficient_privilege then null; end;   -- 42501 new row violates row-level security policy
+  update public.devices set plant_id = null where id = '20000000-0000-0000-0000-00000000000a'; get diagnostics n = row_count;
+  if n <> 1 then raise exception 'A cannot clear its own plant link (%)', n; end if;
+  update public.devices set plant_id = '10000000-0000-0000-0000-00000000000a' where id = '20000000-0000-0000-0000-00000000000a'; get diagnostics n = row_count;
+  if n <> 1 then raise exception 'A cannot set its own plant link (%)', n; end if;
+  raise notice 'write ok  devices.plant_id: A cannot point its device at B plant; own plant and null allowed';
+end $$;
 -- A may not even call B's delete_plant, and cannot grant itself premium (FR-P04)
 do $$ begin
   begin perform public.delete_plant('10000000-0000-0000-0000-00000000000b'); raise exception 'A deleted B plant';
@@ -123,6 +135,7 @@ reset role;
 do $$ declare n int; begin
   select count(*) into n from public.plants where owner_id = '00000000-0000-0000-0000-00000000000b'; if n <> 1 then raise exception 'B plant changed'; end if;
   select count(*) into n from public.readings where owner_id = '00000000-0000-0000-0000-00000000000b'; if n <> 288 then raise exception 'B readings changed (%)', n; end if;
+  select count(*) into n from public.devices where owner_id = '00000000-0000-0000-0000-00000000000a' and plant_id = '10000000-0000-0000-0000-00000000000b'; if n <> 0 then raise exception 'A device points at B plant'; end if;
   select count(*) into n from public.firmware_releases; if n <> 1 then raise exception 'firmware changed'; end if;
 end $$;
 \echo RLS ISOLATION OK

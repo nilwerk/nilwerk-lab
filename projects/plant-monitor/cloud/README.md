@@ -1,4 +1,4 @@
-# Plant Monitor cloud backend (task 4.B1)
+# Plant Monitor cloud backend (tasks 4.B1, 4.B2)
 
 Supabase scaffold implementing the merged 2.4 contract. **Source of truth for the schema:**
 [`../docs/interfaces/db-schema.sql`](../docs/interfaces/db-schema.sql) (+ `openapi.yaml`). Migration 1 is a verbatim copy; `test.sh` fails on drift.
@@ -12,6 +12,20 @@ Supabase scaffold implementing the merged 2.4 contract. **Source of truth for th
 | `supabase/seed.sql` | local fake data: user A (free), user B (premium), one row per table |
 | `test.sh`, `test/` | CI-friendly tests (below) |
 
+## Edge functions (task 4.B2: device claim + ingest)
+TypeScript, no npm dependencies (Deno on Supabase, Node 22.6+ for tests). Contract: [`../docs/interfaces/openapi.yaml`](../docs/interfaces/openapi.yaml) + `device-report.schema.json`.
+
+| Function | Path | Caller | Does | Requirements |
+|---|---|---|---|---|
+| `claim-token` | `POST /claim-token` | app, user JWT | one-time claim token (16 bytes, 15 min, single use, SHA-256 stored, max 10 open) | FR-D03, FR-A03, FR-A02, NFR-06 |
+| `device-claim` | `POST /device-claim` | sensor | claim token -> device row + per-device token (32 bytes hex, shown once, **SHA-256 stored**) | FR-D03, FR-A03, FR-A08, NFR-06 |
+| `ingest` | `POST /ingest` | sensor, bearer device token | up to 192 buffered samples (96 = 24 h offline, FR-D04) + events; idempotent on (device, ts); returns time, config | FR-D01, FR-D02, FR-D04, FR-A07, FR-E03, NFR-04, NFR-06 |
+
+* `supabase/functions/_shared/lib.ts` hashing + report validation, `handlers.ts` request logic, `supabase.ts` the only Supabase-specific file, `<name>/index.ts` Deno entry points.
+* The data logic is in SQL (`migrations/20261108000004_device_api.sql`: `issue_claim_token`, `device_claim`, `ingest_batch`, `device_config`), executable by `service_role` only. The edge functions pass SHA-256 digests, never plaintext tokens. A caller never names a device: the device is the owner of the token (device A cannot write device B).
+* **Not built** (marked `[not in 4.B2]` in the OpenAPI): rate limits (429 on `/ingest`, `/device-claim`), push dispatch, OTA manifest (`fw_target`/`model_target` are always `null`), `/device-release`, other app endpoints. Tips, analytics, MCP are 4.B3-4.B5.
+* Batch size: the contract (schema, ADR-013) allows 192 samples per request; the task text said 96. 96 (24 h of buffer, FR-D04) is accepted, 193+ gets 413.
+
 ## Run the tests (no Docker, no account)
 ```bash
 projects/plant-monitor/cloud/test.sh                  # starts a throw-away local PostgreSQL 15+, needs initdb/pg_ctl/psql
@@ -19,7 +33,8 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres projects/plant
 ```
 It checks: migration 1 == 2.4 schema file; RLS enabled on every table and user A cannot read, update, delete or forge
 rows of user B on each table (`test/rls_isolation.sql`); retention/roll-up (`test/retention.sql`, A-028: raw ~3 months,
-hourly roll-up 12 months); the Architect's `db-schema.test.sql` on the migrated DB. A stub `auth` schema and the roles
+hourly roll-up 12 months); the Architect's `db-schema.test.sql` on the migrated DB; the edge functions end to end against that DB (`test/functions/api.test.ts`: claim, hash-only storage, 96-sample batch, replay idempotency, token isolation A vs B, revoked/released tokens, API roles locked out of the functions); `test/openapi_check.py` (code == OpenAPI; needs PyYAML) and Node >= 22.6.
+`test/mutation.sh` is the mutation check: 17 one-line mutants of the token-hash, auth, claim and idempotency logic, each must make the tests fail (`NW_ONLY=api test.sh` is its quick mode). A stub `auth` schema and the roles
 `anon/authenticated/service_role` replace what Supabase provides (`test/stub_auth.sql`, `test/grants.sql`).
 
 ## Run the full stack locally
@@ -32,9 +47,7 @@ Needs Docker and the [Supabase CLI](https://supabase.com/docs/guides/cli): `cd p
 
 ## Production (not done here)
 One free Supabase project in an EU region (A-025 zero-cost rule, NFR-07), e.g. Frankfurt. Creating it, enabling `pg_cron`
-and pushing migrations is Arsany's step (account, terms). Secrets by name only: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
-`SUPABASE_SERVICE_ROLE_KEY` (GitHub/Supabase secrets, never committed). After pushing migrations run `select jobname, schedule from cron.job;` and expect `nw-offline-scan`, `nw-rollup`, `nw-retention`. Free tier pauses on inactivity (unverified, see `docs/stack-and-costs.md`).
+and pushing migrations is Arsany's step (account, terms). Secrets by name only (A-035, new Supabase key model): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (replaces the anon key), `SUPABASE_SECRET_KEY` (replaces the service-role key). They are read from the environment only (`supabase/functions/_shared/supabase.ts`), never committed. **Unverified:** whether the hosted function runtime injects these three names itself or `supabase secrets set` refuses the `SUPABASE_` prefix (then set them under other names and map them in `supabase.ts`); check on the first deploy. Deploying the functions (`supabase functions deploy ingest device-claim claim-token`) is Arsany's step; the code was never run against a live project. After pushing migrations run `select jobname, schedule from cron.job;` and expect `nw-offline-scan`, `nw-rollup`, `nw-retention`. Free tier pauses on inactivity (unverified, see `docs/stack-and-costs.md`).
 
 ## Not here yet
-Edge functions / ingest + claim API (4.B2), auth UI, deployment. No `package.json` on purpose: its presence switches on the CI
-`cloud` job, which applies migrations to a plain Postgres without the `auth` schema and would fail (see PR note; Kai to wire `test.sh` into CI).
+Auth UI, deployment, rate limits, OTA manifest, `/device-release` and the remaining app endpoints. No `package.json` in `cloud/` on purpose: its presence switches on the CI `cloud` job, which applies migrations to a plain Postgres without the `auth` schema and would fail; the `cloud-db` job runs `test.sh`, which now also runs the edge function tests.
