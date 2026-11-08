@@ -13,7 +13,7 @@ Layout is 4.P2 and not started. Nothing was ordered.
 |---|---|
 | KiCad ERC (`kicad-cli sch erc`) | Runs in CI (job `pcb`, KiCad 9 container) on every push of this PR; not available in the agent session. 0 violations on 00edafe; the result for the A-045 head is in the PR report. |
 | `python3 -I check_netlist.py` | all PASS (nets rebuilt from the file = model, no unconnected pin, no 1-pin net, BOM draft lcsc/qty = schematic, R9, strap pins, sleep sum) |
-| Simulations (LDO dropout, divider, soil, charger, inrush) | **NOT RUN.** `ngspice` is not installed in this session and could not be installed (`pip` has no package). The LDO dropout limit is only a hand estimate, see "Fix round". |
+| Simulations | **LDO dropout: RUN** (ngspice 42 via `apt-get install ngspice`, `sim/ldo_dropout.py`, `sim/ldo_dropout.png`): V(3V3) stays >= 3.05 V in every modelled case at the 3.4 V warning point (limit 3.0 V = VDD33 min), fails at <= 3.3 V cell with 0.30 ohm / pessimistic dropout, see `layout-brief.md` section 6. Divider, soil front end, charger thresholds, USB inrush: **NOT RUN.** |
 
 ## Charge current R9 (A-034 decided 2026-11-08)
 
@@ -53,6 +53,7 @@ All BOM lines match by LCSC number and quantity, except: **added** R13, R14 (4.7
 | C2 pins | Read from the LCSC-linked datasheets: **U2** XC6220 SOT-25 (VIN 1, VSS 2, CE 3, NC 4, VOUT 5), **U4** DW01A (1 OD, 2 VM = CS, 3 OC, 4 TD, 5 VCC, 6 GND), **Q1** 8205A TSSOP-8 (package drawing: 1 D1, 2-3 S1, 4 G1, 5 G2, 6-7 S2, 8 D2; no numbered table in the datasheet, read from the drawing), **U6** BH1750 (1 VCC, 2 ADDR, 3 GND, 4 SDA, 5 DVI, 6 SCL), **J1** HRO TYPE-C-31-M-12 (signal-to-pad table; shield pad numbers belong to the footprint). Also checked: U3 TP4056 (1 TEMP, 2 PROG, 3 GND, 4 VCC, 5 BAT, 6 STDBY, 7 CHRG, 8 CE), U7 SN74LVC1G14 DBV (1 NC, 2 A, 3 GND, 4 Y, 5 VCC), D1 USBLC6-2SC6. All match the schematic. U1 was verified by Theo. `pin_verified=False` is gone from every part. |
 | C4 GPIO2 | R16 10k 3V3 to GPIO2 added (declared addition, BOM qty of C25804 5). |
 | C5 LDO dropout sim | **NOT RUN: ngspice unavailable.** Hand estimate only: datasheet gives 60 mV typ dropout at 300 mA (3.3 V version; the table row is ambiguous), the 3.4 V warning leaves 100 mV, so at a ~350 mA TX peak typ headroom is about 30 mV before the cell resistance drop (0.15 ohm x 0.35 A = 52 mV, assumed). That is negative margin: the rail may sag to roughly 3.25-3.3 V, which stays above the C3 brown-out level but this needs the real sim and the real cell resistance (4.P3). Do not take the estimate as a pass. LDO Iq 8 uA vs 2 uA in the budget: see open point 10. |
+| C5 follow-up 2026-11-08 | Simulated: the hand estimate's conclusion (rail below 3.3 V) is right but the limit is 3.0 V, and the margin there is +0.05 to +0.27 V at 3.4 V cell voltage (`sim/ldo_dropout.txt`). |
 | C8 caption | Corrected (6.3 agent min, PR link, persona, no ratio). |
 | C3, C6 | Decisions below, not changed. |
 
