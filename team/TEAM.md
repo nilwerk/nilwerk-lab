@@ -234,6 +234,13 @@ blocked in these sessions. Use the REST API through `gh api` instead:
 
 Before pushing from a shallow clone, run `git fetch origin main` first so the push stays small.
 
+**Git worktrees and branches (binding, A-055, Arsany 2026-11-08):**
+- Every agent works in its OWN git worktree from its first git command (`git fetch origin && git worktree add -b <branch> <own dir> origin/main`). Never check out, edit or commit in the shared clone.
+- Push with `git push origin HEAD:refs/heads/<branch>`: fast-forward only, never force.
+- Before opening or continuing a task branch, list `origin/agent/*/<task-id>` for every role prefix to avoid duplicates (two Lead sessions produced a duplicate 4.B2 on 2026-11-08).
+- Before reporting, verify `git log origin/main..origin/<branch>` shows only your own commits.
+- Stacked PRs state their merge order in the description and are retargeted to `main` after the parent merges.
+
 ## 12. Peter — our human HW integrator & tester
 
 Peter Joseph Garas is a **fresh graduate** working freelance from Egypt. He does the hands-on hardware work

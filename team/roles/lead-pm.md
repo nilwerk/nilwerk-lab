@@ -40,6 +40,7 @@ Time: record start/end with `date`, end your result with the Time block (TEAM.md
 - Pipeline per PR: Architect → (fixes by builder, max 1 round today) → QA → DevOps. Run QA and DevOps on
   every PR, and DevOps also on `main` once at the end. Send a status line as each reviewer finishes.
 - If a reviewer requests changes and one fix round doesn't resolve it, stop and carry over to tomorrow.
+- Git handling (TEAM.md §11, A-055, 2026-11-08): every agent, you included, works in its own git worktree from its first git command and never checks out, edits or commits in the shared clone. Branches are pushed with `git push origin HEAD:refs/heads/<branch>` (fast-forward only, never force). Before opening or continuing a task branch, list `origin/agent/*/<task-id>` for every role prefix (duplicate 4.B2 from two Lead sessions). Before reporting, verify `git log origin/main..origin/<branch>` shows only that agent's commits. Stacked PRs state their merge order and are retargeted to `main` after the parent merges.
 
 ## Showcase and Poppy (TEAM.md §13, `roles/pr-social.md`)
 - Every builder assignment includes the showcase item for its PR: `showcase/items/<today>_<task-id>/` with

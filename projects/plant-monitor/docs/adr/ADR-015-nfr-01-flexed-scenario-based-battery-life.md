@@ -15,14 +15,17 @@ NFR-01 was a single pass/fail figure: projected life >= 3 months (2190 h) = 0.8 
 4. **Pass/fail:** PASS if best >= 2190 h **and** typical >= 2190 h **and** worst > 730 h. Any one failing is a FAIL; the report states all three numbers.
 5. **Cell choice:** the verdict still uses the rated minimum of the cell actually fitted.
 
-## Consequences on existing figures (estimates, unverified currents)
-| Cell (minimum mAh) | best | typical | worst | NFR-01 new rule |
+## Consequences on existing figures (months; estimates, unverified currents)
+
+| Cell (minimum mAh), basis | best | typical | worst | NFR-01 new rule |
 |---|---|---|---|---|
-| EEMB LP603449 (1000) | 12.8 | 4.5 | 1.4 | PASS (worst margin 1.4x over 1 month) |
+| EEMB LP603449 (1000), as-built sleep (A-045), the decided cell | 11.0 | 4.3 | 1.36 | PASS (worst margin 1.36x over 1 month) |
+| EEMB LP603449 (1000), model baseline (section 4 sleep currents) | 12.8 | 4.5 | 1.4 | PASS (worst margin 1.4x) |
 | Jauch LP603443JU (850) | 10.8 | 3.8 | 1.2 | PASS (worst margin 1.2x, thin) |
 | Jauch LP503030JU (430) | 5.5 | 1.9 | 0.6 | **FAIL** (typical < 3, worst < 1); the flex does not rescue it |
 
-Update 2026-11-08 (after PR #41): the cell is now fixed and ordered by Arsany, EEMB LP603449-PCM (A-034, `hardware/bom/cell-decision-A034.md`). The table row above is the decided cell; the verdict table in `power-budget.md` section 1 now also shows an "as-built sleep" basis (A-045).
+Update 2026-11-08 (after PR #41): the cell is now fixed and ordered by Arsany, EEMB LP603449-PCM (A-034, `hardware/bom/cell-decision-A034.md`). The first row is the as-built set (11.0 / 4.3 / 1.36 months, same as the "as-built sleep" rows in `power-budget.md` section 1, A-045); the 12.8 / 4.5 / 1.4 set quoted in the Context is the model-baseline row. The Jauch rows are baseline-model figures.
+
 The flex only changes the worst-case row. It does not lower the typical-case bar, so cell sizing (A-034) is not relaxed. The worst case being only 1.2 to 1.4x over the new line means the worst-case measurement in 5.4 must be done honestly; a weaker result than the estimate is a real risk (R-02 stays open).
 
 ## Alternatives
