@@ -63,6 +63,18 @@ Slopes over 1 h / 6 h / 24 h and time of day are the features the Requirements a
 | Targets | Wetting recall >= 95 %, fault recall >= 90 % on held-out public data (FR-E02). False alerts: FR-E02 allows at most 1 per week per unit. At 672 ticks per week this means a per-tick false-positive rate below about 0.15 % at the decision threshold. For the fast-path classes there is no debounce to lean on, so this budget is carried by `p_fast` alone: `p_fast` is raised on validation until the held-out normal data meets it, and the recall cost of that is reported. On-unit confirmation needs the bench (4.AI3) |
 | Baseline | Rule detector: wetting if `m` rises by at least 8 points within 1 h; fault if the value is constant for 2 h or jumps more than 40 points in one tick; no rule for fast drying or waterlogging beyond fixed thresholds. The model must match or beat the rules on recall at equal false-alert rate; otherwise the rules ship (section 7) |
 
+**Delta as built (task 4.AI2, review C4; the table above is the plan, this is what exists).** The first trained Model B differs from the specification above and the contract change is recorded here, not silent:
+
+| Item | Concept 2.3 | Built in 4.AI2 | Reason |
+|---|---|---|---|
+| Classes | 6 | 2 (normal, wetting) | only wetting has real labels (A-032); fault and out-of-soil have no real positives; fast drying and waterlogged are weak labels outside the FR-E02 claim |
+| Inputs | 24 ticks x 4 channels + 3 scalars = 99 int8 | 8 ticks x 2 channels (moisture only: `m` minus `m` 15 min ago, `m` minus `m` 1 h ago) + 2 scalars (`m_now`, slope over the window) = 18 int8 | moisture only in this slice (temperature, light and hours-since-wetting not used; the sensor has no light in public data, see data card) |
+| Window | 24 ticks (6 h) | 8 ticks (2 h) | a window needs consecutive valid samples; with 12 consecutive valid samples 15 of 32 val and 20 of 40 test positives stay scorable; a 28-tick context would keep only 11 val / 12 test |
+| Network | 1D conv, dense 6 | MLP 18 -> 16 -> 8 -> 2 | fewer TFLM ops, 3,664 B flatbuffer |
+| FR-E02 | recall >= 95 % at <= 1 FA/unit-week | not met: int8 40 % test (8/20, 0.52 FA/wk); float 35 % | see `ml/reports/model-b-wetting-v0.md`; labels are circular, scorable positives few |
+
+Next slice (gap-tolerant windows, pooled event-level cross-validation) may move the window or the input count again; any change updates this table.
+
 ### 2.4 Cross-cutting
 
 - **Critical events** (confirmed by Arsany, PR #4, open item 8). A critical event wakes Wi-Fi at once and sends an immediate report (FR-E03, FR-A07). Everything else rides along with the hourly report (FR-D02). When Wi-Fi is down, results are stored with the readings (FR-D04). The set, so that FR-A07 is testable:
@@ -215,3 +227,55 @@ Owner answers from Arsany's inline comment on PR #4 are recorded below (quotes a
 6. Data for tasks: 4.AI1 uses sections 4 and 5; 4.AI2 uses sections 2 and 7; 4.AI3 and the bench procedure use FR-E03/E04. **Confirmed by Arsany (ok)**.
 7. **FR-E03: confirmed.** Arsany answered "yes to both": FR-E03 reads "<= 15 min after the first tick that observes the event", and applies to the fast-path classes (wetting, out of soil, sensor fault) only. The test uses this wording. **Requirements text still needs correction before v1.0.**
 8. **Critical-event set, "unexpected wetting" rule and rate limit (one critical wake per class per 6 h): confirmed by Arsany (ok).** [proposed] tags removed in 2.4; the alert names remain Theo's to finalise in the schema.
+
+## 9. A-047 plan (Arsany, 2026-11-08): continue Model B time-boxed, ship the rule detector for alerts
+
+Status: **plan only, no training work started** (Mira, 2026-11-08). Source: Arsany answered A-047 with "approve Theo's recommendation". Reading of the answer:
+
+- **Model B continues, time-boxed, WITHOUT more tuning on this split.** The Mendeley train/val/test split, the A-032 labels, the ignore pad (4), window features, seed 0 as the reported seed and the decision rule (`p_fast` chosen on VAL only) stay as they are in `ml/reports/model-b-wetting-v0.md`. No re-tuning of `p_fast`, the rule threshold, the architecture or the window on val/test to improve the numbers. Steps 1 and 2 change how events are counted and how uncertainty is measured; they do not search for a better model on the same split.
+- **The debounced rule detector ships on device for alerts**, labelled **"not FR-E02 compliant"** everywhere it is described (firmware README, PR text, app/alert copy notes, release notes, acceptance matrix row). Reason: the measured model and rule both miss FR-E02 (int8 wetting recall 40 % on TEST at 0.52 false alerts per unit-week; rule 80 % at 25 per unit-week, see `ml/reports/model-b-wetting-v0.md`).
+- **Waiver versus a second data source stays a G5 decision for Arsany.** Nothing in this plan marks FR-E02 as met or waived.
+
+The four steps below are independent boxes of **at most 1 working day each**. Order: A first (device value, no dependency), 1 then 2 (data side), 3 needs the bench. A box that hits its stop criterion is closed with the evidence it has; it is not extended without a new answer from Arsany.
+
+### Step A: debounced rule detector on device (alerts), 4.AI3 / 4.F* slice
+| Item | Content |
+|---|---|
+| Goal | Port `features.EventTracker` plus an N-of-M debounce to plain C in `firmware/components/edge_ai/`, emit the wetting alert through the existing critical-event path (2.4, one critical wake per class per 6 h) |
+| Fixed before any measurement | Rule = rise >= 8 points within 1 h (concept 2.3 baseline row), debounce **2 of 3** ticks, per-device quiet period after a wetting event as in section 7. These are written down now so they are not tuned on the evaluation split |
+| Done when | Host unit tests pass (golden vectors Python vs C, debounce edge cases, quiet period, state kept across deep sleep: counters and last values in RTC/NVS); worst-case alert latency stated in the PR; every user-visible string and doc line carries "not FR-E02 compliant" |
+| Latency note | 2-of-3 adds up to 30 min after the first observing tick on top of the hourly report path, so this alert **does not meet FR-E03 either** (<= 15 min); say so in the same label. A single-tick variant would meet FR-E03 but raises false alerts (rule at 8 points per hour: 24.89 per unit-week on TEST) |
+| Stop criterion | 1 day. Stop and report if the debounced rule does not fit the 30 KB / 20 KB budget with the model removed, or if the C port cannot reproduce the Python outputs bit-exactly on the golden vectors |
+| Evidence that ends the box | Host test output, flash/RAM size line, golden-vector pass, label present in the PR diff. Real alert rate on units is NOT claimed; it comes from the bench in step 3 |
+
+### Step 1: gap-tolerant windows (4.AI2 slice 2)
+| Item | Content |
+|---|---|
+| Goal | Today a window needs 12 consecutive valid samples, so only 15 of 32 (val) and 20 of 40 (test) positives are scorable. Allow short gaps inside a window (a validity flag per tick plus carry-forward of the last valid value, maximum gap length fixed up front, proposed 2 ticks) so more of the real positives are counted |
+| Fixed before any measurement | Maximum gap length and fill rule (carry-forward, with the gap flag as an input) written into the report header before running; one setting, no sweep over gap lengths |
+| Rule for the metric | Same A-032 mask, via the single helper `ml/src/evaluate.py::wetting_usable`; scorable = usable AND a (gap-tolerant) window exists. Report scorable counts next to the data card counts |
+| Stop criterion | 1 day. Stop if scorable positives on VAL + TEST together stay below 50 of 72 (today 35 of 72), because then the interval width does not improve enough to matter |
+| Evidence that ends the box | New scorable counts per split, one retrain at the frozen settings, per-class table in the same format as v0 with Wilson intervals. No claim about FR-E02 from this step alone |
+
+### Step 2: pooled event-level cross-validation (4.AI2 slice 3)
+| Item | Content |
+|---|---|
+| Goal | Replace three single-split numbers (15 / 20 positives) by one pooled estimate: leave-segment-out folds (segments, never ticks, never across a sector boundary), all held-out positives pooled across folds, event-level counting (one onset = one event, as `evaluate.wetting_precision_recall`), model and rule at their frozen settings, no per-fold tuning of `p_fast` beyond the VAL rule already in `choose_p_fast` applied to the training part of each fold |
+| Report | Pooled wetting recall with Wilson 95 % interval, false alerts per unit-week, the rule curve at equal false-alert rate (the full sweep, as in `rule_sweep.py`), and the 2-of-3 debounced rule from step A replayed offline (replay only, parameters unchanged), **single-tick versus 2-of-3 side by side** (Theo C2): recall (Wilson 95 % interval) and false alerts per unit-week for both, same folds, same events, one table. If 2-of-3 gives **less than a halving** of the false alerts per unit-week, the report says in one sentence that its extra latency (up to 2 ticks late, section 9 Step A) is not buying anything. No tuning of N-of-M on the split. Unit-week is defined below |
+| Stop criterion | 1 day. Stop and report if the folds cannot be built with at least 3 held-out segments with positives each |
+| Evidence that ends the box (decision rule written now) | (a) Pooled recall at <= 1 false alert per unit-week has an interval whose **upper bound is below 95 %**: FR-E02 is not reachable on this data; stop Model B work on Mendeley, hand the evidence to G5 (waiver or second data source). (b) The interval is too wide to say (width > 25 points): same hand-off, stating that this dataset cannot decide it. (c) Upper bound >= 95 % and lower bound above the rule at equal false-alert rate: record it, continue to step 3, still no tuning. (d) Upper bound >= 95 % but the lower bound is NOT above the rule at equal false-alert rate (Theo C2 gap): outcome is **"undecided -> G5"**; hand the evidence to G5 (waiver or second data source, Arsany) and do not continue to step 3 on the strength of this step. In every case the box closes after this report |
+
+**Unit-week for the Mendeley data (used in Step 2 rule (a) and in every FA/unit-week number).** One unit = one probe series (one plant/sector) at 15-min ticks, so **1 unit-week = 672 scored negative ticks** (`TICKS_PER_WEEK = 672`, `ml/src/train.py:39`; the existing figure is `false_alerts / (negative_ticks / 672)`, `train.py:138`). Conversion: a segment with `n_neg` scorable negative ticks contributes `n_neg / 672` unit-weeks, summed over all held-out segments and folds; only usable (A-032 mask, `evaluate.wetting_usable`) AND scorable ticks count, so gaps, ignore ticks and unscorable windows add no unit-weeks (a segment with a 3-day hole counts 4 days, not 7). The false-alert numerator is **ticks** for the v0 tick-level numbers and **events** (one onset = one alert, refractory as in `evaluate.wetting_precision_recall`) for Step 2; each table says which. The two are not comparable (the 24.89 per unit-week above is tick-level). Caveat: sectors that share weather/irrigation are not independent units; unit-weeks are an exposure measure, not an independent-sample count, so the interval on the false-alert rate is not claimed to be a Wilson-type bound.
+
+### Step 3: real watering recall on bench data (4.AI3, needs Peter / Arsany)
+| Item | Content |
+|---|---|
+| Goal | Labels on the real data are circular (the onset label is itself a rise rule), so recall there measures agreement with the label. The honest number needs real waterings with a hand-kept log (time, amount, probe) on our own units |
+| Inputs | A bench procedure and a work order drafted by Mira, checked by Theo, issued by Nora (TEAM.md section 12); firmware from step A on units; at least 3 units, at least 30 logged waterings in total, plus a no-watering period for false alerts (the 48 h x 3 units soak of the acceptance matrix row FR-E02 is the minimum) |
+| Stop criterion | 1 day of Mira's analysis once the logs exist; the bench itself is Peter's time box. Stop waiting after 7 days without logs and report the gap to Arsany |
+| Evidence that ends the box | Table: logged waterings, alerts raised, matched (tolerance one tick), missed, false alerts per unit-week, with intervals; reported for the rule (step A) and, if it was part of step 2 (c), the model. Statement that the on-chip latency and RAM numbers were taken on the board (or "not run") |
+
+### What this plan does not do
+- It does not train anything today and does not change any metric in the v0 report.
+- It does not mark FR-E02 as met, waived or accepted. The traceability row says "NOT MET"; the G5 choice between a written waiver and a second data source (ISMN or our own) stays with Arsany and uses the evidence from steps 2 and 3.
+- It does not change requirements. Theo (delta review, C1): the acceptance matrix rows FR-E02 and FR-E03 now carry the shipped-alert label (added in this branch, Theo checks the wording); both rows stay NOT MET until G5. Ines carries the same label into the test report.
