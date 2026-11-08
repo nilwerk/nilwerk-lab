@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "filename": "plant-monitor.kicad_pro",
+    "version": 3
+  },
+  "board": {},
+  "libraries": {
+    "pinned_symbol_libs": []
+  },
+  "schematic": {
+    "drawing": {
+      "default_line_thickness": 6.0
+    }
+  },
+  "sheets": [
+    [
+      "f252dcbb-a5ca-50ca-867e-c53af1e704a7",
+      "Root"
+    ]
+  ]
+}
