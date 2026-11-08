@@ -200,14 +200,23 @@ jobs:
     needs: detect
     if: needs.detect.outputs.pcb == 'true'
     runs-on: ubuntu-latest
-    container: kicad/kicad:9.0
+    container:
+      image: kicad/kicad:9.0
+      # The kicad image runs as a non-root user (uid 1000) that cannot write the runner's
+      # /__w/_temp files, so actions/checkout fails with EACCES. Run as root instead.
+      options: --user root
     steps:
       - uses: actions/checkout@v4
       - name: ERC / DRC and fabrication exports
         working-directory: projects/plant-monitor/pcb
+        shell: bash
         run: |
           set -e
+          shopt -s nullglob
           mkdir -p out
+          # A project file exists (detect gate), so a schematic must too: fail loudly instead of skipping ERC.
+          ls *.kicad_sch >/dev/null || { echo "::error::no .kicad_sch next to the .kicad_pro, ERC cannot run"; exit 1; }
+          [ -n "$(echo *.kicad_pcb)" ] || echo "No .kicad_pcb yet: DRC and board exports skipped (ERC and schematic exports still run)."
           for s in *.kicad_sch; do kicad-cli sch erc --severity-error --exit-code-violations -o out/erc.rpt "$s" || { cat out/erc.rpt; exit 1; }; break; done
           for b in *.kicad_pcb; do
             kicad-cli pcb drc --severity-error --exit-code-violations -o out/drc.rpt "$b" || { cat out/drc.rpt; exit 1; }
@@ -218,6 +227,7 @@ jobs:
           done
           for s in *.kicad_sch; do kicad-cli sch export pdf -o out/schematic.pdf "$s"; kicad-cli sch export bom -o out/bom.csv "$s"; break; done
       - uses: actions/upload-artifact@v4
+        if: always()   # keep erc.rpt / drc.rpt when ERC or DRC fails
         with:
           name: pcb-fab
           path: projects/plant-monitor/pcb/out

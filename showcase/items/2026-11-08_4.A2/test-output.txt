@@ -1,0 +1,10 @@
+$ npm run typecheck
+> tsc --noEmit
+
+
+$ npx jest --verbose
+Test Suites: 5 passed, 5 total
+Tests:       54 passed, 54 total
+Snapshots:   0 total
+Time:        1.818 s, estimated 8 s
+Ran all test suites.
