@@ -63,6 +63,18 @@ Slopes over 1 h / 6 h / 24 h and time of day are the features the Requirements a
 | Targets | Wetting recall >= 95 %, fault recall >= 90 % on held-out public data (FR-E02). False alerts: FR-E02 allows at most 1 per week per unit. At 672 ticks per week this means a per-tick false-positive rate below about 0.15 % at the decision threshold. For the fast-path classes there is no debounce to lean on, so this budget is carried by `p_fast` alone: `p_fast` is raised on validation until the held-out normal data meets it, and the recall cost of that is reported. On-unit confirmation needs the bench (4.AI3) |
 | Baseline | Rule detector: wetting if `m` rises by at least 8 points within 1 h; fault if the value is constant for 2 h or jumps more than 40 points in one tick; no rule for fast drying or waterlogging beyond fixed thresholds. The model must match or beat the rules on recall at equal false-alert rate; otherwise the rules ship (section 7) |
 
+**Delta as built (task 4.AI2, review C4; the table above is the plan, this is what exists).** The first trained Model B differs from the specification above and the contract change is recorded here, not silent:
+
+| Item | Concept 2.3 | Built in 4.AI2 | Reason |
+|---|---|---|---|
+| Classes | 6 | 2 (normal, wetting) | only wetting has real labels (A-032); fault and out-of-soil have no real positives; fast drying and waterlogged are weak labels outside the FR-E02 claim |
+| Inputs | 24 ticks x 4 channels + 3 scalars = 99 int8 | 8 ticks x 2 channels (moisture only: `m` minus `m` 15 min ago, `m` minus `m` 1 h ago) + 2 scalars (`m_now`, slope over the window) = 18 int8 | moisture only in this slice (temperature, light and hours-since-wetting not used; the sensor has no light in public data, see data card) |
+| Window | 24 ticks (6 h) | 8 ticks (2 h) | a window needs consecutive valid samples; with 12 consecutive valid samples 15 of 32 val and 20 of 40 test positives stay scorable; a 28-tick context would keep only 11 val / 12 test |
+| Network | 1D conv, dense 6 | MLP 18 -> 16 -> 8 -> 2 | fewer TFLM ops, 3,664 B flatbuffer |
+| FR-E02 | recall >= 95 % at <= 1 FA/unit-week | not met: int8 40 % test (8/20, 0.52 FA/wk); float 35 % | see `ml/reports/model-b-wetting-v0.md`; labels are circular, scorable positives few |
+
+Next slice (gap-tolerant windows, pooled event-level cross-validation) may move the window or the input count again; any change updates this table.
+
 ### 2.4 Cross-cutting
 
 - **Critical events** (confirmed by Arsany, PR #4, open item 8). A critical event wakes Wi-Fi at once and sends an immediate report (FR-E03, FR-A07). Everything else rides along with the hourly report (FR-D02). When Wi-Fi is down, results are stored with the readings (FR-D04). The set, so that FR-A07 is testable:

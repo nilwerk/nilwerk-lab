@@ -134,6 +134,9 @@ How this dataset is used, and what limits it:
 - **Not trained / not claimed:** sensor fault and out-of-soil (no real positives), fast drying, waterlogged (weak labels; 0 train positives; percentile constants stay frozen).
 - **Size (FR-E04):** int8 flatbuffer 3,664 B of 30 KB (measured on host); RAM estimate 334 B (activation tensors 46 B + feature ring 288 B) of 20 KB, an estimate: interpreter overhead and latency on the ESP32-C3 are not run (4.AI3).
 
+## Credits (CC BY 4.0 attribution, review C5)
+The int8 model `ml/models/` (4.AI2) is trained on this dataset. Any app, documentation or release credits list that ships it must carry: "Soil Moisture, Irrigation Actuator and Weather Dataset" by Adamo, Colizzi, Dimauro, Guerriero, Lomonte et al. (2026), Mendeley Data V2, doi:10.17632/c837v6p8ph.2, licensed CC BY 4.0 (http://creativecommons.org/licenses/by/4.0). Models trained on it were changed from the original (windowed, labelled, quantised): state that. Open for the Lead: put this line into the app/docs credits list. The legal review of commercial use is still not done (unverified).
+
 ## Known risks
 - Drip-irrigated farm, not pots; one season, one site; probe depth unknown; valve telemetry must never be a feature; fault labels are derived and noisy; recording is dense only in Aug-Sep so train/val/test are mostly late-summer vs spring-sparse; ERA5 rain/temperature are site-wide proxies.
 - Time zone of probe/valve clocks assumed equal to the weather clock.

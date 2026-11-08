@@ -59,11 +59,34 @@ No Model A network is trained in this slice. Baseline = max(0, mean train interv
 | val | 748 | 6811 | 3.46 | 0.53 | 0.53 | 744 | 4 | 0 | 0 |
 | test | 1000 | 6920 | 3.26 | 3.10 | 3.10 | 899 | 92 | 9 | 0 |
 
+## Rule baseline swept over its threshold (review C1; `scripts/rule_sweep.py`)
+
+The rule has a single parameter (rise in points over 1 h, scale 0-100). Every threshold is listed, none is picked. Wetting recall (Wilson 95 % interval) and false alerts per unit-week (FA/wk), same windows and ignore mask as above.
+
+| Rule threshold (pts/h) | VAL recall | VAL FA/wk | TEST recall | TEST FA/wk |
+|---|---|---|---|---|
+| >= 8 | 53 % (30-75) [8/15] | 17.69 | 80 % (58-92) [16/20] | 24.89 |
+| >= 10 | 53 % (30-75) [8/15] | 15.53 | 75 % (53-89) [15/20] | 21.52 |
+| >= 12 | 47 % (25-70) [7/15] | 14.08 | 70 % (48-85) [14/20] | 18.93 |
+| >= 15 | 33 % (15-58) [5/15] | 11.19 | 60 % (39-78) [12/20] | 14.78 |
+| >= 20 | 33 % (15-58) [5/15] | 8.67 | 45 % (26-66) [9/20] | 11.67 |
+| >= 25 | 33 % (15-58) [5/15] | 7.58 | 30 % (15-52) [6/20] | 9.07 |
+| >= 30 | 27 % (11-52) [4/15] | 5.78 | 20 % (8-42) [4/20] | 7.52 |
+| >= 40 | 7 % (1-30) [1/15] | 4.33 | 0 % (0-16) [0/20] | 3.63 |
+| >= 50 | 0 % (0-20) [0/15] | 2.53 | 0 % (0-16) [0/20] | 1.56 |
+| >= 60 | 0 % (0-20) [0/15] | 1.81 | 0 % (0-16) [0/20] | 0.26 |
+| >= 70 | 0 % (0-20) [0/15] | 0.72 | 0 % (0-16) [0/20] | 0.00 |
+| >= 80 | 0 % (0-20) [0/15] | 0.72 | 0 % (0-16) [0/20] | 0.00 |
+| >= 91 | 0 % (0-20) [0/15] | 0.72 | 0 % (0-16) [0/20] | 0.00 |
+| >= 100 | 0 % (0-20) [0/15] | 0.00 | 0 % (0-16) [0/20] | 0.00 |
+
+Reading: on TEST the rule finds 0 of 20 at every threshold that gives <= 1 FA/unit-week (>= 60 pts/h or higher; at 50 pts/h it is 1.56 FA/wk, still 0 of 20). Its recall rises only as the threshold falls: 30 % at 9 FA/wk, 60 % at 15 FA/wk, 80 % at 25 FA/wk. So the equal-false-alert-rate rule baseline is a degenerate threshold (it fires only on near-saturating jumps), and 'MLP vs 0 %' is a weak comparison. The fair statement is the whole curve: at <= 1 FA/unit-week the int8 MLP finds 40 % (8/20, 0.52 FA/wk) and the rule 0 %; at about 9 FA/wk the rule finds 30 %; at 25 FA/wk it finds 80 %. Neither reaches the 95 % target at <= 1 FA/wk.
+
 ## Reading this honestly (caveats that belong to every number above)
 
-- **FR-E02 is NOT met.** Target: wetting recall >= 95 % at <= 1 false alert per unit-week. At the FP budget the MLP reaches 27 % (val) and 35 % (test) recall; the rule at the same budget reaches 0 %. The rule at its natural threshold has higher recall but 18-25 false alerts per unit-week. Wetting precision and recall are the numbers to quote, never accuracy (99 %+ normal recall is the class imbalance).
+- **FR-E02 is NOT met.** Target: wetting recall >= 95 % at <= 1 false alert per unit-week. The shipped artefact is the int8 model: 27 % (val) and 40 % (test, 8/20, 0.52 FA/unit-week) recall; the float model reaches 27 % and 35 % (0.00 FA/wk). The 5-point int8-over-float difference is one event, i.e. noise, not a gain. A single-threshold rise rule with its threshold chosen on VAL at the same FP budget (>= 91 pts/h, a degenerate threshold that fires only on near-saturating jumps) finds 0 %; never read that as 'the model beats the rule' without the false-alert rate: at <= 1 FA/unit-week the MLP finds 35-40 % and the rule 0 %, but the rule at its natural threshold (8 pts/h) finds 80 % at 25 FA/unit-week (val: 53 % at 18) and 30 % at about 9 FA/unit-week (see the sweep). Whether the MLP is better than the rule at equal FA beyond the first FA/week is not established. Wetting precision and recall are the numbers to quote, never accuracy (99 %+ normal recall is the class imbalance).
 - **Tiny positive counts.** Only 15 (val) and 20 (test) positives are scorable, so one event moves recall by 6.7 / 5 points; the 95 % intervals are 20-40 points wide. Across seeds 0-4 TEST recall ranges 10 % to 45 %. Do not rank models or seeds from these tables. Train has 68 scorable positives.
-- **Coverage.** The data card counts 32 val / 40 test positives; a window needs 12 consecutive valid 15-min samples and the probe has many gaps, so 17 val / 20 test positives have no scorable window and are NOT in these metrics (the rule, which needs only 5 samples, would see some of them). Window 8 ticks (2 h) instead of the concept's 24 for that reason.
+- **Coverage.** The data card counts 32 val / 40 test positives; a window needs 12 consecutive valid 15-min samples and the probe has many gaps, so 17 val / 20 test positives have no scorable window and are NOT in these metrics (the rule, which needs only 5 samples, would see some of them). Window 8 ticks (2 h) instead of the concept's 24 for that reason (a 28-tick context would keep only 11 val / 12 test scorable positives; delta recorded in docs/edge-ai-concept.md 2.3 and docs/traceability.md).
 - **Circular labels.** The onset label is itself a rise rule (>= 10 points in 2 ticks) plus a valve/rain flag. Recall therefore measures agreement with that label, not independent detection of watering; the valve/rain flag only decides what is ignored. Real watering recall needs bench data (4.AI3).
 - **p_fast and the rule threshold were chosen on VAL with 1-2 false positives at stake**, so they are noisy; the seed spread above shows it.
 - **Model A is not trained.** Only the baseline is evaluated. Only 3-11 % of ticks are uncensored (train 1,280, val 748, test 1,000) and nearly all have label 0 to 12 h (soil already dry or about to be re-wetted: the drip site waters every ~12 h), so 'always predict the median (0 h)' beats the baseline on val. MAE <= 12 h is met trivially and says nothing about 24-72 h forecasts: there are 0 val and 0 test ticks in 48-72 h. FR-E01 cannot be assessed on this dataset.
