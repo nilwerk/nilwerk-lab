@@ -18,6 +18,16 @@ Author: Emil (PCB Designer) · Date: 2026-11-06 · Updated: 2026-11-08 (cell dec
 - **Update 2026-11-07:** the reference datasheet EEMB LP603449 (see `hardware/bom/bom-draft.md`) was read: <= 50 mm x 34.5 mm x 6.3 mm, 1000 mAh minimum, max discharge 2200 mA, charge 0 to 45 C, **bare cell with solder tabs** in that listing. Still open and set by the purchase spec (Arsany): protection circuit (PCM), connector type (JST PH, polarity to be checked) and wire length. Note the datasheet length is <= 50 mm, the A-020 envelope uses 51 mm (keep 51 as the bay input).
 - Power budget on this cell: `hardware/power-budget/power-budget.md` (typical case 4.5 months at the 1000 mAh minimum against the 3-month NFR-01; all currents unverified).
 
+## Usable bay inside enclosure v3 (answer from Yara, 2026-11-08)
+Single source: `mechanical/params.py` (inputs and allowances) and `mechanical/bay.py::dims()`, tabulated in `mechanical/README.md`. Cavity (what the cell may occupy), L x W x H in mm:
+
+| Cell | Usable cavity | Bay module outer (tray + lid, bay only) |
+|---|---|---|
+| **EEMB LP603449-PCM (A-020, A-034: selected, ordered)** | 53.0 x 35.1 x 7.2 | 56.2 x 38.3 x 10.4 |
+| Jauch LP603443JU (not selected, study only) | 47.0 x 35.1 x 7.4 | 50.2 x 38.3 x 10.6 |
+
+Board, USB-C, seal and lid retention are not included (wait for the PCB outline). Values change only through `params.py`; do not copy them elsewhere.
+
 ## Update 2026-11-08: the cell is decided (A-034), dimensions for Yara
 
 Arsany buys the **EEMB LP603449-PCM, Amazon.de ASIN B08FD39Y5R** (listing read 2026-11-08, details and unverified items in `hardware/bom/cell-decision-A034.md`). It is the same 603449-class cell the A-020 bay was drawn for; **the bay envelope does not change.**
