@@ -1,0 +1,21 @@
+NOTICE:  claim ok: new, reuse, expired, unknown, foreign owner, rotation, release + re-claim
+NOTICE:  ingest ok: counts, implausible flagged (FR-D01), idempotent replay, overlap, 96-sample buffer, skew, alerts open/resolve, released refused
+DEVICE API SQL OK
+ok 1 - ingest: missing / malformed bearer -> 401 token_invalid, DB never touched
+ok 2 - ingest: unknown token -> 401 token_invalid and nothing is written
+ok 3 - ingest: revoked token -> 401 token_revoked and nothing is written
+ok 4 - ingest: only the SHA-256 of the token reaches the DB layer, never the token (ADR-004)
+ok 5 - ingest: valid fixture -> 200 with counts, config and OTA fields
+ok 6 - ingest: schema violations -> 400 bad_request, nothing written
+ok 7 - ingest: implausible values are NOT rejected by the function (FR-D01: stored flagged by SQL)
+ok 8 - ingest: 96 samples (24 h buffer, FR-D04) accepted, 192 accepted, 193 -> 413
+ok 9 - ingest: body over 64 KiB -> 413
+ok 10 - ingest: replay is passed straight to the idempotent SQL; duplicates come back as 200 (openapi)
+ok 11 - ingest: device released between auth and insert (NW403) -> 401 token_revoked
+ok 12 - ingest: OTA artefact gets a signed URL (FR-D05)
+ok 13 - claim: success returns a fresh 64-hex token; DB receives hashes only
+ok 14 - claim: NW401 -> 401 claim_token_invalid; NW409 -> 409 device_owned; other errors propagate
+ok 15 - claim: bad bodies -> 400 and the DB is not called
+# pass 15
+# fail 0
+ALL CLOUD TESTS PASSED

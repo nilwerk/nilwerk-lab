@@ -1,0 +1,4 @@
+M1 TS: wrong token check (revoked status ignored): rc=1 CAUGHT | not ok 3 - ingest: revoked token -> 401 token_revoked and nothing is written
+M2 TS: wrong token check (unknown token accepted): rc=1 CAUGHT | not ok 2 - ingest: unknown token -> 401 token_invalid and nothing is written
+M3 SQL: missing idempotency (no ON CONFLICT DO NOTHING on readings): rc=3 CAUGHT | ERROR:  replay not idempotent: {"config": {"dry_pct": 25.0, "wet_pct": 85.0, "low_battery_mv": 3400, "report_interval_s": 3600, "sample_interval_s": 900}, "accepted": 5, "fw_target": null, "duplicates": 0, "implausible": 1, "server_time": 1794146940, "model_target": null}
+M4 SQL: authenticate_device ignores revoked/released: rc=3 CAUGHT | ERROR:  released device token not revoked

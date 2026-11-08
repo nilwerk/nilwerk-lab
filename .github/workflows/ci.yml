@@ -168,7 +168,12 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres   # superuser; test.sh creates/drops nw_test_* databases
     steps:
       - uses: actions/checkout@v4
-      - name: Cloud DB tests (projects/plant-monitor/cloud/test.sh)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22   # handler tests use Node's built-in TypeScript type stripping (>= 22.18)
+      - name: Cloud DB + Edge Function tests (projects/plant-monitor/cloud/test.sh)
+        env:
+          REQUIRE_NODE_TESTS: "1"   # fail instead of skipping if Node is too old
         run: bash projects/plant-monitor/cloud/test.sh
 
   ml:

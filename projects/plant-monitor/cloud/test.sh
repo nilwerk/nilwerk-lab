@@ -67,5 +67,20 @@ echo "== 2.4 contract test (docs/interfaces/db-schema.test.sql) on the migrated 
 newdb nw_test_contract no
 psqlx nw_test_contract -f "$HERE/../docs/interfaces/db-schema.test.sql" 2>&1 | sed 's/^psql:[^ ]* //'
 
-for d in nw_test_rls nw_test_ret nw_test_contract; do psqlx postgres -c "drop database $d" >/dev/null; done
+# --- 5. device API (4.B2): SQL logic against real Postgres
+echo "== device API SQL (test/device_api.sql)"
+newdb nw_test_dev no
+psqlx nw_test_dev -f test/device_api.sql 2>&1 | grep -v '^$' | grep -v 'claim_device\|authenticate' | sed 's/^psql:[^ ]* //'
+
+# --- 6. device API (4.B2): Edge Function handlers with a mocked DB layer (node:test, no dependencies)
+echo "== Edge Function handlers, mocked DB (supabase/functions/_shared/handlers.test.ts)"
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+NODE_MINOR="$(node -p 'process.versions.node.split(".")[1]' 2>/dev/null || echo 0)"
+if [ "$NODE_MAJOR" -gt 22 ] || { [ "$NODE_MAJOR" -eq 22 ] && [ "$NODE_MINOR" -ge 18 ]; }; then
+  node --test supabase/functions/_shared/handlers.test.ts 2>&1 | grep -E "^(ok|not ok|# (tests|pass|fail))"
+  node --test supabase/functions/_shared/handlers.test.ts >/dev/null 2>&1 || { echo "FAIL: handler tests"; exit 1; }
+elif [ -n "${REQUIRE_NODE_TESTS:-}" ]; then echo "FAIL: Node >= 22.18 required (REQUIRE_NODE_TESTS set)"; exit 1
+else echo "NOT RUN: Node >= 22.18 needed for the handler tests (found $(node -v 2>/dev/null || echo none))"; fi
+
+for d in nw_test_dev nw_test_rls nw_test_ret nw_test_contract; do psqlx postgres -c "drop database $d" >/dev/null; done
 echo "ALL CLOUD TESTS PASSED"
