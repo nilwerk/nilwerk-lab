@@ -114,5 +114,22 @@ class Costs(unittest.TestCase):
         self.assertIn(bc.md_lines(ROWS), doc)
 
 
+    def test_prose_has_no_stale_schematic_claims(self):
+        """Removed parts (Q2, R6) may only be mentioned as removed; the live-data date and banner follow the CSV."""
+        import re
+        doc = (HERE / "bom-draft.md").read_text()
+        refs = {r["ref"] for r in ROWS}
+        self.assertFalse({"Q2", "R6"} & refs)
+        for line in doc.splitlines():
+            if re.search(r"\b(Q2|R6)\b", line):
+                self.assertRegex(line, r"deleted|gone|removed", line[:80])
+        self.assertNotIn("Q2 remains", doc)
+        self.assertNotIn("before the three G2 conditions are in the schematic", doc)
+        stamps = {r["verified_utc"] for r in ROWS if r.get("verified_utc")}
+        self.assertEqual(len(stamps), 1)
+        stamp = stamps.pop()                              # e.g. '2026-11-08 15:12Z'
+        self.assertIn(stamp[:10] + " " + stamp[11:16] + " UTC", doc.splitlines()[3])
+
+
 if __name__ == "__main__":
     unittest.main()
