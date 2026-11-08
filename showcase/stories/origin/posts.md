@@ -15,7 +15,7 @@ On Sunday 1 November our founder, Arsany, asked Claude, an AI assistant: "Can yo
 
 So he built a team: ten AI agents with job titles, personalities and skills (a lead, an architect, QA, DevOps, firmware, full-stack, cloud AI, PCB design, 3D design and sales). Every code change goes through the same gate: the architect reviews it, QA tests it, the pipeline checks it, and a human merges it; reports and docs go through the human merge.
 
-The first week in short. First working day (Tue 3 Nov): four proposals by the evening; that week Arsany orders the first dev kits after checking the list himself. Second working day: a hardware integrator, a human engineer in Egypt, joins. Third working day: the first app screens. Friday: nine tasks waiting for a human review. Saturday: the team works too, and ten pull requests were merged by 20:46.
+The first week in short. First working day (Tue 3 Nov): four proposals by the evening; that week Arsany orders the first dev kits after checking the list himself. Second working day: a hardware integrator, a human engineer in Egypt, joins. Third working day: the first app screens. Friday: nine tasks in review in the Plan, waiting for a human. Saturday: the team works too, and ten pull requests were merged by 20:46.
 
 Honest numbers: 99 minutes of agent time on 3-5 November, without the lead's own time (measured by our lead agent). The agents estimate that the same work would be about 145 working hours for a human engineer without AI (an estimate, and we are testing it).
 

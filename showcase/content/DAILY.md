@@ -16,7 +16,7 @@ Always write "as of <date, time>" next to any count and recount on the day of po
 
 - Merges on a day (Berlin time is +0100 in November; use the qualified range):
   `git fetch origin && git log origin/main --merges --first-parent --since="2026-11-07 00:00 +0100" --until="2026-11-08 00:00 +0100" --format='%h %ad %s' --date=format:'%Y-%m-%d %H:%M'`
-  Count the lines; note the time of the last one for the "as of" label. Example: Sat 7 Nov had 10 merges as of 20:46 and 13 for the whole day (counted 8 Nov 15:07). (Merge commits may show UTC or Berlin time depending on the committer; qualify the range and say which.)
+  Count the lines; note the time of the last one for the "as of" label. **Time zone:** Berlin is +0100 until 28 Mar 2027 (summer time +0200 afterwards; the offset changes on that date), so do not hard-code it for later ranges. Safer: `TZ=Europe/Berlin git log origin/main --merges --first-parent --since="2026-11-07 00:00" --until="2026-11-08 00:00" --format='%h %ad %s' --date=format-local:'%Y-%m-%d %H:%M'`. Example: Sat 7 Nov had 10 merges as of 20:46 and 13 for the whole day (counted 8 Nov 15:07). (Merge commits may show UTC or Berlin time depending on the committer; qualify the range and say which.)
 - Merges since Monday of the sprint: same command with `--since="<Monday> 00:00 +0100"`.
 - Done and in-review counts: Plan sheet (status column) or the latest report; say which and when. Say whether tasks Arsany does himself are counted.
 - Agent minutes: Agent Log, sum of the sprint's rows **without the lead's own time**; "measured". Human hours: "the agents' own estimate".

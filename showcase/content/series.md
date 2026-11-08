@@ -23,7 +23,7 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 
 ## Daily 10-minute routine for Poppy (the detailed checklist with recount commands and the posting-day checklist is `DAILY.md`: one routine, this is its summary)
 
-1. (2 min) Read yesterday's `team/reports/<date>.md` and the Agent Log rows; list merged PRs of the day (`git log --merges --since=yesterday`).
+1. (2 min) Read yesterday's `team/reports/<date>.md` and the Agent Log rows; list merged PRs of the day (command with a timezone-qualified range: see `DAILY.md` section 2).
 2. (2 min) Pick the episode type from the calendar; if its evidence is missing take the reserve.
 3. (3 min) Write the claim-check rows first (every number: source and type), then the plain story and the engineers' paragraph, EN then DE.
 4. (2 min) Fill the template (`content/build_episodes.py` pattern), render, **look at the PNG**.
@@ -34,7 +34,7 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 | Day | Date | Episode | Audience leads | Evidence | Status |
 |---|---|---|---|---|---|
 | 1 | Mon 9 Nov | The Nilwerk story so far (origin carousel, 10 slides) | A | `showcase/stories/origin/claim-check.md` | drafted |
-| 2 | Tue 10 Nov | Number of the day: Sprint 1, 3 done, 9 waiting for review | A | report 6 Nov | drafted (`content/2026-11-10`) |
+| 2 | Tue 10 Nov | Number of the day: Sprint 1, 7 of 20 done (3 agents + 4 Arsany), 9 in review in the Plan | A | report 6 Nov | drafted (`content/2026-11-10`) |
 | 3 | Wed 11 Nov | Behind the scenes: a Saturday at Nilwerk, 10 merges as of 20:46 on 7 Nov (recount on posting day) | A | repo history 7 Nov, TEAM.md §7 | drafted (`content/2026-11-11`) |
 | 4 | Thu 12 Nov | We decided: your plant's data lives in the EU | both | ADR-003, stack and costs | drafted (`content/2026-11-12`) |
 | 5 (PR #48) | Fri 13 Nov | We caught a mistake: three review catches (pin map, caption number, a 0 % baseline that proved nothing) and two honest negatives (edge-AI recall 27-40 % vs 95 %, ERC never run); recount merge status on the day | both | `content/2026-11-13/claim-check.md`, PRs #41 #44 #46 | drafted (`content/2026-11-13`), DE to be checked by Theo/Nora |

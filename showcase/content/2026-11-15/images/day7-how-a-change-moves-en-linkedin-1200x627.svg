@@ -27,7 +27,7 @@
   </g>
   <g font-family="Inter, sans-serif" font-size="23" fill="#5b616b">
     <text x="56" y="400">The path of a code change: builder, architect,</text>
-    <text x="56" y="430">QA, pipeline, then a human merges.</text>
+    <text x="56" y="430">QA, pipeline, then our founder decides.</text>
   </g>
 
   <rect x="56" y="462" width="297" height="34" rx="6" fill="none" stroke="#b4541a" stroke-width="1.5"/>

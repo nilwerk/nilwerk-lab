@@ -6,6 +6,8 @@ No numbers are claimed in the template. On the day, add one row per filled numbe
 |---|---|---|---|---|
 | tasks done / committed | C | Plan sheet or `team/reports/<date>.md` | | |
 | tasks in review | C | same | | |
+| tasks in progress or not started ([k]) | C | same | | |
+| **sum check:** [x] + [z] + [k] = [y] (Arsany's own tasks listed separately) | C | calculation | | must be true before approval |
 | merges since Monday | C | `git log origin/main --merges --first-parent --since="2026-11-09 00:00 +0100" --until="<now> +0100"` | | |
 | agent minutes (without the lead) | M | Agent Log, sum of the sprint's rows | | |
 | human hours (the agents' own estimate) | E | Agent Log, own-estimate column | | |

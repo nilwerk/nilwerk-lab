@@ -30,7 +30,7 @@
   </g>
   <g font-family="Inter, sans-serif" font-weight="400" font-size="34" fill="#5b616b">
     <text x="72" y="622">The path of a code change: builder, architect,</text>
-    <text x="72" y="668">QA, pipeline, then a human merges.</text>
+    <text x="72" y="668">QA, pipeline, then our founder decides.</text>
   </g>
 
   <!-- two evidence tiles -->
