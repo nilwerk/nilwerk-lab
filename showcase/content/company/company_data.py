@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Texts of the three company posts (Mon 9, Tue 10, Wed 11 Nov 2026), 4 slides each, EN + DE.
-Facts as of Sun 8 Nov 2026, 18:54 Berlin; every claim has a row in claim-check.md. Speech bubbles are persona voice
+Facts as of Sun 8 Nov 2026, 19:35 Berlin; every claim has a row in claim-check.md. Speech bubbles are persona voice
 written by Poppy from the evidence, never a quote of a human. German was reviewed by Theo (PR #62); his six fixes (C2) are applied."""
 
 # each text: dict(en=..., de=...)
@@ -8,6 +8,48 @@ def L(en, de):
     return dict(en=en, de=de)
 
 POSTS = {
+    "p0-opener": dict(
+        day=0, date="2026-11-09", title=L("Can AI replace our jobs?!", "Kann KI unsere Jobs ersetzen?!"),
+        slides=[
+            dict(kind="opener", kicker=L("OPENING QUESTION", "DIE ERÖFFNUNGSFRAGE"),
+                 head=L(["Can AI replace", "our jobs?!"], ["Kann KI unsere", "Jobs ersetzen?!"]),
+                 banner=L("AGENTS GRADUATE DAY", "ABSCHLUSSTAG DER AGENTEN"),
+                 illu=L("ILLUSTRATION · NOT A PHOTO · NOT A REAL EVENT", "ILLUSTRATION · KEIN FOTO · KEIN ECHTES EREIGNIS"),
+                 stamp=L("HUMAN MERGES", "MENSCH MERGT"), founder=L("Arsany · founder", "Arsany · Gründer"),
+                 body=L("AI agents produced more than 45 merged changes in six days (3–8 Nov). By our rule a human still decides, merges, orders and signs off, and a human will build the hardware. It replaced typing, not judgment. Our experience, not a verdict on anyone's job.",
+                        "KI-Agenten haben in sechs Tagen mehr als 45 zusammengeführte Änderungen erarbeitet. Nach unserer Regel entscheidet, führt zusammen, bestellt und gibt weiterhin ein Mensch frei, und ein Mensch wird die Hardware bauen. Ersetzt wurde das Tippen, nicht das Urteilsvermögen. Unsere Erfahrung, keine Aussage über Jobs."),
+                 status=L("45+ MERGES · 3-8 NOV · INCL. DOCS", "45+ MERGES · 3.-8. NOV · INKL. DOKU"),
+                 eng=L("Merge commits on main, 3 to 8 Nov 2026: 50 counted 8 Nov, 19:35 (docs and reports included). Done = architect approved + QA pass + pipeline green + founder's merge. No board built yet.",
+                       "Merge-Commits auf main, 3. bis 8. Nov 2026: 50 gezählt am 8. Nov, 19:35 (Doku und Berichte inklusive). Fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. Noch keine Platine gebaut.")),
+        ],
+        alt=[L("Illustration, not a photo: headline 'Can AI replace our jobs?!'. A drawn graduation scene titled 'Agents graduate day': the eleven AI agents of the team, each in a graduation cap, and the founder with a 'human merges' stamp. Below: AI agents produced more than 45 merged changes in six days, but a human still decides and merges; it replaced typing, not judgment.",
+               "Illustration, kein Foto: Überschrift 'Kann KI unsere Jobs ersetzen?!'. Eine gezeichnete Abschlussfeier mit dem Titel 'Abschlusstag der Agenten': die elf KI-Agenten des Teams, jeder mit Doktorhut, und der Gründer mit einem Stempel 'Mensch mergt'. Darunter: KI-Agenten haben in sechs Tagen mehr als 45 zusammengeführte Änderungen erarbeitet, aber ein Mensch entscheidet und mergt weiterhin; ersetzt wurde das Tippen, nicht das Urteil.")],
+        caption=L(
+            """Can AI replace our jobs?! 🎓
+
+Our team is made of AI agents. Here they are on a (drawn!) graduation day: the picture is an ILLUSTRATION, not a photo and not a real event.
+
+The honest answer, from our own week: AI agents produced more than 45 merged changes in six days (3 to 8 Nov). But by our rule a human still decides what to build, merges, orders and signs off, and a human integrator will build the hardware. For us AI replaced typing, not judgment. That is our experience, not a verdict on anyone's job.
+
+Ooh, what's the proof? One post a day, with numbers and labels. Tomorrow: why Nilwerk exists.
+
+For engineers: merge commits on main, 3 to 8 Nov 2026: 50 counted 8 Nov, 19:35 (includes docs and report PRs). Done = architect approved + QA pass + pipeline green + founder's merge. No board is built yet.
+
+nilwerk.de · @nilwerk
+#buildinpublic #AIagents #hardware #startup #futureofwork""",
+            """Kann KI unsere Jobs ersetzen?! 🎓
+
+Unser Team besteht aus KI-Agenten. Hier seht ihr sie an einem (gezeichneten!) Abschlusstag: Das Bild ist eine ILLUSTRATION, kein Foto und kein echtes Ereignis.
+
+Die ehrliche Antwort aus unserer eigenen Woche: KI-Agenten haben in sechs Tagen (3. bis 8. Nov) mehr als 45 zusammengeführte Änderungen erarbeitet. Aber nach unserer Regel legt weiterhin ein Mensch fest, was gebaut wird. Ein Mensch führt die Änderungen zusammen, bestellt und gibt frei, und ein menschlicher Integrator wird die Hardware bauen. Bei uns hat KI das Tippen ersetzt, nicht das Urteilsvermögen. Das ist unsere Erfahrung, keine Aussage über irgendjemandes Job.
+
+Ooh, was ist der Beleg? Ihr bekommt jeden Tag einen Post, mit Zahlen und Beschriftungen. Morgen: warum es Nilwerk gibt.
+
+Für Ingenieure: Merge-Commits auf main, 3. bis 8. Nov 2026: 50 gezählt am 8. Nov, 19:35 (inklusive Doku- und Bericht-PRs). Fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. Noch keine Platine gebaut.
+
+nilwerk.de · @nilwerk"""),
+    ),
+
     "p1-why": dict(
         day=1, date="2026-11-09", title=L("Why we exist", "Warum es uns gibt"),
         slides=[
@@ -40,13 +82,13 @@ POSTS = {
                        "ESP-IDF (C), KiCad 9, CadQuery, Expo / React Native, Supabase. Die EU-Region ist eine Entscheidung, nicht live; Hilfsdienste können pseudonyme Daten anderswo verarbeiten.")),
             dict(kind="story", kicker=L("NILWERK STORY · WHY · 4/4", "NILWERK STORY · WARUM · 4/4"),
                  head=L(["And we show", "our work."], ["Und wir zeigen,", "wie wir arbeiten."]),
-                 body=L("Every number wears a label: measured, simulated or estimated. Our own plant monitor is the test case: a prototype, not a product for sale. In six days, from 3 to 8 November, 48 changes were merged. Follow along: one post a day.",
-                        "Jede Zahl trägt ein Etikett: gemessen, simuliert oder geschätzt. Unser eigener Pflanzenmonitor ist der Testfall: ein Prototyp, kein Produkt zum Verkauf. In sechs Tagen, vom 3. bis 8. November, wurden 48 Änderungen zusammengeführt. Folgt uns: ein Beitrag pro Tag."),
+                 body=L("Every number wears a label: measured, simulated or estimated. Our own plant monitor is the test case: a prototype, not a product for sale. In six days, from 3 to 8 November, more than 45 changes were merged. Follow along: one post a day.",
+                        "Jede Zahl trägt ein Etikett: gemessen, simuliert oder geschätzt. Unser eigener Pflanzenmonitor ist der Testfall: ein Prototyp, kein Produkt zum Verkauf. In sechs Tagen, vom 3. bis 8. November, wurden mehr als 45 Änderungen zusammengeführt. Folgt uns: ein Beitrag pro Tag."),
                  av="pr-social", name="Poppy",
                  bubble=L("Ooh, what's the proof? My favourite question. Ask it of us every day.", "Ooh, was ist der Beweis? Meine Lieblingsfrage. Stellt sie uns jeden Tag."),
-                 status=L("COUNTED · AS OF 8 NOV 18:54", "GEZÄHLT · STAND 8. NOV 18:54"),
-                 eng=L("48 = merge commits on main, 3 to 8 Nov (git log, first-parent). They include docs, reports and showcase changes, not only code. Nothing is bench-tested yet.",
-                       "48 = Merge-Commits auf main, 3. bis 8. Nov (git log, first-parent). Darin stecken auch Doku, Berichte und Showcase, nicht nur Code. Noch nichts am Prüfstand getestet.")),
+                 status=L("COUNTED · AS OF 8 NOV 19:35", "GEZÄHLT · STAND 8. NOV 19:35"),
+                 eng=L("Merge commits on main, 3 to 8 Nov: 50 at 8 Nov, 19:35 (git log, first-parent). They include docs, reports and showcase changes, not only code. Nothing is bench-tested yet.",
+                       "Merge-Commits auf main, 3. bis 8. Nov: 50 am 8. Nov, 19:35 (git log, first-parent). Darin stecken auch Doku, Berichte und Showcase, nicht nur Code. Noch nichts am Prüfstand getestet.")),
         ],
         alt=[L("Cover card: Poppy, the team's storyteller, in a speech bubble: the story starts with one question, on a Sunday.",
                "Titelkarte: Poppy, die Geschichtenerzählerin des Teams, in einer Sprechblase: Die Geschichte beginnt mit einer Frage, an einem Sonntag."),
@@ -54,8 +96,8 @@ POSTS = {
                "Folie 2: Am Sonntag, 1. November, bat der Gründer einen KI-Assistenten um ein einfaches 3D-Modell und eine Platine; heraus kam ein kleiner Pflanzenstab-Sensor."),
              L("Slide 3: six tiles with the team's drawn avatars: firmware, circuit board, case, app, cloud and tests.",
                "Folie 3: sechs Kacheln mit den gezeichneten Avataren des Teams: Firmware, Platine, Gehäuse, App, Cloud und Tests."),
-             L("Slide 4: we show our work with labels measured, simulated or estimated; 48 changes merged from 3 to 8 November.",
-               "Folie 4: Wir zeigen unsere Arbeit mit den Etiketten gemessen, simuliert oder geschätzt; 48 Änderungen vom 3. bis 8. November zusammengeführt.")],
+             L("Slide 4: we show our work with labels measured, simulated or estimated; more than 45 changes merged from 3 to 8 November.",
+               "Folie 4: Wir zeigen unsere Arbeit mit den Etiketten gemessen, simuliert oder geschätzt; mehr als 45 Änderungen vom 3. bis 8. November zusammengeführt.")],
         caption=L(
             """Why does Nilwerk exist? 🌱
 
@@ -65,7 +107,7 @@ So we built one team that does: AI agents, led and reviewed by humans. Our own p
 
 Ooh, what's the proof? Ask us every day. One post a day from here on.
 
-For engineers: ESP32-C3 firmware, KiCad boards, CadQuery enclosures, Expo app, cloud backend. 48 merged changes from 3 to 8 Nov (counted 8 Nov, 18:54; includes docs).
+For engineers: ESP32-C3 firmware, KiCad boards, CadQuery enclosures, Expo app, cloud backend. more than 45 merged changes from 3 to 8 Nov (50 counted 8 Nov, 19:35; includes docs).
 
 nilwerk.de · @nilwerk
 #hardware #prototyping #buildinpublic #AIagents #IoT""",
@@ -77,7 +119,7 @@ Also haben wir ein Team gebaut, das alle sechs kann: KI-Agenten, geleitet und ge
 
 Ooh, was ist der Beweis? Fragt uns jeden Tag. Ab jetzt gibt es täglich einen Beitrag.
 
-Für Ingenieure: ESP32-C3-Firmware, KiCad-Platinen, CadQuery-Gehäuse, Expo-App, Cloud-Backend. 48 zusammengeführte Änderungen vom 3. bis 8. Nov (gezählt 8. Nov, 18:54; inkl. Doku).
+Für Ingenieure: ESP32-C3-Firmware, KiCad-Platinen, CadQuery-Gehäuse, Expo-App, Cloud-Backend. mehr als 45 zusammengeführte Änderungen vom 3. bis 8. Nov (50 gezählt 8. Nov, 19:35; inkl. Doku).
 
 nilwerk.de · @nilwerk"""),
     ),

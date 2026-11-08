@@ -1,12 +1,75 @@
-# Company posts, days 1-3 (Mon 9 to Wed 11 Nov 2026)
+# Company posts: opener + three stories (Mon 9 to Thu 12 Nov 2026)
 
-Author: Poppy. Drafts only: nothing is scheduled or published. Facts as of Sun 8 Nov 2026, 18:54 Berlin; every claim has a row in `claim-check.md`. Speech bubbles are persona voice, written from the evidence, never a quote of a human. German text was reviewed by Theo (PR #62 review); his fixes are applied. One post per day: Instagram (1080x1350 carousel, 4 slides); Arsany takes the same PNGs and the same text for LinkedIn.
+Author: Poppy. Drafts only: nothing is scheduled or published. Facts as of Sun 8 Nov 2026, 19:35 Berlin; every claim has a row in `claim-check.md`. Speech bubbles are persona voice, written from the evidence, never a quote of a human. German text of all four posts was reviewed by Theo (PR #62 and #63 reviews); his fixes are applied. One post per day: Instagram (1080x1350; post 0 is a single image, posts 1-3 are carousels of 4 slides); Arsany takes the same PNGs and the same text for LinkedIn.
 
 Rebuild images: `NW_FONT_DIR=<node_modules>/@fontsource NODE_PATH=<playwright dir> python3 -I build_company.py`. Rebuild this file: `python3 -I export_posts.py`.
 
-## Day 1: Why we exist / Warum es uns gibt
+## Post 0: Can AI replace our jobs?! / Kann KI unsere Jobs ersetzen?!
 
 - Slot: **Mon 9 Nov 2026, 10:00 Berlin** (Metricool best-time data peaks at 10:00 on weekdays; see `calendar.md`).
+- Images EN: `images/p0-opener-s1-en.png`
+- Images DE: `images/p0-opener-s1-de.png`
+- Instagram: single image (not a carousel); AI flag not needed (all images are code-drawn, avatars are the team's own drawings).
+
+### Instagram caption (EN + one German line)
+
+```
+Can AI replace our jobs?! 🎓
+
+Our team is made of AI agents. Here they are on a (drawn!) graduation day: the picture is an ILLUSTRATION, not a photo and not a real event.
+
+The honest answer, from our own week: AI agents produced more than 45 merged changes in six days (3 to 8 Nov). But by our rule a human still decides what to build, merges, orders and signs off, and a human integrator will build the hardware. For us AI replaced typing, not judgment. That is our experience, not a verdict on anyone's job.
+
+Ooh, what's the proof? One post a day, with numbers and labels. Tomorrow: why Nilwerk exists.
+
+For engineers: merge commits on main, 3 to 8 Nov 2026: 50 counted 8 Nov, 19:35 (includes docs and report PRs). Done = architect approved + QA pass + pipeline green + founder's merge. No board is built yet.
+
+nilwerk.de · @nilwerk
+#buildinpublic #AIagents #hardware #startup #futureofwork
+
+Auf Deutsch: Kann KI unsere Jobs ersetzen? Unsere ehrliche Antwort, mit einer gezeichneten Abschlussfeier der Agenten.
+```
+
+### LinkedIn text EN (same text; Arsany adds it with the same PNGs)
+
+```
+Can AI replace our jobs?! 🎓
+
+Our team is made of AI agents. Here they are on a (drawn!) graduation day: the picture is an ILLUSTRATION, not a photo and not a real event.
+
+The honest answer, from our own week: AI agents produced more than 45 merged changes in six days (3 to 8 Nov). But by our rule a human still decides what to build, merges, orders and signs off, and a human integrator will build the hardware. For us AI replaced typing, not judgment. That is our experience, not a verdict on anyone's job.
+
+Ooh, what's the proof? One post a day, with numbers and labels. Tomorrow: why Nilwerk exists.
+
+For engineers: merge commits on main, 3 to 8 Nov 2026: 50 counted 8 Nov, 19:35 (includes docs and report PRs). Done = architect approved + QA pass + pipeline green + founder's merge. No board is built yet.
+
+nilwerk.de · @nilwerk
+```
+
+### LinkedIn text DE
+
+```
+Kann KI unsere Jobs ersetzen?! 🎓
+
+Unser Team besteht aus KI-Agenten. Hier seht ihr sie an einem (gezeichneten!) Abschlusstag: Das Bild ist eine ILLUSTRATION, kein Foto und kein echtes Ereignis.
+
+Die ehrliche Antwort aus unserer eigenen Woche: KI-Agenten haben in sechs Tagen (3. bis 8. Nov) mehr als 45 zusammengeführte Änderungen erarbeitet. Aber nach unserer Regel legt weiterhin ein Mensch fest, was gebaut wird. Ein Mensch führt die Änderungen zusammen, bestellt und gibt frei, und ein menschlicher Integrator wird die Hardware bauen. Bei uns hat KI das Tippen ersetzt, nicht das Urteilsvermögen. Das ist unsere Erfahrung, keine Aussage über irgendjemandes Job.
+
+Ooh, was ist der Beleg? Ihr bekommt jeden Tag einen Post, mit Zahlen und Beschriftungen. Morgen: warum es Nilwerk gibt.
+
+Für Ingenieure: Merge-Commits auf main, 3. bis 8. Nov 2026: 50 gezählt am 8. Nov, 19:35 (inklusive Doku- und Bericht-PRs). Fertig = Architekt freigegeben + QA bestanden + Pipeline grün + Merge des Gründers. Noch keine Platine gebaut.
+
+nilwerk.de · @nilwerk
+```
+
+### Alt text per slide (EN / DE)
+
+1. EN: Illustration, not a photo: headline 'Can AI replace our jobs?!'. A drawn graduation scene titled 'Agents graduate day': the eleven AI agents of the team, each in a graduation cap, and the founder with a 'human merges' stamp. Below: AI agents produced more than 45 merged changes in six days, but a human still decides and merges; it replaced typing, not judgment.
+   DE: Illustration, kein Foto: Überschrift 'Kann KI unsere Jobs ersetzen?!'. Eine gezeichnete Abschlussfeier mit dem Titel 'Abschlusstag der Agenten': die elf KI-Agenten des Teams, jeder mit Doktorhut, und der Gründer mit einem Stempel 'Mensch mergt'. Darunter: KI-Agenten haben in sechs Tagen mehr als 45 zusammengeführte Änderungen erarbeitet, aber ein Mensch entscheidet und mergt weiterhin; ersetzt wurde das Tippen, nicht das Urteil.
+
+## Post 1: Why we exist / Warum es uns gibt
+
+- Slot: **Tue 10 Nov 2026, 10:00 Berlin** (Metricool best-time data peaks at 10:00 on weekdays; see `calendar.md`).
 - Images EN: `images/p1-why-s1-en.png`, `images/p1-why-s2-en.png`, `images/p1-why-s3-en.png`, `images/p1-why-s4-en.png`
 - Images DE: `images/p1-why-s1-de.png`, `images/p1-why-s2-de.png`, `images/p1-why-s3-de.png`, `images/p1-why-s4-de.png`
 - Instagram: carousel of the 4 EN images in order; AI flag not needed (all images are code-drawn, avatars are the team's own drawings).
@@ -22,7 +85,7 @@ So we built one team that does: AI agents, led and reviewed by humans. Our own p
 
 Ooh, what's the proof? Ask us every day. One post a day from here on.
 
-For engineers: ESP32-C3 firmware, KiCad boards, CadQuery enclosures, Expo app, cloud backend. 48 merged changes from 3 to 8 Nov (counted 8 Nov, 18:54; includes docs).
+For engineers: ESP32-C3 firmware, KiCad boards, CadQuery enclosures, Expo app, cloud backend. more than 45 merged changes from 3 to 8 Nov (50 counted 8 Nov, 19:35; includes docs).
 
 nilwerk.de · @nilwerk
 #hardware #prototyping #buildinpublic #AIagents #IoT
@@ -41,7 +104,7 @@ So we built one team that does: AI agents, led and reviewed by humans. Our own p
 
 Ooh, what's the proof? Ask us every day. One post a day from here on.
 
-For engineers: ESP32-C3 firmware, KiCad boards, CadQuery enclosures, Expo app, cloud backend. 48 merged changes from 3 to 8 Nov (counted 8 Nov, 18:54; includes docs).
+For engineers: ESP32-C3 firmware, KiCad boards, CadQuery enclosures, Expo app, cloud backend. more than 45 merged changes from 3 to 8 Nov (50 counted 8 Nov, 19:35; includes docs).
 
 nilwerk.de · @nilwerk
 ```
@@ -57,7 +120,7 @@ Also haben wir ein Team gebaut, das alle sechs kann: KI-Agenten, geleitet und ge
 
 Ooh, was ist der Beweis? Fragt uns jeden Tag. Ab jetzt gibt es täglich einen Beitrag.
 
-Für Ingenieure: ESP32-C3-Firmware, KiCad-Platinen, CadQuery-Gehäuse, Expo-App, Cloud-Backend. 48 zusammengeführte Änderungen vom 3. bis 8. Nov (gezählt 8. Nov, 18:54; inkl. Doku).
+Für Ingenieure: ESP32-C3-Firmware, KiCad-Platinen, CadQuery-Gehäuse, Expo-App, Cloud-Backend. mehr als 45 zusammengeführte Änderungen vom 3. bis 8. Nov (50 gezählt 8. Nov, 19:35; inkl. Doku).
 
 nilwerk.de · @nilwerk
 ```
@@ -70,12 +133,12 @@ nilwerk.de · @nilwerk
    DE: Folie 2: Am Sonntag, 1. November, bat der Gründer einen KI-Assistenten um ein einfaches 3D-Modell und eine Platine; heraus kam ein kleiner Pflanzenstab-Sensor.
 3. EN: Slide 3: six tiles with the team's drawn avatars: firmware, circuit board, case, app, cloud and tests.
    DE: Folie 3: sechs Kacheln mit den gezeichneten Avataren des Teams: Firmware, Platine, Gehäuse, App, Cloud und Tests.
-4. EN: Slide 4: we show our work with labels measured, simulated or estimated; 48 changes merged from 3 to 8 November.
-   DE: Folie 4: Wir zeigen unsere Arbeit mit den Etiketten gemessen, simuliert oder geschätzt; 48 Änderungen vom 3. bis 8. November zusammengeführt.
+4. EN: Slide 4: we show our work with labels measured, simulated or estimated; more than 45 changes merged from 3 to 8 November.
+   DE: Folie 4: Wir zeigen unsere Arbeit mit den Etiketten gemessen, simuliert oder geschätzt; mehr als 45 Änderungen vom 3. bis 8. November zusammengeführt.
 
-## Day 2: Who we are / Wer wir sind
+## Post 2: Who we are / Wer wir sind
 
-- Slot: **Tue 10 Nov 2026, 10:00 Berlin** (Metricool best-time data peaks at 10:00 on weekdays; see `calendar.md`).
+- Slot: **Wed 11 Nov 2026, 10:00 Berlin** (Metricool best-time data peaks at 10:00 on weekdays; see `calendar.md`).
 - Images EN: `images/p2-who-s1-en.png`, `images/p2-who-s2-en.png`, `images/p2-who-s3-en.png`, `images/p2-who-s4-en.png`
 - Images DE: `images/p2-who-s1-de.png`, `images/p2-who-s2-de.png`, `images/p2-who-s3-de.png`, `images/p2-who-s4-de.png`
 - Instagram: carousel of the 4 EN images in order; AI flag not needed (all images are code-drawn, avatars are the team's own drawings).
@@ -154,9 +217,9 @@ nilwerk.de · @nilwerk
 4. EN: Slide 4: two humans: Arsany the founder and a hardware integrator who will assemble and test the first boards. No board is built yet.
    DE: Folie 4: zwei Menschen: Gründer Arsany und ein Hardware-Integrator, der die ersten Platinen bestücken und testen wird. Noch ist keine Platine gebaut.
 
-## Day 3: How we work / Wie wir arbeiten
+## Post 3: How we work / Wie wir arbeiten
 
-- Slot: **Wed 11 Nov 2026, 10:00 Berlin** (Metricool best-time data peaks at 10:00 on weekdays; see `calendar.md`).
+- Slot: **Thu 12 Nov 2026, 10:00 Berlin** (Metricool best-time data peaks at 10:00 on weekdays; see `calendar.md`).
 - Images EN: `images/p3-how-s1-en.png`, `images/p3-how-s2-en.png`, `images/p3-how-s3-en.png`, `images/p3-how-s4-en.png`
 - Images DE: `images/p3-how-s1-de.png`, `images/p3-how-s2-de.png`, `images/p3-how-s3-de.png`, `images/p3-how-s4-de.png`
 - Instagram: carousel of the 4 EN images in order; AI flag not needed (all images are code-drawn, avatars are the team's own drawings).

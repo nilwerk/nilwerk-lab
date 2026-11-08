@@ -77,18 +77,70 @@ def finish(b, s, lang, status_y):
     b.append(footer(lang))
 
 
+AGENTS = [("lead-pm", "Nora"), ("architect", "Theo"), ("qa", "Ines"), ("devops", "Kai"), ("firmware", "Mira"), ("fullstack", "Leo"),
+          ("cloud-ai", "Sana"), ("pcb", "Emil"), ("mechanical", "Yara"), ("pr-social", "Poppy"), ("sales", "Max")]
+
+
+def cap(x, y, size, uid):
+    """Little graduation cap drawn over the head of an avatar placed at (x, y) with the given size (viewBox 120)."""
+    return (f'<svg x="{x}" y="{y}" width="{size}" height="{size}" viewBox="0 0 120 120">'
+            '<path d="M44 29v11q16 9 32 0V29Z" fill="#15181d"/>'
+            '<path d="M60 12L100 27L60 42L20 27Z" fill="#15181d" stroke="#ffffff" stroke-opacity=".5" stroke-width="1.5" stroke-linejoin="round"/>'
+            '<circle cx="60" cy="27" r="2.6" fill="#3fc79a"/>'
+            '<path d="M60 27L94 29V45" fill="none" stroke="#e8b43a" stroke-width="2.4" stroke-linecap="round"/>'
+            '<circle cx="94" cy="47" r="3.6" fill="#e8b43a"/></svg>')
+
+
+def render_opener(b, s, lang, uid, yh):
+    top, ph = yh - 22, 450
+    b.append(f'<rect x="72" y="{top}" width="936" height="{ph}" rx="24" fill="var(--nw-surface)" stroke="var(--nw-line)" stroke-width="2"/>')
+    b.append(f'<rect x="72" y="{top}" width="936" height="12" rx="6" fill="var(--nw-accent)"/>')
+    cols = ["var(--nw-accent)", "var(--nw-warn)", "#8fd9ff"]
+    for i in range(34):  # confetti at fixed positions
+        cx = 96 + (i * 137) % 888
+        cy = top + 30 + (i * 59) % (ph - 60)
+        if i % 3 == 0:
+            b.append(f'<circle cx="{cx}" cy="{cy}" r="5" fill="{cols[i % 3]}" opacity=".5"/>')
+        else:
+            b.append(f'<rect x="{cx}" y="{cy}" width="11" height="6" rx="2" fill="{cols[i % 3]}" opacity=".5" transform="rotate({(i * 37) % 90} {cx} {cy})"/>')
+    b.append(T(540, top + 56, s["banner"][lang], 34, "sg", 700, "var(--nw-ink)", anchor="middle", ls=2))
+    sc, w = chip(0, top + 70, s["illu"][lang], "var(--nw-warn)", 18, 38, "var(--nw-surface)", dash=True, ls=0.8)
+    cx0 = 540 - w // 2
+    b.append(sc.replace('x="0"', f'x="{cx0}"', 1).replace('x="20"', f'x="{cx0 + 20}"', 1))
+    slots = AGENTS + [("human-public", "Arsany")]
+    av = 104
+    for i, (a, nm) in enumerate(slots):
+        col, row = i % 6, i // 6
+        tx = 72 + col * 156 + 6
+        ty = top + 124 + row * 160
+        human = a == "human-public"
+        b.append(f'<rect x="{tx}" y="{ty}" width="144" height="148" rx="20" fill="var(--nw-bg)" stroke="var(--nw-accent)" stroke-width="{4 if human else 2}"/>')
+        ax, ay = tx + 20, ty + 8
+        b.append(avatar(a, ax, ay, av, f"{uid}g{i}"))
+        b.append(cap(ax, ay, av, f"{uid}k{i}"))
+        b.append(T(tx + 72, ty + 136, nm, 21, "sg", 700, "var(--nw-ink)", anchor="middle"))
+        if human:
+            sx, sy = tx + 72, ty + 96
+            b.append(f'<g transform="rotate(-9 {sx} {sy})"><rect x="{sx - 68}" y="{sy - 19}" width="136" height="38" rx="6" fill="var(--nw-surface)" stroke="var(--nw-accent)" stroke-width="4"/>'
+                     + T(sx, sy + 6, s["stamp"][lang], 16, "mono", 700, "var(--nw-accent)", anchor="middle", ls=0.6) + '</g>')
+    para(b, s["body"][lang], top + ph + 48, lang, 26, maxlines=5, lh=34)
+
+
 def render_slide(s, lang, uid):
     b = [logo()]
     kc, _ = chip(72, 176, s["kicker"][lang], "var(--nw-accent)", 24, 52, "var(--nw-accent-soft)", ls=1.2)
     b.append(kc)
     k = s["kind"]
-    yh = head(b, s["head"][lang], lang)
+    yh = head(b, s["head"][lang], lang, y=290, size=76) if k == "opener" else head(b, s["head"][lang], lang)
     if k == "cover":
         y = speech(b, s["av"], s["name"], s["bubble"][lang], yh + 70, lang, uid, 34)
         b.append(T(72, y + 90, s["sub"][lang], 30, "inter", 600, "var(--nw-accent)"))
         # little arrow hint
         b.append(f'<path d="M72 {y + 130}h120m-24 -20l24 20l-24 20" fill="none" stroke="var(--nw-accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>')
         finish(b, s, lang, 1110)
+    elif k == "opener":
+        render_opener(b, s, lang, uid, yh)
+        finish(b, s, lang, 1112)
     elif k == "story":
         y = para(b, s["body"][lang], yh + 50, lang, 30)
         speech(b, s["av"], s["name"], s["bubble"][lang], min(y + 40, 840), lang, uid, 30)
