@@ -5,13 +5,14 @@ import { Root } from '../../App';
 import { AuthProvider } from '../auth/AuthContext';
 import { createFakeAuth } from '../auth/fakeAuth';
 import { t } from '../i18n';
+import { createFakeSetup } from '../provisioning/fakeProvisioning';
 import { SCREEN_FR } from '../ui/frIds';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import fs from 'fs';
 import path from 'path';
 
 const mount = async (service = createFakeAuth(), contactEmail = 'hello@example.invalid') => {
-  await render(<SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}><AuthProvider service={service}><Root contactEmail={contactEmail} /></AuthProvider></SafeAreaProvider>);
+  await render(<SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}><AuthProvider service={service}><Root contactEmail={contactEmail} setup={createFakeSetup().services} /></AuthProvider></SafeAreaProvider>);
   return service;
 };
 const type = async (label: string, text: string) => fireEvent.changeText(await screen.findByLabelText(label), text);
@@ -161,7 +162,7 @@ describe('legal line (A-052, draft)', () => {
 describe('requirement citations', () => {
   test('every screen has FR ids in the map and in its source header', () => {
     const files: Record<keyof typeof SCREEN_FR, string> = {
-      welcome: 'WelcomeScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen',
+      welcome: 'WelcomeScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen', setup: 'setup/SetupSteps',
     };
     for (const [screenName, ids] of Object.entries(SCREEN_FR)) {
       expect(ids.length).toBeGreaterThan(0);

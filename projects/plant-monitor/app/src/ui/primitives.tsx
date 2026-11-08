@@ -82,3 +82,19 @@ export function Notice({ text, kind }: { text: string; kind: 'error' | 'info' })
     </View>
   );
 }
+
+/** One option of a single-choice group (radio). Selected state is announced and also drawn with a check mark, not colour alone. */
+export function Choice({ label, a11yLabel, selected, onPress }: { label: string; a11yLabel?: string; selected: boolean; onPress: () => void }) {
+  const th = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityLabel={a11yLabel ?? label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={{ minHeight: th.minTouchTarget, justifyContent: 'center', paddingHorizontal: th.spacing.md, borderRadius: th.radius.md, borderWidth: selected ? 2 : 1, borderColor: selected ? th.color.accent : th.color.line, backgroundColor: selected ? th.color.accentSoft : th.color.surface }}
+    >
+      <Text style={{ color: th.color.ink, ...(selected ? th.type.bodyStrong : th.type.body) }}>{selected ? `✓ ${label}` : label}</Text>
+    </Pressable>
+  );
+}

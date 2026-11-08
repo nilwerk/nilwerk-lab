@@ -1,4 +1,4 @@
-# Plant Monitor app (task 4.A2: account and profile)
+# Plant Monitor app (tasks 4.A2 account and profile, 4.A3 device setup UI)
 
 Expo (SDK 58) + TypeScript (strict). Screens: Welcome S01, Sign up / Sign in S02, Profile S03, Delete account S04, Premium sheet S40
 (wireframes: `wireframes/index.html`). Requirements: FR-A01 (account), FR-P04 (plan mirrors `profiles.is_premium`), NFR-06 (own rows only, RLS), NFR-07 (delete removes all data).
@@ -26,9 +26,16 @@ Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`)
 ## Legal line (A-052, DRAFT: needs Arsany/legal review)
 One line (`src/ui/LegalLine.tsx`, string `legal.line`) on Welcome, Profile and the Premium sheet names the contact address (CONTACT_EMAIL, default `nilwerk.team@gmail.com`; falls back to the default if the Premium link is hidden) and says e-mail is processed by Google. It cites NFR-07 (privacy) and states nothing else legally. **Open point for the legal review (PR #55 C2):** the line says nothing about Expo push notifications or any other non-EU service; this must be decided before a store release. A real privacy notice / Impressum is still to be written and reviewed before any store release.
 
+## Device setup flow (4.A3 UI skeleton, no hardware)
+Profile -> "Add a sensor" -> S10 find sensor, S11 connect (type the label code), S12 Wi-Fi, S13 name and link (+ S13e error states), S14 photo, S15 plant details, S16 done with the setup timer (target 3 min, NFR-03). Requirements: FR-A03, FR-D03, FR-A04, FR-A05, FR-A02 (add another). **No hub pairing step: the Raspberry Pi hub and screen S17 are v1.1, not v1 (A-023).** Plant removal / release (A-022) is separate.
+- The screens only talk to `src/provisioning/types.ts` (`ProvisioningService`, `PlantSetupService`, `PhotoSource`), mirroring `docs/interfaces/ble-provisioning.md` and `openapi.yaml` (`/claim-token`, `/device-claim`). `fakeProvisioning.ts` implements it in memory (5 wrong codes close setup mode, wifi_failed / device_owned / claim failures) and runs the whole flow in tests and in the mock web build (`EXPO_PUBLIC_MOCK_AUTH=1`). Pure state machine: `src/screens/setup/setupState.ts`.
+- **Not done, separate later slice:** the real BLE implementation of `ProvisioningService` on `@orbital-systems/react-native-esp-idf-provisioning` (needs an Expo dev build, not Expo Go), QR scanning and camera/library (`expo-image-picker`), the real `PlantSetupService` (supabase-js: plants, devices.plant_id, plant_images + storage). Until then a non-mock build shows "needs the full app build" on the first step. The BLE service UUID is still TBD in the contract: **it must be written into `docs/interfaces/ble-provisioning.md` before the real BLE slice starts** (PR #56 C1).
+- The in-app timer and the 3-minute target are shown, but setup time on a real sensor is measured in 5.5, not here. **4.A3 is Done only after test 5.5 on a real phone** (PR #56 C4); the green Jest/web run here is not that test.
+- Wi-Fi password rule (PR #56 C2): `validateWifiPassword` accepts 8-63 characters (WPA2), empty only for open networks (the UI skips the field there).
+
 ## Not done / known gaps (4.A2)
 - Never run against a real Supabase project or on a phone. Web build + jsdom-free render tests only.
 - `DELETE /account` is in the OpenAPI contract but no edge function exists on `main` yet; delete will fail against a real backend until it is built (the app then shows "Nothing was removed").
-- No forgot-password, no data export, no plants, no BLE setup (4.A3). Export warning for plant removal is A-022 (separate).
+- No forgot-password, no data export, no plant list (the setup flow exists in 4.A3 but only against a fake). Export warning for plant removal is A-022 (separate).
 - `handle_new_user()` stores only the id, so the sign-up display name is kept in auth user metadata and copied into `profiles.display_name` on the first profile load.
 - Apple/Google sign-in, store assets and the Expo dev build for BLE are later tasks.

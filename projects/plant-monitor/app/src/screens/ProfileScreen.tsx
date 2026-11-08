@@ -10,7 +10,7 @@ import { useAuth } from '../auth/AuthContext';
 import type { Profile } from '../auth/types';
 import { validateDisplayName } from '../validation';
 
-export function ProfileScreen({ onPremium, onDelete, contactEmail }: { onPremium: () => void; onDelete: () => void; contactEmail: string }) {
+export function ProfileScreen({ onPremium, onDelete, onAddSensor, contactEmail }: { onPremium: () => void; onDelete: () => void; onAddSensor: () => void; contactEmail: string }) {
   const th = useTheme();
   const { service, state } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -62,6 +62,7 @@ export function ProfileScreen({ onPremium, onDelete, contactEmail }: { onPremium
       <Field label={t('profile.displayName')} value={name} onChangeText={(v) => { setName(v); setSaved(false); }} error={nameErr ? t(nameErr.key, nameErr.params) : null} />
       <Button label={t('profile.displayName.save')} variant="secondary" onPress={save} busy={busy} disabled={!profile || !!nameErr} />
       {saved ? <Notice kind="info" text={t('profile.displayName.saved')} /> : null}
+      <Button label={t('setup.addSensor')} onPress={onAddSensor} />
       <Body muted>{t('profile.plantsSoon')}</Body>
       <Button label={t('profile.signOut')} variant="secondary" onPress={() => { service.signOut().catch(() => setError(t('auth.error.unknown'))); }} />
       <Button label={t('profile.deleteAccount')} variant="ghost" onPress={onDelete} />
