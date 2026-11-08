@@ -122,7 +122,7 @@ Rated capacity needed for the typical case: **668 mAh**. The LP503030JU has 430 
 | Two LP503030JU in parallel (860 mAh minimum, 1s2p) | 3.8 months | needs two cells flat: 2 x 30 mm = 60 mm is longer than the 51 mm bay, stacked 10.4 mm is taller than 6.3 mm: **does not fit the bay**, and a parallel pack with two PCMs needs Jauch's agreement (unverified) |
 | Jauch LP603443JU (850 min) | 3.8 months | **best fit of the Jauch list for the bay**, see section 5 |
 | Other Jauch sizes from the product list (typical capacity, no minimum or PCM variant read, **unverified** on DigiKey): LP503040JH 600 mAh (5.0 x 30.5 x 42), LP443441JU 630 mAh (4.4 x 35 x 44, 0.5 mm wider than the bay), LP523450JU 950 mAh (5.4 x 34.8 x 52.5, 0.3 mm wider and 1.5 mm longer than the bay) | 600 mAh typical would still be below 668 mAh once the minimum is applied | only the 850 and 950 mAh cells reach the capacity; both need bay changes |
-| Relax NFR-01 | not for me to propose; the cell would need 1.9 months to be accepted | Arsany's decision |
+| Relax NFR-01 | Arsany flexed NFR-01 on 2026-11-08 (ADR-015): only the worst case (> 1 month); typical must still be >= 3 months, so this cell (1.9 typical, 0.6 worst) still fails |
 
 ## 3. Charger fit (R9) and the NTC
 

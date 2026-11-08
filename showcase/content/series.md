@@ -42,7 +42,7 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 | 7 | Sun 15 Nov | Behind the scenes: how a change moves through the team (13 merges on Sat 7 Nov, counted 8 Nov 15:07) | both | TEAM.md, git log | drafted (`content/2026-11-15`) |
 | 8 | Mon 16 Nov | Built today: the first sprint-2 result (pick from merged PRs of 9-13 Nov: schematic, ingest, app setup) | A | merged PRs, showcase items | needs evidence |
 | 9 | Tue 17 Nov | Side-episode for engineers: "User A cannot read user B's data" (`content/2026-11-07` post 2) | B | claim-check post 2 | text exists |
-| 10 | Wed 18 Nov | Number of the day: what the power budget says (requirement 3 months, calculated typical 4.5 months, simulated) | both | `power-budget.md` | needs draft |
+| 10 | Wed 18 Nov | Number of the day: what the power budget says (requirement: typical >= 3 months, worst > 1 month; calculated typical 4.5 months, simulated) | both | `power-budget.md` | needs draft |
 | 11 | Thu 19 Nov | Built today: enclosure v3 before/after, only if merged | A | CadQuery renders | depends on 4.E3 |
 | 12 | Fri 20 Nov | Sprint 2 in numbers (measured minutes next to estimated hours) + what we learned | both | report 13 Nov, Agent Log | needs Friday data |
 | 13-14 | Sat 21, Sun 22 Nov | no post | | | |

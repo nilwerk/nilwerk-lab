@@ -37,7 +37,7 @@ import argparse
 from dataclasses import dataclass, replace
 
 NFR01_MONTHS = 3.0           # NFR-01 best and typical case (A-020: 3 months; 6 months is an information-only stretch goal)
-NFR01_WORST_MONTHS = 1.0     # NFR-01 relaxed by Arsany 2026-11-08 (A-034 answer): worst case must be MORE than 1 month
+NFR01_WORST_MONTHS = 1.0     # NFR-01 relaxed by Arsany 2026-11-08 (A-034 answer, ADR-015): worst case must be MORE than 1 month
 HOURS_PER_MONTH = 730.0      # 4380 h = 6 months, 2190 h = 3 months (acceptance matrix, 5.4)
 NFR01_HOURS = NFR01_MONTHS * HOURS_PER_MONTH
 NFR01_WORST_HOURS = NFR01_WORST_MONTHS * HOURS_PER_MONTH

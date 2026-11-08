@@ -27,7 +27,7 @@ What-if with the datasheet values (script: replace best/typical/worst by CPU 23/
 | typical | 4.49 | 4.29 | 4.94 | 4.72 | 6.74 | 6.44 | 668 / 699 |
 | worst | 1.37 | 1.49 | 1.51 | 1.64 | 2.06 | 2.24 | 2182 / 2013 |
 
-(worst improves because the datasheet CPU 28 and TX 335 mA are below the model's 30 and 340 mA.) **Effect on the verdict (NFR-01 = 3 months, A-020):** typical moves by 4 % (668 to 699 mAh rated needed for 3 months; 1336 to 1398 for the 6-month stretch, information only). With the BOM cell (1000 mAh minimum, 1100 nominal per the EEMB LP603449 datasheet) the typical case is **4.3-4.5 months at 1000 mAh and 4.7-4.9 at 1100 mAh: PASS for 3 months with about 1.4x margin**; a 1500 mAh cell gives 6.4-6.7 months. The worst-case stack (1.4-1.5 months at 1000 mAh) is a stress bound with every parameter at its worst at once; it is to be measured in 5.4.
+(worst improves because the datasheet CPU 28 and TX 335 mA are below the model's 30 and 340 mA.) **Effect on the verdict (NFR-01 = 3 months for best/typical, A-020; worst > 1 month since 2026-11-08, ADR-015):** typical moves by 4 % (668 to 699 mAh rated needed for 3 months; 1336 to 1398 for the 6-month stretch, information only). With the BOM cell (1000 mAh minimum, 1100 nominal per the EEMB LP603449 datasheet) the typical case is **4.3-4.5 months at 1000 mAh and 4.7-4.9 at 1100 mAh: PASS for 3 months with about 1.4x margin**; a 1500 mAh cell gives 6.4-6.7 months. The worst-case stack (1.4-1.5 months at 1000 mAh) is a stress bound with every parameter at its worst at once; it is to be measured in 5.4.
 
 ---
 Older text below (2026-11-06) kept for history; its "unreachable" statements are superseded by the update above.

@@ -136,7 +136,7 @@ Owner = role that builds it (TEAM.md §2); Theo reviews every PR. Requirement ID
 | C-02 | Firmware (ESP-IDF 5.x, C): sampling, calibration, ring buffer, deep sleep, BLE provisioning (setup mode only, security 2), Wi-Fi/TLS client, MQTT client for the hub, OTA with rollback, factory reset | Mira | Everything on the device except the models | FR-D01..D07, FR-E03, NFR-01, NFR-06; proposed FR-D08, FR-D09 |
 | C-03 | Edge AI: model A (thirst forecast), model B (event/fault), feature extraction; int8, <30 KB flash, <20 KB RAM, <50 ms | Mira (models, ML under `ml/`), Sana (training infra) | Forecast + events computed on the device every 15 min | FR-E01..E04, FR-A07 (AI events), Q-16 |
 | C-04 | Mobile app (Expo, TS, iOS + Android): auth, setup flow, plants, gallery, charts, alerts, premium screens, account export/delete | Leo | All user interaction; BLE client for setup; mDNS client for hub pairing | FR-A01..A08, FR-P01..P04 (UI), UC-01..UC-12, NFR-03, NFR-04 |
-| C-05 | Ingest + claim + manifest edge functions | Leo (4.B1/4.B2), contract by Theo (2.4) | Authenticate device, validate and store reports, claim/release, hand out OTA manifest and config (thresholds) | FR-D02, FR-D03, FR-D04, FR-D05, FR-A02, FR-A08, NFR-04, NFR-06 |
+| C-05 | Ingest + claim + manifest edge functions; `DELETE /account` (account deletion, edge function `delete-account`, owner Sana, Plan 4.B2b; Leo's app consumes it; `verify_jwt=false` in `config.toml`, the function validates the user JWT itself with `auth.getUser()`; order as in `openapi.yaml` `/account`) | Leo (4.B1/4.B2), Sana (4.B2b `DELETE /account`), contract by Theo (2.4) | Authenticate device, validate and store reports, claim/release, hand out OTA manifest and config (thresholds) | FR-D02, FR-D03, FR-D04, FR-D05, FR-A02, FR-A08, NFR-04, NFR-06 |
 | C-06 | Postgres + Auth + RLS (+ Realtime) | Leo | System of record; every table has RLS; premium flag per user | FR-A01, FR-A04, FR-P04, NFR-06, NFR-07 |
 | C-07 | Storage (private buckets: photos, firmware, models) | Leo | Photos per plant, signed URLs; versioned firmware/model blobs | FR-A05, FR-D05, NFR-07 |
 | C-08 | Alert engine + push dispatch | Leo (no Plan row yet; proposed new 4.B8, see section 10) | Too dry/wet, low battery, offline (missed reports), edge-AI events; dedupe so each alert fires once | FR-A07, FR-D06, FR-E03, NFR-04 |
@@ -245,7 +245,7 @@ Every FR/NFR below maps to at least one component, except NFR-05 (enclosure), wh
 ## 8. Open issues and risks (hand-over to 2.4 and 2.8)
 
 For **2.4 (DB schema + API spec)**:
-- D-1 Report schema: batch of up to 96 timestamped samples + `fw`, `model`, `forecast_h`, `events[]`; define units (relative moisture 0-100 %, raw ADC kept for retraining, FR-E01 domain-gap note), idempotency key (device_id + sample ts) so retries do not duplicate.
+- D-1 Report schema: batch of up to 192 timestamped samples per request (96 = the 24 h offline buffer case, FR-D04; more than 192 go in several requests; `device-report.schema.json` maxItems 192) + `fw`, `model`, `forecast_h`, `events[]`; define units (relative moisture 0-100 %, raw ADC kept for retraining, FR-E01 domain-gap note), idempotency key (device_id + sample ts) so retries do not duplicate.
 - D-2 Retention/volume: 4 samples/h/device raw; decide raw vs hourly roll-up for 30/90-day charts (FR-P01) and training data kept for retraining (Req §5).
 - D-3 RLS on all tables incl. `devices`, `device_tokens`, `api_keys`, `alerts`, `tips`; ingest uses service role only inside the function; MCP must not hold a broad service-role path (use RPC keyed by API-key hash).
 - D-4 Claim/release state machine (token TTL, single use, release revokes device token, re-claim by a second account, FR-A08).
@@ -255,7 +255,7 @@ For **2.4 (DB schema + API spec)**:
 - D-8 Time: device RTC drifts in deep sleep; server stamps `received_at`, device sends `sample_age_s` plus SNTP-synced `ts`.
 
 For **2.8 (risk register)**:
-- O-1 Battery (NFR-01): 15-min wakes plus hourly TLS handshakes (v0.2: two of them, cloud and hub) may break the 3-month target (A-020; was 6 months); needs an early current budget (task 5.4) and a fallback (30-min sampling, or longer Wi-Fi interval when no event). Owner Mira/Emil.
+- O-1 Battery (NFR-01): 15-min wakes plus hourly TLS handshakes (v0.2: two of them, cloud and hub) may break the 3-month typical-case target (A-020; was 6 months; flexed 2026-11-08, ADR-015: best/typical >= 3 months, worst > 1 month); needs an early current budget (task 5.4) and a fallback (30-min sampling, or longer Wi-Fi interval when no event). Owner Mira/Emil.
 - O-2 Latency (FR-E03 <= 15 min): an immediate Wi-Fi wake on a critical event costs a TLS session; false events drain battery. Limit wakes per day. QA (PR #3 finding 3) notes that with a 15-min cadence the strict 15 min cannot hold literally (about 15 min + connect time); the critical-event set from the 2.4 work (PR #4) becomes the event enum in the report schema; waterlogged/fast-drying are debounced and outside the FR-E03 claim.
 - O-3 OTA integrity: ESP-IDF secure boot / signed images are not planned; decide whether SHA-256 over TLS is enough for the demo (recommended) and document the gap vs CE/RED later.
 - O-4 BLE provisioning on iOS and Android with Expo: the maintained ESP provisioning library needs a dev build (not Expo Go); verify on both platforms in week 1 (FR-D03, NFR-03).
@@ -294,7 +294,7 @@ Source: owner comment on PR #3: sensor is initialised and bound to the user's pr
 | FR-D04 | Clarify | Offline buffer feeds the cloud only; the hub is best effort (gaps accepted). |
 | FR-A08 | Changed | Release also revokes the device's hub credential. |
 | FR-I01 | Changed (C) | Home Assistant integration via MQTT discovery is served from the hub (Node-RED flow) rather than the cloud. |
-| NFR-01 | Clarified | **3 months** (A-020/A-021; 6 months is a stretch goal for a later version) at hourly reporting **including** the hub publish; to be proved in 5.4. |
+| NFR-01 | Clarified, then flexed | **Best and typical case >= 3 months, worst case > 1 month** (A-020/A-021; flexed by Arsany 2026-11-08, ADR-015; 6 months is a stretch goal for a later version) at hourly reporting **including** the hub publish; to be proved in 5.4. |
 | NFR-03 | Changed | Setup <= 3 min measured with the hub already installed. Hub install is separate. |
 | NFR-06 | Extended | Also: Wi-Fi credentials never in plaintext over BLE; no Wi-Fi password in cloud storage; per-device broker credentials and topic ACL; TLS to the hub. |
 | NFR-07 | Extended | Wi-Fi credentials are not personal data we hold (not stored in cloud); data export/delete includes hub data guidance. |

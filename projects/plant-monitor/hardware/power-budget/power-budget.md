@@ -2,7 +2,7 @@
 
 Author: Emil (PCB Designer) · Date: 2026-11-04 · Status: **draft for the G2 review, all inputs are estimates**
 Calculator: [`power_budget.py`](power_budget.py) (Python 3.11, stdlib only) · Tests: [`test_power_budget.py`](test_power_budget.py)
-Traces to: NFR-01 (best and typical case >= 3 months, worst case > 1 month: relaxed by Arsany 2026-11-08, see section 12; 3 months was A-020; 6 months is an information-only stretch goal), FR-D01 (15-min sampling), FR-D02 (hourly report), FR-E03/E04 (critical wake, inference), ADR-012 (second MQTT publish), PR #2 items 12 and 19.
+Traces to: NFR-01 (best and typical case >= 3 months, worst case > 1 month: relaxed by Arsany 2026-11-08, see section 12 and ADR-015; 3 months was A-020; 6 months is an information-only stretch goal), FR-D01 (15-min sampling), FR-D02 (hourly report), FR-E03/E04 (critical wake, inference), ADR-012 (second MQTT publish), PR #2 items 12 and 19.
 
 **Nothing in this document is a measurement.** Every current and time is either quoted from a repo document, recalled from a datasheet that has not been read (the ESP32-C3 series datasheet was read on 2026-11-07, section 11), or an engineering assumption. Each is tagged in section 4. Task 5.4 replaces them (section 9).
 
