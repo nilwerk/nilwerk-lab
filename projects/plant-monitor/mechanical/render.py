@@ -97,8 +97,33 @@ def render_compare():
     fig.savefig(REN / "compare_section.png", bbox_inches="tight", facecolor="white"); plt.close(fig)
 
 
+def render_design_touch(key="B_jauch603443"):
+    """Lid with the design touch (flag on), built in-memory: 3D view + exact plan cut through the engraving."""
+    verts, tris = bay.lid(key, design=True).val().tessellate(0.01, 0.1)
+    m = trimesh.Trimesh([v.toTuple() for v in verts], tris)
+    m.fix_normals()
+    fig = plt.figure(figsize=(11, 4.2), dpi=150)
+    ax = fig.add_subplot(121, projection="3d")
+    n = m.face_normals
+    shade = 0.35 + 0.65 * np.abs(n @ LIGHT)
+    ax.add_collection3d(Poly3DCollection(m.triangles, facecolors=np.clip(np.outer(shade, GREY * 1.2), 0, 1),
+                                         edgecolors=(0, 0, 0, 0.25), linewidths=0.25))
+    lo, hi = m.bounds; c = (lo + hi) / 2; r = (hi - lo).max() / 2
+    ax.set_xlim(c[0] - r, c[0] + r); ax.set_ylim(c[1] - r, c[1] + r); ax.set_zlim(c[2] - r, c[2] + r)
+    ax.set_box_aspect((1, 1, 1)); ax.view_init(58, -80); ax.set_axis_off()
+    ax2 = fig.add_subplot(122)
+    sec = m.section(plane_origin=(0, 0, P.LID - P.RELIEF_DEPTH / 2), plane_normal=(0, 0, 1))
+    for seg in sec.discrete:
+        ax2.plot(seg[:, 0], seg[:, 1], color="k", lw=0.8)
+    ax2.set_aspect("equal"); ax2.set_title(f"plan cut at z = {P.LID - P.RELIEF_DEPTH / 2:.1f} mm (inside the {P.RELIEF_DEPTH} mm engraving)", fontsize=9)
+    ax2.set_xlabel("X (mm)"); ax2.set_ylabel("Y (mm)")
+    fig.suptitle(f"Lid design touch (flag, off by default): {P.EDGE_CHAMFER} mm top-edge chamfer + {P.RELIEF_DEPTH} mm engraved trace motif", fontsize=10)
+    fig.savefig(REN / f"{key}_lid_design_touch.png", bbox_inches="tight", facecolor="white"); plt.close(fig)
+
+
 if __name__ == "__main__":
     REN.mkdir(exist_ok=True)
+    render_design_touch()
     for k in P.VARIANTS:
         render_variant(k)
     render_compare()

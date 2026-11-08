@@ -31,3 +31,10 @@ VARIANTS = {
     "A_eemb603449": dict(name="EEMB 603449 (A-020 bay)", L=51.0, W=34.5, H=6.3),
     "B_jauch603443": dict(name="Jauch LP603443JU (A-034)", L=45.0, W=34.5, H=6.5),
 }
+
+# ---- design touch (Arsany 2026-11-08, PR #44): OFF by default, so the verified bay numbers/exports stay unchanged ----
+DESIGN_TOUCH = False
+EDGE_CHAMFER = 0.6         # lid top-edge chamfer (soft edge; slopes inward going up = no overhang)
+RELIEF_DEPTH = 0.4         # engraved nilwerk trace motif on the lid top (>= 0.4 mm feature rule, 2 layers)
+RELIEF_W = 0.8             # groove width = 2 lines at 0.4 mm nozzle
+RELIEF_PAD_D = 3.0         # pad ring diameter at the end of the trace

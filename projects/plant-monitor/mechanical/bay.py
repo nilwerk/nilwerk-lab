@@ -43,12 +43,42 @@ def tray(key, **over):
     return t.cut(notch)
 
 
-def lid(key, **over):
+def lid(key, design=None, **over):
+    """Flat lid. design=True adds the design touch (see design_touch); default = params.DESIGN_TOUCH (False)."""
     import cadquery as cq
     d = dims(key, **over)
     plate = cq.Workplane("XY").box(d["out_l"], d["out_w"], P.LID, centered=(True, True, False)) \
         .edges("|Z").fillet(2.0)
-    return plate
+    return design_touch(plate, d) if (P.DESIGN_TOUCH if design is None else design) else plate
+
+
+def trace_path(d):
+    """Centre line of the trace motif on the lid top: straight run, 45 deg bend, straight run, ends at a pad.
+    Pure numbers (no CAD): points (x, y) in mm, all inside the lid with >= 3 mm margin (tested)."""
+    x0, x1 = -d["out_l"] / 2 + 6.0, d["out_l"] / 2 - 6.0
+    y0 = -d["out_w"] / 2 + 6.0
+    bend = 5.0                                   # 45 deg step height
+    xb = x1 - 2 * bend - 4.0
+    return [(x0, y0), (xb, y0), (xb + bend, y0 + bend), (x1 - 3.0, y0 + bend)]
+
+
+def design_touch(plate, d):
+    """One signature feature: soft top-edge chamfer + shallow engraved trace motif (nilwerk PCB-trace mark).
+    Both are on the top face of the lid (printed flat, top = last layers): chamfer slopes inward going up and
+    groove floors face up, so no overhang and no supports; depth 0.4 mm << lid 1.6 mm, so seat and seal untouched."""
+    import cadquery as cq
+    plate = plate.faces(">Z").edges().chamfer(P.EDGE_CHAMFER)
+    pts = trace_path(d)
+    cut = None
+    for (xa, ya), (xb, yb) in zip(pts, pts[1:]):
+        seg = cq.Workplane("XY").workplane(offset=P.LID - P.RELIEF_DEPTH).center((xa + xb) / 2, (ya + yb) / 2) \
+            .slot2D(math.hypot(xb - xa, yb - ya) + P.RELIEF_W, P.RELIEF_W, math.degrees(math.atan2(yb - ya, xb - xa))) \
+            .extrude(P.RELIEF_DEPTH + 1)
+        cut = seg if cut is None else cut.union(seg)
+    px, py = pts[-1]
+    ring = cq.Workplane("XY").workplane(offset=P.LID - P.RELIEF_DEPTH).center(px, py) \
+        .circle(P.RELIEF_PAD_D / 2).circle(P.RELIEF_PAD_D / 2 - P.RELIEF_W).extrude(P.RELIEF_DEPTH + 1)
+    return plate.cut(cut.union(ring))
 
 
 def cell_ghost(key, **over):
