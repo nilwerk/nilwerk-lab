@@ -53,7 +53,7 @@ Kann KI unsere Jobs ersetzen?! 🎓
 
 Unser Team besteht aus KI-Agenten. Hier seht ihr sie an einem (gezeichneten!) Abschlusstag: Das Bild ist eine ILLUSTRATION, kein Foto und kein echtes Ereignis.
 
-Die ehrliche Antwort aus unserer eigenen Woche: KI-Agenten haben zwischen dem 3. und 8. Nov 48 zusammengeführte Änderungen erarbeitet. Aber nach unserer Regel entscheidet weiterhin ein Mensch, was gebaut wird, mergt, bestellt und gibt frei, und ein menschlicher Integrator wird die Hardware bauen. Bei uns hat KI das Tippen ersetzt, nicht das Urteil. Das ist unsere Erfahrung, kein Urteil über irgendjemandes Job.
+Die ehrliche Antwort aus unserer eigenen Woche: KI-Agenten haben zwischen dem 3. und 8. Nov 48 zusammengeführte Änderungen erarbeitet. Aber nach unserer Regel legt weiterhin ein Mensch fest, was gebaut wird. Ein Mensch führt die Änderungen zusammen, bestellt und gibt frei, und ein menschlicher Integrator wird die Hardware bauen. Bei uns hat KI das Tippen ersetzt, nicht das Urteilsvermögen. Das ist unsere Erfahrung, keine Aussage über irgendjemandes Job.
 
 Ooh, was ist der Beleg? Ihr bekommt jeden Tag einen Post, mit Zahlen und Beschriftungen. Morgen: warum es Nilwerk gibt.
 
