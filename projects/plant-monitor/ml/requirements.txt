@@ -1,3 +1,5 @@
 pandas>=2.0
 pyarrow>=15   # optional: parquet export; without it export_dataset writes CSV
 pytest>=8.0
+# Training and int8 export (task 4.AI2) need TensorFlow; tests skip the TF part when it is missing:
+#   pip install -r requirements-train.txt
