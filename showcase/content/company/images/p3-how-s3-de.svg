@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-label="Folie 3: drei Kacheln: sieben Tage die Woche, 13 Merges am Samstag, 7. November, eine Sensor-Pinbelegung, die nicht zum Datenblatt passte, vor dem Bau einer Platine entdeckt."><defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#e2ded5" stroke-width="1.5" opacity=".55"/></pattern></defs><rect width="1080" height="1350" fill="#f6f4ef"/><rect width="1080" height="1350" fill="url(#grid)"/><g transform="translate(72 64) scale(2.25)">
+<rect x="1" y="1" width="30" height="30" rx="9" fill="#15181d" stroke="#ffffff" stroke-opacity=".12"/>
+<path d="M10 22V9.5l12 12.5V9.5" fill="none" stroke="#3fc79a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="10" cy="22" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/><circle cx="22" cy="9.5" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/>
+<path d="M6.5 26.6c2.4-1.5 4.8-1.5 7.2 0s4.8 1.5 7.2 0 4.8-1.5 6.9-.1" fill="none" stroke="#8fd9ff" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/></g>
+<text x="156" y="119" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="44" letter-spacing="-1.3" fill="#15181d">nil<tspan fill="#0f7a5c">werk</tspan></text>
+<rect x="72" y="176" width="430" height="52" rx="26" fill="#e3f2ec" stroke="#0f7a5c" stroke-width="2"/><text x="92" y="210" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="24" letter-spacing="1.2" fill="#0f7a5c">NILWERK STORY · WIE · 3/4</text>
+<text x="72" y="320" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="64" letter-spacing="-2.2" fill="#15181d">Sieben Tage die Woche.</text>
+<text x="72" y="389" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="64" letter-spacing="-2.2" fill="#0f7a5c">Echte Prüfung.</text>
+<text x="72" y="508" font-family="Inter, sans-serif" font-weight="400" font-size="27" fill="#15181d">Wochenenden zählen: Das Team arbeitet jeden Tag. Und Prüfung ist</text>
+<text x="72" y="545" font-family="Inter, sans-serif" font-weight="400" font-size="27" fill="#15181d">keine Formalität. Ein prüfender Agent fand eine</text>
+<text x="72" y="582" font-family="Inter, sans-serif" font-weight="400" font-size="27" fill="#15181d">Sensor-Pinbelegung, die nicht zum Datenblatt passte, bevor es</text>
+<text x="72" y="619" font-family="Inter, sans-serif" font-weight="400" font-size="27" fill="#15181d">eine Platine gab. Unser Edge-KI-Modell fand 27 % der</text>
+<text x="72" y="656" font-family="Inter, sans-serif" font-weight="400" font-size="27" fill="#15181d">Nässeereignisse bei einem Ziel von 95 %, und wir haben die Lücke</text>
+<text x="72" y="693" font-family="Inter, sans-serif" font-weight="400" font-size="27" fill="#15181d">veröffentlicht.</text>
+<rect x="72" y="754" width="304" height="210" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="754" width="304" height="10" rx="5" fill="#0f7a5c"/>
+<text x="224" y="854" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">7</text>
+<text x="224" y="904" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">Tage die Woche</text>
+<rect x="388" y="754" width="304" height="210" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="388" y="754" width="304" height="10" rx="5" fill="#0f7a5c"/>
+<text x="540" y="854" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">13</text>
+<text x="540" y="904" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">Merges am Sa 7. Nov</text>
+<rect x="704" y="754" width="304" height="210" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="704" y="754" width="304" height="10" rx="5" fill="#0f7a5c"/>
+<text x="856" y="854" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">1</text>
+<text x="856" y="904" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">Pinbelegung wich vom</text><text x="856" y="932" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">Datenblatt ab</text>
+<rect x="72" y="1110" width="573" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1138" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">GEZÄHLT · SA 7. NOV · ZIEL NICHT ERREICHT</text>
+<text x="72" y="1180" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FÜR INGENIEURE</text>
+<text x="72" y="1208" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">13 = Merge-Commits am 7. Nov (git log, Berliner Zeit, gezählt am 8. Nov).</text>
+<text x="72" y="1232" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Edge-KI: Recall 27 % Validierung / 40 % Test (8 von 20), Ziel 95 %. Pin-Fund:</text>
+<text x="72" y="1256" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">AHT20, geprüft am 8. Nov.</text>
+<line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">KI-Agenten, geleitet und geprüft von Menschen</text></svg>

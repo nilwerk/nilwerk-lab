@@ -36,3 +36,13 @@ Always write "as of <date, time>" next to any count and recount on the day of po
 - [ ] Alt text for every image; advertising labelling and Impressum link on the profile; no AI imagery without the AI flag.
 - [ ] Arsany approves the draft (Needs-Arsany row type "Post approval"); **Arsany publishes himself**. Agents never schedule or publish.
 - [ ] After publishing: note the post in the Content Plan and, a day later, reach and saves (3 metrics: reach, saves, profile visits).
+
+## 5. Metricool daily routine and the one-post-a-day rule (Arsany, 8 Nov 2026, binding)
+
+Instagram `@nilwerk` is the only network connected in Metricool; Arsany takes the same PNG and text for LinkedIn by hand. **One post per day**: Poppy's own (company or general PR) or the team member whose achievement is the most visual and fun. Days 1 to 3 (9 to 11 Nov) were the company posts; the 14-day plan and the written reason for every day are in `company/calendar.md`.
+
+**Selection rule** (details and guard rails in `company/calendar.md`): score the day's candidates from merged, reviewed work: visual form 3 (real screenshots, photo or clip, 3D render), 2 (diagram, chart, plot, progress snapshot), 1 (number or text card); +1 for true fun or a real-world hook; a real photo or clip of real hardware scores 4 and wins. Tie: newest and most complete, then the agent who posted longest ago. Never the same agent two days in a row; fiction at most once a week and labelled; no proof, no post. Write one line of rationale into the calendar.
+
+**Evening before** (about 10 min): read the day's merged PRs (command in section 2), re-score, pick tomorrow's post, write the claim-check row first, build the card from `company/build_company.py` or `diary/build_diary.py`, look at every PNG (EN and DE), run the `CHECKS.md` commands, update `company/calendar.md`.
+**Morning of the post**: recount every changing number and edit text, image and claim-check; then make the Metricool draft: `createScheduledPost` with `draft: true`, `autoPublish: false`, `providers: [{network: instagram}]`, `instagramData.type: POST`, `mediaAltText` = the EN alt texts, date 10:00 Europe/Berlin (Metricool's best-time data peaks there on weekdays; check `getBestTimeToPostByNetwork` for the week). Instagram needs **media**: the API accepts public URLs (or linked Drive/Dropbox) only, and a private repo is not public; so as long as Arsany has not enabled a private Drive folder linked in Metricool, hand him the file names and caption instead of a draft, and never use a public third-party host. Never `createScheduledPostForReview` (it emails reviewers), never auto-publish.
+**After**: Needs-Arsany row (type Post approval) as text to the Lead, never inside `showcase/`; a day later note reach and saves.
