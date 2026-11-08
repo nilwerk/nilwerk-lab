@@ -56,7 +56,7 @@
   <text x="56" y="534" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="15" letter-spacing="1.2" fill="#0f7a5c">FOR ENGINEERS</text>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#5b616b">
     <text x="56" y="556">Review comments on PRs 41, 44, 46; model report, PR 46</text>
-    <text x="56" y="577">Agent time per build: 6 to 15 minutes (measured)</text>
+    <text x="56" y="577">Agent time per build: 6 to 16 minutes (measured)</text>
   </g>
   <line x1="56" y1="594" x2="1144" y2="594" stroke="#e2ded5" stroke-width="1.5"/>
   <g font-family="'JetBrains Mono', monospace" font-size="15" fill="#5b616b">

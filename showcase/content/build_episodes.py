@@ -59,13 +59,13 @@ EPISODES = {
                    TILE_A_LABEL="CAUGHT BY REVIEW", TILE_A_VALUE="3", TILE_A_SUB1="wrong pin map, wrong caption", TILE_A_SUB2="number, a baseline that", TILE_A_SUB3="proved nothing",
                    TONE_A_TOKEN="accent", TILE_B_LABEL="EDGE-AI RECALL · TARGET 95 %", TILE_B_VALUE="27-40 %", TILE_B_SUB1="of wetting events found,", TILE_B_SUB2="target not met;", TILE_B_SUB3="circuit ERC never run",
                    TONE_B_TOKEN="warn", STATUS="COUNTED FROM REVIEWS · AS OF 8 NOV · NOT MERGED",
-                   SRC1="Review comments on PRs 41, 44, 46; model report, PR 46", SRC2="Agent time per build: 6 to 15 minutes (measured)"),
+                   SRC1="Review comments on PRs 41, 44, 46; model report, PR 46", SRC2="Agent time per build: 6 to 16 minutes (measured)"),
         "de": dict(KICKER="LOGBUCH · TAG 5 · FEHLER GEFUNDEN", H1="Prüfung fand", H2="drei Fehler.", H3="Ein Ziel verfehlt.",
-                   INTRO1="Fünf Bausteine am 8. Nov, je zweifach geprüft.", INTRO2="Keiner ist gemergt: Das entscheidet ein Mensch.",
+                   INTRO1="Fünf Bausteine am 8. Nov, je zweifach geprüft.", INTRO2="Noch keiner übernommen: Das entscheidet ein Mensch.",
                    TILE_A_LABEL="IN DER PRÜFUNG GEFUNDEN", TILE_A_VALUE="3", TILE_A_SUB1="falsche Pinbelegung, falsche", TILE_A_SUB2="Zahl in der Bildunterschrift,", TILE_A_SUB3="ein wertloser Vergleich",
-                   TONE_A_TOKEN="accent", TILE_B_LABEL="EDGE-KI RECALL · ZIEL 95 %", TILE_B_VALUE="27-40 %", TILE_B_SUB1="der Ereignisse erkannt,", TILE_B_SUB2="Ziel nicht erreicht;", TILE_B_SUB3="Schaltplan-ERC nie gelaufen",
-                   TONE_B_TOKEN="warn", STATUS="AUS PRÜFBERICHTEN GEZÄHLT · STAND 8. NOV · NICHT GEMERGT",
-                   SRC1="Prüfkommentare PR 41, 44, 46; Modellbericht, PR 46", SRC2="Agentenzeit je Baustein: 6 bis 15 Minuten (gemessen)")}),
+                   TONE_A_TOKEN="accent", TILE_B_LABEL="EDGE-KI RECALL · ZIEL 95 %", TILE_B_VALUE="27-40 %", TILE_B_SUB1="der Nässeereignisse erkannt,", TILE_B_SUB2="Ziel nicht erreicht;", TILE_B_SUB3="Schaltplan-ERC nie gelaufen",
+                   TONE_B_TOKEN="warn", STATUS="AUS PRÜFUNGEN GEZÄHLT · STAND 8. NOV · NICHT ÜBERNOMMEN",
+                   SRC1="Prüfkommentare PR 41, 44, 46; Modellbericht, PR 46", SRC2="Agentenzeit je Baustein: 6 bis 16 Minuten (gemessen)")}),
 }
 SIZES = {"portrait-1080x1350": "post-portrait-1080x1350", "linkedin-1200x627": "post-linkedin-1200x627"}
 
