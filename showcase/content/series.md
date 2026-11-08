@@ -29,6 +29,8 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 4. (2 min) Fill the template (`content/build_episodes.py` pattern), render, **look at the PNG**.
 5. (1 min) Commit to `showcase/content/<date>/`, update this calendar, list the Needs-Arsany row (Post approval). Theo checks technical rows, Theo or Nora the German.
 
+> **Update 8 Nov (Arsany, binding):** Instagram is planned in Metricool, one post a day. Days 1 to 3 (Mon 9 to Wed 11 Nov) are the company posts `content/company/` (why we exist, who we are, how we work); from Thu 12 Nov one Agent Diary post a day, chosen by the most-visual-achievement rule. The 14-day plan, the rule and the rationale per day: `company/calendar.md`; where it differs, that file wins. The table below is the earlier Logbook plan (kept for the evidence rows).
+
 ## Calendar: next 14 days (replaces the earlier calendar)
 
 | Day | Date | Episode | Audience leads | Evidence | Status |
