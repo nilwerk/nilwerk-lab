@@ -20,21 +20,21 @@ It runs **next to the Nilwerk Logbook** (`../series.md`): the Logbook stays the 
 6. **No confidential data**: nothing from customers, leads, prices, Needs-Arsany content, A-IDs, secrets or private URLs. Humans: "our hardware integrator", the founder; no other names, faces or voices without OK.
 7. **Honest about the loop**: "AI agents, led and reviewed by humans" on every card; do not write "merged by a human" unless the merger is known (the GitHub login is a shared account).
 8. **Photos and video are real or labelled**: real photos only with the integrator's/Arsany's OK; illustrations say "ILLUSTRATION, NOT A PHOTO"; any AI-generated image gets the platform AI flag (none used here: all images are code-drawn).
-9. **Recount on the day**: every status, merge state and count is "as of 8 Nov 15:45"; recheck before posting (command in `../DAILY.md`).
+9. **Recount on the day**: every status, merge state and count is "as of 8 Nov 16:10"; recheck before posting (command in `../DAILY.md`).
 
-## Week 1 (Mon 9 to Sun 15 Nov 2026)
+## Week 1 (Mon 9 to Sun 15 Nov 2026), facts as of 8 Nov 16:10
 
-| Day | Agent | Achievement of the day (real evidence, as of 8 Nov) | Extra visual | Logbook same day | Status |
+| Day | Agent | Achievement of the day (real evidence) | Extra visual | Logbook same day | Status |
 |---|---|---|---|---|---|
-| Mon 9 | Leo (full-stack) | App account screens: 7.4 min agent time, 54 checks pass, merged 8 Nov, stand-in backend | real screenshots (3 phones) | Day 1 origin story | drafted |
-| Tue 10 | Mira (firmware + edge AI) | Honest miss: model finds 27 % val / 40 % test of wetting events vs 95 % target | micro-fiction (text) | Day 2 number | drafted |
-| Wed 11 | Emil (PCB) | Sensor pin map caught in review before any board; first ERC run clean | then-vs-now pin diagram | Day 3 Saturday | drafted |
-| Thu 12 | Sana (cloud AI) | Claim + ingest API, 17 of 17 mutants caught; QA's own 12: 5 caught, 7 not | plant-in-the-real-world illustration; micro-fiction (text) | Day 4 EU data | drafted |
-| Fri 13 | Yara (3D) | Battery bay: fits at 7.4 mm, +0.2 mm, 17 tests, nothing printed | progress tracker (5 builds, 1 merged) | Day 5 caught mistakes | drafted |
-| Sat 14 | Kai (pipeline) | CI could not start the circuit check (EACCES); fix merged; first ERC run exit 0 | FICTION card: the kettle failed its review | Day 6 sprint 2 numbers | drafted |
-| Sun 15 | Theo (architect) | Caught a misquote in Poppy's own draft (invented "beats the simple rule") | none (text card is the joke) | Day 7 who checks | drafted |
+| Mon 9 | Leo (full-stack) | Account screens: 54 checks pass, 7.4 min agent time, merged 8 Nov, stand-in backend | real screenshots (3 phones) | Day 1 origin story | drafted |
+| Tue 10 | Mira (firmware + edge AI) | Honest miss: 27 % val / 40 % test vs 95 % target | none (the number is the picture) | Day 2 number | drafted |
+| Wed 11 | Emil (PCB) | AHT20 pin catch (4 pins vs 6) before any board; first ERC run clean; founder ordered the first real part (to confirm) | then-vs-now pin diagram; Story card "the first real part" | Day 3 Saturday | drafted |
+| Thu 12 | Sana (cloud AI) | 26 of 26 deliberate bugs caught; a real bug (new owner kept the old owner's plant) found by comparing two copies | none | Day 4 EU data | drafted |
+| Fri 13 | Yara (3D) | Battery bay 7.2 mm, 22 tests, design rule "function first, one touch of design" | progress tracker (5 builds, 2 merged) | Day 5 caught mistakes | drafted |
+| Sat 14 | Kai (pipeline) | The circuit check had never run (EACCES); fix merged; first ERC run exit 0 | FICTION card: the kettle failed its review | Day 6 sprint 2 numbers | drafted |
+| Sun 15 | Theo (architect) | NFR-01 relaxed rule written into ten documents (ADR-015) | Story card: Nora, "two Lead sessions collided" (true) | Day 7 who checks | drafted |
 
-Reserve cards (not built): Ines (QA: 12 own mutants, 7 survived), Nora (the 15:08 merge wave), Poppy herself (the day-5 pack that Theo sent back). Max (sales) appears only as fiction, never with real outreach.
+Reserve cards (not built): Theo's catch of an invented quote in Poppy's own draft, Ines' own 12 bugs (7 survived), Poppy herself. Max (sales) appears only as fiction, never with real outreach.
 
 Rhythm: weekdays alternate feed card and Story; weekend = lighter tone. The first week is a test: after it, look at reach and saves (DAILY.md section 4) and keep or drop the format.
 
@@ -45,6 +45,6 @@ Rhythm: weekdays alternate feed card and Story; weekend = lighter tone. The firs
 - `shotlist.md`: what real photos and 10-20 s clips to shoot, per frame, with safety and consent notes.
 - `needs-arsany-ready.md`: the rows to paste into the Needs Arsany tab.
 - `diary_data.py`, `build_diary.py`, `check_bbox.js`: the generator (texts in the data file, layout in the builder, automatic overflow check).
-- `images/`: 25 PNG + SVG at 1080x1350 (14 diary cards EN/DE, then-vs-now, tracker, real screenshots, illustration, fiction card each EN/DE, plus an internal shot-list board).
+- `images/`: 29 PNG + SVG at 1080x1350 (9 diary cards EN/DE, then-vs-now, tracker, real screenshots, illustration, fiction card each EN/DE, plus an internal shot-list board; 29 PNG + SVG).
 
 Rebuild: `NW_FONT_DIR=<node_modules>/@fontsource python3 -I build_diary.py` from this folder (needs Node playwright in `NODE_PATH`, as for the other builders), then `python3 -I ../../brand/check_svg_wellformed.py`.

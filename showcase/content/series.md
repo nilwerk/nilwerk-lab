@@ -50,6 +50,22 @@ Decision of the owner (2026-11-07): the first post is the Nilwerk story so far (
 
 The PCB order (Arsany's action) gets no post until something real is built from it. Milestone dates are the Plan's; if evidence is missing on the day, switch to the reserve, never post without proof.
 
+## Companion series: Agent Diary (owner decision A-049, 8 Nov 2026, binding)
+
+Arsany asked for more eye-catching, alive posts that connect to the real world: each agent talks about a great achievement of the day, optionally a funny story from the virtual office. Concept, rules and the week-1 plan: `diary/README.md`; drafts EN/DE: `diary/posts.md`; real-photo shot list: `diary/shotlist.md`. It runs next to the Logbook, same day, same facts and claim-check discipline: the Logbook stays the numbered company story (LinkedIn first), the Diary is the human-sized visual companion (Instagram feed and Stories first).
+
+| Day | Logbook episode | Diary card (agent: achievement) | Extra visual |
+|---|---|---|---|
+| Mon 9 Nov | 1 origin story | Leo: account screens, 54 checks | real screenshots |
+| Tue 10 Nov | 2 number of the day | Mira: honest miss 27 / 40 % vs 95 % | none |
+| Wed 11 Nov | 3 a Saturday at Nilwerk | Emil: AHT20 pin catch + first real part ordered (confirm) | then-vs-now pin map |
+| Thu 12 Nov | 4 EU data | Sana: 26 of 26 bugs caught, one real bug | none |
+| Fri 13 Nov | 5 caught mistakes | Yara: bay 7.2 mm, design rule | progress tracker |
+| Sat 14 Nov | 6 sprint 2 numbers | Kai: the check that never ran, ERC exit 0 | FICTION kettle card |
+| Sun 15 Nov | 7 who checks | Theo: NFR-01 flex in ten documents; Story: Nora, two Lead sessions | none |
+
+Diary rules in short: source per achievement, FICTION label for imagined stories, persona voice is written from evidence, no words in humans' mouths, real or labelled visuals, recount on the day. Status: drafted 8 Nov (DE unchecked).
+
 ## Rules that stay from the earlier calendar
 
 German LinkedIn text for every post (checked by Theo or Nora, then Arsany); battery and range figures "simulated" until a bench test; every number in `claim-check.md`; Instagram AI flag only for AI-generated images (none planned).
