@@ -91,6 +91,7 @@ VARIANTS = {
     "A baseline (this BOM)": dict(),
     "B zero-IC soil front end (RC timing on GPIO, no U7/R12, one cap less)": dict(drop=("U7", "R12"), qty_delta={"C5-C11": -1}),
     "C = B + cell with built-in protection (no U4/Q1)": dict(drop=("U7", "R12", "U4", "Q1"), qty_delta={"C5-C11": -1}),
+    "D = A, delete the second protection (cell has a PCM): no U4/Q1/R15, C9 (one 100 nF)": dict(drop=("U4", "Q1", "R15"), qty_delta={"C5-C11": -1}),
 }
 
 
