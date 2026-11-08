@@ -1,0 +1,33 @@
+menu "Plant Monitor"
+
+    choice PLANT_BOARD
+        prompt "Board variant"
+        default PLANT_BOARD_DEVKIT
+        help
+            DevKit = ESP32-C3-DevKitM-1 with breakouts (bench). Custom = the Plant Monitor PCB (see main/board.h).
+
+        config PLANT_BOARD_DEVKIT
+            bool "ESP32-C3-DevKitM-1 + AHT20 + BH1750 + analog capacitive probe"
+        config PLANT_BOARD_CUSTOM
+            bool "Custom PCB (soil probe via PCNT: not implemented yet)"
+    endchoice
+
+    config PLANT_SOIL_DRY_RAW
+        int "Soil probe raw counts in dry air (calibration point, 12-bit)"
+        default 2800
+        range 0 4095
+        help
+            PLACEHOLDER, UNVERIFIED: no probe has been measured. Replace with the bench value (WO-firmware-4.F1).
+
+    config PLANT_SOIL_WET_RAW
+        int "Soil probe raw counts in water (calibration point, 12-bit)"
+        default 1200
+        range 0 4095
+        help
+            PLACEHOLDER, UNVERIFIED: no probe has been measured. Replace with the bench value (WO-firmware-4.F1).
+
+    config PLANT_BENCH_SLEEP_CYCLE
+        bool "Bench app: after 5 readings, deep sleep 60 s, then repeat (NFR-12 IO3 check)"
+        default y
+
+endmenu
