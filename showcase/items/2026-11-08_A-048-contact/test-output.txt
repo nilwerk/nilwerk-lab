@@ -1,0 +1,5 @@
+> plant-monitor-app@0.1.0 typecheck
+> tsc --noEmit
+
+Test Suites: 5 passed, 5 total
+Tests:       60 passed, 60 total

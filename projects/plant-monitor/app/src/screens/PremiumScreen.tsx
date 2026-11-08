@@ -5,7 +5,7 @@ import { Body, Button, Screen } from '../ui/primitives';
 import { t } from '../i18n';
 
 export function contactUrl(email: string): string | null {
-  return email ? `mailto:${email}?subject=${encodeURIComponent(t('premium.title'))}` : null;
+  return email ? `mailto:${email}?subject=${encodeURIComponent(t('premium.contactSubject'))}` : null;
 }
 
 export function PremiumScreen({ contactEmail, onBack }: { contactEmail: string; onBack: () => void }) {

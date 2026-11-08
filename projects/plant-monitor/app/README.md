@@ -7,7 +7,7 @@ Brand: the aligned set approved in A-040 (`theme.ts`, `tokens.json`, `assets/` c
 ## Run
 ```bash
 npm ci
-npm run typecheck && npm test                      # typecheck + 54 unit/screen tests (no backend needed)
+npm run typecheck && npm test                      # typecheck + 60 unit/screen tests (no backend needed)
 EXPO_PUBLIC_MOCK_AUTH=1 npx expo start --web       # whole app against an in-memory mock of Supabase (no account, no network)
 ```
 Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`): set these environment variables before `expo start` / EAS build. Names only, values are never committed:
@@ -16,7 +16,7 @@ Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`)
 |---|---|
 | `SUPABASE_URL` | project URL (https) |
 | `SUPABASE_PUBLISHABLE_KEY` | the NEW publishable key (`sb_publishable_...`), public by design; never a secret / service-role key |
-| `CONTACT_EMAIL` | address behind "Contact us" on the Premium sheet (not decided yet, hidden when empty) |
+| `CONTACT_EMAIL` | address behind "Contact us" on the Premium sheet. Default `nilwerk.team@gmail.com` (A-048, the one shared mailbox for now); set another value to override, set it to an empty string to hide the link. Opens `mailto:` with subject "Plant Monitor – Premium activation" |
 
 `app.config.ts` copies them into `extra`; `src/config.ts` reads them. Without them the app shows a "not connected to a server" message instead of crashing.
 

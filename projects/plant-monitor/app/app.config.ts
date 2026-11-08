@@ -33,7 +33,8 @@ const config: ExpoConfig = {
   extra: {
     supabaseUrl: process.env.SUPABASE_URL ?? '',
     supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY ?? '',
-    contactEmail: process.env.CONTACT_EMAIL ?? '',
+    // Default is Nilwerk's shared mailbox (A-048); CONTACT_EMAIL overrides it, CONTACT_EMAIL= (empty) hides the link.
+    contactEmail: process.env.CONTACT_EMAIL ?? 'nilwerk.team@gmail.com',
   },
 };
 
