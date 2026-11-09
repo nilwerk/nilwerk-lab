@@ -20,7 +20,7 @@ describe('string catalogue (A-024)', () => {
       const src = fs.readFileSync(f, 'utf8');
       for (const m of src.matchAll(/\bt\(\s*'([\w.]+)'/g)) used.add(m[1]);
       for (const m of src.matchAll(/(?:label|labelKey)[:=]\s*\{?\s*t?\(?'([\w.]+)'/g)) used.add(m[1]);
-      for (const m of src.matchAll(/'((?:auth|validation|profile|deleteAccount|premium|common|a11y|welcome|app)\.[\w.]+)'/g)) used.add(m[1]);
+      for (const m of src.matchAll(/'((?:auth|validation|profile|deleteAccount|premium|common|a11y|welcome|app|plants|plant|nav|status)\.[\w.]+)'/g)) used.add(m[1]);
     }
     const missing = [...used].filter((k) => !hasKey(k));
     expect(missing).toEqual([]);

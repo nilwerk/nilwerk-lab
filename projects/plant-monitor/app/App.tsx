@@ -1,6 +1,6 @@
-// App shell. Requirement: FR-A01. Signed-out: welcome -> sign up / sign in. Signed-in: profile -> delete account / premium.
-// Plant screens and BLE setup (4.A3+) are out of scope for 4.A2.
-import React, { useMemo, useState } from 'react';
+// App shell. Requirements: FR-A01 (signed-out: welcome -> sign up / sign in; signed-in: profile -> delete account / premium), FR-A06 (plants tab: list -> detail),
+// FR-A08 + A-022 (detail -> remove plant -> keep/release sensor). BLE setup (4.A3), gallery (FR-A05) and alerts (4.A5) are not part of this shell yet.
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -21,8 +21,17 @@ import { AuthFormScreen, type AuthMode } from './src/screens/AuthFormScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { DeleteAccountScreen } from './src/screens/DeleteAccountScreen';
 import { PremiumScreen } from './src/screens/PremiumScreen';
+import { PlantsScreen } from './src/screens/PlantsScreen';
+import { PlantDetailScreen } from './src/screens/PlantDetailScreen';
+import { PlantRemovedScreen, RemovePlantScreen } from './src/screens/RemovePlantScreen';
+import { PlantsProvider } from './src/plants/PlantsContext';
+import { createFakePlants } from './src/plants/fakePlants';
+import { unconfiguredPlants } from './src/plants/unconfiguredPlants';
+import type { PlantDetail, PlantsService } from './src/plants/types';
+import { TabBar, type Tab } from './src/ui/TabBar';
 
-type Route = 'welcome' | AuthMode | 'profile' | 'delete' | 'premium';
+type Route = 'welcome' | AuthMode | 'plants' | 'plant' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium';
+interface Removed { plantName: string; deviceId: string | null; sensorName: string | null }
 
 /** Service used when no Supabase config is present: every call reports "not configured" instead of crashing. */
 function unconfiguredAuth(): AuthService {
@@ -34,6 +43,12 @@ export function Root({ contactEmail, banner }: { contactEmail: string; banner?: 
   const { state } = useAuth();
   const th = useTheme();
   const [route, setRoute] = useState<Route>('welcome');
+  const [plantId, setPlantId] = useState<string | null>(null);
+  const [toRemove, setToRemove] = useState<PlantDetail | null>(null);
+  const [removed, setRemoved] = useState<Removed | null>(null);
+  const signedOut = state.status === 'signedOut';
+  // a signed-out user starts again at the welcome screen, so the next sign-in lands on the plants tab
+  useEffect(() => { if (signedOut) { setRoute('welcome'); setPlantId(null); setToRemove(null); setRemoved(null); } }, [signedOut]);
 
   if (state.status === 'loading') {
     return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: th.color.bg }}><ActivityIndicator accessibilityLabel={t('common.loading')} color={th.color.accent} /></View>;
@@ -50,23 +65,42 @@ export function Root({ contactEmail, banner }: { contactEmail: string; banner?: 
     screen = <DeleteAccountScreen onCancel={() => setRoute('profile')} />;
   } else if (route === 'premium') {
     screen = <PremiumScreen contactEmail={contactEmail} onBack={() => setRoute('profile')} />;
-  } else {
+  } else if (route === 'plant' && plantId) {
+    screen = <PlantDetailScreen plantId={plantId} onBack={() => setRoute('plants')} onRemove={(d) => { setToRemove(d); setRoute('remove'); }} />;
+  } else if (route === 'remove' && toRemove) {
+    screen = <RemovePlantScreen plant={toRemove.plant} onCancel={() => setRoute('plant')}
+      onRemoved={() => { setRemoved({ plantName: toRemove.plant.name, deviceId: toRemove.plant.deviceId, sensorName: toRemove.plant.deviceName }); setToRemove(null); setPlantId(null); setRoute('removed'); }} />;
+  } else if (route === 'removed' && removed) {
+    screen = <PlantRemovedScreen {...removed} onDone={() => { setRemoved(null); setRoute('plants'); }} />;
+  } else if (route === 'profile') {
     screen = <ProfileScreen onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} />;
+  } else {
+    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} />;
   }
-  return <SafeAreaView style={{ flex: 1, backgroundColor: th.color.bg }}>{banner ? <Notice kind="info" text={banner} /> : null}{screen}</SafeAreaView>;
+  const tab: Tab | null = !signedIn ? null : route === 'profile' ? 'profile' : route === 'plants' || route === 'welcome' || route === 'signUp' || route === 'signIn' ? 'plants' : null;
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: th.color.bg }}>
+      {banner ? <Notice kind="info" text={banner} /> : null}
+      {screen}
+      {tab ? <TabBar active={tab} onSelect={setRoute} /> : null}
+    </SafeAreaView>
+  );
 }
 
 export default function App() {
   const cfg = useMemo(() => readConfig(), []);
   const mock = process.env.EXPO_PUBLIC_MOCK_AUTH === '1';
   const service = useMemo(() => (mock ? createFakeAuth() : isConfigured(cfg) ? createSupabaseAuth(cfg) : unconfiguredAuth()), [cfg, mock]);
+  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : unconfiguredPlants()), [mock]);
   const [fonts] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, Inter_400Regular, Inter_600SemiBold, JetBrainsMono_400Regular, JetBrainsMono_600SemiBold });
   if (!fonts) return null;
   return (
     <SafeAreaProvider>
     <AuthProvider service={service}>
-      <StatusBar style="auto" />
-      <Root contactEmail={cfg.contactEmail} banner={mock ? t('app.mockBanner') : undefined} />
+      <PlantsProvider service={plants}>
+        <StatusBar style="auto" />
+        <Root contactEmail={cfg.contactEmail} banner={mock ? t('app.mockBanner') : undefined} />
+      </PlantsProvider>
     </AuthProvider>
     </SafeAreaProvider>
   );

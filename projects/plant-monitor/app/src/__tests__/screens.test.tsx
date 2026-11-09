@@ -4,13 +4,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react-nativ
 import { Root } from '../../App';
 import { AuthProvider } from '../auth/AuthContext';
 import { createFakeAuth } from '../auth/fakeAuth';
+import { PlantsProvider } from '../plants/PlantsContext';
+import { createFakePlants } from '../plants/fakePlants';
 import { SCREEN_FR } from '../ui/frIds';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import fs from 'fs';
 import path from 'path';
 
 const mount = async (service = createFakeAuth(), contactEmail = 'hello@example.invalid') => {
-  await render(<SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}><AuthProvider service={service}><Root contactEmail={contactEmail} /></AuthProvider></SafeAreaProvider>);
+  await render(<SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}><AuthProvider service={service}><PlantsProvider service={createFakePlants()}><Root contactEmail={contactEmail} /></PlantsProvider></AuthProvider></SafeAreaProvider>);
   return service;
 };
 const type = async (label: string, text: string) => fireEvent.changeText(await screen.findByLabelText(label), text);
@@ -39,6 +41,8 @@ describe('signed-out flow', () => {
     await type('Password', 'long-enough-1');
     await type('Display name (optional)', 'Sam');
     await tap('Create account');
+    expect(await screen.findByRole('header', { name: 'My plants' })).toBeTruthy();
+    fireEvent.press(screen.getByRole('tab', { name: 'Profile' }));
     expect(await screen.findByRole('header', { name: 'Profile' })).toBeTruthy();
     expect(svc.accounts[0].profile.displayName).toBe('Sam');
     expect(await screen.findByText('sam@example.com')).toBeTruthy();
@@ -66,7 +70,7 @@ describe('signed-out flow', () => {
     expect(await screen.findByText('E-mail or password is not right.')).toBeTruthy();
     await type('Password', 'long-enough-1');
     await tap('Sign in');
-    expect(await screen.findByRole('header', { name: 'Profile' })).toBeTruthy();
+    expect(await screen.findByRole('header', { name: 'My plants' })).toBeTruthy();
   });
 });
 
@@ -75,6 +79,8 @@ describe('signed-in flow', () => {
     const svc = createFakeAuth();
     await svc.signUp('sam@example.com', 'long-enough-1', 'Sam');
     await mount(svc);
+    await screen.findByRole('header', { name: 'My plants' });
+    await fireEvent.press(screen.getByRole('tab', { name: 'Profile' }));
     await screen.findByRole('header', { name: 'Profile' });
     return svc;
   };
@@ -125,7 +131,7 @@ describe('signed-in flow', () => {
 describe('requirement citations', () => {
   test('every screen has FR ids in the map and in its source header', () => {
     const files: Record<keyof typeof SCREEN_FR, string> = {
-      welcome: 'WelcomeScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen',
+      welcome: 'WelcomeScreen', plants: 'PlantsScreen', plantDetail: 'PlantDetailScreen', removePlant: 'RemovePlantScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen',
     };
     for (const [screenName, ids] of Object.entries(SCREEN_FR)) {
       expect(ids.length).toBeGreaterThan(0);
