@@ -2,6 +2,10 @@
 
 What it shows: the sensor-side setup logic (setup mode on first boot or button hold, 5 wrong codes or 5 minutes end it, Wi-Fi + name + claim token accepted and kept on the device only) passing 530 host checks, with 45 deliberate code mutations all caught and a drift check against the app's contract.
 
+![State diagram of the 4.F2 setup state machine](state-machine.svg)
+
+`state-machine.svg`: the transitions the real `nw_prov.c` makes, recorded by a scratch gcc harness that drives seven scenarios (happy path, five wrong codes, five minutes idle, Wi-Fi failure, claim refused, factory reset by 10 s hold, 3 s hold at boot) and prints every state change. The harness is not committed. Host PC only, no hardware.
+
 - Task: 4.F2 (Firmware: setup flow), PR: https://github.com/nilwerk/nilwerk-lab/pull/66. Persona: Mira (Firmware + Edge AI).
 - Agent minutes: 11.5 (own clock 07:45:30 to 07:56:57, includes waiting for CI); the Lead's Agent Log figure wins once logged.
 - Own human-hour estimate: about 14 h for an experienced embedded engineer (state machine, strict JSON/UTF-8 parser, NVS adapter, 530 checks, mutation harness, contract check, work-order draft).

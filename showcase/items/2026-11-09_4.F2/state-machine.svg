@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" width="760" height="470" font-family="Helvetica, Arial, sans-serif">
+<rect width="760" height="470" fill="#ffffff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+<text x="20" y="28" font-size="16" font-weight="bold" fill="#111">4.F2 setup state machine: transitions observed in nw_prov.c</text>
+<text x="20" y="46" font-size="11" fill="#555">Driven by a scratch gcc harness (7 scenarios, real code, no hardware). Edge labels are the events that caused each move.</text>
+<line x1="199" y1="170" x2="249" y2="170" stroke="#333" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="224" y="164" font-size="11" text-anchor="middle" fill="#0b4f8a">boot / boot / boot / boot / boot / button_10s / boot_hold_3s</text>
+<line x1="429" y1="170" x2="479" y2="170" stroke="#333" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="454" y="164" font-size="11" text-anchor="middle" fill="#0b4f8a">handshake_ok / handshake_ok / handshake_ok</text>
+<line x1="558" y1="198" x2="558" y2="320" stroke="#333" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="551" y="253" font-size="11" text-anchor="middle" fill="#0b4f8a">apply / apply / apply</text>
+<line x1="481" y1="350" x2="431" y2="350" stroke="#333" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="456" y="344" font-size="11" text-anchor="middle" fill="#0b4f8a">wifi_ok / wifi_ok</text>
+<line x1="251" y1="350" x2="201" y2="350" stroke="#333" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="226" y="344" font-size="11" text-anchor="middle" fill="#0b4f8a">claim_ok</text>
+<line x1="340" y1="142" x2="340" y2="90" stroke="#333" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="340" y="110" font-size="11" text-anchor="middle" fill="#0b4f8a">handshake_fail / tick_5min</text>
+<line x1="582" y1="322" x2="582" y2="200" stroke="#333" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="589" y="255" font-size="11" text-anchor="middle" fill="#0b4f8a">wifi_auth</text>
+<line x1="374" y1="324" x2="535" y2="198" stroke="#333" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="454" y="255" font-size="11" text-anchor="middle" fill="#0b4f8a">claim_token_invalid</text>
+<rect x="25.0" y="146.0" width="170" height="48" rx="6" fill="#f2f4f7" stroke="#444"/>
+<text x="110" y="175" font-size="13" text-anchor="middle" font-weight="bold" fill="#111">NORMAL</text>
+<rect x="255.0" y="146.0" width="170" height="48" rx="6" fill="#f2f4f7" stroke="#444"/>
+<text x="340" y="175" font-size="13" text-anchor="middle" font-weight="bold" fill="#111">ADVERTISING</text>
+<rect x="485.0" y="146.0" width="170" height="48" rx="6" fill="#f2f4f7" stroke="#444"/>
+<text x="570" y="175" font-size="13" text-anchor="middle" font-weight="bold" fill="#111">SESSION</text>
+<rect x="485.0" y="326.0" width="170" height="48" rx="6" fill="#f2f4f7" stroke="#444"/>
+<text x="570" y="355" font-size="13" text-anchor="middle" font-weight="bold" fill="#111">WIFI_CONNECTING</text>
+<rect x="255.0" y="326.0" width="170" height="48" rx="6" fill="#f2f4f7" stroke="#444"/>
+<text x="340" y="355" font-size="13" text-anchor="middle" font-weight="bold" fill="#111">CLAIMING</text>
+<rect x="25.0" y="326.0" width="170" height="48" rx="6" fill="#eef6ee" stroke="#444"/>
+<text x="110" y="355" font-size="13" text-anchor="middle" font-weight="bold" fill="#111">CLAIMED</text>
+<rect x="255.0" y="36.0" width="170" height="48" rx="6" fill="#fbeaea" stroke="#444"/>
+<text x="340" y="65" font-size="13" text-anchor="middle" font-weight="bold" fill="#111">CLOSED</text>
+<text x="20" y="456" font-size="11" fill="#555">Not traced: CLAIMED and CLOSED have no outgoing edge in the code (end of setup); BLE is off in both. Hardware: none. Button times are proposals.</text>
+</svg>
