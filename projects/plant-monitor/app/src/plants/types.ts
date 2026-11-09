@@ -31,7 +31,8 @@ export interface PlantSummary {
   latest: LatestReading | null;
 }
 
-/** One hourly mean (readings_hourly.moisture_avg). null = gap (device offline). */
+/** One hourly mean (readings_hourly.moisture_avg). null = gap (device offline).
+ *  The real readings_hourly has NO row for an offline hour and moisture_avg is nullable: the real client must fill the 168-hour grid itself (missing hour -> null). The mock only emits explicit nulls. */
 export interface HourlyPoint { hour: string; moisturePct: number | null }
 
 export interface PlantDetail { plant: PlantSummary; hourly: HourlyPoint[] }

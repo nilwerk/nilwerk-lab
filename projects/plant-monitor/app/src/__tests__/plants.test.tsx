@@ -67,7 +67,7 @@ describe('mock service + chart data (unit)', () => {
     expect(await svc.listPlants()).toHaveLength(4);
     await expect(svc.getPlantDetail('p-basil')).rejects.toBeInstanceOf(PlantsError);
   });
-  test('FR-A02: the mock has no cap (30 plants listed)', async () => {
+  test('FR-A02 (UI/mock only): 30 plants render in the list; the real no-limit proof is TODO in slice 2', async () => {
     const { plants } = sampleFixture(FIXED);
     const many = Array.from({ length: 30 }, (_, i) => ({ ...plants[0], id: `x${i}`, name: `Plant ${i}` }));
     expect(await createFakePlants({ now: () => NOW, plants: many }).listPlants()).toHaveLength(30);
