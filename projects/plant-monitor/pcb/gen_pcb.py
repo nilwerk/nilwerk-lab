@@ -264,11 +264,12 @@ def build_pcb():
     n_gnd = NETS["GND"]
     for k, (tag, x, y) in enumerate(via_list()):
         o.append(f'\t(via (at {f(x)} {f(y)}) (size {RULES["via_dia"]}) (drill {RULES["via_drill"]}) (layers "F.Cu" "B.Cu") (net {n_gnd}) (uuid "{uid("via", k)}"))')
-    # antenna keep-out (rule area) on both layers: no tracks, vias, pads, copper pour, footprints (O2)
+    # antenna keep-out (rule area) on both layers: no tracks, vias, pads, copper pour (O2).  Footprints are 'allowed' only because the module U1
+    # itself overlaps the zone (its antenna end); check_layout.py asserts that no OTHER footprint touches the zone.
     kx0, ky0, kx1, ky1 = ANT_KEEPOUT
     o.append(f'\t(zone (net 0) (net_name "") (layers "F.Cu" "B.Cu") (uuid "{uid("ko")}") (name "ANT_KEEPOUT") (hatch edge 0.5) '
              f'(connect_pads (clearance 0)) (min_thickness 0.25) (filled_areas_thickness no) '
-             f'(keepout (tracks not_allowed) (vias not_allowed) (pads not_allowed) (copperpour not_allowed) (footprints not_allowed)) '
+             f'(keepout (tracks not_allowed) (vias not_allowed) (pads not_allowed) (copperpour not_allowed) (footprints allowed)) '
              f'(fill (thermal_gap 0.5) (thermal_bridge_width 0.5)) '
              f'(polygon (pts (xy {f(kx0)} {f(ky0)}) (xy {f(kx1)} {f(ky0)}) (xy {f(kx1)} {f(ky1)}) (xy {f(kx0)} {f(ky1)}))))')
     # bottom GND pour over the body only (not the tail), 0.5 mm from the edge (O3); NOT filled in this slice
