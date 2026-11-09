@@ -1,6 +1,6 @@
 # 4.P2 slice 1: the first Plant Monitor board file, placed and checked
 
-The first real board file of the Plant Monitor: a KiCad 9 PCB generated from the schematic data, with all 46 parts placed, the antenna at the board edge inside a copper-free keep-out, the soil electrodes as copper on a tail at the far end, and the LiPo cell bay beside it. KiCad's own design-rule check in CI reports 0 errors (this means only: closed outline, no clearance or keep-out error between placeholder pads; connectivity is not evaluated because the board is unrouted). The picture is drawn from the actual `plant-monitor.kicad_pcb` file (not a mock-up); it is not a KiCad screenshot because no KiCad was available in the agent session.
+The first real board file of the Plant Monitor: a KiCad 9 PCB generated from the schematic data, with all 46 parts placed, the antenna at the board edge inside a copper-free keep-out, the soil electrodes as copper on a tail at the far end, and the LiPo cell bay beside it. KiCad's own design-rule check in CI reports 0 errors (this means only: closed outline, no clearance or keep-out error between placeholder pads; unconnected items are warning-level, not in the error-level report, because the board is unrouted, so this is not a connectivity result). The picture is drawn from the actual `plant-monitor.kicad_pcb` file (not a mock-up); it is not a KiCad screenshot because no KiCad was available in the agent session.
 
 - Task: 4.P2 (PCB layout), slice 1: placement, not routed
 - PR: https://github.com/nilwerk/nilwerk-lab/pull/64

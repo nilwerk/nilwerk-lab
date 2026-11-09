@@ -8,19 +8,19 @@ Tags as in `layout-brief.md`: [brief] taken from it, [mine] my assumption, [open
 |---|---|
 | `gen_pcb.py` | generator: writes `plant-monitor.kicad_pcb`, the DFM rules/net classes in `plant-monitor.kicad_pro`, and `plant-monitor-outline.dxf` (O8, for Yara). Parts and nets come from `design.py`, so board and schematic cannot drift. |
 | `plant-monitor.kicad_pcb` | the board: outline, 46 footprints placed on top (45 BOM pieces + E1, the stake electrode copper, which has no LCSC line; `check_netlist.py` confirms BOM = schematic), nets assigned, 16 ground/thermal vias, antenna keep-out, bottom GND zone (not filled). **No tracks.** |
-| `check_layout.py` | own geometry check of the board file (not KiCad DRC), 19 checks, **mandatory gate item** (see "Gate checklist"), plus `--render` (the showcase image is drawn from the board file by this script). |
+| `check_layout.py` | own geometry check of the board file (not KiCad DRC), 18 checks, **mandatory gate item** (see "Gate checklist"), plus `--render` (the showcase image is drawn from the board file by this script). |
 
 ## Which checks ran, and where
 | Check | Where | Result |
 |---|---|---|
 | KiCad ERC (`kicad-cli sch erc --severity-error`) | CI job `pcb`, KiCad 9 container, PR #64 head | 0 violations (error level) |
-| KiCad DRC (`kicad-cli pcb drc --severity-error`) | same job, same head | **0 violations at error level.** Unconnected items are **not evaluated** (rule downgraded to warning, board unrouted; CI runs `--severity-error`). First head (before the fix) found 1 real error: `items_not_allowed`, footprint U1 inside keepout area ANT_KEEPOUT (module overhangs it by design); fixed by allowing footprints in the rule area, pads/tracks/vias/pour stay forbidden. |
+| KiCad DRC (`kicad-cli pcb drc --severity-error`) | same job, same head | **0 violations at error level.** Unconnected items are **warning-level, not in the error-level report** (rule downgraded to warning, board unrouted; CI runs `--severity-error`). First head (before the fix) found 1 real error: `items_not_allowed`, footprint U1 inside keepout area ANT_KEEPOUT (module overhangs it by design); fixed by allowing footprints in the rule area, pads/tracks/vias/pour stay forbidden. |
 | Gerber/drill/CPL/STEP export | same job | ran without error (CI artifact `pcb-fab`); **not a release**, placeholder footprints, unrouted |
-| `check_layout.py` (own geometry rules) | agent session | 19/19 PASS, table below |
+| `check_layout.py` (own geometry rules) | agent session | 18/18 PASS, table below |
 | `check_netlist.py` | agent session, unchanged | PASS (schematic untouched) |
 | KiCad DRC locally, 3D view, DFM view | **not run**: no KiCad in the agent session | |
 
-What the DRC does **not** say: it runs at error level only, so warnings are not in the log (I did not change `ci.yml`); `unconnected_items` is set to *warning* in `.kicad_pro` for this unrouted slice, so DRC says nothing about connectivity. "DRC 0" on this board means: outline closed, no clearance/edge/keep-out error among the placeholder pads and the vias. It does not prove the footprints are right.
+What the DRC does **not** say: it runs at error level only, so warnings are not in the log (I did not change `ci.yml`); unconnected items are warning-level (`unconnected_items` = *warning* in `.kicad_pro`), not in the error-level report, so the 0 in the CI log is not a connectivity result. "DRC 0" on this board means: outline closed, no clearance/edge/keep-out error among the placeholder pads and the vias. It does not prove the footprints are right.
 
 ## Traceability (rule -> where on the board -> check)
 | ID | Rule | On the board | Check |

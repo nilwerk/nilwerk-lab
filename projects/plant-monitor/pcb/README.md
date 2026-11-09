@@ -11,10 +11,10 @@ Layout is 4.P2, **slice 1 done (placement, not routed)**: see [`layout-4P2.md`](
 
 | Check | Result |
 |---|---|
-| KiCad ERC (`kicad-cli sch erc`) | Runs in CI (job `pcb`, KiCad 9 container) on every push of this PR; not available in the agent session. 0 violations on 00edafe; the result for the A-045 head is in the PR report. |
+| KiCad ERC (`kicad-cli sch erc`) | Runs in CI (job `pcb`, KiCad 9 container) on every push of this PR; not available in the agent session. 0 violations at error level on head a0a4c90, CI run 42576375828 (job `pcb`, job 129024963788). |
 | `python3 -I check_netlist.py` | all PASS (nets rebuilt from the file = model, no unconnected pin, no 1-pin net, BOM draft lcsc/qty = schematic, R9, strap pins, sleep sum) |
-| KiCad DRC (`kicad-cli pcb drc`) | CI job `pcb`: 0 violations at error level on the 4.P2 slice-1 head (placed, not routed, placeholder footprints; unconnected items are NOT evaluated, `unconnected_items` = warning, to be reverted when routing starts): [`layout-4P2.md`](layout-4P2.md). |
-| `python3 check_layout.py` | 19/19 PASS (own geometry check of the board file, not KiCad DRC) |
+| KiCad DRC (`kicad-cli pcb drc`) | CI job `pcb`: 0 violations at error level on the 4.P2 slice-1 head (placed, not routed, placeholder footprints; unconnected items are warning-level, not in the error-level report; `unconnected_items` = warning, to be reverted when routing starts): [`layout-4P2.md`](layout-4P2.md). |
+| `/usr/bin/python3 -I check_layout.py` | 18/18 PASS (own geometry check of the board file, not KiCad DRC) |
 | Simulations | **LDO dropout: RUN** (ngspice 42 via `apt-get install ngspice`, `sim/ldo_dropout.py`, `sim/ldo_dropout.png`): V(3V3) stays >= 3.05 V in every modelled case at the 3.4 V warning point (limit 3.0 V = VDD33 min), fails at <= 3.3 V cell with 0.30 ohm / pessimistic dropout, see `layout-brief.md` section 6. Divider, soil front end, charger thresholds, USB inrush: **NOT RUN.** |
 
 ## Charge current R9 (A-034 decided 2026-11-08)
