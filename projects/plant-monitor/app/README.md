@@ -1,13 +1,13 @@
-# Plant Monitor app (task 4.A2: account and profile)
+# Plant Monitor app (tasks 4.A2 account and profile, 4.A4 slice 1 plants)
 
-Expo (SDK 58) + TypeScript (strict). Screens: Welcome S01, Sign up / Sign in S02, Profile S03, Delete account S04, Premium sheet S40
+Expo (SDK 58) + TypeScript (strict). Screens: Welcome S01, Sign up / Sign in S02, Profile S03, Delete account S04, Premium sheet S40, plus (4.A4 slice 1) Plant list S20, Plant detail S21, Remove plant S24b/S24c with a Plants/Profile tab bar
 (wireframes: `wireframes/index.html`). Requirements: FR-A01 (account), FR-P04 (plan mirrors `profiles.is_premium`), NFR-06 (own rows only, RLS), NFR-07 (delete removes all data).
 Brand: the aligned set approved in A-040 (`theme.ts`, `tokens.json`, `assets/` copied from `showcase/brand/app/`; regenerate there, not here). English only, strings in `strings/en.json` (A-024).
 
 ## Run
 ```bash
 npm ci
-npm run typecheck && npm test                      # typecheck + 60 unit/screen tests (no backend needed)
+npm run typecheck && npm test                      # typecheck + 98 unit/screen tests (no backend needed)
 EXPO_PUBLIC_MOCK_AUTH=1 npx expo start --web       # whole app against an in-memory mock of Supabase (no account, no network)
 ```
 Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`): set these environment variables before `expo start` / EAS build. Names only, values are never committed:
@@ -29,3 +29,8 @@ Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`)
 - No forgot-password, no data export, no plants, no BLE setup (4.A3). Export warning for plant removal is A-022 (separate).
 - `handle_new_user()` stores only the id, so the sign-up display name is kept in auth user metadata and copied into `profiles.display_name` on the first profile load.
 - Apple/Google sign-in, store assets and the Expo dev build for BLE are later tasks.
+
+## 4.A4 slice 1: plants (list, detail, remove)
+Requirements: FR-A06 (list with status chips dry / wet / low battery / offline, detail with latest values and 7-day hourly chart), FR-A02 (no device cap), FR-A08 + A-022 (remove plant with warning and typed confirmation, then keep or release the sensor), NFR-06.
+`src/plants/types.ts` is the contract (mirrors `plant_status`, `readings_hourly`, `delete_plant`, `POST /device-release` in `docs/interfaces/`). `fakePlants.ts` is the in-memory mock (5 fixture plants as in wireframe S20, synthetic readings); with `EXPO_PUBLIC_MOCK_AUTH=1` the app uses it, otherwise `unconfiguredPlants.ts` answers "not connected". Status chips: `src/plants/status.ts` maps open alert kinds to the aligned colours in `theme.ts` (shape glyph + text label + colour). Chart: `src/ui/MoistureChart.tsx` (plain Views, one bar per hour, no SVG dependency).
+Not done in slice 1 (slice 2 and later): photo gallery S23 / photo hero (FR-A05, unlimited images), hourly data table S22, edit plant S24 (FR-A04), "Export first" before removal (needs GET /export + share sheet, A-022 asks to offer it), "+ Add" to S10 (4.A3), alerts tab (4.A5), 30/90-day Premium ranges (FR-P01), "dry in" forecast (FR-E01), pull-to-refresh (a Refresh button instead), a real Supabase `PlantsService` (never run against a backend or on a phone; web build + render tests only). Removing a plant in the mock does not touch a device table; real behaviour is `delete_plant` (sensor stays claimed, plant_id cleared). The mock's "latest" value is a fixture number, not derived from the synthetic chart series.
