@@ -1,0 +1,36 @@
+# 4.F2 host test output (real, gcc, this checkout). No hardware, no ESP-IDF build in this sandbox.
+
+$ ctest --test-dir build --output-on-failure
+Test project build/
+1/6 Test #1: sensors_unit .....................   Passed    0.01 sec
+2/6 Test #2: provisioning_unit ................   Passed    0.01 sec
+3/6 Test #3: board_pins_cite_pinmap ...........   Passed    0.02 sec
+4/6 Test #4: provisioning_contract ............   Passed    0.02 sec
+5/6 Test #5: provisioning_mutation_checks .....   Passed    8.54 sec
+6/6 Test #6: mutation_checks ..................   Passed    7.01 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Total Test time (real) =  15.61 sec
+
+$ build/test_prov
+provisioning host tests: 530 checks, 0 failed
+
+$ python3 test/host/mutate_prov.py gcc
+45/45 mutants killed
+
+$ python3 test/host/check_prov_contract.py   (with the 4.A3 types.ts from origin/agent/fullstack/4.A3-ui temporarily placed in app/src/provisioning/)
+ok   doc: 5 failed handshakes / 5 minutes
+ok   firmware: 5 handshakes / 5 minutes
+ok   nw-status words doc-vs-firmware (diff [])
+ok   app ProvisioningErrorCode has 'wifi_auth' for device reason 'auth'
+ok   app ProvisioningErrorCode has 'wifi_no_ap' for device reason 'no_ap'
+ok   app ProvisioningErrorCode has 'wifi_timeout' for device reason 'timeout'
+ok   app ProvisioningErrorCode has 'device_owned' for device reason 'device_owned'
+ok   app ProvisioningErrorCode has 'claim_token_invalid' for device reason 'claim_token_invalid'
+ok   app ProvisioningErrorCode has 'claim_network' for device reason 'network'
+ok   app ProvisioningErrorCode has 'claim_server' for device reason 'server'
+ok   app LinkState has 'wifi_connecting'
+ok   app LinkState has 'claiming'
+ok   app LinkState has 'claimed'
+0 failed
