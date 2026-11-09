@@ -141,7 +141,7 @@ def bom_rows():
         rows.append({"Designator": ",".join(sorted((x.ref for x in ps), key=lambda r: (r.rstrip("0123456789"), int(r[len(r.rstrip("0123456789")):])))),
                      "Qty": len(ps), "Value": val, "Footprint": fp, "LCSC": lcsc, "MPN": mpn,
                      "FootprintStatus": "to-draw-in-4.P2" if ps[0].custom_fp else "kicad-library-name",
-                     "PinMapStatus": "verified-by-author-memory-only" if not ps[0].pin_verified else "standard-pinout",
+                     "PinMapStatus": "signal-map-from-4.P1-not-checked-vs-4.P2-drawing" if not ps[0].pin_verified else "standard-pinout",
                      "Note": ps[0].note})
     return sorted(rows, key=lambda r: (r["Designator"][0], r["Designator"]))
 
