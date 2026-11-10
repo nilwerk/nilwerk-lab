@@ -4,6 +4,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Root } from '../../App';
+import { createFakeSetup } from '../provisioning/fakeProvisioning';
 import { AuthProvider } from '../auth/AuthContext';
 import { createFakeAuth } from '../auth/fakeAuth';
 import { PlantsProvider } from '../plants/PlantsContext';
@@ -96,7 +97,7 @@ const mount = async (plants = createFakePlants({ now: () => NOW })) => {
   await auth.signUp('sam@example.com', 'long-enough-1', 'Sam');
   await render(
     <SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}>
-      <AuthProvider service={auth}><PlantsProvider service={plants}><Root contactEmail="x@example.invalid" /></PlantsProvider></AuthProvider>
+      <AuthProvider service={auth}><PlantsProvider service={plants}><Root contactEmail="x@example.invalid" setup={createFakeSetup().services} /></PlantsProvider></AuthProvider>
     </SafeAreaProvider>,
   );
   await screen.findByRole('header', { name: 'My plants' });

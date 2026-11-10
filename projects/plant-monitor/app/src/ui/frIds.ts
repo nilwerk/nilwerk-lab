@@ -9,5 +9,6 @@ export const SCREEN_FR = {
   plants: ['FR-A06', 'FR-A02', 'NFR-06'],     // S20 Plant list with status chips (no device cap)
   plantDetail: ['FR-A06', 'FR-A07', 'FR-A08'],  // S21 Plant detail: latest values, 7-day chart, thresholds, entry to remove
   removePlant: ['FR-A08', 'A-022', 'NFR-07'],   // S24b/S24c Remove plant (delete_plant), keep/release sensor
+  setup: ['FR-A03', 'FR-D03', 'FR-A04', 'FR-A05', 'NFR-03'], // S10-S16 device setup (A-023: no hub step); FR-D02/D07/A02 also cited in SetupSteps
   premium: ['FR-P04'],                       // S40 Premium sheet (A-024: activated by Nilwerk + contact link)
 } as const;
