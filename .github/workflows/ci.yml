@@ -207,6 +207,13 @@ jobs:
       options: --user root
     steps:
       - uses: actions/checkout@v4
+      - name: Layout checks (antenna keep-out, antenna-to-cell distance, via-in-pad; check_layout.py exits 1 on any FAIL)
+        working-directory: projects/plant-monitor/pcb
+        shell: bash
+        run: |
+          set -e
+          [ -f plant-monitor.kicad_pcb ] || { echo "No .kicad_pcb yet: layout checks skipped"; exit 0; }
+          python3 -I check_layout.py
       - name: ERC / DRC and fabrication exports
         working-directory: projects/plant-monitor/pcb
         shell: bash
