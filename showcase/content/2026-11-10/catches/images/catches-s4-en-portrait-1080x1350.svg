@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-label="Five short rows: a switch wired to ground, 16 vias moved out of pads, a start-up pin that cannot be a button, a name that was trimmed only for checking, and 41 of 41 deliberate bugs caught."><defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#e2ded5" stroke-width="1.5" opacity=".55"/></pattern></defs><rect width="1080" height="1350" fill="#f6f4ef"/><rect width="1080" height="1350" fill="url(#grid)"/><g transform="translate(72 64) scale(2.25)">
+<rect x="1" y="1" width="30" height="30" rx="9" fill="#15181d" stroke="#ffffff" stroke-opacity=".12"/>
+<path d="M10 22V9.5l12 12.5V9.5" fill="none" stroke="#3fc79a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="10" cy="22" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/><circle cx="22" cy="9.5" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/>
+<path d="M6.5 26.6c2.4-1.5 4.8-1.5 7.2 0s4.8 1.5 7.2 0 4.8-1.5 6.9-.1" fill="none" stroke="#8fd9ff" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/></g>
+<text x="156" y="119" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="44" letter-spacing="-1.3" fill="#15181d">nil<tspan fill="#0f7a5c">werk</tspan></text>
+<rect x="72" y="176" width="324" height="52" rx="26" fill="#e3f2ec" stroke="#0f7a5c" stroke-width="2"/><text x="92" y="209" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="22" letter-spacing="1.0" fill="#0f7a5c">SAME DAY, SAME HABIT</text>
+<text x="72" y="338" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#15181d">Five more checks</text>
+<text x="72" y="414" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#0f7a5c">the same day.</text>
+<rect x="72" y="514" width="936" height="106" rx="16" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="514" width="10" height="106" rx="5" fill="#0f7a5c"/>
+<text x="104" y="546" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="18" letter-spacing="1.2" fill="#0f7a5c">PCB</text>
+<text x="104" y="572" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">A placeholder switch would have wired a signal straight to ground.</text>
+<text x="104" y="601" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">The real drawing showed it.</text>
+<rect x="72" y="632" width="936" height="106" rx="16" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="632" width="10" height="106" rx="5" fill="#0f7a5c"/>
+<text x="104" y="664" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="18" letter-spacing="1.2" fill="#0f7a5c">PCB</text>
+<text x="104" y="690" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">16 tiny holes (vias) sat inside solder pads. Now 0. The antenna</text>
+<text x="104" y="719" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">keep-out is checked in CI.</text>
+<rect x="72" y="750" width="936" height="106" rx="16" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="750" width="10" height="106" rx="5" fill="#0f7a5c"/>
+<text x="104" y="782" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="18" letter-spacing="1.2" fill="#0f7a5c">FIRMWARE</text>
+<text x="104" y="808" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">The start-up pin cannot be a &#x27;hold at power-up&#x27; button. Found</text>
+<text x="104" y="837" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">while writing, before any board exists.</text>
+<rect x="72" y="868" width="936" height="106" rx="16" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="868" width="10" height="106" rx="5" fill="#0f7a5c"/>
+<text x="104" y="900" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="18" letter-spacing="1.2" fill="#0f7a5c">APP</text>
+<text x="104" y="926" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">We break code on purpose to test the tests. It found a name</text>
+<text x="104" y="955" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">checked trimmed but sent untrimmed.</text>
+<rect x="72" y="986" width="936" height="106" rx="16" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="986" width="10" height="106" rx="5" fill="#0f7a5c"/>
+<text x="104" y="1018" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="18" letter-spacing="1.2" fill="#0f7a5c">CLOUD</text>
+<text x="104" y="1044" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">Delete-account function: all 41 deliberate bugs in the suite</text>
+<text x="104" y="1073" font-family="Inter, sans-serif" font-weight="400" font-size="24" fill="#15181d">caught.</text>
+<rect x="72" y="1106" width="430" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1134" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">MEASURED · NOT ON REAL SYSTEMS</text>
+<text x="72" y="1182" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FOR ENGINEERS</text>
+<text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Firmware glue code (Wi-Fi, Bluetooth LE, HTTP) was written without a compiler;</text>
+<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">CI compiled it after two fixes; nothing ran on a board. Cloud tests use a</text>
+<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">local database, not the live service.</text>
+<line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">AI agents, led and reviewed by humans</text></svg>
