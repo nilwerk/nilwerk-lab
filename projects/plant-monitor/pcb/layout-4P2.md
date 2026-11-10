@@ -25,6 +25,8 @@ A first CI run of this slice found 2 real DRC errors (J2 mounting pads 0.2 mm ou
 
 Not done: routing of any net, GND zone fill, silkscreen, mounting holes (Q7), fiducials and panel (F5, F6), U5/U6 footprints, 4 of 5 simulations. Next slice: route the power path (VBUS, VBAT, 3V3, GND) and verify with CI DRC including unconnected items at warning level.
 
+**Panel (round 2, Arsany accepted A-069 recommendation 2, 2026-11-10):** the board outline is unchanged. `jlcpcb/panel.py` lays out 2 boards (34.5 x 67 mm, 2 mm apart) in an 83 x 79 mm panel with 6 mm rails, 2 tooling holes (2 mm NPTH) on the rails, and 3 fiducials (1 mm copper, 3.85 mm from the panel edge). Geometry checks 7/7 PASS, DXF in `jlcpcb/panel/panel.dxf`. **Not done:** the panel Gerber and drill set (copper fiducials, mask openings, panel outline) does not exist. It needs a KiCad panel run or the JLC panelizer. Mouse-bite hole spec is not read (UNVERIFIED). Checklist: F5 OPEN, F6 FAIL until the panel Gerber exists.
+
 ## Files
 | File | What |
 |---|---|

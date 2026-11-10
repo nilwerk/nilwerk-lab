@@ -3,8 +3,7 @@
 **NOT ORDERED. Arsany submits.** Nothing was logged in, uploaded or paid. The status is BLOCKED: do not submit before the blockers below are cleared.
 
 ## Blockers (from dry-run-checklist.md)
-- F5 Panel / rails for this outline: single outline 34.5 x 67.0 mm; no panel, no rails designed
-- F6 SMT tooling and fiducials: fiducials 0, tooling holes 0
+- F6 SMT tooling and fiducials: designed: 3 fiducials (1 mm copper, edge 3.85 mm), 2 tooling holes (2 mm NPTH), rails 6 mm; in the Gerber/drill set: fiducials 0, tooling holes 0
 - A9 Placeholder footprints: 3 distinct placeholder footprints: E1 soil probe copper (own copper, no LCSC, not in CPL; size depends on Q5); U5 AHT20 DFN-6; U6 BH1750 WSOF-6
 - R1 Routing: 4 tracks
 - R2 Simulations: 4 of 5 NOT RUN (LDO dropout run)
@@ -21,7 +20,7 @@
 | Surface finish | HASL (lead-free) | CHOICE (F16) |
 | Solder mask / silkscreen colour | JLC default (green / white) | CHOICE, not read |
 | Via process | Standard, no filling: no vias in pads since slice 2 (F12); filled and capped only if Arsany chooses the alternative | CHOICE |
-| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head 8ad6122) | BLOCKED until routed |
+| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head b2e211f) | BLOCKED until routed |
 | Flying-probe test | JLC default | CHOICE |
 
 ## Step 2: PCBA (assembly)

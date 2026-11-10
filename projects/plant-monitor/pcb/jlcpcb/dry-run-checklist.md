@@ -1,9 +1,9 @@
 # JLCPCB dry-run checklist: plant-monitor, Plan 4.P4 prep
 
 **DRAFT. NOT ORDERED. NOT A RELEASE.** Routing is not done (only 4 GND stub tracks; all nets unrouted), 3 distinct footprints are placeholders or own copper, 4 of 5 simulations are not run. 
-Generated 2026-11-10 07:03Z by `make_jlcpcb_package.py` from branch `agent/pcb/4.P2-s2`, board from `plant-monitor.kicad_pcb` (4.P2 slice 2; CI head 8ad6122, run 42772372983).
+Generated 2026-11-10 09:42Z by `make_jlcpcb_package.py` from branch `agent/pcb/4.P2-s2`, board from `plant-monitor.kicad_pcb` (4.P2 slice 2; CI head b2e211f, run 42772372983).
 
-**Result:** NOT ORDERABLE: 5 FAIL, 11 OPEN or UNVERIFIED, 20 PASS (of 40 items). Dry run only.
+**Result:** NOT ORDERABLE: 4 FAIL, 12 OPEN or UNVERIFIED, 20 PASS (of 40 items). Dry run only.
 
 Legend: PASS = within the limit; FAIL = outside the limit or missing; OPEN = cannot be checked until a later slice; UNVERIFIED = needs the JLC page or a physical check; CHOICE / NOTE = a cart choice or a remark.
 
@@ -13,8 +13,8 @@ Legend: PASS = within the limit; FAIL = outside the limit or missing; OPEN = can
 | F2 | Board thickness | FR-4 0.4-4.5 mm; 1.6 mm in list (+-10 %) | 1.6 mm | **PASS** | https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-09) |
 | F3 | Outer copper weight | 2-layer: 1 / 2 / 2.5 / 3.5 / 4.5 oz | 1 oz (not stored in the board file; choice in cart) | **CHOICE** | https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-09) |
 | F4 | Board size | min 5 x 5 mm; 2-layer FR-4 max 1020 x 600 mm | 34.50 x 67.00 mm, 1 board | **PASS** | https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-09) |
-| F5 | Panel / rails for this outline | min panel 70 x 70 mm for V-cut; mouse-bite panel: rails >= 3 mm, 2 mm board spacing | single outline 34.5 x 67.0 mm; no panel, no rails designed | **FAIL** | Board is below the 70 mm panel minimum: needs a panel with rails (JLC `Panel` rules). Not designed in 4.P2 (layout-4P2.md). |
-| F6 | SMT tooling and fiducials | SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials 3.85 mm from panel edge | fiducials 0, tooling holes 0 | **FAIL** | https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-09) |
+| F5 | Panel / rails for this outline | min panel 70 x 70 mm for V-cut; mouse-bite panel: rails >= 3 mm, 2 mm board spacing | 2 boards 34.50 x 67.00 mm in a 83.0 x 79.0 mm panel (rails 6 mm, board gap 2 mm); geometry checks 7/7 PASS; panel Gerber not generated | **OPEN** | Panel designed in jlcpcb/panel/ (panel.py, panel.dxf), outline unchanged. Not yet in a Gerber/drill set: needs a KiCad panel (CI) or the JLC panelizer. Rail and gap values are JLC limits as read 2026-11-09; the mouse-bite hole spec is NOT read (UNVERIFIED). |
+| F6 | SMT tooling and fiducials | SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials 3.85 mm from panel edge | designed: 3 fiducials (1 mm copper, edge 3.85 mm), 2 tooling holes (2 mm NPTH), rails 6 mm; in the Gerber/drill set: fiducials 0, tooling holes 0 | **FAIL** | Copper fiducials and the tooling holes exist only in panel/panel.dxf; they must be in the panel Gerber (copper, mask opening 2 mm, drill). Fails until then. https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-09) |
 | F7 | Min track width / space | 0.15 / 0.15 mm under mask (1 oz); 0.25 mm bare | 4 tracks (TP4056 GND stubs, 0.4 mm; all nets still unrouted) | **OPEN** | Nothing to check until routing. Design rule 0.2 mm (layout-brief section 5). |
 | F8 | Pad to pad, different nets | 0.15 mm (JLC: SMD pad to pad, different nets) | check_layout clearance (>= 0.2 mm rule) | **PASS** | check_layout.py: PASS |
 | F9 | Copper (pads) to routed edge | >= 0.2 mm copper clearance from routed edges | check_layout (>= 0.5 mm rule) | **PASS** | check_layout.py |
@@ -26,7 +26,7 @@ Legend: PASS = within the limit; FAIL = outside the limit or missing; OPEN = can
 | F15 | Silkscreen | text height >= 1.0 mm, line >= 0.15 mm, pad to silk >= 0.15 mm | no silkscreen text placed in the board file | **OPEN** | Reference designators and polarity marks for D2, D3, U1, U3 are still to be placed (4.P4 prep does not place them). |
 | F16 | Surface finish | HASL lead-free / ENIG / OSP | HASL lead-free proposed (layout-brief section 5) | **CHOICE** | https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-09) |
 | F17 | NPTH / mounting holes | NPTH annular >= 0.45 mm recommended; mounting holes need the enclosure (Q7) | no NPTH in drill file; no mounting holes placed | **OPEN** | Mounting holes depend on Yara's answer Q7 (layout-4P2.md). |
-| F18 | Gerber set complete | copper, mask, silk, paste, edge, drill | 22 files; missing: none | **PASS** | CI pcb-fab artifact of head 8ad6122, run 42772372983. |
+| F18 | Gerber set complete | copper, mask, silk, paste, edge, drill | 22 files; missing: none | **PASS** | CI pcb-fab artifact of head b2e211f, run 42772372983. |
 | F19 | Drill file vs board vias | drill holes = vias + drilled pads in the board | round holes 18 (board: 16 vias + 2 round pad holes), slots 4 (board: 4 oval pad holes) | **PASS** | J1 shield legs (4 slots) and 2 NPTH pegs come from the real footprint; the board is no longer 'vias only'. JLC must accept the 0.6 x 1.2 / 1.7 mm slots (UNVERIFIED). |
 | F20 | KiCad DRC (CI, error level) | 0 errors | 0 DRC violations; 0 unconnected pads | **PASS** | Error level only, KiCad 9 in CI. Unconnected items are warning-level and the board is unrouted, so this is no connectivity result. |
 | F21 | KiCad ERC (CI) | 0 errors | errors 0, warnings 0 | **PASS** |  |

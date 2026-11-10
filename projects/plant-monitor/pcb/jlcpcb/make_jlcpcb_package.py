@@ -386,10 +386,21 @@ def main():
     row("F2", "Board thickness", "FR-4 0.4-4.5 mm; 1.6 mm in list (+-10 %)", f"{board['thickness']} mm", "PASS" if board['thickness'] == 1.6 else "FAIL", JLC_SRC)
     row("F3", "Outer copper weight", "2-layer: 1 / 2 / 2.5 / 3.5 / 4.5 oz", "1 oz (not stored in the board file; choice in cart)", "CHOICE", JLC_SRC)
     row("F4", "Board size", "min 5 x 5 mm; 2-layer FR-4 max 1020 x 600 mm", f"{bw:.2f} x {bh:.2f} mm, 1 board", "PASS", JLC_SRC)
-    row("F5", "Panel / rails for this outline", "min panel 70 x 70 mm for V-cut; mouse-bite panel: rails >= 3 mm, 2 mm board spacing", f"single outline {bw:.1f} x {bh:.1f} mm; no panel, no rails designed", "FAIL",
-        "Board is below the 70 mm panel minimum: needs a panel with rails (JLC `Panel` rules). Not designed in 4.P2 (layout-4P2.md).")
-    row("F6", "SMT tooling and fiducials", "SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials 3.85 mm from panel edge", f"fiducials {len(fiducials)}, tooling holes {len(tooling)}", "FAIL",
-        JLC_SRC)
+    # Panel (Nora / Arsany round, 2026-11-10): 2 boards, rails, tooling holes, fiducials, outline unchanged. panel.py checks the geometry;
+    # the panel Gerber/drill set does not exist yet, so the Gerber-level rows stay FAIL/OPEN.
+    sys.path.insert(0, HERE)
+    import panel as PNL
+    pl = PNL.layout()
+    pchk = PNL.checks(pl)
+    pgeo = f"2 boards {bw:.2f} x {bh:.2f} mm in a {pl['W']:.1f} x {pl['H']:.1f} mm panel (rails {PNL.RAIL:.0f} mm, board gap {PNL.BOARD_GAP:.0f} mm)"
+    row("F5", "Panel / rails for this outline", "min panel 70 x 70 mm for V-cut; mouse-bite panel: rails >= 3 mm, 2 mm board spacing",
+        pgeo + f"; geometry checks {sum(o for o, _ in pchk)}/{len(pchk)} PASS; panel Gerber not generated",
+        "OPEN" if all(o for o, _ in pchk) else "FAIL",
+        "Panel designed in jlcpcb/panel/ (panel.py, panel.dxf), outline unchanged. Not yet in a Gerber/drill set: needs a KiCad panel (CI) or the JLC panelizer. Rail and gap values are JLC limits as read 2026-11-09; the mouse-bite hole spec is NOT read (UNVERIFIED).")
+    row("F6", "SMT tooling and fiducials", "SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials 3.85 mm from panel edge",
+        f"designed: {len(pl['fids'])} fiducials (1 mm copper, edge 3.85 mm), {len(pl['tools'])} tooling holes (2 mm NPTH), rails {PNL.RAIL:.0f} mm; in the Gerber/drill set: fiducials 0, tooling holes 0",
+        "FAIL",
+        "Copper fiducials and the tooling holes exist only in panel/panel.dxf; they must be in the panel Gerber (copper, mask opening 2 mm, drill). Fails until then. " + JLC_SRC)
     row("F7", "Min track width / space", "0.15 / 0.15 mm under mask (1 oz); 0.25 mm bare", f"{board['tracks']} tracks (TP4056 GND stubs, 0.4 mm; all nets still unrouted)", "OPEN",
         "Nothing to check until routing. Design rule 0.2 mm (layout-brief section 5).")
     row("F8", "Pad to pad, different nets", "0.15 mm (JLC: SMD pad to pad, different nets)", "check_layout clearance (>= 0.2 mm rule)", chk("pad-to-pad clearance"), f"check_layout.py: {chk('pad-to-pad clearance')}")
