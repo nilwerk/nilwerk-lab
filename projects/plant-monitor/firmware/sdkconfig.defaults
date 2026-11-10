@@ -1,1 +1,6 @@
 CONFIG_IDF_TARGET="esp32c3"
+# Setup flow (task 4.F2 slice 2): NimBLE host, protocomm security 2, TLS with the certificate bundle. Not built by the author.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_ESP_PROTOCOMM_SUPPORT_SECURITY_VERSION_2=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y

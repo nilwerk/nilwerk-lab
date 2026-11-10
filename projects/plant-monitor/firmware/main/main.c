@@ -15,6 +15,12 @@
 #include "nw_bh1750.h"
 #include "nw_hal_esp32.h"
 #include "nw_soil.h"
+#ifdef CONFIG_PLANT_SETUP_FLOW
+#include "driver/gpio.h"
+#include "esp_system.h"
+#include "nw_prov.h"
+#include "nw_prov_idf.h"
+#endif
 
 static const char *TAG = "plant_monitor";
 static RTC_DATA_ATTR int wake_count;
@@ -33,9 +39,38 @@ static void fmt_x(char *dst, size_t n, long v, int decimals)
     snprintf(dst, n, "%s%ld.%0*ld", v < 0 ? "-" : "", labs(v) / div, decimals, labs(v) % div);
 }
 
+#ifdef CONFIG_PLANT_SETUP_FLOW
+/* Button hold measured after a cold start (power-on / reset), FR-D03, FR-D07. NOT "held at power-up": IO9 is the boot strap, low at reset
+ * means ROM download mode (pcb/pinmap-sleep.md:20), so the user presses AFTER the reset releases. [proposed] window 3 s to start pressing,
+ * then the hold is measured up to the factory-reset time. Deep-sleep wakes (15-min samples) skip the window: no battery cost there. */
+#define BUTTON_PRESS_WINDOW_MS 3000
+static uint32_t button_held_ms_after_cold_start(void)
+{
+    if (esp_reset_reason() == ESP_RST_DEEPSLEEP) return 0;
+    gpio_config_t io = {.pin_bit_mask = 1ULL << NW_PIN_BUTTON, .mode = GPIO_MODE_INPUT};   /* external pull-up R5 on the custom board; dev kit has one too */
+    gpio_config(&io);
+    printf("NWSETUP press window: hold BOOT now for 3 s = setup, 10 s = factory reset\n");
+    for (int waited = 0; waited < BUTTON_PRESS_WINDOW_MS && gpio_get_level(NW_PIN_BUTTON); waited += 20) vTaskDelay(pdMS_TO_TICKS(20));
+    uint32_t held = 0;
+    while (!gpio_get_level(NW_PIN_BUTTON) && held < NW_PROV_BUTTON_RESET_MS) { vTaskDelay(pdMS_TO_TICKS(20)); held += 20; }
+    return held;
+}
+#endif
+
 void app_main(void)
 {
     wake_count++;
+#ifdef CONFIG_PLANT_SETUP_FLOW
+    if (esp_reset_reason() != ESP_RST_DEEPSLEEP) {          /* setup decision only on a cold start; a sample wake never opens BLE (FR-D09) */
+        if (nw_setup_run(button_held_ms_after_cold_start()) == NW_SETUP_SLEEP_UNTIL_RESET) {
+            printf("NWSETUP closed, never provisioned: deep sleep with no timer; reset to try again\n");
+            fflush(stdout);
+            /* nw_hal_esp32_prepare_deep_sleep() is NOT called: it needs nw_hal_esp32_init first (it reads the HAL's pin copy). IO3 (SOIL_PWR)
+             * was never configured in this path, so its level in sleep depends on the board pull-down: bench check for NFR-12 (WO step). */
+            esp_deep_sleep_start();
+        }
+    }
+#endif
     nw_hal_esp32_cfg_t cfg = {
         .sda_gpio = NW_PIN_I2C_SDA,
         .scl_gpio = NW_PIN_I2C_SCL,
