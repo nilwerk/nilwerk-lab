@@ -451,7 +451,7 @@
 	(footprint "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal"
 		(layer "F.Cu")
 		(uuid "f2daafdb-6025-586d-9048-411bb4e41a12")
-		(at 4.4 31.4 270)
+		(at 5.2 31.4 270)
 		(descr "JST PH 2-pin (cell)")
 		(property "Reference" "J2" (at 0 -6 90) (layer "F.Fab") (uuid "078f8f99-4e7b-5982-9b11-6e1a0e099646") (effects (font (size 0.8 0.8) (thickness 0.12))))
 		(property "Value" "JST PH 2-pin (cell)" (at 0 6 90) (layer "F.Fab") (hide yes) (uuid "75e401a8-82ce-555b-aff6-05e1512f17ce") (effects (font (size 0.8 0.8) (thickness 0.12))))
@@ -466,7 +466,7 @@
 	(footprint "Package_TO_SOT_SMD:SOT-23-6"
 		(layer "F.Cu")
 		(uuid "07bb3f3f-fc60-5d33-96d6-84464a80b8e5")
-		(at 12 29.5)
+		(at 12.6 29.5)
 		(descr "DW01A")
 		(property "Reference" "U4" (at 0 -2.6 0) (layer "F.Fab") (uuid "9daaf14b-671d-59d9-9379-269582eec43c") (effects (font (size 0.8 0.8) (thickness 0.12))))
 		(property "Value" "DW01A" (at 0 2.6 0) (layer "F.Fab") (hide yes) (uuid "bc0531e2-9471-5349-b311-db7984d0560b") (effects (font (size 0.8 0.8) (thickness 0.12))))
@@ -483,7 +483,7 @@
 	(footprint "Package_SO:TSSOP-8_4.4x3mm_P0.65mm"
 		(layer "F.Cu")
 		(uuid "fe2f2e9c-cf16-5cf8-81f4-afdf8cfb1ce9")
-		(at 13.5 33.5)
+		(at 14.2 33.5)
 		(descr "8205A dual N-MOSFET")
 		(property "Reference" "Q1" (at 0 -2.65 0) (layer "F.Fab") (uuid "b06dca17-cd87-595e-8f38-a31079f6a30b") (effects (font (size 0.8 0.8) (thickness 0.12))))
 		(property "Value" "8205A dual N-MOSFET" (at 0 2.65 0) (layer "F.Fab") (hide yes) (uuid "065ce182-4d1e-5b74-bc7f-cbceb4b70e59") (effects (font (size 0.8 0.8) (thickness 0.12))))
@@ -544,7 +544,7 @@
 	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "F.Cu")
 		(uuid "6359764b-e610-50bd-9a5d-e9b369079ba7")
-		(at 16 28)
+		(at 16.5 28)
 		(descr "10uF")
 		(property "Reference" "C3" (at 0 -1.63 0) (layer "F.Fab") (uuid "1f8687fe-8f77-5dca-a516-528b70cd2dfd") (effects (font (size 0.8 0.8) (thickness 0.12))))
 		(property "Value" "10uF" (at 0 1.63 0) (layer "F.Fab") (hide yes) (uuid "ce0c3218-e54a-59ab-b7c1-691e1452243d") (effects (font (size 0.8 0.8) (thickness 0.12))))

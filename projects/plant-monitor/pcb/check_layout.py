@@ -154,7 +154,7 @@ def main():
             bx = pad_box(p)
             for (cx, cy) in [(bx[0], bx[1]), (bx[2], bx[1]), (bx[2], bx[3]), (bx[0], bx[3]), (p["x"], p["y"])]:
                 d = min(dist_pt_seg((cx, cy), a, b) for a, b in segs)
-                if d < 0.5 - 1e-9 and inside_poly((cx, cy), poly):
+                if d < 0.5 - 1e-9 or not inside_poly((cx, cy), poly):   # also catches a pad that sticks out of the outline
                     close.append((f["ref"], p["num"], round(d, 2))); break
     check(not close, f"copper (pads) >= 0.5 mm from the routed edge {close[:6]}  [section 5 Copper to routed edge]")
     # keepout

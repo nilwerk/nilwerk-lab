@@ -117,14 +117,14 @@ PLACE = {
     # switches: BOOT/RESET reachable with the case open, SW3 pinhole position from Yara (Q6 [open])
     "SW1": (5.0, 17.5, 0), "SW2": (13.5, 17.5, 0), "SW3": (5.0, 23.5, 0),
     # power block (O6): LDO + rail caps in the middle, charger near USB-C
-    "U2": (15.5, 25.0, 0), "C3": (16.0, 28.0, 0), "C14": (19.5, 22.5, 0), "C13": (19.5, 24.8, 0),
+    "U2": (15.5, 25.0, 0), "C3": (16.5, 28.0, 0), "C14": (19.5, 22.5, 0), "C13": (19.5, 24.8, 0),
     "R7": (11.0, 21.5, 0), "R8": (14.6, 21.5, 0), "C11": (11.0, 23.6, 0),
     "U3": (21.8, 31.0, 0), "C1": (24.0, 26.0, 0), "C2": (19.5, 27.0, 0), "R9": (19.8, 36.0, 0),
     "R10": (12.0, 37.6, 0), "R11": (12.0, 39.6, 0), "D2": (8.0, 37.8, 0), "D3": (8.0, 40.2, 0),
     # J1 USB-C: right edge, mouth flush (O4), far from the antenna; ESD D1 and C10 right at it (<= 10 mm)
     "J1": (BOARD_W - 3.65, 33.0, 90), "D1": (23.45, 36.0, 0), "C10": (BOARD_W - 3.6, 26.8, 0), "R1": (27.0, 40.4, 0), "R2": (30.5, 40.4, 0),
     # cell connector at the cell side (left edge, mouth toward the cell), protection next to it
-    "J2": (4.4, 31.4, 270), "U4": (12.0, 29.5, 0), "Q1": (13.5, 33.5, 0), "R15": (3.0, 37.6, 0), "C9": (3.0, 39.5, 0),
+    "J2": (5.2, 31.4, 270), "U4": (12.6, 29.5, 0), "Q1": (14.2, 33.5, 0), "R15": (3.0, 37.6, 0), "C9": (3.0, 39.5, 0),
     # soil front end at the neck of the tail: SOIL_PROBE short (O5/O6)
     "U7": (16.0, 38.0, 0), "R12": (20.5, 40.2, 0), "C8": (16.2, 40.6, 0),
     # tail with the electrodes
