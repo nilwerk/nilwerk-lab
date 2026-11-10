@@ -102,7 +102,8 @@ def plug():
 
 def board_ghost():
     """Reference body: 1.6 mm board from the outline + tallest-part boxes per component (heights ASSUMED). Not printed."""
-    pts = [(0, 0), (34.5, 0), (34.5, -42), (P.TAIL_X0 + P.TAIL_W, -42), (P.TAIL_X0 + P.TAIL_W, -67), (P.TAIL_X0, -67), (P.TAIL_X0, -42), (0, -42)]
+    W, Lb, Lt = P.BOARD_W, P.BODY_L, P.BODY_L + P.TAIL_L
+    pts = [(0, 0), (W, 0), (W, -Lb), (P.TAIL_X0 + P.TAIL_W, -Lb), (P.TAIL_X0 + P.TAIL_W, -Lt), (P.TAIL_X0, -Lt), (P.TAIL_X0, -Lb), (0, -Lb)]
     b = cq.Workplane("XY").workplane(offset=P.BOARD_Z0).polyline(pts).close().extrude(P.BOARD_T)
     for ref, c in B.components().items():
         x0, y0, x1, y1 = c["box"]

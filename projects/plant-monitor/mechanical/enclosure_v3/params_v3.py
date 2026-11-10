@@ -8,23 +8,28 @@ MECH = os.path.dirname(HERE)
 sys.path.insert(0, MECH)
 import params as P0  # bay params (EEMB baseline numbers)
 import bay
+sys.path.insert(0, HERE)
+import board_facts as BF
+_F = BF.facts()
 
 # ---- manufacturing [rule: standards/3d-manufacturing.md] ----
 BUILD = P0.BUILD_VOLUME
 LAYER = 0.2
 MIN_WALL = 1.2                     # [rule] role file
 # ---- board [src: jlc_prep/input/plant-monitor-outline.dxf, = pcb/gen_pcb.py @ da39d2c] ----
-BOARD_W, BODY_L, TAIL_W, TAIL_L = 34.5, 42.0, 12.0, 25.0
-BOARD_T = 1.6
-OVERHANG = 6.0                     # module antenna end above the board edge [src gen_pcb U1_OVERHANG, Emil's assumption]
-TAIL_X0 = (BOARD_W - TAIL_W) / 2
+# All board numbers are READ from input/ (copy of agent/pcb/4.P2-s2 @ b2e211f, PR #73) by board_facts.py, none typed here.
+BOARD_W, BODY_L, TAIL_W, TAIL_L = _F["board_w"], _F["body_l"], _F["tail_w"], _F["tail_l"]
+BOARD_T = _F["thickness"]
+OVERHANG = _F["overhang"]   # module antenna end above the top edge (DXF MODULE_U1 top)
+MODULE_X0, MODULE_X1 = _F["module_x0"], _F["module_x1"]
+TAIL_X0 = _F["tail_x0"]
 # ---- cell bay [src: pcb-enclosure-bay.md, bay.dims('A_eemb603449')] ----
 _d = bay.dims("A_eemb603449")
 CELL_CAV = (_d["bay_l"], _d["bay_w"], _d["bay_h"])   # 53.0 x 35.1 x 7.2
-CELL_GAP = 5.0                     # [src gen_pcb CELL_GAP]
-CELL_X0, CELL_X1 = -CELL_GAP - CELL_CAV[0], -CELL_GAP
-CELL_Y1 = -BODY_L + CELL_CAV[1]    # cavity top  (-6.9)
-CELL_Y0 = -BODY_L                  # cavity bottom (-42.0)
+CELL_X0, CELL_Y0, CELL_X1, CELL_Y1 = _F["cell"]      # DXF CELL_BAY_CAVITY
+CELL_GAP = -CELL_X1                # 5.0
+assert abs((CELL_X1 - CELL_X0) - CELL_CAV[0]) < 1e-6 and abs((CELL_Y1 - CELL_Y0) - CELL_CAV[1]) < 1e-6, "board DXF cavity != bay.dims"
+
 # ---- stack in Z ----
 STANDOFF = 1.0                     # [ASSUMED] board underside above floor (bottom copper is GND only, nothing mounted there)
 BOARD_Z0, BOARD_Z1 = STANDOFF, STANDOFF + BOARD_T
@@ -40,7 +45,7 @@ WALL = 2.4                         # rim land for the flat gasket; >= 1.2 rule
 FLOOR = 1.6
 LID_T = 2.0                        # 1.6 + counterbore 0.6 would leave 1.0 < 1.2, so 2.0 (1.4 left)
 GASKET_T = 1.0                     # [ASSUMED] flat silicone sheet gasket, 1.0 mm, about 0.7 mm compressed (not modelled, listed in the BOM)
-INNER_X0, INNER_X1 = CELL_X0, BOARD_W + 0.3                    # 0.3 per side FDM / PCB tolerance
+INNER_X0, INNER_X1 = CELL_X0, max(BOARD_W, _F["max_x"]) + 0.3                    # 0.3 beyond the right-most part (J1 shell protrudes 0.5 beyond the board edge in #73)
 INNER_Y1 = OVERHANG + 1.0                                      # [ASSUMED] 1.0 mm air above the antenna tip (Q10: plastic wall detunes, to be verified)
 BOSS_STRIP = 5.2                                               # strip below the board body for screw bosses
 INNER_Y0 = -BODY_L - BOSS_STRIP
@@ -53,20 +58,20 @@ BOSS_XY = [(-55.0, 3.2), (-27.0, 3.2), (-2.5, 3.2), (-2.5, INNER_Y0 + 2.6)]  # a
 BOSS_XY += [(-55.0, INNER_Y0 + 2.6), (-27.0, INNER_Y0 + 2.6)]
 INSERT_DEPTH = 4.0
 # ---- USB-C [ASSUMED plug 8.94 x 3.26 (USB-C spec) + 0.3 per side FDM] ----
-J1_Y, J1_Z = -33.0, BOARD_Z1 + 3.3 / 2
+J1_Y, J1_Z = _F["at"]["J1"][1], BOARD_Z1 + 3.3 / 2
 USB_W, USB_H = 9.6, 3.9
 USB_POCKET = (14.0, 8.0, 1.2)      # overmold pocket w x h x depth from outside; wall left 1.2
 # ---- light window over U6 BH1750 at KiCad (11.5, 4.5) ----
-U6 = (11.5, -4.5)
+U6 = _F["at"]["U6"][:2]
 WIN_D, WIN_CB_D, WIN_CB_DEPTH = 3.6, 6.4, 0.6    # clear self-adhesive film disc in the counterbore [ASSUMED part]
 COLLAR_OD = 6.0                                    # wall (6.0-3.6)/2 = 1.2
 COLLAR_GAP = 0.6                                   # collar tip above the sensor top (0.75 ASSUMED)
 # ---- AHT20 vents over U5 at KiCad (4.5, 4.5): 3 slots + baffle cup open toward the board interior ----
-U5 = (4.5, -4.5)
+U5 = _F["at"]["U5"][:2]
 VENT_N, VENT_W, VENT_L, VENT_PITCH = 3, 0.8, 3.2, 1.6
 CUP_W, CUP_L, CUP_WALL, CUP_DEPTH = 7.8, 6.0, 1.2, 3.0
 # ---- pinhole reset over SW3 at KiCad (4.5, 23.5) ----
-SW3 = (4.5, -23.5)
+SW3 = _F["at"]["SW3"][:2]
 PIN_D, PIN_TUBE_OD, PIN_GAP = 1.8, 4.2, 0.4       # pin d 1.8 for a 1.0-1.2 mm paperclip / SIM tool
 # ---- stake / tail seal plug ----
 TUNNEL_W, TUNNEL_H = TAIL_W + 0.6, BOARD_T + 0.3  # 12.6 x 1.9: JLC outline +-0.2 plus FDM

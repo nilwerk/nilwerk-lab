@@ -39,8 +39,9 @@ def main():
     tray, lid, plug = E.tray(), E.lid(), E.plug()
     board, cell = E.board_ghost(), E.cell_ghost()
     # 1 board inside the inner box
-    row("Board body to right wall (X)", f"{P.INNER_X1 - P.BOARD_W:.2f} mm", ">= 0.30 (FDM + PCB +-0.2)", P.INNER_X1 - P.BOARD_W >= 0.3 - 1e-9, "params_v3 INNER_X1, DXF outline X 34.5")
-    row("Antenna tip to top wall (Y)", f"{P.INNER_Y1 - P.OVERHANG:.2f} mm", ">= 1.0 [ASSUMED]", P.INNER_Y1 - P.OVERHANG >= 1.0 - 1e-9, "gen_pcb U1_OVERHANG 6.0; Q10 detuning open")
+    mx = max(c["box"][2] for c in comps.values())
+    row("Right-most part (J1 shell) to right wall (X)", f"{P.INNER_X1 - mx:.2f} mm (board edge {P.INNER_X1 - P.BOARD_W:.2f})", ">= 0.30 (FDM + PCB +-0.2)", P.INNER_X1 - mx >= 0.3 - 1e-9, "params_v3 INNER_X1, DXF outline")
+    row("Antenna tip to top wall (Y)", f"{P.INNER_Y1 - P.OVERHANG:.2f} mm", ">= 1.0 [ASSUMED]", P.INNER_Y1 - P.OVERHANG >= 1.0 - 1e-9, "DXF MODULE_U1 (overhang derived by Emil); Q10 detuning open")
     row("Tail width vs tunnel (per side)", f"{(P.TUNNEL_W - P.TAIL_W) / 2:.2f} mm", ">= 0.30", (P.TUNNEL_W - P.TAIL_W) / 2 >= 0.3 - 1e-9, "DXF tail 12.0; JLC outline +-0.2 (layout-brief s.5)")
     row("Tail thickness vs tunnel height (per side)", f"{(P.TUNNEL_H - P.BOARD_T) / 2:.2f} mm", ">= 0.15 (JLC 1.6 +-10 % = 0.16)", (P.TUNNEL_H - P.BOARD_T) / 2 >= 0.15 - 1e-9, "layout-brief s.5 thickness tolerance")
     # 2 cell
@@ -59,10 +60,10 @@ def main():
     for n, v in ov.items():
         row(f"Interference {n}", f"{v:.3f} mm3", "0 (contact allowed)", v < 1e-3, "boolean intersect of the CadQuery solids")
     # 5 antenna
-    ant = (20.3, 0.0, 33.5, 6.0)
+    ant = (P.MODULE_X0, 0.0, P.MODULE_X1, P.OVERHANG)
     cell_rect = (P.CELL_X0, P.CELL_Y0, P.CELL_X1, P.CELL_Y1)
     d_rect = B.gap(ant, cell_rect)
-    d_tip = B.gap((20.3, 6.0, 33.5, 6.0), cell_rect)
+    d_tip = B.gap((P.MODULE_X0, P.OVERHANG, P.MODULE_X1, P.OVERHANG), cell_rect)
     row("Antenna overhang rect to cell cavity (Emil's 26.2 method)", f"{d_rect:.1f} mm", ">= 15", d_rect >= 15, "layout-4P2 check_layout.py rect_gap(ant_tip, cell)")
     row("Antenna tip line to cell cavity (my 28.4 method)", f"{d_tip:.1f} mm", ">= 15", d_tip >= 15, "jlc_prep/README s.1 item 2")
     dm = min(B.gap(ant, (x - P.INSERT_HOLE / 2, y - P.INSERT_HOLE / 2, x + P.INSERT_HOLE / 2, y + P.INSERT_HOLE / 2)) for x, y in P.BOSS_XY)

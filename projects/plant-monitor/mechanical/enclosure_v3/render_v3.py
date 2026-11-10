@@ -53,7 +53,7 @@ def main():
     ax.add_patch(Rectangle((P.INNER_X0, P.INNER_Y0), P.INNER_X1 - P.INNER_X0, P.INNER_Y1 - P.INNER_Y0, fc="white", ec="#333", lw=0.8))
     ax.add_patch(Rectangle((P.CELL_X0, P.CELL_Y0), P.CELL_X1 - P.CELL_X0, P.CELL_Y1 - P.CELL_Y0, fc=(0.95, 0.65, 0.1, 0.35), ec="#c98a00"))
     ax.text((P.CELL_X0 + P.CELL_X1) / 2, (P.CELL_Y0 + P.CELL_Y1) / 2, "EEMB LP603449-PCM\ncavity 53.0 x 35.1 x 7.2", ha="center", fontsize=8)
-    pts = [(0, 0), (34.5, 0), (34.5, -42), (P.TAIL_X0 + 12, -42), (P.TAIL_X0 + 12, -67), (P.TAIL_X0, -67), (P.TAIL_X0, -42), (0, -42), (0, 0)]
+    pts = [(0, 0), (P.BOARD_W, 0), (P.BOARD_W, -P.BODY_L), (P.TAIL_X0 + P.TAIL_W, -P.BODY_L), (P.TAIL_X0 + P.TAIL_W, -P.BODY_L - P.TAIL_L), (P.TAIL_X0, -P.BODY_L - P.TAIL_L), (P.TAIL_X0, -P.BODY_L), (0, -P.BODY_L), (0, 0)]
     ax.plot(*zip(*pts), color="#0f7a5c", lw=1.5)
     for ref, c in B.components().items():
         x0, y0b, x1, y1 = c["box"]; ax.add_patch(Rectangle((x0, y0b), x1 - x0, y1 - y0b, fc=(0.05, 0.45, 0.3, 0.18), ec="#0f7a5c", lw=0.3))
