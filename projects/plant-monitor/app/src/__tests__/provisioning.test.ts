@@ -88,6 +88,9 @@ describe('setup state machine', () => {
 describe('setup validation (FR-A03, FR-A04)', () => {
   test('required fields and limits', () => {
     expect(validateDeviceName(' ')).not.toBeNull(); expect(validateDeviceName('a'.repeat(81))).not.toBeNull(); expect(validateDeviceName('a'.repeat(80))).toBeNull();
+    // 4.F2 contract check: 80 code points (emoji = 1), control characters refused as bad_request on the device
+    expect(validateDeviceName('\u{1F331}'.repeat(80))).toBeNull(); expect(validateDeviceName('\u{1F331}'.repeat(81))).not.toBeNull();
+    expect(validateDeviceName('a\nb')).toEqual({ key: 'validation.deviceName.control' });
     expect(validateSsid('')).not.toBeNull(); expect(validateSsid('é'.repeat(17))).not.toBeNull(); expect(validateSsid('Home')).toBeNull();
     expect(validatePlantName('')).not.toBeNull(); expect(validateArea('')).not.toBeNull(); expect(validateCity('')).not.toBeNull();
     expect(validateSpecies('')).toBeNull(); expect(validateSpecies('x'.repeat(121))).not.toBeNull();

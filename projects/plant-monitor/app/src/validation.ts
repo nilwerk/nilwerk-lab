@@ -42,7 +42,13 @@ export const CITY_MAX = 120;
 const required = (v: string, key: string): FieldResult => (v.trim() ? null : { key });
 const tooLong = (v: string, max: number): FieldResult => (v.trim().length > max ? { key: 'validation.tooLong', params: { max } } : null);
 
-export const validateDeviceName = (v: string): FieldResult => required(v, 'validation.deviceName.required') ?? tooLong(v, DEVICE_NAME_MAX);
+// nw-claim name (ble-provisioning.md section 2, firmware nw_prov_parse_claim in 4.F2): 1-80 Unicode code points (not UTF-16 units), no control characters.
+export const validateDeviceName = (v: string): FieldResult => {
+  const t = v.trim();
+  return required(v, 'validation.deviceName.required')
+    ?? (Array.from(t).length > DEVICE_NAME_MAX ? { key: 'validation.tooLong', params: { max: DEVICE_NAME_MAX } } : null)
+    ?? (/[\u0000-\u001f\u007f]/.test(t) ? { key: 'validation.deviceName.control' } : null);
+};
 export const validateSsid = (v: string): FieldResult => required(v, 'validation.ssid.required') ?? (new TextEncoder().encode(v).length > 32 ? { key: 'validation.ssid.long' } : null);
 // WPA2-PSK passphrase is 8-63 characters (PR #56 C2). Not trimmed: spaces are legal. Open networks take no password (empty only).
 export const WIFI_PASSWORD_MIN = 8;
