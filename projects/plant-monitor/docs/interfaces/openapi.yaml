@@ -9,7 +9,7 @@ info:
     Every operation cites its requirements in `x-requirements`.
     Status: DRAFT; not validated against a live Supabase project.
     Implemented in task 4.B2 (projects/plant-monitor/cloud/supabase/functions/, checked against this file by cloud/test/openapi_check.py):
-    /claim-token, /device-claim, /ingest. Differences from the draft that are NOT built yet are marked "[not in 4.B2]" below.
+    /claim-token, /device-claim, /ingest; task 4.B2b adds DELETE /account (edge function `delete-account`). Differences from the draft that are NOT built yet are marked "[not in 4.B2]" below.
     All other paths are still contract only.
 servers:
   - url: https://{project_ref}.supabase.co/functions/v1
@@ -253,17 +253,31 @@ paths:
     delete:
       tags: [app]
       summary: Delete the account and all its data
-      x-requirements: [FR-A01, NFR-07]
+      x-requirements: [FR-A01, FR-A08, NFR-07, NFR-06]
       description: |
-        Order: release and revoke all devices -> delete Storage objects under '<owner_id>/' in plant-photos
-        -> delete auth.users row (FK cascade removes profiles, plants, plant_images, readings, events,
-        alerts, tips, api_keys, push_tokens, claim_tokens). Verified for the SQL cascade in db-schema.test.sql.
+        Implemented in task 4.B2b (edge function `delete-account`, `verify_jwt = false`; the function verifies the user JWT itself
+        with auth.getUser, FR-A01, NFR-06). The user to delete is ONLY the one the token identifies; the body cannot name a user
+        (unknown properties -> 400), so one user can never delete another (NFR-06).
+        Order: release and revoke all devices (device rows stay as unowned hardware, plant link cleared, device token revoked, open
+        claim tokens deleted; FR-A08) -> delete Storage objects under '<owner_id>/' in plant-photos -> delete auth.users row
+        (FK cascade removes profiles, plants, plant_images, readings, readings_hourly, events, alerts, tips, api_keys, push_tokens,
+        claim_tokens; GDPR erasure, NFR-07). Verified for the SQL cascade in db-schema.test.sql and for the whole function in
+        cloud/test/functions/api.test.ts against a local Postgres (Storage and hosted Auth are stubbed there: UNVERIFIED against a live project).
+        Failure semantics: if a step fails the function returns 500 and has NOT deleted the auth user, so the client retries; every
+        step is idempotent. A repeated call with a token whose user still resolves returns 204 again; once the auth user is gone
+        the hosted Auth rejects the token, so the repeat gets 401 (the account is already erased).
+        Export (FR-A08) before deleting is the app's job (UC flow), not enforced here.
       security: [{ userJwt: [] }]
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, required: [confirm], properties: { confirm: { type: string, enum: [DELETE] } } } } }
+        content: { application/json: { schema: { type: object, required: [confirm], additionalProperties: false, properties: { confirm: { type: string, enum: [DELETE] } } } } }
       responses:
-        "204": { description: Deleted }
+        "204": { description: Deleted (empty body) }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
+        "413": { description: "error: payload_too_large (body > 64 KiB)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "500": { $ref: "#/components/responses/Internal" }
 components:
   securitySchemes:
     userJwt: { type: http, scheme: bearer, bearerFormat: "Supabase user JWT" }

@@ -1,18 +1,19 @@
 // 4.B2 tests: unit tests (no database) and integration tests against a local PostgreSQL (NW_TEST_DB_URL, set by cloud/test.sh).
-// Requirements: FR-D01, FR-D02, FR-D03, FR-D04, FR-A02, FR-A03, FR-A07, FR-A08, FR-E03, NFR-04, NFR-06.
+// Requirements: FR-D01, FR-D02, FR-D03, FR-D04, FR-A01, FR-A02, FR-A03, FR-A07, FR-A08, FR-E03, NFR-04, NFR-06, NFR-07.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { handleClaimToken, handleDeviceClaim, handleIngest } from "../../supabase/functions/_shared/handlers.ts";
+import { handleClaimToken, handleDeleteAccount, handleDeviceClaim, handleIngest } from "../../supabase/functions/_shared/handlers.ts";
 import { sha256Hex, validateReport, type Deps } from "../../supabase/functions/_shared/lib.ts";
-import { psql, psqlDeps } from "./psql_deps.ts";
+import { psql, psqlDeps, setFailPhotos, storage } from "./psql_deps.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fx = join(here, "../../../docs/interfaces/fixtures");
 const A = "00000000-0000-0000-0000-00000000000a", B = "00000000-0000-0000-0000-00000000000b";
+const C = "00000000-0000-0000-0000-00000000000c", D = "00000000-0000-0000-0000-00000000000d";   // 4.B2b: users deleted / bystander
 const T0 = 1767225600;   // fixture sent_at
 
 // ---------------------------------------------------------------- unit tests (no database)
@@ -43,6 +44,7 @@ test("NFR-06: handlers send only SHA-256 digests to the database, never plaintex
   const deps: Deps = {
     rpc: async (_n, a) => { seen.push(a); return { data: { error: "token_invalid" }, error: null }; },
     getUserId: async () => null, randomBytes: (n) => new Uint8Array(n).fill(7),
+    deleteUserPhotos: async () => null, deleteAuthUser: async () => null,
   };
   const valid = readFileSync(join(fx, "device-report.valid.json"), "utf8");
   const r = await handleIngest(new Request("http://x/ingest", { method: "POST", headers: { authorization: "Bearer SECRET-TOKEN" }, body: valid }), deps);
@@ -60,7 +62,7 @@ test("NFR-06: handlers send only SHA-256 digests to the database, never plaintex
 // ---------------------------------------------------------------- integration tests (local PostgreSQL)
 const url = process.env.NW_TEST_DB_URL;
 const db = url ? { skip: false } : { skip: "NW_TEST_DB_URL not set (run via cloud/test.sh)" };
-const deps = url ? psqlDeps(url, { "jwt-a": A, "jwt-b": B }) : (undefined as unknown as Deps);
+const deps = url ? psqlDeps(url, { "jwt-a": A, "jwt-b": B, "jwt-c": C, "jwt-d": D }) : (undefined as unknown as Deps);
 const q = (sql: string, vars?: Record<string, string>) => { const r = psql(url!, sql, vars); assert.ok(r.ok, r.err); return r.out; };
 const post = (fn: typeof handleIngest, path: string, body: unknown, auth?: string) =>
   fn(new Request(`http://x/${path}`, { method: "POST", headers: auth ? { authorization: `Bearer ${auth}` } : {}, body: JSON.stringify(body) }), deps);
@@ -277,4 +279,120 @@ test("FR-D04, FR-E03: events are capped at 32 per report, samples/events/sent_at
   assert.equal(validateReport({ ...valid, samples: [{ ts: MIN - 1 }] })?.status, 400, "sample ts = MIN_TS - 1 rejected");
   assert.equal(validateReport({ ...valid, events: [{ ts: MIN, type: "wetting" }] }), null, "event ts = MIN_TS accepted");
   assert.equal(validateReport({ ...valid, events: [{ ts: MIN - 1, type: "wetting" }] })?.status, 400, "event ts = MIN_TS - 1 rejected");
+});
+
+// ---------------------------------------------------------------- 4.B2b DELETE /account (FR-A01, FR-A08, NFR-07, NFR-06)
+const TABLES_BY_OWNER = ["plants", "plant_images", "readings", "readings_hourly", "events", "alerts", "tips", "api_keys", "push_tokens", "claim_tokens"];
+const owned = (u: string) => Object.fromEntries([["profiles", Number(q(`select count(*) from public.profiles where id = :'u'`, { u }))],
+  ["auth.users", Number(q(`select count(*) from auth.users where id = :'u'`, { u }))],
+  ["devices", Number(q(`select count(*) from public.devices where owner_id = :'u'`, { u }))],
+  ...TABLES_BY_OWNER.map((t) => [t, Number(q(`select count(*) from public.${t} where ${t === "claim_tokens" ? "user_id" : "owner_id"} = :'u'`, { u }))])]) as Record<string, number>;
+/** One user with a plant, a sensor, readings (+hourly roll-up), event, alert, tip, photo row, api key, push token, open claim token. */
+function makeUser(u: string, tag: string) {   // tag: 1 hex char
+  const plant = `10000000-0000-0000-0000-0000000000${tag}1`, dev = `20000000-0000-0000-0000-0000000000${tag}1`;
+  q(`insert into auth.users(id,email) values (:'u', :'e')`, { u, e: `${tag}@example.test` });
+  q(`insert into public.plants(id,owner_id,name,location_type,soil_type) values (:'p', :'u', 'P', 'house', 'potting');
+     insert into public.devices(id,hw_id,owner_id,plant_id,claimed_at) values (:'d', 'nw-0000000000${tag}1', :'u', :'p', now());
+     insert into public.device_credentials(device_id,token_hash) values (:'d', decode(repeat('${tag}${tag}', 32), 'hex'));
+     insert into public.readings(device_id,ts,owner_id,plant_id,moisture_pct) select :'d', now() - g * interval '15 minutes', :'u', :'p', 40 from generate_series(0,9) g;
+     select public.rollup_readings(now() - interval '1 day');
+     insert into public.events(device_id,owner_id,plant_id,ts,type,critical) values (:'d', :'u', :'p', now(), 'wetting', false);
+     insert into public.alerts(owner_id,device_id,plant_id,kind) values (:'u', :'d', :'p', 'too_dry');
+     insert into public.tips(plant_id,owner_id,expires_at,content,guardrail_version) values (:'p', :'u', now() + interval '1 hour', '{"items":[]}', 't');
+     insert into public.plant_images(plant_id,owner_id,storage_path) values (:'p', :'u', :'u' || '/' || :'p' || '/1.jpg');
+     insert into public.api_keys(owner_id,name,prefix,key_hash) values (:'u', 'k', 'nwk_x', decode(repeat('${tag}${tag}', 32), 'hex'));
+     insert into public.push_tokens(owner_id,expo_token) values (:'u', 'ExponentPushToken[${tag}]');
+     insert into public.claim_tokens(token_hash,user_id,expires_at) values (decode(repeat('${tag}${tag}', 16), 'hex'), :'u', now() + interval '10 minutes');`, { u, p: plant, d: dev });
+  return { plant, dev };
+}
+const NO_BODY = Symbol("no body");
+const del = (auth: string | undefined, body: unknown = { confirm: "DELETE" }, method = "DELETE") =>
+  handleDeleteAccount(new Request("http://x/account", { method, headers: auth ? { authorization: `Bearer ${auth}` } : {}, body: body === NO_BODY ? undefined : JSON.stringify(body) }), deps);
+
+test("FR-A01, NFR-07: DELETE /account without or with an invalid token -> 401 and nothing is touched; wrong method -> 405", db, async () => {
+  const uc = makeUser(C, "c"), ud = makeUser(D, "d");
+  const before = { c: owned(C), d: owned(D) };
+  assert.ok(before.c.readings === 10 && before.c.plants === 1 && before.c["plant_images"] === 1 && before.c.devices === 1, JSON.stringify(before.c));
+  for (const auth of [undefined, "garbage", "jwt-unknown"]) {
+    const r = await del(auth);
+    assert.equal(r.status, 401, String(auth)); assert.equal((await r.json() as any).error, "unauthorized");
+  }
+  assert.equal((await del("jwt-c", { confirm: "DELETE" }, "POST")).status, 405);
+  assert.equal((await del("jwt-c", { confirm: "DELETE" }, "PUT")).status, 405);
+  assert.deepEqual({ c: owned(C), d: owned(D) }, before, "no row changed");
+  assert.equal(storage.length, 0, "no storage call without a verified user");
+  void uc; void ud;
+});
+
+test("FR-A01, NFR-07: body must be exactly {confirm:'DELETE'}; the body cannot name another user -> 400, nothing deleted", db, async () => {
+  const before = { c: owned(C), d: owned(D) };
+  for (const body of [{}, { confirm: "delete" }, { confirm: "yes" }, { confirm: "DELETE", user_id: D }, { confirm: "DELETE", id: D }, [], "DELETE", null]) {
+    const r = await del("jwt-c", body);
+    assert.equal(r.status, 400, JSON.stringify(body)); assert.equal((await r.json() as any).error, "bad_request");
+  }
+  assert.equal((await del("jwt-c", NO_BODY)).status, 400, "no body");
+  assert.deepEqual({ c: owned(C), d: owned(D) }, before);
+  assert.equal(storage.length, 0);
+});
+
+test("NFR-07: if photo deletion fails the account is NOT deleted (500) and a retry completes; no data lost half-way", db, async () => {
+  setFailPhotos(true);
+  const r = await del("jwt-c");
+  assert.equal(r.status, 500); assert.equal((await r.json() as any).error, "internal");
+  setFailPhotos(false);
+  assert.equal(owned(C)["auth.users"], 1, "auth user still there, so the client can retry");
+  assert.equal(owned(C).readings, 10);
+  storage.length = 0;
+});
+
+test("FR-A01, FR-A08, NFR-07: success deletes readings, photo rows, plants, profile, auth user; devices are released and revoked; the other user is untouched", db, async () => {
+  const ud = { plant: `10000000-0000-0000-0000-0000000000d1`, dev: `20000000-0000-0000-0000-0000000000d1` };
+  const dBefore = owned(D);
+  const r = await del("jwt-c");
+  assert.equal(r.status, 204); assert.equal(await r.text(), "");
+  const c = owned(C);
+  for (const [k, v] of Object.entries(c)) if (k !== "devices") assert.equal(v, 0, `${k} must be empty after deletion`);
+  assert.equal(c.devices, 0, "no device is owned by the deleted user anymore");
+  // device row stays as unclaimed hardware, no plant link, credential revoked (its token is dead: FR-A08)
+  const dev = q(`select owner_id is null, plant_id is null from public.devices where id = :'d'`, { d: "20000000-0000-0000-0000-0000000000c1" });
+  assert.equal(dev, "t|t", "device released");
+  assert.equal(q(`select revoked_at is not null from public.device_credentials where device_id = :'d'`, { d: "20000000-0000-0000-0000-0000000000c1" }), "t");
+  assert.equal(q(`select count(*) from public.readings where device_id = :'d'`, { d: "20000000-0000-0000-0000-0000000000c1" }), "0", "readings of the released device are gone too");
+  // storage was asked to delete this user's photos (and only this user's)
+  assert.equal(storage.length, 1);
+  assert.equal(storage[0].userId, C);
+  assert.deepEqual(storage[0].knownPaths, [`${C}/10000000-0000-0000-0000-0000000000c1/1.jpg`]);
+  // the bystander is complete
+  assert.deepEqual(owned(D), dBefore, "user D untouched");
+  assert.ok(dBefore.readings === 10 && dBefore.plants === 1 && dBefore["auth.users"] === 1 && dBefore.devices === 1);
+  assert.equal(q(`select owner_id from public.devices where id = :'d'`, { d: ud.dev }), D);
+  assert.equal(q(`select revoked_at is null from public.device_credentials where device_id = :'d'`, { d: ud.dev }), "t", "D's device token still valid");
+});
+
+test("FR-A01: second DELETE /account is idempotent (token still signature-valid -> 204; token no longer resolves -> 401), data stays gone", db, async () => {
+  storage.length = 0;
+  const again = await del("jwt-c");
+  assert.equal(again.status, 204, "same call twice: nothing left to delete, still 204");
+  assert.equal(owned(C)["auth.users"], 0);
+  const realistic = await handleDeleteAccount(new Request("http://x/account", { method: "DELETE", headers: { authorization: "Bearer jwt-c" }, body: '{"confirm":"DELETE"}' }),
+    { ...deps, getUserId: async () => null });   // hosted Supabase: auth.getUser fails for a deleted user
+  assert.equal(realistic.status, 401);
+  assert.equal(owned(D).plants, 1);
+});
+
+test("NFR-06, NFR-07: no cross-user deletion; the SQL step cannot be called by API roles and only touches the id it is given", db, async () => {
+  for (const role of ["anon", "authenticated"]) {
+    const r = psql(url!, `set role ${role}; select public.release_account_devices('${D}');`);
+    assert.ok(!r.ok && /permission denied/.test(r.err), `${role}: ${r.err}`);
+    assert.equal(psql(url!, `set role ${role}; delete from auth.users where id = '${D}'`).ok, false, `${role} cannot delete auth users`);
+  }
+  // RLS: user C-style session cannot delete D's rows directly either (0 rows), service_role path is the edge function only
+  assert.ok(psql(url!, `set role authenticated; set request.uid = '${A}'; delete from public.plants where owner_id = '${D}'`).ok);
+  assert.equal(owned(D).plants, 1, "D's plant survives a delete issued as user A (RLS hides it)");
+  // A deletes own account: B and D stay intact
+  const bBefore = owned(B), dBefore = owned(D);
+  assert.equal((await del("jwt-a")).status, 204);
+  assert.equal(owned(A)["auth.users"], 0); assert.equal(owned(A).plants, 0); assert.equal(owned(A).readings, 0);
+  assert.deepEqual(owned(B), bBefore); assert.deepEqual(owned(D), dBefore);
+  assert.ok(storage.every((s) => s.userId === A || s.userId === C));
 });

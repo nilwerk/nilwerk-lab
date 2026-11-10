@@ -8,6 +8,10 @@ export interface Deps {
   /** Verifies a Supabase user JWT, returns the user id or null (only used by /claim-token). */
   getUserId(jwt: string): Promise<string | null>;
   randomBytes(n: number): Uint8Array;
+  /** Deletes every Storage object under '<userId>/' in the private bucket plant-photos (only used by DELETE /account). */
+  deleteUserPhotos(userId: string, knownPaths: string[]): Promise<{ message: string } | null>;
+  /** Deletes the auth.users row (FK cascade removes the user's data). A user that does not exist anymore is NOT an error (idempotent). */
+  deleteAuthUser(userId: string): Promise<{ message: string } | null>;
 }
 
 export const MAX_BODY_BYTES = 64 * 1024;   // openapi /ingest 413
