@@ -9,6 +9,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 NS = uuid.UUID("6d1c0a52-7a54-4f1e-9a53-4e696c776572")
 ROOT = str(uuid.uuid5(NS, "root"))
 PIN_LEN = 2.54
+# Parts whose pin map is standard but whose physical geometry is still open: say so in the BOM column.
+PINMAP_STATUS_OVERRIDE = {"J2": "standard-pinout; plug pitch and polarity UNVERIFIED (A-053)"}
 
 
 def uid(*k):
@@ -141,7 +143,7 @@ def bom_rows():
         rows.append({"Designator": ",".join(sorted((x.ref for x in ps), key=lambda r: (r.rstrip("0123456789"), int(r[len(r.rstrip("0123456789")):])))),
                      "Qty": len(ps), "Value": val, "Footprint": fp, "LCSC": lcsc, "MPN": mpn,
                      "FootprintStatus": "to-draw-in-4.P2" if ps[0].custom_fp else "kicad-library-name",
-                     "PinMapStatus": "verified-by-author-memory-only" if not ps[0].pin_verified else "standard-pinout",
+                     "PinMapStatus": PINMAP_STATUS_OVERRIDE.get(ps[0].ref) or ("signal-map-from-4.P1-not-checked-vs-4.P2-drawing" if not ps[0].pin_verified else "standard-pinout"),
                      "Note": ps[0].note})
     return sorted(rows, key=lambda r: (r["Designator"][0], r["Designator"]))
 

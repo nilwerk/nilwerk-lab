@@ -92,13 +92,13 @@ res("R5", *R10K, "3V3", "BOOT_N", B, "GPIO9 strap: high = SPI boot, BOOT switch 
 res("R16", *R10K, "3V3", "GPIO2_STRAP", B, "ADDED by 4.P1 fix round (Theo C4): ESP32-C3-MINI-1 datasheet v2.2 s.4.1 recommends a pull-up on GPIO2 (glitches); node at the rail, no sleep current")
 add("SW1", "SW4P", "BOOT", "NW:SW_TS-1187A-B-A-B_5.1x5.1", "C318884", "TS-1187A-B-A-B",
     [("1", "1", "BOOT_N", "L"), ("2", "2", "BOOT_N", "L"), ("3", "3", "GND", "R"), ("4", "4", "GND", "R")],
-    "BOOT (GPIO9 low at reset = download mode)", custom_fp=True, block=B)
+    "BOOT (GPIO9 low at reset = download mode)", custom_fp=True, pin_verified=False, block=B)
 add("SW2", "SW4P", "RESET", "NW:SW_TS-1187A-B-A-B_5.1x5.1", "C318884", "TS-1187A-B-A-B",
     [("1", "1", "EN", "L"), ("2", "2", "EN", "L"), ("3", "3", "GND", "R"), ("4", "4", "GND", "R")],
-    "RESET (EN low)", custom_fp=True, block=B)
+    "RESET (EN low)", custom_fp=True, pin_verified=False, block=B)
 add("SW3", "SW4P", "FACTORY RESET (pinhole)", "NW:SW_TS-1187A-B-A-B_5.1x5.1", "C318884", "TS-1187A-B-A-B",
     [("1", "1", "FACTORY_RST_N", "L"), ("2", "2", "FACTORY_RST_N", "L"), ("3", "3", "GND", "R"), ("4", "4", "GND", "R")],
-    "Pinhole factory reset on IO5 (RTC GPIO: wakes from deep sleep); firmware enables the internal pull-up", custom_fp=True, block=B)
+    "Pinhole factory reset on IO5 (RTC GPIO: wakes from deep sleep); firmware enables the internal pull-up", custom_fp=True, pin_verified=False, block=B)
 
 # ------------------------------- USB-C + ESD -------------------------------------------------
 B = "2 USB-C"
@@ -108,8 +108,8 @@ add("J1", "USBC16", "USB-C (power + USB-JTAG data)", "Connector_USB:USB_C_Recept
      ("A5", "CC1", "CC1", "L"), ("B5", "CC2", "CC2", "L"), ("A8", "SBU1", "NC", "L"), ("B8", "SBU2", "NC", "L"),
      ("A6", "DP1", "USB_DP", "R"), ("B6", "DP2", "USB_DP", "R"), ("A7", "DN1", "USB_DN", "R"), ("B7", "DN2", "USB_DN", "R"),
      ("S1", "SHIELD", "GND", "R")],
-    "BOM calls it power only; D+/D- are wired to IO19/IO18 (USB Serial/JTAG) so D1 has a job: OPEN POINT 6. Signal-to-pad map verified against the HRO TYPE-C-31-M-12 drawing (LCSC C165948); shield pad numbers belong to the 4.P2 footprint.",
-    block=B)
+    "BOM calls it power only; D+/D- are wired to IO19/IO18 (USB Serial/JTAG) so D1 has a job: OPEN POINT 6. Signal-to-pad map as recorded in 4.P1 from the HRO TYPE-C-31-M-12 drawing (LCSC C165948); shield pad numbers belong to the 4.P2 footprint. 4.P2 flag: pin_verified=False because the placed footprint has not been compared with that drawing (4.P2 slice 1 did not do it).",
+    pin_verified=False, block=B)
 res("R1", "5.1k", "C23186", "0603WAF5101T5E", "CC1", "GND", B, "USB-C sink Rd")
 res("R2", "5.1k", "C23186", "0603WAF5101T5E", "CC2", "GND", B, "USB-C sink Rd")
 add("D1", "USBLC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "C7519", "USBLC6-2SC6",
@@ -177,15 +177,15 @@ add("U5", "AHT20", "AHT20", "NW:AHT20_DFN-6_3x3", "C2757850", "AHT20",
     [("4", "SDA", "I2C_SDA", "L"), ("3", "SCL", "I2C_SCL", "L"), ("2", "VDD", "3V3", "R"), ("5", "GND", "GND", "R"),
      ("1", "NC", "NC", "R"), ("6", "NC", "NC", "R")],
     "Fix for Theo C1: LCSC C2757850 (Aosong/ASAIR AHT20, datasheet 2024-07 linked from the LCSC page) is a 6-pin DFN 3.0 x 3.0 x 1.0 mm: "
-    "1 NC, 2 VDD, 3 SCL, 4 SDA, 5 GND, 6 NC (Table 5, top view). Custom footprint still to be drawn in 4.P2 from the datasheet figure 1. I2C 0x38.",
-    custom_fp=True, block=B)
+    "1 NC, 2 VDD, 3 SCL, 4 SDA, 5 GND, 6 NC (Table 5, top view). Custom footprint still to be drawn in 4.P2 from the datasheet figure 1. I2C 0x38. 4.P2 flag: pin_verified=False until the placed footprint is compared with the drawing.",
+    custom_fp=True, pin_verified=False, block=B)
 cap("C6", *C100N, "3V3", "GND", B, "AHT20 decoupling")
 add("U6", "BH1750", "BH1750FVI", "NW:WSOF-6_BH1750FVI", "C78960", "BH1750FVI-TR",
     [("1", "VCC", "3V3", "L"), ("5", "DVI", "3V3", "L"), ("2", "ADDR", "GND", "L"),
      ("4", "SDA", "I2C_SDA", "R"), ("6", "SCL", "I2C_SCL", "R"), ("3", "GND", "GND", "R")],
     "ADDR low = 0x23. Pins verified against LCSC C78960 datasheet (1 VCC, 2 ADDR, 3 GND, 4 SDA, 5 DVI, 6 SCL). DVI tied to VCC directly: "
-    "datasheet wants DVI low >= 1 us after VCC (RC example 1k/1uF) or a reset: OPEN POINT 7, firmware must also re-init after power-up.",
-    custom_fp=True, block=B)
+    "datasheet wants DVI low >= 1 us after VCC (RC example 1k/1uF) or a reset: OPEN POINT 7, firmware must also re-init after power-up. 4.P2 flag: pin_verified=False until the placed footprint is compared with the drawing.",
+    custom_fp=True, pin_verified=False, block=B)
 cap("C7", *C100N, "3V3", "GND", B, "BH1750 decoupling")
 res("R13", "4.7k", "C23162", "0603WAF4701T5E", "3V3", "I2C_SDA", B,
     "ADDED by 4.P1 (BOM draft has no I2C pull-ups). LCSC number from memory: unverified")
