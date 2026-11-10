@@ -1,7 +1,29 @@
-# 4.P2 layout, slice 1: what exists, what each rule traces to, what blocks the PCBA order
+# 4.P2 layout, slices 1 and 2: what exists, what each rule traces to, what blocks the PCBA order
 
 Emil (PCB Designer) · 2026-11-09 · Branch `agent/pcb/4.P2` · Nothing ordered, no Gerber release (that is the 4.P3 gate, Arsany).
 Tags as in `layout-brief.md`: [brief] taken from it, [mine] my assumption, [open] needs an answer.
+
+## Slice 2 (2026-11-10, branch `agent/pcb/4.P2-s2`): what changed, and what is still open
+
+Emil (PCB Designer). Stacked on PR #64 (slice 1) and PR #69 (4.P4 prep, merged into this branch so the dry-run checklist can be regenerated). Nothing ordered, not a release.
+**Not fab-ready:** 4 short GND stubs are the only tracks, no net is routed, the GND zone is not filled, U5 (AHT20) and U6 (BH1750) are still placeholders.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Real footprints | U1 (Espressif footprint, checked against datasheet v2.2 Fig 11-1), J1 USB-C, J2 JST PH, the 9 standard parts (0603, LED, SOT-23, TSSOP-8, SOIC-8-EP) from the KiCad 9.0.0 library; SW1-SW3 drawn from the XKB TS-1187A "P.C.B. LAYOUT" drawing. Sources: `footprints/SOURCES.md`. Still placeholders: U5 AHT20 (the datasheet has a package drawing, no land pattern; pad size reading ambiguous), U6 BH1750 (land pattern is in a separate Rohm "Jisso" document, not available). | `kmod.py`, `gen_pcb.py` |
+| **Found: SW1-SW3 were wired as a short** | In the XKB drawing terminals A-B are joined inside, C-D likewise. The slice-1 placeholder put the signal on the two left pads (A, C) and GND on the right pads (B, D), which shorts signal to GND through A-B and C-D. The new footprint numbers the top pair (A, B) 1,2 = signal and the bottom pair (C, D) 3,4 = GND, matching `design.py` pins. My reading of the drawing (A/B top, C/D bottom as in the left-hand body view); check with a meter on the first sample. | `gen_pcb.py` FOOT["NW:SW_..."] |
+| Via in pad (A-069) | **0 vias in pads** (was 16). Module: 12 vias in the 0.525 mm gaps of the 3 x 3 ground pad grid (this is where Espressif Fig 11-1 draws the thermal vias; the 0.7 mm via ring touches the neighbouring same-net pad copper by about 0.09 mm, the hole is in the gap). TP4056: 4 vias just outside the exposed pad, each joined by a 0.4 mm GND stub (the first tracks on the board). Alternative left for Arsany: keep vias in the pads and order JLC filled and capped vias (price not read). | `check_layout.py` (0 holes in pads), CI DRC 0 |
+| R16 angle (Yara) | R16 is now placed at rotation 0, so the question cannot matter for it. On the rule itself: KiCad writes the pad angle as the absolute orientation, footprint rotation included. The real rotated footprints J1 (90) and J2 (270) have 0.3 mm pitch pads; with a double rotation they would overlap and DRC would flag them, and KiCad 9 DRC in CI is clean. My own `make_jlcpcb_package.py` added the two angles (wrong, now fixed). | CI DRC |
+| Antenna distance 26.2 vs 28.4 mm (Yara) | Both numbers were right for different things: 26.2 mm = the overhang strip (board edge to module end) to the cell cavity; 28.4 mm = module end corner to cavity corner. The rule-relevant value is the nearest point of the antenna area (module width x module end down to the first pad row). With the real land pattern the module moved (overhang 4.5 mm instead of 6.0, because the real pads start 5.7 mm below the module end) and the numbers are now: antenna area 25.7 mm, overhang strip 26.0 mm, corner to corner 27.7 mm; rule >= 15 mm. | `check_layout.py` INFO line |
+| Antenna keep-out | Now 17.2 x 1.0 mm (3 mm beside the module, down to 0.2 mm above the first pad row; the pads of the real module are on the board from y = 1.2 mm). Size is still my assumption, not an Espressif number. | `gen_pcb.py` |
+| CI enforcement | New step "Layout checks" in the `pcb` job runs `check_layout.py` (exit 1 on any FAIL: antenna keep-out empty, antenna area >= 15 mm from the cell, USB-C far from the antenna, no via in a pad, copper edge). Touching `ci.yml` re-runs all workstreams. | `.github/workflows/ci.yml` |
+| Placement | Moved J1 (real footprint is 9.4 x 10.6 mm with shield legs), J2, U3, U4, Q1, D1, C1-C3, R9-R11, U7, C8, SW3 to keep the new courtyards apart. Outline unchanged (34.5 x 42 + 12 x 25 tail). | `check_layout.py`: 0 overlaps |
+| New with the real J1 | 4 oval plated slots (0.6 x 1.2 / 1.7 mm) and 2 NPTH pegs (0.65 mm) in the drill file; the "all SMD, no THT" statement of slice 1 no longer holds for J1 (JLC accepts it on the SMT line, DFM view not seen). | drill file, CI artifact |
+
+Real numbers from CI (KiCad 9, job `pcb`): ERC 0 errors, 0 warnings. DRC at error level 0 violations, 0 unconnected pads (error level; unconnected items are warning-level so this is not a connectivity result). **No local kicad-cli**: apt has KiCad 7 only, which cannot read the KiCad 9 file; installing the KiCad 9 PPA means changing the system package sources, which was not allowed in this session.
+A first CI run of this slice found 2 real DRC errors (J2 mounting pads 0.2 mm outside the board edge); they are fixed and the edge check in `check_layout.py` now also catches pads outside the outline.
+
+Not done: routing of any net, GND zone fill, silkscreen, mounting holes (Q7), fiducials and panel (F5, F6), U5/U6 footprints, 4 of 5 simulations. Next slice: route the power path (VBUS, VBAT, 3V3, GND) and verify with CI DRC including unconnected items at warning level.
 
 ## Files
 | File | What |

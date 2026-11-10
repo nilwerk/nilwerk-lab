@@ -256,8 +256,8 @@ def render(B, out, scale=14):
         d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(200, 200, 200, 255), outline=(40, 40, 40, 255))
     # outline stroke
     d.line(pts + [pts[0]], fill=(240, 230, 120, 255), width=2)
-    d.text((8, 8), "plant-monitor.kicad_pcb (slice 1: placed, NOT routed; drawn from the board file, not a KiCad screenshot)", fill=(0, 0, 0, 255))
-    lg = [((230, 40, 40, 255), "solid dark-red strip = the antenna KEEP-OUT rule area (17.2 x 2.0 mm, Emil's assumption, datasheet not read)"),
+    d.text((8, 8), "plant-monitor.kicad_pcb (slice 2: real footprints, placed, NOT routed; drawn from the board file, not a KiCad screenshot)", fill=(0, 0, 0, 255))
+    lg = [((230, 40, 40, 255), "solid dark-red strip = the antenna KEEP-OUT rule area on the board (17.2 x 1.0 mm, Emil's size assumption); module overhangs 4.5 mm"),
           ((235, 140, 20, 255), "large orange rectangle = 15 mm antenna clear box (comment layer, distance rule to the cell, not a keep-out)"),
           ((60, 90, 200, 255), "blue rectangle = LiPo cell cavity (not copper)")]
     for i, (c, t) in enumerate(lg):

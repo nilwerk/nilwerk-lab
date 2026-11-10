@@ -5,8 +5,8 @@
 ## Blockers (from dry-run-checklist.md)
 - F5 Panel / rails for this outline: single outline 34.5 x 67.0 mm; no panel, no rails designed
 - F6 SMT tooling and fiducials: fiducials 0, tooling holes 0
-- A9 Placeholder footprints: 7 distinct placeholder footprints: E1 soil probe copper (no LCSC, not in CPL); J1 USB-C HRO TYPE-C-31-M-12; J2 JST PH 2-pin (cell); SW1-SW3 tact switch 5.1 mm (x3, one footprint); U1 ESP32-C3-MINI-1 module; U5 AHT20 DFN-6; U6 BH1750 WSOF-6
-- R1 Routing: 0 tracks
+- A9 Placeholder footprints: 3 distinct placeholder footprints: E1 soil probe copper (own copper, no LCSC, not in CPL; size depends on Q5); U5 AHT20 DFN-6; U6 BH1750 WSOF-6
+- R1 Routing: 4 tracks
 - R2 Simulations: 4 of 5 NOT RUN (LDO dropout run)
 - Gate 4.P3 (Arsany review) comes first.
 
@@ -20,8 +20,8 @@
 | Outer copper | 1 oz | CHOICE (F3) |
 | Surface finish | HASL (lead-free) | CHOICE (F16) |
 | Solder mask / silkscreen colour | JLC default (green / white) | CHOICE, not read |
-| Via process | Epoxy filled and capped for the 16 vias in pads (F12) | OPEN, price not read |
-| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head da39d2c) | BLOCKED until routed |
+| Via process | Standard, no filling: no vias in pads since slice 2 (F12); filled and capped only if Arsany chooses the alternative | CHOICE |
+| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head 8ad6122) | BLOCKED until routed |
 | Flying-probe test | JLC default | CHOICE |
 
 ## Step 2: PCBA (assembly)
