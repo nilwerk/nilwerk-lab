@@ -142,6 +142,7 @@ describe('legal line (A-052, draft)', () => {
     await type('E-mail', 'sam@example.com');
     await type('Password', 'long-enough-1');
     await tap('Sign in');
+    fireEvent.press(await screen.findByRole('tab', { name: 'Profile' }));
     await screen.findByRole('header', { name: 'Profile' });
     expect(await screen.findByText(LINE)).toBeTruthy();
     await tap('What is Premium?');

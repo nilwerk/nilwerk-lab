@@ -68,8 +68,6 @@ export function Root({ contactEmail, banner, setup }: { contactEmail: string; ba
     screen = <DeleteAccountScreen onCancel={() => setRoute('profile')} />;
   } else if (route === 'setup') {
     screen = <SetupFlow services={setup} onExit={() => setRoute('profile')} />;
-  } else if (route === 'setup') {
-    screen = <SetupFlow services={setup} onExit={() => setRoute('profile')} />;
   } else if (route === 'premium') {
     screen = <PremiumScreen contactEmail={contactEmail} onBack={() => setRoute('profile')} />;
   } else if (route === 'plant' && plantId) {
