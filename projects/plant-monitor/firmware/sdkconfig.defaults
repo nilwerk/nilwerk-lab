@@ -1,1 +1,10 @@
 CONFIG_IDF_TARGET="esp32c3"
+# Setup flow (task 4.F2 slice 2): NimBLE host, protocomm security 2, TLS with the certificate bundle. Not built by the author.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_ESP_PROTOCOMM_SUPPORT_SECURITY_VERSION_2=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+# Image with NimBLE + Wi-Fi + TLS is 0x14e4e0 bytes (CI, 4.F2 s2): too big for the default 1 MB partition. ESP32-C3-MINI-1 has 4 MB flash.
+# Single-app large table (1.5 MB). OTA (two slots) needs a custom table: open point for the OTA task (FR-D05).
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y

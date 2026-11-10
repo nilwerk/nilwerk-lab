@@ -1,0 +1,11 @@
+1/7 Test #1: glue_unit ........................   Passed    0.01 sec
+2/7 Test #2: sensors_unit .....................   Passed    0.01 sec
+3/7 Test #3: provisioning_unit ................   Passed    0.01 sec
+4/7 Test #4: board_pins_cite_pinmap ...........   Passed    0.03 sec
+5/7 Test #5: provisioning_contract ............   Passed    0.02 sec
+6/7 Test #6: provisioning_mutation_checks .....   Passed   10.13 sec
+7/7 Test #7: mutation_checks ..................   Passed    7.10 sec
+100% tests passed, 0 tests failed out of 7
+Total Test time (real) =  17.31 sec
+
+glue host tests: 348 checks, 0 failed
