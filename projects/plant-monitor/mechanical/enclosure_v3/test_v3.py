@@ -19,8 +19,8 @@ def test_all_fit_checks_pass(rows):
 
 
 def test_inner_size_numbers():
-    assert round(P.INNER_X1 - P.INNER_X0, 1) == 93.3 and round(P.INNER_Y1 - P.INNER_Y0, 1) == 52.7 and P.INNER_H == pytest.approx(7.6)
-    assert (round(P.OUT_X1 - P.OUT_X0, 1), round(P.OUT_Y1 - P.OUT_Y0, 1)) == (98.1, 57.5)
+    assert round(P.INNER_X1 - P.INNER_X0, 1) == 93.3 and round(P.INNER_Y1 - P.INNER_Y0, 1) == 52.9 and P.INNER_H == pytest.approx(7.6)
+    assert (round(P.OUT_X1 - P.OUT_X0, 1), round(P.OUT_Y1 - P.OUT_Y0, 1)) == (98.1, 57.7)
 
 
 def test_params_derived_from_board_file_not_hardcoded():
@@ -65,3 +65,20 @@ def test_antenna_gap_both_methods():
     ant = (P.MODULE_X0, 0.0, P.MODULE_X1, P.OVERHANG); cell = (P.CELL_X0, P.CELL_Y0, P.CELL_X1, P.CELL_Y1)
     assert B.gap(ant, cell) == pytest.approx(26.2, abs=0.05)
     assert B.gap((P.MODULE_X0, P.OVERHANG, P.MODULE_X1, P.OVERHANG), cell) == pytest.approx(27.7, abs=0.05)
+
+
+def test_petg_rules_hold():
+    """PETG on the P1S: boss wall, skin, lid stiffness and feature floor (params_v3 PETG_*)."""
+    assert (P.BOSS_D - P.INSERT_HOLE) / 2 >= P.PETG_BOSS_WALL - 1e-9
+    assert min((y - P.OUT_Y0) - P.BOSS_D / 2 for _, y in P.BOSS_XY) >= 1.2 - 1e-9
+    assert P.LID_T >= 2.4 - 1e-9 and P.LID_T - P.WIN_CB_DEPTH >= 1.2 - 1e-9
+    assert P.VENT_W >= P.PETG_MIN_FEATURE and P.PIN_D >= P.PETG_MIN_FEATURE and P.SCREW_D >= P.PETG_MIN_FEATURE
+
+
+def test_bosses_clear_cell_and_board_by_boolean():
+    """Negative control: a boss moved into the cell must overlap the cell ghost (so the check can fail)."""
+    import cadquery as cq
+    bad = cq.Workplane("XY").center(-27.0, -40.0).circle(P.BOSS_D / 2).extrude(P.INNER_H)
+    assert F.vol_overlap(bad, E.cell_ghost()) > 1.0
+    good = cq.Workplane("XY").center(-27.0, P.INNER_Y0 + 2.0).circle(P.BOSS_D / 2).extrude(P.INNER_H)
+    assert F.vol_overlap(good, E.cell_ghost()) < 1e-3

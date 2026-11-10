@@ -73,6 +73,20 @@ def main():
                  ("Light collar wall", (P.COLLAR_OD - P.WIN_D) / 2), ("Vent cup wall", P.CUP_WALL), ("Pinhole tube wall", (P.PIN_TUBE_OD - P.PIN_D) / 2),
                  ("Boss wall around insert", (P.BOSS_D - P.INSERT_HOLE) / 2)]:
         row(f"Wall: {n}", f"{v:.2f} mm", ">= 1.2 (role rule)", v >= P.MIN_WALL - 1e-9, "params_v3")
+    # 6b PETG on the P1S (standards s.2-3, params_v3 PETG_*)
+    feats = {"vent slot width": P.VENT_W, "pinhole d": P.PIN_D, "light window d": P.WIN_D, "lid screw clearance hole": P.SCREW_D,
+             "plug wall (tail tunnel)": P.PLUG_T}
+    for n, v in feats.items():
+        row(f"PETG min feature: {n}", f"{v:.2f} mm", f">= {P.PETG_MIN_FEATURE} (2 lines)", v >= P.PETG_MIN_FEATURE - 1e-9, "params_v3 PETG_MIN_FEATURE [ASSUMED 0.8]")
+    row("Seal tunnel clearance per side (thickness)", f"{(P.TUNNEL_H - P.BOARD_T) / 2:.2f} mm", ">= 0.30 (PETG/FDM; sealant fills the rest)", (P.TUNNEL_H - P.BOARD_T) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_H 2.2 [ASSUMED 0.3]")
+    row("Seal tunnel clearance per side (width)", f"{(P.TUNNEL_W - P.TAIL_W) / 2:.2f} mm", ">= 0.30", (P.TUNNEL_W - P.TAIL_W) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_W 12.6")
+    row("PETG insert boss wall (round the 3.2 hole)", f"{(P.BOSS_D - P.INSERT_HOLE) / 2:.2f} mm", f">= {P.PETG_BOSS_WALL} (PETG target; floor 1.2)", (P.BOSS_D - P.INSERT_HOLE) / 2 >= P.PETG_BOSS_WALL - 1e-9, "params_v3 BOSS_D 6.4; insert datasheet still to check")
+    skin = min(min((y - P.OUT_Y0) - P.BOSS_D / 2, (P.OUT_Y1 - y) - P.BOSS_D / 2) for _, y in P.BOSS_XY)
+    row("Boss to outside surface (skin)", f"{skin:.2f} mm", ">= 1.2", skin >= 1.2 - 1e-9, "params_v3 BOSS_XY, OUT_Y0/OUT_Y1")
+    cgap = min(((P.CELL_Y0 - (y + P.BOSS_D / 2)) if y < P.CELL_Y0 else 99.0) for x, y in P.BOSS_XY if P.CELL_X0 - P.BOSS_D / 2 <= x <= P.CELL_X1 + P.BOSS_D / 2)
+    row("Boss below the cell cavity (bottom row, y gap)", f"{cgap:.2f} mm", ">= 0.2 (no overlap; tray vs cell boolean row also checks)", cgap >= 0.2 - 1e-9, "params_v3 BOSS_XY vs CELL_BAY_CAVITY y -42.0")
+    row("Lid plate above the film counterbore", f"{P.LID_T - P.WIN_CB_DEPTH:.2f} mm", ">= 1.2", P.LID_T - P.WIN_CB_DEPTH >= 1.2 - 1e-9, "params_v3 LID_T 2.4")
+    row("Screw torque limit (informational, not a fit check)", f"{P.PETG_SCREW_TORQUE_NM} N m", "insert datasheet governs", True, "ASSUMED; torque is for the bench, see README")
     # 7 build volume
     for n, s in [("tray", tray), ("lid", lid), ("plug", plug)]:
         bb = s.val().BoundingBox()
