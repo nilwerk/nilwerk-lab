@@ -68,3 +68,29 @@ export async function handleIngest(req: Request, deps: Deps): Promise<Response> 
   if (d.error) return internal();
   return json(200, d);
 }
+
+/**
+ * DELETE /account (app, user JWT): FR-A01, FR-A08, NFR-07 (GDPR erasure), NFR-06. The user is ONLY the one the token verifies
+ * (auth.getUser); the body cannot name another user. Body {"confirm":"DELETE"} is required. Order (openapi /account):
+ * release + revoke devices -> delete Storage photos -> delete the auth user (FK cascade removes the rest). Every step is
+ * idempotent and a failure returns 500 before the auth user is deleted, so the client can simply retry. 204 = erased.
+ */
+export async function handleDeleteAccount(req: Request, deps: Deps): Promise<Response> {
+  if (req.method !== "DELETE") return methodNotAllowed();
+  const jwt = bearer(req);
+  const uid = jwt ? await deps.getUserId(jwt) : null;
+  if (!uid) return err(401, "unauthorized", "missing or invalid user JWT");
+  const r = await readJson(req);
+  if ("fail" in r) return r.fail;
+  const b = r.body as Record<string, unknown>;
+  if (typeof b !== "object" || b === null || Array.isArray(b) || Object.keys(b).some((k) => k !== "confirm") || b.confirm !== "DELETE") {
+    return err(400, "bad_request", 'body must be {"confirm":"DELETE"}');
+  }
+  const { data, error } = await deps.rpc("release_account_devices", { p_user: uid });
+  if (error || !data) return internal();
+  const paths = (data as { photo_paths?: unknown }).photo_paths;
+  if (!Array.isArray(paths)) return internal();
+  if (await deps.deleteUserPhotos(uid, paths as string[])) return internal();
+  if (await deps.deleteAuthUser(uid)) return internal();
+  return new Response(null, { status: 204 });
+}

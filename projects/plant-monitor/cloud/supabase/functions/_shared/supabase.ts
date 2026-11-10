@@ -24,5 +24,34 @@ export function makeDeps(): Deps {
       return error || !data.user ? null : data.user.id;
     },
     randomBytes: (n) => crypto.getRandomValues(new Uint8Array(n)),
+    // DELETE /account (NFR-07). UNVERIFIED against a live project, like the rest of this file.
+    async deleteUserPhotos(userId, knownPaths) {
+      const bucket = admin.storage.from("plant-photos");
+      const found = new Set(knownPaths.filter((p) => p.startsWith(`${userId}/`)));
+      const walk = async (prefix: string): Promise<{ message: string } | null> => {   // '<uid>/<plant_id>/<uuid>.jpg': two levels
+        for (let offset = 0; ; offset += 100) {
+          const { data, error } = await bucket.list(prefix, { limit: 100, offset });
+          if (error) return { message: error.message };
+          for (const o of data ?? []) {
+            if (o.id === null) { const e = await walk(`${prefix}/${o.name}`); if (e) return e; }   // folder
+            else found.add(`${prefix}/${o.name}`);
+          }
+          if (!data || data.length < 100) return null;
+        }
+      };
+      const e = await walk(userId);
+      if (e) return e;
+      const all = [...found];
+      for (let i = 0; i < all.length; i += 100) {
+        const { error } = await bucket.remove(all.slice(i, i + 100));
+        if (error) return { message: error.message };
+      }
+      return null;
+    },
+    async deleteAuthUser(userId) {
+      const { error } = await admin.auth.admin.deleteUser(userId);
+      if (error && !/not.?found/i.test(error.message) && (error as { status?: number }).status !== 404) return { message: error.message };
+      return null;
+    },
   };
 }

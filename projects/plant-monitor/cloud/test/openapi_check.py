@@ -16,16 +16,17 @@ def check(ok, msg):
     print(("ok   " if ok else "FAIL ") + msg)
     if not ok: fails.append(msg)
 
-OPS = {"/claim-token": "handleClaimToken", "/device-claim": "handleDeviceClaim", "/ingest": "handleIngest"}
+OPS = {"/claim-token": "handleClaimToken", "/device-claim": "handleDeviceClaim", "/ingest": "handleIngest", "/account": "handleDeleteAccount"}
+METHOD = {"/account": "delete"}   # default post
 NOT_BUILT = {("/device-claim", "429"), ("/ingest", "429")}
-SECURITY = {"/claim-token": "userJwt", "/device-claim": None, "/ingest": "deviceToken"}
+SECURITY = {"/claim-token": "userJwt", "/device-claim": None, "/ingest": "deviceToken", "/account": "userJwt"}
 
 def body_of(fn):
     m = re.search(r"export async function %s\b.*?(?=\nexport async function |\Z)" % fn, han, re.S)
     return m.group(0)
 
 for path, fn in OPS.items():
-    op = oa["paths"][path]["post"]
+    op = oa["paths"][path][METHOD.get(path, "post")]
     body = body_of(fn)
     emitted = set(re.findall(r"\b(?:err|json)\((\d{3})", body))
     if "methodNotAllowed()" in body: emitted.add("405")
@@ -33,7 +34,8 @@ for path, fn in OPS.items():
     if "readJson(" in body: emitted |= {"400", "413"}
     if "validateReport(" in body: emitted |= {"400", "413"}
     if re.search(r"bad\(", body): emitted.add("400")
-    emitted.add({"/claim-token": "201"}.get(path, "200"))
+    emitted.add({"/claim-token": "201", "/account": "204"}.get(path, "200"))
+    if "new Response(null, { status: 204 })" in body: emitted.add("204")
     documented = set(op["responses"].keys())
     check(emitted <= documented, f"{path}: every status the code can return is documented (code {sorted(emitted)}, spec {sorted(documented)})")
     missing = {c for c in documented - emitted if (path, c) not in NOT_BUILT}
@@ -65,6 +67,10 @@ cfg = oa["components"]["schemas"]["DeviceConfig"]["required"]
 check(all(f"'{k}'" in sql[sql.index("device_config"):] for k in cfg), f"DeviceConfig fields {cfg} are produced by device_config()")
 ct = oa["paths"]["/claim-token"]["post"]["responses"]["201"]["content"]["application/json"]["schema"]["required"]
 check(all(k in body_of("handleClaimToken") for k in ct), f"/claim-token 201 fields {ct}")
-for fn in ("ingest", "device-claim", "claim-token"):
+for fn in ("ingest", "device-claim", "claim-token", "delete-account"):
     check(os.path.isfile(os.path.join(root, "supabase", "functions", fn, "index.ts")), f"supabase/functions/{fn}/index.ts exists")
+acc = oa["paths"]["/account"]["delete"]
+check("FR-A01" in acc["x-requirements"] and "FR-A08" in acc["x-requirements"] and "NFR-07" in acc["x-requirements"], "/account cites FR-A01, FR-A08, NFR-07")
+check(acc["requestBody"]["content"]["application/json"]["schema"]["properties"]["confirm"]["enum"] == ["DELETE"] and 'b.confirm !== "DELETE"' in han, "/account confirm literal == spec")
+check(re.search(r"\[functions\.delete-account\]\s*\nverify_jwt = false", open(os.path.join(root, "supabase", "config.toml")).read()) is not None, "config.toml: delete-account has verify_jwt = false (the handler verifies the JWT itself)")
 sys.exit(1 if fails else 0)
