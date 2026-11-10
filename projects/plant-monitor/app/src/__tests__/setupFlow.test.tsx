@@ -157,6 +157,15 @@ describe('device setup flow', () => {
     expect(await screen.findByText('A Wi-Fi password has 8 to 63 characters.')).toBeTruthy();
   });
 
+  test('the sensor name is validated and sent trimmed (4.F2: firmware refuses control characters)', async () => {
+    const { fake } = await mount();
+    await toName();
+    await type('Sensor name', '  Kitchen\n');
+    await tap('Connect sensor');
+    await header('Take a photo');
+    expect(fake.prov.state.provisioned.map((p) => p.name)).toEqual(['Kitchen']);
+  });
+
   test('wrong Wi-Fi password: error screen, re-enter keeps the network, then succeeds', async () => {
     await mount();
     await toName('wrong-password');

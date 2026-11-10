@@ -86,6 +86,16 @@ describe('setup state machine', () => {
 });
 
 describe('setup validation (FR-A03, FR-A04)', () => {
+  test('device name: control characters and trimming match the firmware (4.F2 nw_prov_parse_claim)', () => {
+    const ctl = { key: 'validation.deviceName.control' };
+    expect(validateDeviceName('a\u0000b')).toEqual(ctl);
+    expect(validateDeviceName('a\u001fb')).toEqual(ctl);
+    expect(validateDeviceName('a\u007fb')).toEqual(ctl);
+    expect(validateDeviceName('Kitchen\u0001')).toEqual(ctl);   // trailing control char that trim() does not remove
+    expect(validateDeviceName('Kitchen\n')).toBeNull();          // trailing whitespace is trimmed before sending, so it is valid
+    expect(validateDeviceName('  ' + 'a'.repeat(80) + '  ')).toBeNull();   // length is of the trimmed value
+    expect(validateDeviceName('  ' + 'a'.repeat(81))).not.toBeNull();
+  });
   test('required fields and limits', () => {
     expect(validateDeviceName(' ')).not.toBeNull(); expect(validateDeviceName('a'.repeat(81))).not.toBeNull(); expect(validateDeviceName('a'.repeat(80))).toBeNull();
     // 4.F2 contract check: 80 code points (emoji = 1), control characters refused as bad_request on the device

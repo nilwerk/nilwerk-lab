@@ -109,7 +109,7 @@ export function NameStep({ time, onSubmit, onCancel }: { time: string; onSubmit:
     <Screen title={t('setup.name.title')} onBack={onCancel}>
       <Progress n={3} time={time} />
       <Field label={t('setup.name.label')} placeholder={t('setup.name.hint')} value={name} onChangeText={setName} error={err} />
-      <Button label={t('setup.name.submit')} onPress={() => { setShown(true); if (!validateDeviceName(name)) onSubmit(name); }} />
+      <Button label={t('setup.name.submit')} onPress={() => { setShown(true); if (!validateDeviceName(name)) onSubmit(name.trim()); }} /* same trimmed string that is validated */ />
     </Screen>
   );
 }
