@@ -101,10 +101,13 @@ def load_board(path):
             px, py, pr = at_of(p)
             sz = kid(p, "size")
             w, h = float(sz[1]), float(sz[2])
-            if abs(((fr + pr) % 180) - 90) < 1e-6:
+            # KiCad board file: the pad angle is the ABSOLUTE orientation (footprint rotation included). Slice 1 added the two
+            # angles here, which double-rotates; the real J1/J2 footprints in CI DRC (clean) confirm the absolute reading.
+            if abs((pr % 180) - 90) < 1e-6:
                 w, h = h, w
             ax, ay = rot(px, py, fr)
-            pads.append(dict(num=p[1], type=p[2], x=fx + ax, y=fy + ay, w=w, h=h))
+            dr = kid(p, "drill")
+            pads.append(dict(num=p[1], type=p[2], x=fx + ax, y=fy + ay, w=w, h=h, drill=("slot" if dr and "oval" in dr else "round" if dr else None)))
         fps[ref] = dict(lib=f[1], x=fx, y=fy, r=fr, pads=pads, ref=ref, lib_ok=True)
     vias = []
     for v in kids(pcb, "via"):
@@ -199,6 +202,7 @@ def fab_checks(fab):
     drl = open(os.path.join(gdir, "plant-monitor.drl"), encoding="utf8").read()
     res["drill_tools"] = sorted(set(re.findall(r"^T\d+C([\d.]+)", drl, re.M)), key=float)
     res["drill_holes"] = len(re.findall(r"^X-?[\d.]+Y-?[\d.]+$", drl, re.M))
+    res["drill_slots"] = len(re.findall(r"G85", drl))
     res["drill_files"] = sorted(n for n in names if n.endswith(".drl"))
     res["gerber_files"] = len(names)
     drc = open(os.path.join(fab, "drc.rpt"), encoding="utf8").read()
@@ -228,6 +232,8 @@ def zip_gerbers(fab, out_zip):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fab-dir", required=True, help="CI pcb-fab artifact directory")
+    ap.add_argument("--ci-head", default="unknown", help="commit short sha the fab artifact was built from")
+    ap.add_argument("--ci-run", default="unknown", help="CI run id of the fab artifact")
     ap.add_argument("--out", default=HERE)
     a = ap.parse_args()
     fab = os.path.abspath(a.fab_dir)
@@ -346,13 +352,14 @@ def main():
     bw = max(p[0] for p in edge) - min(p[0] for p in edge)
     bh = max(p[1] for p in edge) - min(p[1] for p in edge)
     via_pad_hits = vias_in_smd_pads(board["vias"], fps)
+    n_pad_round = sum(1 for f in fps.values() for p in f["pads"] if p["drill"] == "round")
+    n_pad_slot = sum(1 for f in fps.values() for p in f["pads"] if p["drill"] == "slot")
     via_drill = sorted({round(v[3], 3) for v in board["vias"]})
     via_pad = sorted({round(v[2], 3) for v in board["vias"]})
     fiducials = [r for r, f in fps.items() if "fiducial" in f["lib"].lower()]
     tooling = [r for r, f in fps.items() if "tooling" in f["lib"].lower() or "mountinghole" in f["lib"].lower()]
-    placeholders = sorted({"U1 ESP32-C3-MINI-1 module", "J1 USB-C HRO TYPE-C-31-M-12", "J2 JST PH 2-pin (cell)",
-                           "SW1-SW3 tact switch 5.1 mm (x3, one footprint)", "U5 AHT20 DFN-6", "U6 BH1750 WSOF-6",
-                           "E1 soil probe copper (no LCSC, not in CPL)"})
+    # slice 2: U1, J1, J2, SW1-SW3 and the standard parts use library / drawing pads (footprints/SOURCES.md); these remain
+    placeholders = sorted({"U5 AHT20 DFN-6", "U6 BH1750 WSOF-6", "E1 soil probe copper (own copper, no LCSC, not in CPL; size depends on Q5)"})
 
     def chk(label):
         for ln in lay_lines:
@@ -383,7 +390,7 @@ def main():
         "Board is below the 70 mm panel minimum: needs a panel with rails (JLC `Panel` rules). Not designed in 4.P2 (layout-4P2.md).")
     row("F6", "SMT tooling and fiducials", "SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials 3.85 mm from panel edge", f"fiducials {len(fiducials)}, tooling holes {len(tooling)}", "FAIL",
         JLC_SRC)
-    row("F7", "Min track width / space", "0.15 / 0.15 mm under mask (1 oz); 0.25 mm bare", f"{board['tracks']} tracks (unrouted)", "OPEN",
+    row("F7", "Min track width / space", "0.15 / 0.15 mm under mask (1 oz); 0.25 mm bare", f"{board['tracks']} tracks (TP4056 GND stubs, 0.4 mm; all nets still unrouted)", "OPEN",
         "Nothing to check until routing. Design rule 0.2 mm (layout-brief section 5).")
     row("F8", "Pad to pad, different nets", "0.15 mm (JLC: SMD pad to pad, different nets)", "check_layout clearance (>= 0.2 mm rule)", chk("pad-to-pad clearance"), f"check_layout.py: {chk('pad-to-pad clearance')}")
     row("F9", "Copper (pads) to routed edge", ">= 0.2 mm copper clearance from routed edges", "check_layout (>= 0.5 mm rule)", chk("from the routed edge"), "check_layout.py")
@@ -394,8 +401,8 @@ def main():
         f"pad {', '.join(f'{d:.2f}' for d in via_pad)} / drill {', '.join(f'{d:.2f}' for d in via_drill)} mm: ring {via_ring:.3f} mm" if via_ring else "no vias",
         ring_res, "At the 0.20 mm minimum, below the 0.25 mm recommendation (NOTE). Option: 0.8 mm via pad (layout change, Emil to decide).")
     row("F12", "Via in pad (copper under via, within an SMD pad)", "Via-in-pad needs filled and capped vias (epoxy or copper paste, 0.15-0.55 mm); otherwise vias must stay out of pads",
-        f"{len(via_pad_hits)} vias inside SMD pads: " + ", ".join(sorted({f'{ref}' for _, ref, _ in via_pad_hits})), "OPEN" if via_pad_hits else "PASS",
-        "Module ground pad and TP4056 exposed pad vias. Choose filled and capped (cart step 1) or move vias. Price of that option NOT read (UNVERIFIED).")
+        f"{len(via_pad_hits)} vias inside SMD pads" + (": " + ", ".join(sorted({f'{ref}' for _, ref, _ in via_pad_hits})) if via_pad_hits else " (16 vias: 12 in the gaps of the module ground pad grid, 4 beside the TP4056 exposed pad with track stubs)"), "OPEN" if via_pad_hits else "PASS",
+        "A-069 applied (lowest risk): vias moved out of pads, so no filled-and-capped via process is needed. Alternative for Arsany: keep vias in the pads and order JLC filled and capped vias (price NOT read, UNVERIFIED). The 12 module vias still touch the pad copper with their 0.7 mm ring (hole is in the gap); the JLC DFM view must confirm.")
     row("F13", "Via to via / hole spacing", "via hole to hole >= 0.25 mm (layout-brief)", chk_line("via-to-via"), chk("via-to-via"), "check_layout.py")
     row("F14", "Solder mask bridge", ">= 0.10 mm bridge (1 oz green); mask opening 1:1 to pad", "min pad gap >= 0.2 mm (check_layout); pad_to_mask_clearance 0", "PASS", JLC_SRC)
     row("F15", "Silkscreen", "text height >= 1.0 mm, line >= 0.15 mm, pad to silk >= 0.15 mm", "no silkscreen text placed in the board file", "OPEN",
@@ -404,10 +411,13 @@ def main():
     row("F17", "NPTH / mounting holes", "NPTH annular >= 0.45 mm recommended; mounting holes need the enclosure (Q7)", "no NPTH in drill file; no mounting holes placed", "OPEN",
         "Mounting holes depend on Yara's answer Q7 (layout-4P2.md).")
     row("F18", "Gerber set complete", "copper, mask, silk, paste, edge, drill", f"{gchk['gerber_files']} files; missing: {', '.join(gchk['gerber_missing']) or 'none'}", "PASS" if not gchk["gerber_missing"] else "FAIL",
-        "CI pcb-fab artifact of head da39d2c, run 42628752571.")
-    row("F19", "Drill file vs board vias", "drill holes = vias in the board", f"drill holes {gchk['drill_holes']}, vias {len(board['vias'])}", "PASS" if gchk["drill_holes"] == len(board["vias"]) else "FAIL", "")
+        f"CI pcb-fab artifact of head {a.ci_head}, run {a.ci_run}.")
+    row("F19", "Drill file vs board vias", "drill holes = vias + drilled pads in the board",
+        f"round holes {gchk['drill_holes']} (board: {len(board['vias'])} vias + {n_pad_round} round pad holes), slots {gchk['drill_slots']} (board: {n_pad_slot} oval pad holes)",
+        "PASS" if gchk["drill_holes"] == len(board["vias"]) + n_pad_round and gchk["drill_slots"] == n_pad_slot else "FAIL",
+        "J1 shield legs (4 slots) and 2 NPTH pegs come from the real footprint; the board is no longer 'vias only'. JLC must accept the 0.6 x 1.2 / 1.7 mm slots (UNVERIFIED).")
     row("F20", "KiCad DRC (CI, error level)", "0 errors", f"{gchk['drc']} DRC violations; {gchk['drc_unconnected_pads']} unconnected pads", "PASS" if gchk["drc"] == 0 else "FAIL",
-        "Error level only. Unconnected items are warning-level and the board is unrouted, so this is no connectivity result.")
+        "Error level only, KiCad 9 in CI. Unconnected items are warning-level and the board is unrouted, so this is no connectivity result.")
     row("F21", "KiCad ERC (CI)", "0 errors", f"errors {gchk['erc'][1] if gchk['erc'] else '?'}, warnings {gchk['erc'][2] if gchk['erc'] else '?'}", "PASS" if gchk["erc"] and gchk["erc"][1] == 0 else "FAIL", "")
     row("F22", "Copper zones", "zones must be filled before release (CAM)", cu_fill_status, "OPEN", "GND zone on B.Cu not filled: routing slice.")
     row("F23", "CPL origin / orientation vs Gerber", "CPL coordinates must share the Gerber origin (JLC CAM preview)",
@@ -428,10 +438,10 @@ def main():
     row("A8", "Extended parts (JLC fee per unique part)", "JLC Extended library: extra loading fee per part", f"{len(set(ext_parts))} Extended unique parts: {', '.join(sorted(set(ext_parts)))}", "UNVERIFIED",
         "Fee value not read on this run; check the JLC PCBA price page.")
     row("A9", "Placeholder footprints", "footprints must match the manufacturer drawing for PCBA", f"{len(placeholders)} distinct placeholder footprints: " + "; ".join(placeholders), "FAIL",
-        "Blocks the order: layout-4P2.md 'What is NOT done'. Pad geometry not from drawings (U1 pattern, J1, J2, SW, U5, U6, E1).")
+        "Blocks the order until U5 (AHT20) and U6 (BH1750) have a verified land pattern. U1 (Espressif footprint, checked against datasheet Fig 11-1), J1 and J2 (KiCad library, not compared with the vendor drawing: UNVERIFIED), SW1-SW3 (XKB P.C.B. layout drawing) and the standard parts are real since slice 2 (footprints/SOURCES.md).")
     row("A10", "CPL rotation convention", "JLC applies its own rotation per library part", f"{len(rot_nonzero)} parts with nonzero rotation: {', '.join(rot_nonzero) or 'none'}", "UNVERIFIED",
-        "Check each rotated part in the JLC CPL preview (U1, U3, U4, U5, U6, U7, D1, J1, J2, Q1 pin 1).")
-    row("A11", "Polarity: LEDs, pin 1 marks", "JLC preview shows polarity from the footprint", "D2, D3 cathode pin 1 assumed (design.py); U-pin 1 positions per footprint", "UNVERIFIED", "bom.csv note: 'pin 1 = cathode assumed'.")
+        "J1 is rotated 90 and J2 270 (real library footprints, pad angles written as absolute orientation: DRC in CI is clean, JLC preview not seen). Check each rotated part in the JLC CPL preview (U1, U3, U4, U5, U6, U7, D1, J1, J2, Q1 pin 1). R16 is no longer rotated.")
+    row("A11", "Polarity: LEDs, pin 1 marks", "JLC preview shows polarity from the footprint", "D2, D3: pin 1 = cathode in the KiCad library LED footprints (matches design.py; library convention, vendor LED drawing not read); U-pin 1 positions per footprint", "UNVERIFIED", "Check the polarity mark of C2286 / C2297 in the JLC preview.")
     row("A12", "Cell connector J2 (JST PH) pitch and polarity", "plug must match the decided cell", "PH 2.0 mm assumed; polarity unverified (A-053)", "UNVERIFIED", "cell-decision-A034.md; check the physical plug before the order.")
     row("R1", "Routing", "all nets routed, zones filled, DRC with connectivity", f"{board['tracks']} tracks", "FAIL", "Blocks any release and any order (TEAM.md section 4, routing slice next).")
     row("R2", "Simulations", "4.P1 list: divider, soil front end, charger thresholds, USB inrush", "4 of 5 NOT RUN (LDO dropout run)", "FAIL", "README 'Status of the checks'.")
@@ -448,8 +458,8 @@ def main():
 
     md = []
     md.append("# JLCPCB dry-run checklist: plant-monitor, Plan 4.P4 prep\n")
-    md.append("**DRAFT. NOT ORDERED. NOT A RELEASE.** Routing is not done (0 tracks), the 7 distinct footprints are placeholders, 4 of 5 simulations are not run. ")
-    md.append(f"Generated {now} by `make_jlcpcb_package.py` from head of branch `agent/pcb/4.P4-prep`, board from `plant-monitor.kicad_pcb` (4.P2 slice 1).\n")
+    md.append(f"**DRAFT. NOT ORDERED. NOT A RELEASE.** Routing is not done (only {board['tracks']} GND stub tracks; all nets unrouted), {len(placeholders)} distinct footprints are placeholders or own copper, 4 of 5 simulations are not run. ")
+    md.append(f"Generated {now} by `make_jlcpcb_package.py` from branch `agent/pcb/4.P2-s2`, board from `plant-monitor.kicad_pcb` (4.P2 slice 2; CI head {a.ci_head}, run {a.ci_run}).\n")
     md.append(f"**Result:** {overall}\n")
     md.append("Legend: PASS = within the limit; FAIL = outside the limit or missing; OPEN = cannot be checked until a later slice; UNVERIFIED = needs the JLC page or a physical check; CHOICE / NOTE = a cart choice or a remark.\n")
     md.append("| ID | Item | JLCPCB limit | This board | Result | Note / source |")
@@ -479,8 +489,8 @@ def main():
     cart.append("| Outer copper | 1 oz | CHOICE (F3) |")
     cart.append("| Surface finish | HASL (lead-free) | CHOICE (F16) |")
     cart.append("| Solder mask / silkscreen colour | JLC default (green / white) | CHOICE, not read |")
-    cart.append("| Via process | Epoxy filled and capped for the 16 vias in pads (F12) | OPEN, price not read |")
-    cart.append("| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head da39d2c) | BLOCKED until routed |")
+    cart.append("| Via process | Standard, no filling: no vias in pads since slice 2 (F12); filled and capped only if Arsany chooses the alternative | CHOICE |")
+    cart.append(f"| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head {a.ci_head}) | BLOCKED until routed |")
     cart.append("| Flying-probe test | JLC default | CHOICE |")
     cart.append("")
     cart.append("## Step 2: PCBA (assembly)")

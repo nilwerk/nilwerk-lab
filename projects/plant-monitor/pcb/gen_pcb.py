@@ -37,12 +37,13 @@ CELL_X0 = CELL_X1 - CELL_CAV[0]
 CELL_Y1 = BODY_L
 CELL_Y0 = CELL_Y1 - CELL_CAV[1]
 # Antenna (O2): the module antenna end overhangs the top board edge, module on the right side so the cell is far away.
-U1_W, U1_L = 13.2, 16.6           # [read] datasheet v2.2 Fig 11-1 (brief section 1)
-U1_OVERHANG = 6.0                 # [mine] antenna end beyond the board edge (antenna zone length NOT read from the datasheet figure)
+U1_W, U1_L = 13.2, 16.6           # [read] datasheet v2.2 Fig 11-1; footprint origin = module centre (Espressif footprint: body y -8.3..+8.3)
+U1_PAD_TOP_REL = -2.6             # [read] top edge of the top pad row relative to the footprint origin (Espressif footprint, matches Fig 11-1: 5.7 mm antenna area above it)
+U1_PAD_TOP_Y = 1.2                # [mine] top pad row edge 1.2 mm below the board edge: copper-to-edge >= 0.5 and 0.2 mm clear of the keep-out strip
+U1_CY = U1_PAD_TOP_Y - U1_PAD_TOP_REL
+U1_OVERHANG = U1_L / 2 - U1_CY    # antenna end beyond the board edge (derived, 4.5 mm; slice 1 assumed 6.0 with a placeholder land pattern)
 U1_CX = BOARD_W - 1.0 - U1_W / 2  # 1.0 mm from the right edge [mine]
-U1_CY = -U1_OVERHANG + U1_L / 2
-U1_PAD_Y0 = 3.0 - U1_CY          # first signal pad row at board y = 3.0 (below the 2 mm keep-out) [mine, placeholder pattern]
-ANT_KEEPOUT = (U1_CX - U1_W / 2 - 3.0, 0.0, BOARD_W, 2.0)   # x0,y0,x1,y1 on the board; [mine] 3 mm beside the module, 2 mm deep; both layers (O2)
+ANT_KEEPOUT = (U1_CX - U1_W / 2 - 3.0, 0.0, BOARD_W, U1_PAD_TOP_Y - 0.2)   # [mine] 3 mm beside the module, down to 0.2 mm above the first pad row; both layers (O2)
 ANT_CLEAR_MM = 15.0               # [brief O2] Espressif: >= 15 mm clear in all directions in the housing
 HEAT_CLEAR_MM = 10.0              # [brief O6] AHT20 >= 10 mm from TP4056
 USBC_ESD_MAX_MM = 10.0            # [brief O4] D1 within 10 mm of J1
@@ -52,84 +53,53 @@ RULES = dict(clearance=0.2, track=0.2, power_track=0.4, vbat_track=0.5, via_dia=
              copper_edge=0.5, mask_margin=0.05, min_text=1.0, min_line=0.15)
 
 # ---------------------------------------------------------------------------------------------
-# Footprints: pads in the footprint frame (rot 0).  (num, shape, x, y, w, h)
+# Footprints (slice 2).  Pads are dicts: num,type(smd|thru_hole|np_thru_hole),shape,x,y,ang,w,h,drill,layers,rratio.
+# kind "lib"        = pad geometry read from a KiCad / Espressif library .kicad_mod in footprints/ (footprints/SOURCES.md says where from)
+# kind "datasheet"  = drawn by Emil from a manufacturer drawing (XKB TS-1187A P.C.B. LAYOUT)
+# kind "placeholder"= pad NUMBERS right, geometry NOT from a drawing (AHT20, BH1750: no recommended land pattern was available)
+# kind "electrode"  = our own copper (soil probe), not a part
 # ---------------------------------------------------------------------------------------------
-def fp_2pad(pitch, w, h):
-    return [("1", "rect", -pitch / 2, 0, w, h), ("2", "rect", pitch / 2, 0, w, h)]
+import kmod
 
-def sot23(n):  # SOT-23-5/6, pin pitch 0.95, rows +-1.1 (KiCad SOT-23-5/6 land pattern: 1.325 x 0.6 pads at x +-1.1375)
-    pads = []
-    for i in range(3):
-        pads.append((str(i + 1), "rect", -1.1375, (i - 1) * 0.95, 1.325, 0.6))
-    if n == 6:
-        for i in range(3):
-            pads.append((str(6 - i), "rect", 1.1375, (i - 1) * 0.95, 1.325, 0.6))
-    else:  # SOT-23-5: pins 4,5 on the right
-        pads.append(("5", "rect", 1.1375, -0.95, 1.325, 0.6))
-        pads.append(("4", "rect", 1.1375, 0.95, 1.325, 0.6))
-    return pads
-
-def dual_row(npins_side, pitch, xrow, w, h):
-    pads = []
-    for i in range(npins_side):
-        y = (i - (npins_side - 1) / 2) * pitch
-        pads.append((str(i + 1), "rect", -xrow, y, w, h))
-        pads.append((str(2 * npins_side - i), "rect", xrow, y, w, h))
-    return pads
+def P(num, x, y, w, h, shape="rect", layers=("F.Cu", "F.Mask", "F.Paste")):
+    return dict(num=num, type="smd", shape=shape, x=x, y=y, ang=0.0, w=w, h=h, drill=None, layers=list(layers), rratio=None)
 
 FOOT = {}
-FOOT["Resistor_SMD:R_0603_1608Metric"] = (fp_2pad(1.65, 0.8, 0.95), (3.2, 1.8), "std")
-FOOT["Capacitor_SMD:C_0603_1608Metric"] = FOOT["Resistor_SMD:R_0603_1608Metric"]
-FOOT["LED_SMD:LED_0603_1608Metric"] = FOOT["Resistor_SMD:R_0603_1608Metric"]
-FOOT["LED_SMD:LED_0805_2012Metric"] = (fp_2pad(1.825, 1.0, 1.45), (3.6, 2.2), "std")
-FOOT["Package_TO_SOT_SMD:SOT-23-5"] = (sot23(5), (4.0, 3.2), "std")
-FOOT["Package_TO_SOT_SMD:SOT-23-6"] = (sot23(6), (4.0, 3.2), "std")
-FOOT["Package_SO:TSSOP-8_4.4x3mm_P0.65mm"] = (dual_row(4, 0.65, 2.85, 1.5, 0.4), (6.2, 3.4), "std")
-_soic = [p for p in dual_row(4, 1.27, 2.475, 1.95, 0.6)]
-_soic.append(("9", "rect", 0, 0, 2.41, 3.81))
-FOOT["Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.81mm"] = (_soic, (6.4, 5.2), "std")
-# PLACEHOLDERS (pad numbers right, geometry NOT from a drawing)
-_sw = [("1", "rect", -2.3, -1.4, 1.4, 1.6), ("2", "rect", -2.3, 1.4, 1.4, 1.6), ("3", "rect", 2.3, -1.4, 1.4, 1.6), ("4", "rect", 2.3, 1.4, 1.4, 1.6)]
-FOOT["NW:SW_TS-1187A-B-A-B_5.1x5.1"] = (_sw, (6.0, 6.0), "placeholder")
-FOOT["NW:AHT20_DFN-6_3x3"] = ([("1", "rect", -1.4, -1.0, 0.7, 0.5), ("2", "rect", -1.4, 0.0, 0.7, 0.5), ("3", "rect", -1.4, 1.0, 0.7, 0.5),
-                              ("4", "rect", 1.4, 1.0, 0.7, 0.5), ("5", "rect", 1.4, 0.0, 0.7, 0.5), ("6", "rect", 1.4, -1.0, 0.7, 0.5)], (3.4, 3.4), "placeholder")
-FOOT["NW:WSOF-6_BH1750FVI"] = ([("1", "rect", -1.4, -0.95, 0.8, 0.5), ("2", "rect", -1.4, 0.0, 0.8, 0.5), ("3", "rect", -1.4, 0.95, 0.8, 0.5),
-                               ("4", "rect", 1.4, 0.95, 0.8, 0.5), ("5", "rect", 1.4, 0.0, 0.8, 0.5), ("6", "rect", 1.4, -0.95, 0.8, 0.5)], (3.8, 3.4), "placeholder")
-# J1 USB-C placeholder: mouth toward +x (local), 12 signal pads 0.5 x 1.2 at pitch 0.7, shield pad
-_j1 = []
-for i, n in enumerate(["A1B12", "A4B9", "B8", "A5", "B7", "A6", "B6", "A7", "A8", "B5", "B4A9", "B1A12"]):
-    _j1.append((n, "rect", -2.6, (i - 5.5) * 0.7, 1.2, 0.5))
-_j1.append(("S1", "rect", 0.2, 0.0, 1.6, 8.0))
-FOOT["Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"] = (_j1, (7.5, 9.0), "placeholder", (-3.9, 3.6))  # courtyard x range [-3.9, 3.6]: mouth flush with the board edge
-# J2 JST PH SMD, mouth toward +x (local); 2 signal pads + 2 mounting pads (approximate)
-FOOT["Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal"] = (
-    [("1", "rect", -1.0, -1.0, 3.0, 1.0), ("2", "rect", -1.0, 1.0, 3.0, 1.0), ("MP1", "rect", 0.2, -3.4, 1.6, 3.0), ("MP2", "rect", 0.2, 3.4, 1.6, 3.0)], (6.0, 7.6), "placeholder")
-# ESP32-C3-MINI-1: see U1 below (generated)
-
-def u1_pads():
-    """PLACEHOLDER module land pattern: the used signal pins in two columns (0.4 x 0.8 [read: pad size], pitch 0.8), GND pads at the bottom
-    and a 3 x 6 centre GND grid for pads 36-53.  The real pad coordinates (datasheet Fig 11-1) are NOT drawn here."""
-    sig = [p for p in D.PARTS if p.ref == "U1"][0]
-    nums = [p[0] for p in sig.pins if p[2] != "GND"]
-    left = nums[: (len(nums) + 1) // 2]
-    right = nums[(len(nums) + 1) // 2:]
-    pads = []
-    for i, n in enumerate(left):
-        pads.append((n, "rect", -U1_W / 2 + 0.4, U1_PAD_Y0 + i * 0.8, 0.8, 0.4))
-    for i, n in enumerate(right):
-        pads.append((n, "rect", U1_W / 2 - 0.4, U1_PAD_Y0 + i * 0.8, 0.8, 0.4))
-    for i, n in enumerate(["1", "2", "11", "14"]):
-        pads.append((n, "rect", -2.4 + i * 1.6, U1_L / 2 - 0.5, 0.4, 0.8))
-    k = 36
-    for r in range(6):
-        for c in range(3):
-            pads.append((str(k), "rect", -1.1 + c * 1.1, U1_PAD_Y0 + 0.5 + r * 1.1, 1.0, 1.0))
-            k += 1
-    return pads
-FOOT["RF_Module:ESP32-C3-MINI-1"] = (u1_pads(), (U1_W, U1_L), "placeholder")
+_LIB = {
+    "Resistor_SMD:R_0603_1608Metric": "R_0603_1608Metric",
+    "Capacitor_SMD:C_0603_1608Metric": "C_0603_1608Metric",
+    "LED_SMD:LED_0603_1608Metric": "LED_0603_1608Metric",
+    "LED_SMD:LED_0805_2012Metric": "LED_0805_2012Metric",
+    "Package_TO_SOT_SMD:SOT-23-5": "SOT-23-5",
+    "Package_TO_SOT_SMD:SOT-23-6": "SOT-23-6",
+    "Package_SO:TSSOP-8_4.4x3mm_P0.65mm": "TSSOP-8_4.4x3mm_P0.65mm",
+    "Package_SO:SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.81mm": "SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.81mm",
+    "RF_Module:ESP32-C3-MINI-1": "ESP32-C3-MINI-1",
+    "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12": "USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+    "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal": "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal",
+}
+for _k, _v in _LIB.items():
+    _d = kmod.load(_v)
+    FOOT[_k] = dict(pads=_d["pads"], court=_d["court"], kind="lib")
+# XKB TS-1187A-x-x-x drawing, "P.C.B. LAYOUT TOP VIEW": pad rows 7.0 outer / 5.0 inner apart in x (pad 1.0 wide, centres +-3.0),
+# 4.5 outer / 3.0 inner in y (pad 0.75 high, centres +-1.875).  Terminals A,B are joined inside, C,D likewise (switch symbol on the drawing):
+# A-B = one contact, C-D = the other.  Pad numbers: 1=A top left, 2=B top right (signal pair), 3=C bottom left, 4=D bottom right (GND pair).
+FOOT["NW:SW_TS-1187A-B-A-B_5.1x5.1"] = dict(
+    pads=[P("1", -3.0, -1.875, 1.0, 0.75), P("2", 3.0, -1.875, 1.0, 0.75), P("3", -3.0, 1.875, 1.0, 0.75), P("4", 3.0, 1.875, 1.0, 0.75)],
+    court=(-3.75, -2.85, 3.75, 2.85), kind="datasheet")
+# PLACEHOLDERS (pad numbers right, geometry NOT from a drawing): no recommended land pattern was available for these two
+FOOT["NW:AHT20_DFN-6_3x3"] = dict(pads=[P("1", -1.4, -1.0, 0.7, 0.5), P("2", -1.4, 0.0, 0.7, 0.5), P("3", -1.4, 1.0, 0.7, 0.5),
+                                        P("4", 1.4, 1.0, 0.7, 0.5), P("5", 1.4, 0.0, 0.7, 0.5), P("6", 1.4, -1.0, 0.7, 0.5)],
+                                  court=(-1.7, -1.7, 1.7, 1.7), kind="placeholder")
+FOOT["NW:WSOF-6_BH1750FVI"] = dict(pads=[P("1", -1.4, -0.95, 0.8, 0.5), P("2", -1.4, 0.0, 0.8, 0.5), P("3", -1.4, 0.95, 0.8, 0.5),
+                                         P("4", 1.4, 0.95, 0.8, 0.5), P("5", 1.4, 0.0, 0.8, 0.5), P("6", 1.4, -0.95, 0.8, 0.5)],
+                                   court=(-1.9, -1.7, 1.9, 1.7), kind="placeholder")
 # E1: soil electrodes, copper only on F.Cu (no mask opening: covered by solder mask, O5), tail frame, origin = tail top centre
-_e1 = [("2", "rect", -4.0, 11.0, 1.5, 20.0), ("1", "rect", 0.0, 11.0, 3.5, 20.0), ("2", "rect", 4.0, 11.0, 1.5, 20.0)]
-FOOT["NW:SOIL_PROBE_STAKE"] = (_e1, (TAIL_W, TAIL_L), "electrode", (0, TAIL_L))
+FOOT["NW:SOIL_PROBE_STAKE"] = dict(pads=[P("2", -4.0, 11.0, 1.5, 20.0, layers=("F.Cu",)), P("1", 0.0, 11.0, 3.5, 20.0, layers=("F.Cu",)),
+                                         P("2", 4.0, 11.0, 1.5, 20.0, layers=("F.Cu",))],
+                                   court=(-TAIL_W / 2, 0, TAIL_W / 2, TAIL_L), kind="electrode")
+# Design pin name -> library pad names where the library names differ (J1: the design merges A1/B12 etc. into one pin name)
+PADMAP = {"J1": {"A1B12": ["A1", "B12"], "B1A12": ["B1", "A12"], "A4B9": ["A4", "B9"], "B4A9": ["B4", "A9"]}}
 
 # ---------------------------------------------------------------------------------------------
 # Placement: ref -> (x, y, rot) board coordinates of the footprint origin.  Zones follow brief O6, rules in the comments.
@@ -139,38 +109,56 @@ PLACE = {
     "U1": (U1_CX, U1_CY, 0),
     # FR-D01 decoupling right at the module 3V3 side (below the module)
     "C5": (22.0, 14.0, 0), "C4": (25.6, 14.0, 0), "C12": (29.2, 14.0, 0),
-    "R3": (22.0, 16.2, 0), "R4": (25.6, 16.2, 0), "R5": (29.2, 16.2, 0), "R16": (32.6, 14.0, 90),
+    "R3": (22.0, 16.2, 0), "R4": (25.6, 16.2, 0), "R5": (29.2, 16.2, 0), "R16": (32.6, 14.0, 0),
     # sensors, top left, >= 10 mm from the TP4056 (O6); BH1750 on the face that sees the light window (Q6 [open])
     "U5": (4.5, 4.5, 0), "C6": (4.5, 8.0, 0),
     "U6": (11.5, 4.5, 0), "C7": (11.5, 8.0, 0),
     "R13": (4.5, 11.0, 0), "R14": (11.5, 11.0, 0),
     # switches: BOOT/RESET reachable with the case open, SW3 pinhole position from Yara (Q6 [open])
-    "SW1": (6.0, 17.5, 0), "SW2": (13.5, 17.5, 0), "SW3": (4.5, 23.5, 0),
+    "SW1": (5.0, 17.5, 0), "SW2": (13.5, 17.5, 0), "SW3": (5.0, 23.5, 0),
     # power block (O6): LDO + rail caps in the middle, charger near USB-C
-    "U2": (15.5, 25.0, 0), "C3": (15.5, 28.0, 0), "C14": (19.5, 22.5, 0), "C13": (19.5, 24.8, 0),
+    "U2": (15.5, 25.0, 0), "C3": (16.5, 28.0, 0), "C14": (19.5, 22.5, 0), "C13": (19.5, 24.8, 0),
     "R7": (11.0, 21.5, 0), "R8": (14.6, 21.5, 0), "C11": (11.0, 23.6, 0),
-    "U3": (22.0, 31.0, 0), "C1": (27.0, 27.0, 0), "C2": (17.0, 33.0, 0), "R9": (20.8, 36.8, 0),
-    "R10": (12.8, 37.6, 0), "R11": (12.8, 39.6, 0), "D2": (8.0, 37.8, 0), "D3": (8.0, 40.2, 0),
+    "U3": (21.8, 31.0, 0), "C1": (24.0, 26.0, 0), "C2": (19.5, 27.0, 0), "R9": (19.8, 36.0, 0),
+    "R10": (12.0, 37.6, 0), "R11": (12.0, 39.6, 0), "D2": (8.0, 37.8, 0), "D3": (8.0, 40.2, 0),
     # J1 USB-C: right edge, mouth flush (O4), far from the antenna; ESD D1 and C10 right at it (<= 10 mm)
-    "J1": (BOARD_W - 3.6, 33.0, 0), "D1": (24.5, 36.0, 0), "C10": (BOARD_W - 3.6, 26.8, 0), "R1": (27.0, 40.4, 0), "R2": (30.5, 40.4, 0),
+    "J1": (BOARD_W - 3.65, 33.0, 90), "D1": (23.45, 36.0, 0), "C10": (BOARD_W - 3.6, 26.8, 0), "R1": (27.0, 40.4, 0), "R2": (30.5, 40.4, 0),
     # cell connector at the cell side (left edge, mouth toward the cell), protection next to it
-    "J2": (3.6, 31.4, 180), "U4": (10.5, 30.5, 0), "Q1": (10.5, 35.0, 0), "R15": (3.0, 37.6, 0), "C9": (3.0, 39.5, 0),
+    "J2": (5.2, 31.4, 270), "U4": (12.6, 29.5, 0), "Q1": (14.2, 33.5, 0), "R15": (3.0, 37.6, 0), "C9": (3.0, 39.5, 0),
     # soil front end at the neck of the tail: SOIL_PROBE short (O5/O6)
-    "U7": (16.9, 37.6, 0), "R12": (20.5, 40.2, 0), "C8": (16.2, 40.2, 0),
+    "U7": (16.0, 38.0, 0), "R12": (20.5, 40.2, 0), "C8": (16.2, 40.6, 0),
     # tail with the electrodes
     "E1": (BOARD_W / 2, BODY_L, 0),
 }
 # vias [brief O3 / section 5]: >= 9 on the module ground pad, 4-6 under the TP4056 exposed pad; 0.3 / 0.7 mm
 def via_list():
+    """4.P2 slice 2 / Needs-Arsany A-069: NO via inside any SMD pad (lowest-risk option, no filled-and-capped vias needed at JLC).
+    Module: 12 GND vias in the 0.525 mm gaps of the 3 x 3 ground pad grid (Espressif Fig 11-1 draws the thermal vias between the pads).
+    A via copper circle (0.7 mm) overlaps the neighbouring pad copper by about 0.09 mm (same net), the hole itself is in the gap.
+    TP4056: 4 vias just outside the exposed pad, joined to it by short 0.4 mm GND stubs (see stub_tracks)."""
     v = []
-    for r in (0, 2, 4, 5):
-        for c in range(3):
-            v.append(("U1gnd", U1_CX - 1.1 + c * 1.1, U1_CY + U1_PAD_Y0 + 0.5 + r * 1.1))
+    gx, gy = U1_CX, U1_CY
+    xs, ys = (-1.975, 0.0, 1.975), (0.725, 2.7, 4.675)
+    gapx, gapy = (-0.9875, 0.9875), (1.7125, 3.6875)
+    for x in gapx:                       # 4 crossings + 6 midpoints of the two vertical gaps
+        for y in gapy + ys:
+            v.append(("U1gnd", gx + x, gy + y))
+    for y in gapy:                       # 2 midpoints of the horizontal gaps (centre column)
+        v.append(("U1gnd", gx + 0.0, gy + y))
     ux, uy, _ = PLACE["U3"]
     for dx in (-0.6, 0.6):
-        for dy in (-1.0, 1.0):
+        for dy in (-2.75, 2.75):
             v.append(("U3ep", ux + dx, uy + dy))
     return v
+
+def stub_tracks():
+    """(x1,y1,x2,y2,width) GND stubs from each TP4056 via into the exposed pad (this is the only routing in slice 2)."""
+    ux, uy, _ = PLACE["U3"]
+    out = []
+    for dx in (-0.6, 0.6):
+        for sgn in (-1, 1):
+            out.append((ux + dx, uy + sgn * 2.75, ux + dx, uy + sgn * 1.5, RULES["power_track"]))
+    return out
 
 # ---------------------------------------------------------------------------------------------
 # helpers
@@ -192,38 +180,46 @@ for p in D.PARTS:
 def netref(name):
     return f'(net {NETS[name]} "{name}")' if name in NETS else ""
 
+def pad_nets(p: D.Part):
+    """library/drawing pad name -> net name (design pin names mapped through PADMAP)."""
+    m = PADMAP.get(p.ref, {})
+    out = {}
+    for pin in p.pins:
+        for pn in m.get(pin[0], [pin[0]]):
+            out[pn] = pin[2]
+    return out
+
+def fmt_pad(pd, fp_rot, net_text, uid_s):
+    ang = (pd["ang"] + fp_rot) % 360       # KiCad board file: pad angle is the ABSOLUTE orientation (footprint rotation included); position stays in the footprint frame
+    at = f'(at {f(pd["x"])} {f(pd["y"])}{" " + f(ang) if ang else ""})'
+    layers = " ".join(f'"{l}"' for l in pd["layers"])
+    dr = ""
+    if pd["drill"]:
+        dr = f' (drill {f(pd["drill"][0])})' if abs(pd["drill"][0] - pd["drill"][1]) < 1e-9 and pd["shape"] != "oval" else f' (drill oval {f(pd["drill"][0])} {f(pd["drill"][1])})'
+    rr = f' (roundrect_rratio {f(pd["rratio"])})' if pd["rratio"] is not None else ""
+    return f'\t\t(pad "{pd["num"]}" {pd["type"]} {pd["shape"]} {at} (size {f(pd["w"])} {f(pd["h"])}){dr} (layers {layers}){rr} {net_text} (uuid "{uid_s}"))'
+
 def footprint_text(p: D.Part):
     spec = FOOT[p.footprint]
-    pads, court, kind = spec[0], spec[1], spec[2]
-    cx = spec[3] if len(spec) > 3 else None
+    pads, court, kind = spec["pads"], spec["court"], spec["kind"]
     x, y, r = PLACE[p.ref]
-    pinnet = {}
-    for pin in p.pins:
-        pinnet[pin[0]] = pin[2]
+    pinnet = pad_nets(p)
+    cw, ch = court[2] - court[0], court[3] - court[1]
     L = []
     L.append(f'\t(footprint "{p.footprint}"')
     L.append(f'\t\t(layer "F.Cu")')
     L.append(f'\t\t(uuid "{uid("fp", p.ref)}")')
     L.append(f'\t\t(at {f(x)} {f(y)}{" " + f(r) if r else ""})')
-    L.append(f'\t\t(descr "{kind.upper()}: {p.value}")' if kind != "std" else f'\t\t(descr "{p.value}")')
-    fx, fy = (0, -(court[1] / 2 + 0.9))
-    L.append(f'\t\t(property "Reference" "{p.ref}" (at {f(fx)} {f(fy)} {f(-r % 360 if r else 0)}) (layer "F.Fab") (uuid "{uid("ref", p.ref)}") (effects (font (size 0.8 0.8) (thickness 0.12))))')
-    L.append(f'\t\t(property "Value" "{p.value}" (at 0 {f(court[1] / 2 + 0.9)} {f(-r % 360 if r else 0)}) (layer "F.Fab") (hide yes) (uuid "{uid("val", p.ref)}") (effects (font (size 0.8 0.8) (thickness 0.12))))')
+    L.append(f'\t\t(descr "{kind.upper()}: {p.value}")' if kind != "lib" else f'\t\t(descr "{p.value}")')
+    L.append(f'\t\t(property "Reference" "{p.ref}" (at 0 {f(court[1] - 0.9)} {f(-r % 360 if r else 0)}) (layer "F.Fab") (uuid "{uid("ref", p.ref)}") (effects (font (size 0.8 0.8) (thickness 0.12))))')
+    L.append(f'\t\t(property "Value" "{p.value}" (at 0 {f(court[3] + 0.9)} {f(-r % 360 if r else 0)}) (layer "F.Fab") (hide yes) (uuid "{uid("val", p.ref)}") (effects (font (size 0.8 0.8) (thickness 0.12))))')
     L.append(f'\t\t(property "LCSC" "{p.lcsc}" (at 0 0) (layer "F.Fab") (hide yes) (uuid "{uid("lcsc", p.ref)}") (effects (font (size 0.8 0.8) (thickness 0.12))))')
     L.append(f'\t\t(attr {"smd" if kind != "electrode" else "smd exclude_from_bom exclude_from_pos_files"})')
-    x0, x1 = (cx if cx else (-court[0] / 2, court[0] / 2))
-    y0, y1 = (-court[1] / 2, court[1] / 2) if not (cx and kind == "electrode") else (0, court[1])
-    if kind == "electrode":
-        y0, y1 = 0, court[1]
-        x0, x1 = -court[0] / 2, court[0] / 2
-    L.append(f'\t\t(fp_rect (start {f(x0)} {f(y0)}) (end {f(x1)} {f(y1)}) (stroke (width 0.05) (type default)) (fill no) (layer "F.CrtYd") (uuid "{uid("cy", p.ref)}"))')
-    for i, (num, shape, px, py, w, h) in enumerate(pads):
-        nm = pinnet.get(num, "NC")
-        layers = '"F.Cu"' if kind == "electrode" else '"F.Cu" "F.Mask" "F.Paste"'
-        if p.ref == "U1" and num.isdigit() and 36 <= int(num) <= 53:
-            layers = '"F.Cu" "F.Mask"'   # centre ground pad: paste windowed later (brief section 5); no paste in this slice
-        net = netref(nm) if nm != "NC" else ""
-        L.append(f'\t\t(pad "{num}" smd rect (at {f(px)} {f(py)}{" " + f(r) if r else ""}) (size {f(w)} {f(h)}) (layers {layers}) {net} (uuid "{uid("pad", p.ref, i)}"))')
+    L.append(f'\t\t(fp_rect (start {f(court[0])} {f(court[1])}) (end {f(court[2])} {f(court[3])}) (stroke (width 0.05) (type default)) (fill no) (layer "F.CrtYd") (uuid "{uid("cy", p.ref)}"))')
+    for i, pd in enumerate(pads):
+        nm = pinnet.get(pd["num"], "NC")
+        net = netref(nm) if nm != "NC" and any(l in pd["layers"] for l in ("F.Cu", "*.Cu")) else ""
+        L.append(fmt_pad(pd, r, net, uid("pad", p.ref, i)))
     L.append("\t)")
     return "\n".join(L)
 
@@ -264,6 +260,8 @@ def build_pcb():
     n_gnd = NETS["GND"]
     for k, (tag, x, y) in enumerate(via_list()):
         o.append(f'\t(via (at {f(x)} {f(y)}) (size {RULES["via_dia"]}) (drill {RULES["via_drill"]}) (layers "F.Cu" "B.Cu") (net {n_gnd}) (uuid "{uid("via", k)}"))')
+    for k, (x1, y1, x2, y2, w) in enumerate(stub_tracks()):
+        o.append(f'\t(segment (start {f(x1)} {f(y1)}) (end {f(x2)} {f(y2)}) (width {f(w)}) (layer "F.Cu") (net {n_gnd}) (uuid "{uid("stub", k)}"))')
     # antenna keep-out (rule area) on both layers: no tracks, vias, pads, copper pour (O2).  Footprints are 'allowed' only because the module U1
     # itself overlaps the zone (its antenna end); check_layout.py asserts that no OTHER footprint touches the zone.
     kx0, ky0, kx1, ky1 = ANT_KEEPOUT
