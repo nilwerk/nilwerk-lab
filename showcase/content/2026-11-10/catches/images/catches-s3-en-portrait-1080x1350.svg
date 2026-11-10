@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-label="Two tiles: one failing check found on the new board, zero failing checks after the fix."><defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#e2ded5" stroke-width="1.5" opacity=".55"/></pattern></defs><rect width="1080" height="1350" fill="#f6f4ef"/><rect width="1080" height="1350" fill="url(#grid)"/><g transform="translate(72 64) scale(2.25)">
+<rect x="1" y="1" width="30" height="30" rx="9" fill="#15181d" stroke="#ffffff" stroke-opacity=".12"/>
+<path d="M10 22V9.5l12 12.5V9.5" fill="none" stroke="#3fc79a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="10" cy="22" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/><circle cx="22" cy="9.5" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/>
+<path d="M6.5 26.6c2.4-1.5 4.8-1.5 7.2 0s4.8 1.5 7.2 0 4.8-1.5 6.9-.1" fill="none" stroke="#8fd9ff" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/></g>
+<text x="156" y="119" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="44" letter-spacing="-1.3" fill="#15181d">nil<tspan fill="#0f7a5c">werk</tspan></text>
+<rect x="72" y="176" width="139" height="52" rx="26" fill="#e3f2ec" stroke="#0f7a5c" stroke-width="2"/><text x="92" y="209" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="22" letter-spacing="1.0" fill="#0f7a5c">THE FIX</text>
+<text x="72" y="338" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2.2" fill="#15181d">Fixed, and it</text>
+<text x="72" y="420" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2.2" fill="#15181d">cannot drift</text>
+<text x="72" y="502" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2.2" fill="#0f7a5c">again.</text>
+<text x="72" y="630" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">The check now reads the board file itself. A new test fails</text>
+<text x="72" y="669" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">if the stored copy of the board ever differs from the board</text>
+<text x="72" y="708" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">design (we made it fail on purpose to be sure). Re-run on the</text>
+<text x="72" y="747" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">new board, the check also found a real clash between the</text>
+<text x="72" y="786" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">printed tray and a connector shell. Fixed too.</text>
+<rect x="72" y="851" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="851" width="460" height="10" rx="5" fill="#0f7a5c"/>
+<text x="302" y="943" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">1 FAIL</text>
+<text x="302" y="983" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">found on the new board</text>
+<rect x="548" y="851" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="548" y="851" width="460" height="10" rx="5" fill="#0f7a5c"/>
+<text x="778" y="943" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">0 FAIL</text>
+<text x="778" y="983" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">after the fix (author&#x27;s run)</text>
+<rect x="72" y="1079" width="352" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1107" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">CALCULATED · NOT PRINTED</text>
+<text x="72" y="1182" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FOR ENGINEERS</text>
+<text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Overhang, module position and cell cavity are now read from the board file;</text>
+<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">drift test verified by a negative run. Clash: 0.686 mm3 before, fit check 35</text>
+<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">PASS / 0 FAIL after (author&#x27;s run, CI green).</text>
+<line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">AI agents, led and reviewed by humans</text></svg>
