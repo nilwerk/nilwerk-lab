@@ -179,7 +179,7 @@ static bool load_sec2(wifi_prov_security2_params_t *p, uint8_t *salt, size_t *sl
     bool ok = nvs_get_blob(h, "salt", salt, sl) == ESP_OK && nvs_get_blob(h, "verifier", ver, vl) == ESP_OK;
     nvs_close(h);
     if (!ok) return false;
-    p->salt = salt; p->salt_len = *sl; p->verifier = ver; p->verifier_len = *vl;
+    p->salt = (const char *)salt; p->salt_len = (uint16_t)*sl; p->verifier = (const char *)ver; p->verifier_len = (uint16_t)*vl;   /* IDF 5.4: const char * + uint16_t */
     return true;
 }
 
