@@ -1,7 +1,7 @@
 """Texts for the 2026-11-10 carousel 'We caught a mistake: a test that could not fail'. Facts: claim-check.md (as of AS_OF).
 German to be checked by Theo/Nora, then Arsany."""
-AS_OF = "10 Nov, 08:40"
-AS_OF_DE = "10. Nov., 08:40"
+AS_OF = "10 Nov, 10:45"
+AS_OF_DE = "10. Nov., 10:45"
 FOOT_TILE = {"en": "merged yet", "de": "gemergt"}
 
 SLIDES = [
@@ -22,20 +22,20 @@ SLIDES = [
                "de": "In der Prüfung stand ein Platinenmaß von Hand eingetippt: wie weit die Antenne über die Platine hinausragt. Dort stand 6,0 mm. Die echte Platinendatei sagt 4,5 mm. Vier der 35 Prüfungen lieferten daher auf der alten und der neuen Platine dasselbe Ergebnis. Ein Test, der seine Antwort nie ändern kann, beweist nichts."},
          tiles=[({"en":"6.0 mm","de":"6,0 mm"}, {"en": "typed into the check", "de": "in die Prüfung getippt"}), ({"en":"4.5 mm","de":"4,5 mm"}, {"en": "in the real board file", "de": "in der echten Platinendatei"})],
          status={"en": "MEASURED · QA RE-RUN", "de": "GEMESSEN · QA-NACHLAUF"},
-         eng={"en": "Fit-check rows 2, 16, 17, 18 (26.2 / 28.4 / 21.2 mm, 1.0 mm gap) were identical on both boards. Real gap above the antenna tip: 2.5 mm, not the assumed 1.0 mm.",
-              "de": "Prüfzeilen 2, 16, 17, 18 (26,2 / 28,4 / 21,2 mm, 1,0 mm Abstand) waren auf beiden Platinen identisch. Echter Abstand über der Antennenspitze: 2,5 mm statt der angenommenen 1,0 mm."},
+         eng={"en": "Fit-check rows 2, 16-18 (26.2 / 28.4 / 21.2 mm) were identical on both boards. First version (a405f53): 2.5 mm of air above the real 4.5 mm antenna. Fixed head b98bd69: 1.0 mm, by design.",
+              "de": "Prüfzeilen 2, 16-18 (26,2 / 28,4 / 21,2 mm) waren auf beiden Platinen gleich. Erste Fassung (a405f53): 2,5 mm Luft über der 4,5-mm-Antenne. Korrigiert (b98bd69): 1,0 mm, so gewollt."},
          alt={"en": "Two tiles: 6.0 millimetres typed into the check and 4.5 millimetres in the real board file.",
               "de": "Zwei Kacheln: 6,0 Millimeter in die Prüfung getippt und 4,5 Millimeter in der echten Platinendatei."}),
     dict(kind="tiles", kicker={"en": "THE FIX", "de": "DIE KORREKTUR"},
          head={"en": ["Fixed, and it", "cannot drift", "again."], "de": ["Behoben, und es", "driftet nicht", "mehr weg."]},
-         body={"en": "The check now reads the board file itself. A new test fails if the stored copy of the board ever differs from the board design (we made it fail on purpose to be sure). Re-run on the new board, the check also found a real clash between the printed tray and a connector shell. Fixed too.",
-               "de": "Die Prüfung liest jetzt die Platinendatei selbst. Ein neuer Test schlägt fehl, sobald die gespeicherte Kopie der Platine vom Platinenentwurf abweicht (wir haben ihn absichtlich scheitern lassen, um sicher zu sein). Auf der neuen Platine fand die Prüfung außerdem eine echte Kollision zwischen Gehäuseschale und Steckerblech. Ebenfalls behoben."},
-         tiles=[({"en":"1 FAIL","de":"1 FAIL"}, {"en": "found on the new board", "de": "auf der neuen Platine gefunden"}), ({"en":"0 FAIL","de":"0 FAIL"}, {"en": "after the fix (author's run)", "de": "nach der Korrektur (Lauf des Autors)"})],
-         status={"en": "CALCULATED · NOT PRINTED", "de": "BERECHNET · NICHT GEDRUCKT"},
-         eng={"en": "Overhang, module position and cell cavity are now read from the board file; drift test verified by a negative run. Clash: 0.686 mm3 before, fit check 35 PASS / 0 FAIL after (author's run, CI green).",
-              "de": "Überstand, Modulposition und Akkufach werden jetzt aus der Platinendatei gelesen; Drift-Test per Negativlauf belegt. Kollision: 0,686 mm³ vorher, Passprüfung danach 35 PASS / 0 FAIL (Lauf des Autors, CI grün)."},
-         alt={"en": "Two tiles: one failing check found on the new board, zero failing checks after the fix.",
-              "de": "Zwei Kacheln: eine fehlgeschlagene Prüfung auf der neuen Platine, null nach der Korrektur."}),
+         body={"en": "The check reads the board file now. A new test fails if the stored board copy drifts from the design (checked on purpose). The re-run also found a real clash between the printed tray and the J1 USB-C shell. Fixed in the code; QA's re-run is next.",
+               "de": "Die Prüfung liest jetzt die Platinendatei. Ein neuer Test schlägt fehl, wenn die gespeicherte Platinenkopie vom Entwurf abweicht (absichtlich geprüft). Der Lauf fand außerdem eine Kollision zwischen Gehäuse und USB-C-Schale von J1. Im Code behoben; QA-Nachlauf folgt."},
+         tiles=[({"en":"1 FAIL","de":"1 FAIL"}, {"en": "QA, head a405f53 (older)", "de": "QA, Stand a405f53 (älter)"}), ({"en":"0 FAIL","de":"0 FAIL"}, {"en": "author's run, fixed head b98bd69", "de": "Lauf des Autors, Stand b98bd69"})],
+         status={"en": "CALCULATED · QA RE-RUN PENDING", "de": "BERECHNET · QA-NACHLAUF OFFEN"},
+         eng={"en": "Overhang, module position, cell cavity read from the board file; drift test (negative run). Clash 0.686 mm3 on a405f53. 35 PASS / 0 FAIL, 8 tests on b98bd69: author's run; QA re-run pending.",
+              "de": "Überstand, Modulposition und Akkufach aus der Platinendatei; Drift-Test per Negativlauf (Autor). Kollision 0,686 mm³ auf a405f53. 35 PASS / 0 FAIL, 8 Tests auf b98bd69: Lauf des Autors, QA-Nachlauf offen."},
+         alt={"en": "Two tiles: one failing check found by QA on the older version, zero failing checks in the author's run after the fix.",
+              "de": "Zwei Kacheln: eine fehlgeschlagene Prüfung von QA auf der älteren Version, null fehlgeschlagene im Lauf des Autors nach der Korrektur."}),
     dict(kind="rows", kicker={"en": "SAME DAY, SAME HABIT", "de": "GLEICHER TAG, GLEICHE GEWOHNHEIT"},
          head={"en": ["Five more checks", "the same day."], "de": ["Fünf weitere Prüfungen", "am selben Tag."]},
          rows=[("PCB", {"en": "A placeholder switch would have wired a signal straight to ground. The real drawing showed it.", "de": "Ein Platzhalter-Taster hätte ein Signal direkt mit Masse verbunden. Die echte Zeichnung zeigte es."}),
@@ -48,14 +48,14 @@ SLIDES = [
               "de": "Firmware-Code (WLAN, Bluetooth LE, HTTP) wurde ohne Compiler geschrieben; die CI hat ihn nach zwei Korrekturen übersetzt; nichts lief auf einer Platine. Cloud-Tests nutzen eine lokale Datenbank, nicht den Live-Dienst."},
          alt={"en": "Five short rows: a switch wired to ground, 16 vias moved out of pads, a start-up pin that cannot be a button, a name that was trimmed only for checking, and 41 of 41 deliberate bugs caught.",
               "de": "Fünf kurze Zeilen: ein Taster mit Masseschluss, 16 Vias aus Lötflächen verschoben, ein Startpin, der kein Taster sein kann, ein nur zur Prüfung getrimmter Name und 41 von 41 absichtlichen Fehlern entdeckt."}),
-    dict(kind="tiles3", kicker={"en": "THE HUMAN STEP", "de": "DER MENSCHLICHE SCHRITT"},
-         head={"en": ["Not merged yet.", "A human", "decides."], "de": ["Noch nicht gemergt.", "Ein Mensch", "entscheidet."]},
-         body={"en": "All five changes have an architect review and a QA verdict on record (one of them was the FAIL you just read about). None is merged: that is Arsany's call. Nothing is printed, ordered or run on a board yet. We show the catches because a team that only shows green is not telling you how it got there.",
-               "de": "Für alle fünf Änderungen liegen eine Architektur-Prüfung und ein QA-Urteil vor (eines davon war das eben beschriebene FAIL). Keine ist gemergt: Das entscheidet Arsany. Noch ist nichts gedruckt, bestellt oder auf einer Platine gelaufen. Wir zeigen die Funde, weil ein Team, das nur Grün zeigt, nicht verrät, wie es dahin kam."},
-         tiles=[({"en":"5 of 5","de":"5 von 5"}, {"en": "changes with architect and QA verdicts", "de": "Änderungen mit Architektur- und QA-Urteil"}), ({"en":"0","de":"0"}, {"en": "merged yet, as of " + AS_OF, "de": "bisher gemergt, Stand " + AS_OF_DE}), ({"en":"~100","de":"~100"}, {"en": "agent minutes today, lead's rough figure", "de": "Agentenminuten heute, grobe Zahl der Leitung"})],
-         status={"en": "COUNTED · AS OF " + AS_OF.upper(), "de": "GEZÄHLT · STAND " + AS_OF_DE.upper()},
-         eng={"en": "Five pull requests open, CI green on all five heads as of " + AS_OF + " Berlin. The ~100 minutes are the lead's rough figure for the day, not yet in the Agent Log.",
-              "de": "Fünf Pull Requests offen, CI auf allen fünf Ständen grün, Stand " + AS_OF_DE + " Berliner Zeit. Die ~100 Minuten sind die grobe Zahl der Leitung für den Tag, noch nicht im Agent Log."},
-         alt={"en": "Three tiles: five of five changes with architect and QA verdicts, zero merged yet, about 100 agent minutes today.",
-              "de": "Drei Kacheln: fünf von fünf Änderungen mit Architektur- und QA-Urteil, null gemergt, etwa 100 Agentenminuten heute."}),
+    dict(kind="tiles", kicker={"en": "THE HUMAN STEP", "de": "DER MENSCHLICHE SCHRITT"},
+         head={"en": ["Four merged,", "one draft open."], "de": ["Vier gemergt,", "einer offen."]},
+         body={"en": "Each of the five changes has an architect review and a QA verdict on record. Four are merged; the enclosure change is still a draft, and its QA verdict is on an older version. Nothing is printed, ordered or run on a board yet. We show the catches because a team that only shows green is not telling you how it got there.",
+               "de": "Für jede der fünf Änderungen liegen eine Architektur-Prüfung und ein QA-Urteil vor. Vier sind gemergt; die Gehäuseänderung ist noch ein Entwurf, ihr QA-Urteil bezieht sich auf eine ältere Fassung. Noch ist nichts gedruckt, bestellt oder auf einer Platine gelaufen. Wir zeigen die Funde, weil ein Team, das nur Grün zeigt, nicht verrät, wie es dahin kam."},
+         tiles=[({"en":"4 of 5","de":"4 von 5"}, {"en": "changes merged, as of " + "10 Nov, 10:45", "de": "Änderungen gemergt, Stand 10. Nov., 10:45"}), ({"en":"1","de":"1"}, {"en": "draft still open (the enclosure)", "de": "Entwurf noch offen (Gehäuse)"}), ({"en":"5 of 5","de":"5 von 5"}, {"en": "with architect and QA verdicts", "de": "mit Architektur- und QA-Urteil"})],
+         status={"en": "COUNTED · AS OF 10 NOV, 10:45", "de": "GEZÄHLT · STAND 10. NOV., 10:45"},
+         eng={"en": "As of 10 Nov 2026, 10:45 Berlin: #71, #72, #73 and #75 merged; #74 (enclosure) still a draft, CI green on its head b98bd69. Recount the state on the posting day before any number goes out.",
+              "de": "Stand 10. Nov. 2026, 10:45 Berliner Zeit: #71, #72, #73 und #75 gemergt; #74 (Gehäuse) noch Entwurf, CI auf seinem Stand b98bd69 grün. Den Zustand am Veröffentlichungstag neu zählen, bevor eine Zahl hinausgeht."},
+         alt={"en": "Three tiles: four of five changes merged, one draft still open, five of five with architect and QA verdicts.",
+              "de": "Drei Kacheln: vier von fünf Änderungen gemergt, ein Entwurf noch offen, fünf von fünf mit Architektur- und QA-Urteil."}),
 ]

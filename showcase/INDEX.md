@@ -26,13 +26,13 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 | 2026-11-08 | 4.B2 | Device claim + ingest API, 13 tests, 17 of 17 mutants caught (`items/2026-11-08_4.B2`) | 14.0 | #45 (open, **pending merge**) |
 | 2026-11-08 | 4.AI2 | First edge-AI training run, FR-E02 not met (`items/2026-11-08_4.AI2`) | 15.5 | #46 (open, **pending merge**) |
 | 2026-11-08 | PR-2026-11-08 | Logbook day 5 draft pack: three review catches, two honest negatives (`content/2026-11-13`) | see Agent Log | link added by Lead |
-| 2026-11-10 | 4.P2 slice 2 | PCB with real footprints: 16 vias moved out of pads (now 0), antenna keep-out check now in CI, a real short in a placeholder switch found; still not routed, not fab-ready (`items/2026-11-10_4.P2-s2`) | see Agent Log | #73 (open) |
+| 2026-11-10 | 4.P2 slice 2 | PCB with real footprints: 16 vias moved out of pads (now 0), antenna keep-out check now in CI, a real short in a placeholder switch found; still not routed, not fab-ready (`items/2026-11-10_4.P2-s2`) | see Agent Log | #73 (merged) |
 | 2026-11-10 | 4.E3 slice 2 | Enclosure v3 plan view and exploded render, inner space 93.3 x 52.7 x 7.6 mm; QA found a fit check that could not fail (hard-coded overhang 6.0 vs 4.5 mm), fixed with a drift test (`items/2026-11-10_4.E3-s2`) | see Agent Log | #74 (open, draft, stacked) |
-| 2026-11-10 | 4.F2 slice 2 | Setup glue core tested on a PC (348 checks); the Wi-Fi/Bluetooth part compiled in CI after two fixes, nothing ran on a board; start-up pin cannot carry a "hold at power-up" button (`items/2026-11-10_4.F2-s2`) | see Agent Log | #72 (open, stacked on #66) |
-| 2026-11-10 | 4.B2b | DELETE /account (GDPR erasure): tests and 41 of 41 mutants killed, local database only (`items/2026-11-10_4.B2b`) | see Agent Log | #75 (open) |
-| 2026-11-10 | 4.A3 on main | Device setup flow in the app re-based on main: typecheck clean, 135 tests; QA mutation testing found a trim bug, fixed (`items/2026-11-10_4.A3-main`) | see Agent Log | #71 (open) |
+| 2026-11-10 | 4.F2 slice 2 | Setup glue core tested on a PC (348 checks); the Wi-Fi/Bluetooth part compiled in CI after two fixes, nothing ran on a board; start-up pin cannot carry a "hold at power-up" button (`items/2026-11-10_4.F2-s2`) | see Agent Log | #72 (merged, stacked on #66) |
+| 2026-11-10 | 4.B2b | DELETE /account (GDPR erasure): tests and 41 of 41 mutants killed, local database only (`items/2026-11-10_4.B2b`) | see Agent Log | #75 (merged) |
+| 2026-11-10 | 4.A3 on main | Device setup flow in the app re-based on main: typecheck clean, 135 tests; QA mutation testing found a trim bug, fixed (`items/2026-11-10_4.A3-main`) | see Agent Log | #71 (merged) |
 | 2026-11-10 | PR-2026-11-10 | Draft pack "A test that could not fail" built from the five items above (`content/2026-11-10/catches`) | see Agent Log | link added by Lead |
 
 The 2026-11-08 item folders live on the PR branches until the PRs are merged (status as of 8 Nov 2026; recheck after merges).
 
-The 2026-11-10 item folders live on the PR branches (`origin/agent/pcb/4.P2-s2`, `agent/mechanical/4.E3-s2`, `agent/firmware/4.F2-s2`, `agent/cloud-ai/4.B2b`, `agent/fullstack/4.A3-main`) until the PRs are merged; they are listed here by PR, not copied (status as of 10 Nov 2026, 08:40 Berlin: all five open, CI green; recheck after merges).
+The 2026-11-10 item folders live on the PR branches (`origin/agent/pcb/4.P2-s2`, `agent/mechanical/4.E3-s2`, `agent/firmware/4.F2-s2`, `agent/cloud-ai/4.B2b`, `agent/fullstack/4.A3-main`) until the PRs are merged; they are listed here by PR, not copied (status as of 10 Nov 2026, 10:45 Berlin: #71, #72, #73, #75 merged; #74 draft, open; recheck after merges).

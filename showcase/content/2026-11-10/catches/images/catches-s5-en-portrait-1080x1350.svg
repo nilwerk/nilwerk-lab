@@ -1,33 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-label="Three tiles: five of five changes with architect and QA verdicts, zero merged yet, about 100 agent minutes today."><defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#e2ded5" stroke-width="1.5" opacity=".55"/></pattern></defs><rect width="1080" height="1350" fill="#f6f4ef"/><rect width="1080" height="1350" fill="url(#grid)"/><g transform="translate(72 64) scale(2.25)">
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-label="Three tiles: four of five changes merged, one draft still open, five of five with architect and QA verdicts."><defs><pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#e2ded5" stroke-width="1.5" opacity=".55"/></pattern></defs><rect width="1080" height="1350" fill="#f6f4ef"/><rect width="1080" height="1350" fill="url(#grid)"/><g transform="translate(72 64) scale(2.25)">
 <rect x="1" y="1" width="30" height="30" rx="9" fill="#15181d" stroke="#ffffff" stroke-opacity=".12"/>
 <path d="M10 22V9.5l12 12.5V9.5" fill="none" stroke="#3fc79a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
 <circle cx="10" cy="22" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/><circle cx="22" cy="9.5" r="2.6" fill="#15181d" stroke="#3fc79a" stroke-width="1.8"/>
 <path d="M6.5 26.6c2.4-1.5 4.8-1.5 7.2 0s4.8 1.5 7.2 0 4.8-1.5 6.9-.1" fill="none" stroke="#8fd9ff" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/></g>
 <text x="156" y="119" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="44" letter-spacing="-1.3" fill="#15181d">nil<tspan fill="#0f7a5c">werk</tspan></text>
 <rect x="72" y="176" width="239" height="52" rx="26" fill="#e3f2ec" stroke="#0f7a5c" stroke-width="2"/><text x="92" y="209" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="22" letter-spacing="1.0" fill="#0f7a5c">THE HUMAN STEP</text>
-<text x="72" y="338" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#15181d">Not merged yet.</text>
-<text x="72" y="414" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#15181d">A human</text>
-<text x="72" y="490" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#0f7a5c">decides.</text>
-<text x="72" y="612" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">All five changes have an architect review and a QA verdict on</text>
-<text x="72" y="651" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">record (one of them was the FAIL you just read about). None</text>
-<text x="72" y="690" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">is merged: that is Arsany&#x27;s call. Nothing is printed, ordered</text>
-<text x="72" y="729" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">or run on a board yet. We show the catches because a team</text>
-<text x="72" y="768" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">that only shows green is not telling you how it got there.</text>
-<rect x="72" y="833" width="301" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
-<rect x="72" y="833" width="301" height="10" rx="5" fill="#0f7a5c"/>
-<text x="222" y="925" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="62" letter-spacing="-2" text-anchor="middle" fill="#15181d">5 of 5</text>
-<text x="222" y="965" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">changes with architect</text><text x="222" y="991" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">and QA verdicts</text>
-<rect x="389" y="833" width="301" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
-<rect x="389" y="833" width="301" height="10" rx="5" fill="#0f7a5c"/>
-<text x="539" y="925" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="62" letter-spacing="-2" text-anchor="middle" fill="#15181d">0</text>
-<text x="539" y="965" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">merged yet, as of 10</text><text x="539" y="991" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">Nov, 08:40</text>
-<rect x="706" y="833" width="301" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
-<rect x="706" y="833" width="301" height="10" rx="5" fill="#0f7a5c"/>
-<text x="856" y="925" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="62" letter-spacing="-2" text-anchor="middle" fill="#15181d">~100</text>
-<text x="856" y="965" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">agent minutes today,</text><text x="856" y="991" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">lead&#x27;s rough figure</text>
-<rect x="72" y="1061" width="417" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1089" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">COUNTED · AS OF 10 NOV, 08:40</text>
+<text x="72" y="338" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#15181d">Four merged,</text>
+<text x="72" y="414" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#0f7a5c">one draft open.</text>
+<text x="72" y="536" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">Each of the five changes has an architect review and a QA</text>
+<text x="72" y="575" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">verdict on record. Four are merged; the enclosure change is</text>
+<text x="72" y="614" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">still a draft, and its QA verdict is on an older version.</text>
+<text x="72" y="653" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">Nothing is printed, ordered or run on a board yet. We show</text>
+<text x="72" y="692" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">the catches because a team that only shows green is not</text>
+<text x="72" y="731" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">telling you how it got there.</text>
+<rect x="72" y="796" width="301" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="796" width="301" height="10" rx="5" fill="#0f7a5c"/>
+<text x="222" y="888" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="62" letter-spacing="-2" text-anchor="middle" fill="#15181d">4 of 5</text>
+<text x="222" y="928" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">changes merged, as of 10</text><text x="222" y="954" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">Nov, 10:45</text>
+<rect x="389" y="796" width="301" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="389" y="796" width="301" height="10" rx="5" fill="#0f7a5c"/>
+<text x="539" y="888" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="62" letter-spacing="-2" text-anchor="middle" fill="#15181d">1</text>
+<text x="539" y="928" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">draft still open (the</text><text x="539" y="954" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">enclosure)</text>
+<rect x="706" y="796" width="301" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="706" y="796" width="301" height="10" rx="5" fill="#0f7a5c"/>
+<text x="856" y="888" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="62" letter-spacing="-2" text-anchor="middle" fill="#15181d">5 of 5</text>
+<text x="856" y="928" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">with architect and QA</text><text x="856" y="954" font-family="Inter, sans-serif" font-weight="400" font-size="20" text-anchor="middle" fill="#5b616b">verdicts</text>
+<rect x="72" y="1024" width="417" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1052" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">COUNTED · AS OF 10 NOV, 10:45</text>
 <text x="72" y="1182" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FOR ENGINEERS</text>
-<text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Five pull requests open, CI green on all five heads as of 10 Nov, 08:40</text>
-<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Berlin. The ~100 minutes are the lead&#x27;s rough figure for the day, not yet in</text>
-<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">the Agent Log.</text>
+<text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">As of 10 Nov 2026, 10:45 Berlin: #71, #72, #73 and #75 merged; #74 (enclosure)</text>
+<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">still a draft, CI green on its head b98bd69. Recount the state on the posting</text>
+<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">day before any number goes out.</text>
 <line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">AI agents, led and reviewed by humans</text></svg>
