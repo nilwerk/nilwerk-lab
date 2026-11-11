@@ -9,7 +9,7 @@ Owner: Emil (PCB designer). Branch `agent/pcb/4.P4-prep`, stacked on PR #64 (`ag
 
 | Item | File | Basis |
 |---|---|---|
-| Gerber + drill set (22 files, 2 layers, Edge.Cuts, one 0.30 mm PTH tool, 16 holes = 16 vias) | `gerbers/plant-monitor-gerber.zip` | copied from the CI `pcb-fab` artifact of run 42628752571 (job `pcb`, KiCad 9.0.9, head `da39d2c`); not re-exported locally, KiCad is not in the agent session |
+| Gerber + drill set (22 files, 2 layers, Edge.Cuts, one 0.30 mm PTH tool, 16 holes = 16 vias) | `gerbers/plant-monitor-gerber.zip` | copied from the CI `pcb-fab` artifact of run 42772372983 (job `pcb`, head `8ad6122`; the zip is byte-identical to that artifact's 22 Gerber/drill files, checked 2026-11-11); not re-exported locally, KiCad is not in the agent session |
 | Assembly BOM in JLCPCB format (27 lines, 45 parts, LCSC Part # on every line) | `bom-jlc.csv` | generated from `pcb/bom.csv` |
 | Pick-and-place, 45 parts, all top | `cpl-jlc.csv` | generated from the CI `cpl.csv`; positions match the board file (Y sign as KiCad position file) |
 | BOM with LCSC stock, JLC stock, lifecycle, price breaks, cost at 3 / 5 / 1000 boards | `bom-lcsc.csv` | LCSC product API and JLC parts search, read 2026-11-09 by `hardware/bom/refresh_live.py` |
@@ -17,7 +17,7 @@ Owner: Emil (PCB designer). Branch `agent/pcb/4.P4-prep`, stacked on PR #64 (`ag
 | Cart list (what Arsany would click), marked NOT ORDERED | `cart-list.md` | generated |
 | Hashes of all of the above | `MANIFEST.sha256` | |
 
-Repo checks pass with `/usr/bin/python3 -I`: `check_layout.py` 18/18, `check_netlist.py` all PASS.
+Repo checks pass with `/usr/bin/python3 -I`: `check_layout.py` 21 PASS, 0 FAIL, `check_netlist.py` all PASS.
 
 ## What is blocked
 
@@ -26,7 +26,7 @@ Checklist results: **5 FAIL, 12 OPEN or UNVERIFIED** (`dry-run-checklist.md`, la
 | Blocker | Why it blocks | Checklist |
 |---|---|---|
 | Routing (0 tracks, GND zone not filled) | no release, no order | R1, F7, F22 |
-| Panel with rails, SMT tooling and fiducials | the outline is 34.5 x 67 mm, below JLCPCB's 70 x 70 mm panel minimum; no tooling holes or fiducials placed | F5, F6 |
+| Panel Gerber/drill set (rails, SMT tooling holes, fiducials) | the 2-board panel is designed in `panel/panel.dxf` (panel.py checks pass), but no panel Gerber exists yet; the single-board Gerber has no tooling holes or fiducials; J1 edge overhang in the panel is not verified | F5, F6 |
 | 7 placeholder footprints (U1 module pattern, J1 USB-C, J2 JST, SW1-SW3, U5 AHT20, U6 BH1750, E1 stake) | PCBA needs the drawn footprint; pad geometry is not from the drawings | A9 |
 | Via in pad: 16 vias (12 under the module, 4 under the TP4056 pad) | JLCPCB needs filled and capped vias for vias in pads, or the vias move; the option price is not read | F12 |
 | 4 simulations not run (divider, soil front end, charger thresholds, USB inrush) | release gate (4.P1 list) | R2 |
@@ -45,8 +45,8 @@ Checklist results: **5 FAIL, 12 OPEN or UNVERIFIED** (`dry-run-checklist.md`, la
 ## How it was generated
 
 ```
-# 1. CI pcb-fab artifact of the board head (already done for da39d2c, run 42628752571)
-gh run download 42628752571 -R nilwerk/nilwerk-lab -n pcb-fab -D <dir>
+# 1. CI pcb-fab artifact of the board head (used for this package: head 8ad6122, run 42772372983)
+gh run download 42772372983 -R nilwerk/nilwerk-lab -n pcb-fab -D <dir>
 # 2. live LCSC / JLC data (writes hardware/bom/bom-draft.csv)
 /usr/bin/python3 -I hardware/bom/refresh_live.py
 # 3. package (nothing uploaded)
@@ -65,6 +65,6 @@ Step 3 reads the board file, `bom.csv`, the bom-draft snapshot and the CI export
 
 1. Route the board (next 4.P2 slice), revert the `unconnected_items` downgrade, fill the GND zone.
 2. Draw the 7 footprints from the manufacturer drawings; then set `pin_verified` back to true where it holds.
-3. Design the panel (rails, tooling holes, fiducials) and decide the via-in-pad option.
+3. Generate the panel Gerber/drill set (rails, tooling holes, fiducials) from `panel/panel.dxf` in CI, or with the JLC panelizer; verify the J1 edge overhang; decide the via-in-pad option.
 4. Run the remaining 4 simulations.
 5. Gate 4.P3 (Arsany), then the order is prepared again with new files and the cart list updated.

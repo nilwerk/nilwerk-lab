@@ -393,10 +393,10 @@ def main():
     pl = PNL.layout()
     pchk = PNL.checks(pl)
     pgeo = f"2 boards {bw:.2f} x {bh:.2f} mm in a {pl['W']:.1f} x {pl['H']:.1f} mm panel (rails {PNL.RAIL:.0f} mm, board gap {PNL.BOARD_GAP:.0f} mm)"
-    row("F5", "Panel / rails for this outline", "min panel 70 x 70 mm for V-cut; mouse-bite panel: rails >= 3 mm, 2 mm board spacing",
+    row("F5", "Panel / rails for this outline", "min panel 70 x 70 mm; SMT tooling edge (rail) 5 mm (general minimum 3 mm, SMT figure applies); board spacing 1.6 or 2 mm",
         pgeo + f"; geometry checks {sum(o for o, _ in pchk)}/{len(pchk)} PASS; panel Gerber not generated",
         "OPEN" if all(o for o, _ in pchk) else "FAIL",
-        "Panel designed in jlcpcb/panel/ (panel.py, panel.dxf), outline unchanged. Not yet in a Gerber/drill set: needs a KiCad panel (CI) or the JLC panelizer. Rail and gap values are JLC limits as read 2026-11-09; the mouse-bite hole spec is NOT read (UNVERIFIED).")
+        "Panel designed in jlcpcb/panel/ (panel.py, panel.dxf), outline unchanged. Not yet in a Gerber/drill set: needs a KiCad panel (CI) or the JLC panelizer. Rails 6 mm meet the SMT 5 mm tooling edge (panel.py RAIL_MIN = 5, the SMT figure; the earlier '3 mm' in this row was the general minimum, not the SMT one). Board gap 2 mm is within JLC's 1.6-2 mm. The panel has no mouse-bite holes yet; their spec (0.5-0.8 mm holes) is read but not applied. Read 2026-11-11 from the JLC page. Not verified: the J1 (USB-C) edge overhang in the panelised PCBA. Not verified: any JLC panelizer result.")
     row("F6", "SMT tooling and fiducials", "SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials 3.85 mm from panel edge",
         f"designed: {len(pl['fids'])} fiducials (1 mm copper, edge 3.85 mm), {len(pl['tools'])} tooling holes (2 mm NPTH), rails {PNL.RAIL:.0f} mm; in the Gerber/drill set: fiducials 0, tooling holes 0",
         "FAIL",
@@ -493,7 +493,7 @@ def main():
     cart.append("## Step 1: PCB (bare board)")
     cart.append("| Option | Value to select | Status |")
     cart.append("|---|---|---|")
-    cart.append(f"| Quantity | {N_CART} boards (proposal: 3 builds + 2 spare) | proposal, Arsany decides |")
+    cart.append("| Quantity | Panels, 2 boards per panel: 2 panels = 4 boards, 3 panels = 6 boards. The number of panels is Arsany's choice; none is chosen here | Arsany decides |")
     cart.append("| Layers | 2 | from board file |")
     cart.append("| Dimensions | the panel file, NOT the single outline (F5) | BLOCKED |")
     cart.append("| Thickness | 1.6 mm | from board file |")
@@ -501,14 +501,14 @@ def main():
     cart.append("| Surface finish | HASL (lead-free) | CHOICE (F16) |")
     cart.append("| Solder mask / silkscreen colour | JLC default (green / white) | CHOICE, not read |")
     cart.append("| Via process | Standard, no filling: no vias in pads since slice 2 (F12); filled and capped only if Arsany chooses the alternative | CHOICE |")
-    cart.append(f"| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head {a.ci_head}) | BLOCKED until routed |")
+    cart.append(f"| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head {a.ci_head}, run {a.ci_run}; byte-identical to that artifact) | BLOCKED until routed |")
     cart.append("| Flying-probe test | JLC default | CHOICE |")
     cart.append("")
     cart.append("## Step 2: PCBA (assembly)")
     cart.append("| Option | Value to select | Status |")
     cart.append("|---|---|---|")
     cart.append(f"| Assembly side | Top | from CPL (A1) |")
-    cart.append(f"| Assembly quantity | {N_CART} | proposal, same as step 1 |")
+    cart.append("| Assembly quantity | Same panel count as step 1 (boards = 2 x panels). Arsany's choice | Arsany decides |")
     cart.append("| BOM file | `jlcpcb/bom-jlc.csv` | generated, LCSC numbers on every line |")
     cart.append("| CPL file | `jlcpcb/cpl-jlc.csv` | generated; rotation and origin UNVERIFIED (A10, F23) |")
     cart.append(f"| PCBA type | Economic or Standard | decision after the Extended-part fee is read ({len(set(ext_parts))} Extended unique parts, A8) |")
@@ -519,7 +519,7 @@ def main():
     cart.append("- LiPo cell EEMB LP603449-PCM, Amazon.de ASIN B08FD39Y5R: price, stock and delivery UNVERIFIED (A-034).")
     cart.append("- Check the JST plug polarity and pitch with a meter before the first connection (A12).\n")
     cart.append("## Price (for the decision, not a quote)")
-    cart.append(f"- Parts only (LCSC catalogue): {per_board[5]:.2f} USD per board at 5 boards, {N_CART}-board total {tot[5]:.2f} USD (no JLC fab, PCBA labour or fees: UNVERIFIED).")
+    cart.append(f"- Parts only (LCSC catalogue): {per_board[5]:.2f} USD per board (price read at 3 and 5 boards; the same per-board figure at both). Total for the chosen quantity = {per_board[5]:.2f} x boards (boards = 2 x panels). No JLC fab, PCBA labour or fees: UNVERIFIED.")
     cart.append("- JLC PCB fab and PCBA prices: UNVERIFIED, read on the JLC order page at checkout.\n")
     open(os.path.join(out, "cart-list.md"), "w", encoding="utf8").write("\n".join(cart) + "\n")
 
