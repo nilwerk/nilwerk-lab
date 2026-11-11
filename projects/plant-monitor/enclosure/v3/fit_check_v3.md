@@ -6,9 +6,9 @@
 | 4 | Tail thickness vs tunnel height (per side) | 0.30 mm | >= 0.15 (JLC 1.6 +-10 % = 0.16) | **PASS** | layout-brief s.5 thickness tolerance |
 | 5 | Cell cavity (X x Y) inside the inner box | 53.0 x 35.1 | = bay.dims A_eemb603449 (53.0 x 35.1) | **PASS** | pcb-enclosure-bay.md; bay.py |
 | 6 | Cell 51 x 34.5 x 6.3 spare in cavity | L 2.0 / W 0.6 / H 0.9 | L>=2.0 W>=0.6 H>=0.9 | **PASS** | bay.dims |
-| 7 | Cell cavity height vs inner height | 7.2 vs 7.6 | cavity <= inner | **PASS** | bay.dims bay_h 7.2 |
+| 7 | Cell cavity height vs inner height (cell only; no assumed part height in this row) | 7.2 vs 7.6 | cavity <= inner | **PASS** | bay.dims bay_h 7.2; INNER_H is a fixed design value |
 | 8 | Board to cell cavity gap (X) | 5.0 mm | = 5.0 (gen_pcb CELL_GAP) | **PASS** | DXF CELL_BAY_CAVITY |
-| 9 | Tallest part to lid underside | 0.50 mm (J2, 4.5 ASSUMED) | >= 0.5 (+0.7 mm gasket thickness not counted) | **PASS** | H_BY_REF [ASSUMED], board file has no heights |
+| 9 | Tallest part to lid underside (derived from assumed heights) | 0.50 mm (J2, 4.5 ASSUMED) | >= 0.5 (+0.7 mm gasket thickness not counted) | **PASS** | H_BY_REF [ASSUMED]; J2 height needs a datasheet value (Needs Arsany) |
 | 10 | Interference lid vs board+parts | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect of the CadQuery solids |
 | 11 | Interference tray vs board+parts | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect of the CadQuery solids |
 | 12 | Interference plug vs board+parts | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect of the CadQuery solids |

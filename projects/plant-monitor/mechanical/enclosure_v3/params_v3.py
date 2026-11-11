@@ -34,12 +34,16 @@ assert abs((CELL_X1 - CELL_X0) - CELL_CAV[0]) < 1e-6 and abs((CELL_Y1 - CELL_Y0)
 STANDOFF = 1.0                     # [ASSUMED] board underside above floor (bottom copper is GND only, nothing mounted there)
 BOARD_Z0, BOARD_Z1 = STANDOFF, STANDOFF + BOARD_T
 LID_CLEAR = 0.5                    # [ASSUMED] min air gap tallest part to lid underside
-# Component heights above the board top [ASSUMED: typical datasheet values from memory, NOT read in this repo; the board file has no heights]
+# Component heights above the board top [ASSUMED: typical values from memory, NOT read in this repo; the board file has no heights].
+# J2 4.5 is ASSUMED and is the tallest part: NO datasheet and no 3D model for S2B-PH-SM4-TB exist in the repo (the footprint
+# points at a KiCad .wrl that is not here). NEEDS ARSANY: a datasheet value for the J2 height (Needs Arsany candidate). Do not replace from memory.
 H_BY_REF = {"U1": 2.4, "J1": 3.3, "J2": 4.5, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "U3": 1.75, "U5": 1.0, "U6": 0.75,
             "D1": 1.1, "U2": 1.1, "U4": 1.1, "Q1": 1.1, "U7": 1.1, "D2": 0.8, "D3": 0.8, "E1": 0.04}
 H_DEFAULT = 0.55                   # [ASSUMED] 0603 R/C
-TALLEST = max(H_BY_REF.values())
-INNER_H = round((BOARD_Z1 + TALLEST + LID_CLEAR) / LAYER + 1e-9) * LAYER   # 1.0+1.6+4.5+0.5 = 7.6
+# Inner height is a FIXED design value, not derived from H_BY_REF. The fit check row "Tallest part to lid underside" tests the
+# assumed heights against it, so changing an assumed height (e.g. J2) fails the check instead of silently moving the box.
+# Budget at 7.6: standoff 1.0 + board 1.6 + J2 4.5 + air 0.5 = 7.6.
+INNER_H = 7.6
 # ---- shell ----
 WALL = 2.4                         # rim land for the flat gasket; >= 1.2 rule
 FLOOR = 1.6
@@ -54,7 +58,7 @@ OUT_Y0, OUT_Y1 = INNER_Y0 - WALL, INNER_Y1 + WALL
 FILLET = 3.0
 # ---- fasteners [rule: M2 + brass heat-set inserts] ----
 SCREW_D, INSERT_HOLE, BOSS_D = 2.4, 3.2, 6.4                  # PETG: M2 clearance 2.4 (was 2.2); insert hole 3.2 [ASSUMED] for M2 x 3 mm insert; boss 6.4 = 1.6 mm wall round the hole (was 5.6 = 1.2)
-BOSS_XY = [(-55.0, 3.2), (-27.0, 3.2), (-2.5, 3.2)]  # top row; all >= 15 mm from the antenna rect (checked)
+BOSS_XY = [(-55.0, 3.2), (-27.0, 3.2), (-2.5, 3.2)]  # top row; nearest insert hole to the antenna rect = 21.2 mm (fit check), RF rule is 15 mm (layout-brief Q9)
 # bottom row: 1.2 mm skin to the outside (BOSS_STRIP 5.4 gives room) and the boss top at -42.2 clears the cell cavity (-42.0)
 BOSS_XY += [(-55.0, INNER_Y0 + 2.0), (-27.0, INNER_Y0 + 2.0), (-2.5, INNER_Y0 + 2.0)]
 INSERT_DEPTH = 4.0

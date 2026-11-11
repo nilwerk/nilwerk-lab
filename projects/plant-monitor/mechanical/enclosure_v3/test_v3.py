@@ -82,3 +82,24 @@ def test_bosses_clear_cell_and_board_by_boolean():
     assert F.vol_overlap(bad, E.cell_ghost()) > 1.0
     good = cq.Workplane("XY").center(-27.0, P.INNER_Y0 + 2.0).circle(P.BOSS_D / 2).extrude(P.INNER_H)
     assert F.vol_overlap(good, E.cell_ghost()) < 1e-3
+
+
+def test_height_rows_are_not_vacuous(monkeypatch):
+    """QA (Ines): the height rows must move when an ASSUMED part height moves. INNER_H is fixed, so J2 is tested against it."""
+    comps = B.components()
+    gap, worst = F.lid_clearance(comps)
+    assert gap == pytest.approx(0.5, abs=1e-6) and worst["ref"] == "J2" and worst["h"] == 4.5   # positive control: today's J2 = 4.5
+    monkeypatch.setitem(P.H_BY_REF, "J2", 5.0)                  # mutation: J2 +0.5 mm
+    gap5, worst5 = F.lid_clearance(B.components())
+    assert gap5 == pytest.approx(0.0, abs=1e-6) and worst5["ref"] == "J2"
+    assert gap5 < P.LID_CLEAR - 1e-9                            # the row would FAIL
+    monkeypatch.setitem(P.H_BY_REF, "J2", 4.0)                  # mutation: J2 -0.5 mm -> row passes with more air (no false fail)
+    assert F.lid_clearance(B.components())[0] == pytest.approx(1.0, abs=1e-6)
+
+
+def test_j2_height_mutation_fails_fit_check(monkeypatch):
+    """End to end: J2 at 5.0 mm must turn the 'Tallest part to lid' row into a FAIL in the full fit check."""
+    monkeypatch.setitem(P.H_BY_REF, "J2", 5.0)
+    rows = F.main()
+    failed = [r[0] for r in rows if r[3] == "FAIL"]
+    assert any(n.startswith("Tallest part to lid") for n in failed), failed

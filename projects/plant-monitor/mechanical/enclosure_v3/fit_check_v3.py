@@ -34,7 +34,15 @@ def downward_bridges(mesh, bed_z):
     return float(max(ext[0], ext[1])), len(res)
 
 
+def lid_clearance(comps):
+    """Gap from the tallest assumed part to the lid underside: fixed inner height minus board top minus part height.
+    Read from params_v3.H_BY_REF at call time, so changing an assumed height (e.g. J2) changes this row."""
+    worst = min(comps.values(), key=lambda c: P.INNER_H - (P.BOARD_Z1 + c["h"]))
+    return P.INNER_H - (P.BOARD_Z1 + worst["h"]), worst
+
+
 def main():
+    ROWS.clear()
     comps = B.components()
     tray, lid, plug = E.tray(), E.lid(), E.plug()
     board, cell = E.board_ghost(), E.cell_ghost()
@@ -48,12 +56,12 @@ def main():
     cx, cy, cz = P.CELL_CAV
     row("Cell cavity (X x Y) inside the inner box", f"{cx:.1f} x {cy:.1f}", "= bay.dims A_eemb603449 (53.0 x 35.1)", abs(cx - 53.0) < 1e-6 and abs(cy - 35.1) < 1e-6 and P.CELL_X0 >= P.INNER_X0 - 1e-9, "pcb-enclosure-bay.md; bay.py")
     row("Cell 51 x 34.5 x 6.3 spare in cavity", f"L {cx - 51:.1f} / W {cy - 34.5:.1f} / H {cz - 6.3:.1f}", "L>=2.0 W>=0.6 H>=0.9", cx - 51 >= 2 - 1e-9 and cy - 34.5 >= 0.6 - 1e-9 and cz - 6.3 >= 0.9 - 1e-9, "bay.dims")
-    row("Cell cavity height vs inner height", f"{cz:.1f} vs {P.INNER_H:.1f}", "cavity <= inner", cz <= P.INNER_H, "bay.dims bay_h 7.2")
+    row("Cell cavity height vs inner height (cell only; no assumed part height in this row)", f"{cz:.1f} vs {P.INNER_H:.1f}", "cavity <= inner", cz <= P.INNER_H, "bay.dims bay_h 7.2; INNER_H is a fixed design value")
     row("Board to cell cavity gap (X)", f"{0 - P.CELL_X1:.1f} mm", "= 5.0 (gen_pcb CELL_GAP)", abs(-P.CELL_X1 - 5.0) < 1e-9, "DXF CELL_BAY_CAVITY")
-    # 3 heights
-    worst = min(comps.values(), key=lambda c: P.INNER_H - (P.BOARD_Z1 + c["h"]))
-    gap = P.INNER_H - (P.BOARD_Z1 + worst["h"])
-    row("Tallest part to lid underside", f"{gap:.2f} mm ({worst['ref']}, {worst['h']} ASSUMED)", f">= {P.LID_CLEAR} (+0.7 mm gasket thickness not counted)", gap >= P.LID_CLEAR - 1e-9, "H_BY_REF [ASSUMED], board file has no heights")
+    # 3 heights: derived from H_BY_REF (ASSUMED). test_v3 sets J2 to 5.0 and expects this row to FAIL.
+    gap, worst = lid_clearance(comps)
+    row("Tallest part to lid underside (derived from assumed heights)", f"{gap:.2f} mm ({worst['ref']}, {worst['h']} ASSUMED)", f">= {P.LID_CLEAR} (+0.7 mm gasket thickness not counted)", gap >= P.LID_CLEAR - 1e-9,
+        "H_BY_REF [ASSUMED]; J2 height needs a datasheet value (Needs Arsany)")
     # 4 3D collisions
     ov = {n: vol_overlap(a, b) for n, a, b in [("lid vs board+parts", lid, board), ("tray vs board+parts", tray, board), ("plug vs board+parts", plug, board),
                                               ("tray vs cell", tray, cell), ("lid vs cell", lid, cell), ("plug vs tray", plug, tray)]}
@@ -104,7 +112,7 @@ def main():
         span, nf = downward_bridges(m, m.bounds[0][2])
         row(f"Max bridge/overhang span, print orientation: {n}", f"{span:.1f} mm ({nf} faces)", "<= 10 mm (P1S bridges; no steep overhangs)", span <= 10.0, "trimesh, faces with normal z < -0.7 above the bed",
             "USB window top 9.6; lid counterbore 6.4" if n != "plug" else "")
-    return ROWS
+    return list(ROWS)
 
 
 def to_md(rows):

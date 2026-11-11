@@ -61,7 +61,7 @@ def lid():
     z0 = P.INNER_H
     L = _box(P.OUT_X0, P.OUT_Y0, z0, P.OUT_X1, P.OUT_Y1, z0 + P.LID_T).edges("|Z").fillet(P.FILLET)
     top = z0 + P.LID_T
-    # screw clearance holes (M2, counterbored head not needed: pan head sits on the 2.0 mm lid)
+    # screw clearance holes (M2, counterbored head not needed: pan head sits on the 2.4 mm lid)
     for (x, y) in P.BOSS_XY:
         L = L.cut(_cyl(x, y, z0 - 1, top + 1, P.SCREW_D))
     # light window: collar tube under the lid + through hole + counterbore for the film
