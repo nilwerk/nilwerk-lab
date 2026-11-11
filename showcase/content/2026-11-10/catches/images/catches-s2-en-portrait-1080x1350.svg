@@ -11,8 +11,8 @@
 <text x="72" y="630" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">The check had one board measurement typed in by hand: how far</text>
 <text x="72" y="669" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">the antenna sticks out past the board. It said 6.0 mm. The</text>
 <text x="72" y="708" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">real board file says 4.5 mm. So four of the 35 checks printed</text>
-<text x="72" y="747" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">the same answer on the old and the new board. A test that</text>
-<text x="72" y="786" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">cannot change its answer proves nothing.</text>
+<text x="72" y="747" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">the same answer on the old and the new board (head a405f53).</text>
+<text x="72" y="786" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">A test that cannot change its answer proves nothing.</text>
 <rect x="72" y="851" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
 <rect x="72" y="851" width="460" height="10" rx="5" fill="#0f7a5c"/>
 <text x="302" y="943" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">6.0 mm</text>
@@ -23,7 +23,7 @@
 <text x="778" y="983" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">in the real board file</text>
 <rect x="72" y="1079" width="300" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1107" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">MEASURED · QA RE-RUN</text>
 <text x="72" y="1182" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FOR ENGINEERS</text>
-<text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Fit-check rows 2, 16-18 (26.2 / 28.4 / 21.2 mm) were identical on both boards.</text>
-<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">First version (a405f53): 2.5 mm of air above the real 4.5 mm antenna. Fixed</text>
-<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">head b98bd69: 1.0 mm, by design.</text>
+<text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Head a405f53: fit-check rows 2, 16, 17, 18 printed the same on both boards</text>
+<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">(1.00 / 26.2 / 28.4 / 21.2 mm): 2.5 mm of air above the real 4.5 mm antenna.</text>
+<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Head b98bd69: 1.0 mm by design; row 17 now 27.7 mm.</text>
 <line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">AI agents, led and reviewed by humans</text></svg>
