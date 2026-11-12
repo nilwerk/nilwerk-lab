@@ -18,7 +18,7 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 | Item | Value | Status | Note |
 |---|---|---|---|
 | Board mounting holes | **none on the board** | READ | the enclosure uses bosses and clamp pads; retention is an open point for Emil (item 6) |
-| Screw bosses (enclosure) | 6 at (x, y) = (-55.0, 3.2), (-27.0, 3.2), (-2.5, 3.2), (-55.0, -45.4), (-27.0, -45.4), (-2.5, -45.4) | ASSUMED | M2 heat-set inserts, hole 3.2 x 4.0 deep, boss d 6.4 |
+| Screw bosses (enclosure) | 6 at (x, y) = (-55.0, 2.5), (-27.0, 2.5), (-2.5, 2.5), (-55.0, -45.4), (-27.0, -45.4), (-2.5, -45.4) | ASSUMED | M2 heat-set inserts, hole 3.2 x 4.0 deep, boss d 6.4 |
 | Standoff pads under the board | 4 corners, height 1.0 | ASSUMED | bottom copper is GND only |
 | Clamp pads on the board top | free 2 x 2 mm squares (computed in `enclosure_v3.free_clamp_pads`) | OPEN | Emil asked for 2 more keep-clear pads or 2 M2 holes (item 6) |
 
@@ -59,10 +59,10 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 ## 8. Housing envelope (for Emil's keep-out)
 | Item | Value | Status | Note |
 |---|---|---|---|
-| Inner cavity, **option A: model value (J2 4.5 ASSUMED)** | 93.3 x 52.9 x 7.6 | **OPEN, not locked** | holds only if the J2 datasheet is <= 4.5 (budget 1.0 + 1.6 + J2 + 0.5) |
-| Outer, lid on, option A | 98.1 x 57.7 x 11.6 | OPEN | floor 1.6 + inner + lid 2.4; +1.0 gasket (not modelled) |
-| Inner cavity, **option B: J2 5.5 (distributor value, sourced)** | 93.3 x 52.9 x 8.6 | OPEN | the sourced J2 value needs this height (+1.0 mm) |
-| Outer, lid on, option B | 98.1 x 57.7 x 12.6 | OPEN | +1.0 gasket (not modelled) |
+| Inner cavity, **option A: J2 4.5 ASSUMED (not the model since slice 4)** | 93.3 x 53.7 x 7.6 | **OPEN, not locked** | holds only if the J2 datasheet is <= 4.5 (budget 1.0 + 1.6 + J2 + 0.5) |
+| Outer, lid on, option A | 97.3 x 56.9 x 11.2 | OPEN | floor 1.2 + inner + lid 2.4; +1.0 gasket (not modelled) |
+| Inner cavity, **option B: J2 5.5 (distributor value), the slice 4 model budget** | 93.3 x 53.7 x 8.6 | OPEN | budgeted until J2 is sourced (A-076); the sourced value needs this height (+1.0 mm) |
+| Outer, lid on, option B | 97.3 x 56.9 x 12.2 | OPEN | +1.0 gasket (not modelled) |
 
 ## 9. Open points (NEEDS ARSANY / Emil)
 1. **Tail length (A-071)**: choose 14 or 20 mm. Board tail becomes 25.8 or 31.8 mm; the DXF is 25.0 today.

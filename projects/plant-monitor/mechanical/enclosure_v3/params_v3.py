@@ -2,7 +2,7 @@
 X right, Y up (DXF Y = -KiCad Y), board top-left corner = (0,0), board body y -42..0, tail y -67..-42,
 antenna module overhangs the top edge (y 0..+6). Z = thickness: tray floor top = 0, front (lid) side = +Z.
 Tags: [src] taken from a repo source, [ASSUMED] my assumption (not datasheet, not repo), [rule] team rule."""
-import os, sys
+import math, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 MECH = os.path.dirname(HERE)
 sys.path.insert(0, MECH)
@@ -60,25 +60,31 @@ for _r in ("D1", "U2", "U4", "U7", "Q1", "D2", "D3", "E1"):
 # Inner height is a FIXED design value, not derived from H_BY_REF. The fit check row "Tallest part to lid underside" tests the
 # assumed heights against it, so changing an assumed height (e.g. J2) fails the check instead of silently moving the box.
 # Budget at 7.6: standoff 1.0 + board 1.6 + J2 4.5 + air 0.5 = 7.6.
-INNER_H = 7.6                      # model value, NOT LOCKED: it holds only if J2 is <= 4.5 (J2 4.5 is ASSUMED, see H_SRC)
-INNER_H_IF_J2_5_5 = round(STANDOFF + BOARD_T + 5.5 + LID_CLEAR, 1)   # 8.6: inner height the sourced distributor value (5.5) needs (OPEN, A-076)
+INNER_H_OPT_A = round(STANDOFF + BOARD_T + 4.5 + LID_CLEAR, 1)      # 7.6: option A, J2 4.5 (ASSUMED, not sourced)
+INNER_H_IF_J2_5_5 = round(STANDOFF + BOARD_T + 5.5 + LID_CLEAR, 1)   # 8.6: option B, J2 5.5 (distributor value)
+# Slice 4 (A-076, Arsany): the larger height is budgeted until J2 is sourced, so the model uses option B. Option A stays in INNER_H_OPT_A.
+INNER_H = INNER_H_IF_J2_5_5
 # ---- shell ----
+WALL_LOW = 1.6                     # slice 4: left, top and bottom rim land (gasket land), was 2.4; >= 1.2 rule
 WALL = 2.4                         # rim land for the flat gasket; >= 1.2 rule
-FLOOR = 1.6
+FLOOR = 1.2                         # slice 4: 1.6 -> 1.2 (the 1.2 mm rule floor)
 LID_T = 2.4                        # PETG lid spans ~98 mm between bosses; 2.4 (was 2.0) for stiffness [ASSUMED sizing, FE not run]; counterbore 0.6 leaves 1.8
 GASKET_T = 1.0                     # [ASSUMED] flat silicone sheet gasket, 1.0 mm, about 0.7 mm compressed (not modelled, listed in the BOM)
 INNER_X0, INNER_X1 = CELL_X0, max(BOARD_W, _F["max_x"]) + 0.3                    # 0.3 beyond the right-most part (J1 shell protrudes 0.5 beyond the board edge in #73)
 INNER_Y1 = OVERHANG + 1.0                                      # [ASSUMED] 1.0 mm air above the antenna tip (Q10: plastic wall detunes, to be verified)
-BOSS_STRIP = 5.4                                               # strip below the board body for screw bosses
+BOSS_STRIP = 6.2                                               # strip below the board body for screw bosses
 INNER_Y0 = -BODY_L - BOSS_STRIP
-OUT_X0, OUT_X1 = INNER_X0 - WALL, INNER_X1 + WALL
-OUT_Y0, OUT_Y1 = INNER_Y0 - WALL, INNER_Y1 + WALL
-FILLET = 3.0
+OUT_X0, OUT_X1 = INNER_X0 - WALL_LOW, INNER_X1 + WALL          # right wall stays 2.4 (USB overmold pocket 1.2 deep leaves 1.2)
+OUT_Y0, OUT_Y1 = INNER_Y0 - WALL_LOW, INNER_Y1 + WALL_LOW
+FILLET = 4.0                        # slice 4: outer plan corner radius (was 3.0 on a box)
+FILLET_INNER = 1.5                 # inner cavity corner radius: keeps 1.0 mm air at the antenna corner (33.5, 4.5)
+FILLET_BOT = 1.2                   # tray bottom edge (on the bed), soft edge; 1.2 keeps the boss skin exact at the floor
+FILLET_TOP = 2.2                   # lid top edge (lid is 2.4 thick, fillet must stay < LID_T)
 # ---- fasteners [rule: M2 + brass heat-set inserts] ----
 SCREW_D, INSERT_HOLE, BOSS_D = 2.4, 3.2, 6.4                  # PETG: M2 clearance 2.4 (was 2.2); insert hole 3.2 [ASSUMED] for M2 x 3 mm insert; boss 6.4 = 1.6 mm wall round the hole (was 5.6 = 1.2)
-BOSS_XY = [(-55.0, 3.2), (-27.0, 3.2), (-2.5, 3.2)]  # top row; nearest insert hole to the antenna rect = 21.2 mm (fit check), RF rule is 15 mm (layout-brief Q9)
+BOSS_XY = [(-55.0, 2.5), (-27.0, 2.5), (-2.5, 2.5)]   # slice 4: y 3.2 -> 2.5 (skin to the 1.6 top wall >= 1.2)  # top row; nearest insert hole to the antenna rect = 21.2 mm (fit check), RF rule is 15 mm (layout-brief Q9)
 # bottom row: 1.2 mm skin to the outside (BOSS_STRIP 5.4 gives room) and the boss top at -42.2 clears the cell cavity (-42.0)
-BOSS_XY += [(-55.0, INNER_Y0 + 2.0), (-27.0, INNER_Y0 + 2.0), (-2.5, INNER_Y0 + 2.0)]
+BOSS_XY += [(-55.0, -45.4), (-27.0, -45.4), (-2.5, -45.4)]   # absolute: boss top must stay below the cell cavity (-42.0)
 INSERT_DEPTH = 4.0
 # ---- USB-C [ASSUMED plug 8.94 x 3.26 (USB-C spec) + 0.3 per side FDM] ----
 J1_Y, J1_Z = _F["at"]["J1"][1], BOARD_Z1 + 3.3 / 2
@@ -99,7 +105,7 @@ PIN_D, PIN_TUBE_OD, PIN_GAP = 1.8, 4.2, 0.4       # pin d 1.8 for a 1.0-1.2 mm p
 # ---- stake / tail seal plug ----
 TUNNEL_W, TUNNEL_H = TAIL_W + 0.6, BOARD_T + 0.6  # 12.6 x 2.2 (was 1.9): PETG needs 0.3 mm per side, not 0.15; sealant fills the rest
 PLUG_W, NOTCH_W = TUNNEL_W + 0.8, TUNNEL_W + 1.2  # 13.4 plug in a 13.8 notch (0.2 per side)
-PLUG_T = WALL
+PLUG_T = WALL_LOW                  # slice 4: the tail plug sits in the bottom wall (1.6)
 DESIGN_TOUCH = False               # nilwerk trace relief: not applied in v3 slice 2 (flag kept off)
 
 # ---- PETG on the P1S, 0.4 mm nozzle (standards s.2-3). Limits used by fit_check_v3 ----
@@ -126,3 +132,39 @@ def tail_len_for(exposed):
 
 TAIL_L_VARIANT = {k: tail_len_for(v) for k, v in TAIL_VARIANTS.items()}   # {"14": 25.8, "20": 31.8}
 # The tunnel (TAIL_W x BOARD_T) and plug do not depend on the tail length: the printed housing is identical for both variants.
+
+
+# ---- slice 4 outline helpers: the outer shell is a rounded rectangle (plan radius FILLET), the cavity has small corner radii ----
+def rr_dist(x, y, x0, y0, x1, y1, r):
+    """Distance from (x, y) to the boundary of a rounded rectangle, inside positive (negative outside)."""
+    cx = min(max(x, x0 + r), x1 - r)
+    cy = min(max(y, y0 + r), y1 - r)
+    if (cx, cy) == (x, y):
+        return min(x - x0, x1 - x, y - y0, y1 - y)
+    return r - math.hypot(x - cx, y - cy)
+
+
+def outer_dist(x, y):
+    """Distance from a plan point to the outer skin of the shell (lid on, plan outline)."""
+    return rr_dist(x, y, OUT_X0, OUT_Y0, OUT_X1, OUT_Y1, FILLET)
+
+
+def inner_boundary_points(step=0.1):
+    """Sampled points on the inner cavity boundary (rounded rectangle, corner radius FILLET_INNER)."""
+    x0, y0, x1, y1, r = INNER_X0, INNER_Y0, INNER_X1, INNER_Y1, FILLET_INNER
+    pts = []
+    n = lambda a, b: max(1, int(round((b - a) / step)))
+    for i in range(n(x0 + r, x1 - r) + 1):
+        x = x0 + r + (x1 - x0 - 2 * r) * i / n(x0 + r, x1 - r); pts += [(x, y0), (x, y1)]
+    for j in range(n(y0 + r, y1 - r) + 1):
+        y = y0 + r + (y1 - y0 - 2 * r) * j / n(y0 + r, y1 - r); pts += [(x0, y), (x1, y)]
+    for cx, cy, a0 in [(x0 + r, y0 + r, 180), (x1 - r, y0 + r, 270), (x1 - r, y1 - r, 0), (x0 + r, y1 - r, 90)]:
+        for k in range(0, 21):
+            a = math.radians(a0 + 90 * k / 20)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+def min_wall_corners():
+    """Smallest wall between the cavity boundary and the outer skin (sampled; the corners set it)."""
+    return min(outer_dist(x, y) for x, y in inner_boundary_points())

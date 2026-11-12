@@ -30,17 +30,25 @@ def vol_overlap(a, b):
 
 
 def downward_bridges(mesh, bed_z):
-    """Spans (mm) of downward-facing faces that are not on the bed: bridge / overhang candidates. Faces steeper than 45 deg from vertical are overhangs."""
+    """Reach (mm) of downward-facing faces above the bed: bridge / overhang candidates. Faces steeper than 45 deg from vertical are overhangs.
+    Reach = the largest XY distance from an overhang face centre to the bed-contact outline (boundary edges of the faces lying on the bed).
+    No shapely needed in CI. A 1.2 mm bottom fillet gives a lip of about 0.5 mm; a real unsupported span gives its full length."""
     n = mesh.face_normals; c = mesh.triangles_center
-    res = []
-    for i in np.where(n[:, 2] < -0.7)[0]:
-        if c[i, 2] > bed_z + 0.05:
-            res.append(i)
+    res = [i for i in np.where(n[:, 2] < -0.7)[0] if c[i, 2] > bed_z + 0.05]
     if not res:
         return 0.0, 0
-    sub = mesh.submesh([res], append=True)
-    ext = sub.bounds[1] - sub.bounds[0]
-    return float(max(ext[0], ext[1])), len(res)
+    on_bed = np.abs(mesh.vertices[:, 2] - bed_z) < 0.01
+    bf = mesh.faces[on_bed[mesh.faces].all(axis=1)]
+    from collections import Counter
+    cnt = Counter(tuple(sorted((int(a), int(b)))) for f in bf for a, b in ((f[0], f[1]), (f[1], f[2]), (f[2], f[0])))
+    segs = np.array([mesh.vertices[list(e)][:, :2] for e, k in cnt.items() if k == 1])   # (M, 2, 2) boundary edges
+    if len(segs) == 0:
+        return float("inf"), len(res)
+    A, B = segs[:, 0][None], segs[:, 1][None]
+    P_ = c[res][:, None, :2]
+    AB = B - A; t = np.clip(((P_ - A) * AB).sum(-1) / np.maximum((AB * AB).sum(-1), 1e-12), 0, 1)
+    d = np.sqrt(((P_ - (A + t[..., None] * AB)) ** 2).sum(-1)).min(1)
+    return float(d.max()), len(res)
 
 
 def lid_clearance(comps):
@@ -98,9 +106,9 @@ def main(tail=None):
         n_dc == len(P.H_BY_REF), "params_v3 H_SRC; a distributor listing is not a datasheet citation (standards s.7)", "OPEN: sourcing is incomplete; see H_SRC for each part", open_=True)
     j2_alt = 5.5
     gap_alt = P.INNER_H - (P.BOARD_Z1 + j2_alt)
-    row("J2 at the distributor value 5.5 mm (not used in the model)", f"{gap_alt:.2f} mm to lid underside (needs INNER_H >= {P.BOARD_Z1 + j2_alt + P.LID_CLEAR:.1f})",
+    row("J2 at the distributor value 5.5 mm (the slice 4 budget)", f"{gap_alt:.2f} mm to lid underside (needs INNER_H >= {P.BOARD_Z1 + j2_alt + P.LID_CLEAR:.1f})",
         f">= {P.LID_CLEAR}", gap_alt >= P.LID_CLEAR - 1e-9, "JLCPCB Z-height 5.5 mm and elecfans JST drawing (secondary); JST PDF not readable",
-        "OPEN: model keeps 4.5 ASSUMED. If the datasheet says 5.5, INNER_H grows by 1.0 mm (box 98.1 x 57.7 x 12.6). Arsany/Emil decide", open_=True)
+        "OPEN (A-076): slice 4 budgets 5.5 (INNER_H 8.6, 0.5 air), so this passes; the value is not datasheet-sourced yet. Arsany/Emil decide", open_=True, unsure=True)
     # 4 3D collisions
     ov = {n: vol_overlap(a, b) for n, a, b in [("lid vs board+parts", lid, board), ("tray vs board+parts", tray, board), ("plug vs board+parts", plug, board),
                                               ("tray vs cell", tray, cell), ("lid vs cell", lid, cell), ("plug vs tray", plug, tray)]}
@@ -113,14 +121,17 @@ def main(tail=None):
     d_tip = B.gap((P.MODULE_X0, P.OVERHANG, P.MODULE_X1, P.OVERHANG), cell_rect)
     row("Antenna overhang rect to cell cavity (Emil's 26.2 method)", f"{d_rect:.1f} mm", ">= 15", d_rect >= 15, "layout-4P2 check_layout.py rect_gap(ant_tip, cell)")
     row("Antenna tip line to cell cavity (my 28.4 method)", f"{d_tip:.1f} mm", ">= 15", d_tip >= 15, "jlc_prep/README s.1 item 2")
+    air_c = P.rr_dist(P.MODULE_X1, P.OVERHANG, P.INNER_X0, P.INNER_Y0, P.INNER_X1, P.INNER_Y1, P.FILLET_INNER)
+    row("Antenna corner (33.5, 4.5) air to the rounded cavity corner", f"{air_c:.2f} mm", ">= 1.0 (same air as the top wall)", air_c >= 1.0 - 1e-9, "params_v3 rr_dist, FILLET_INNER 1.5 (slice 4)")
     dm = min(B.gap(ant, (x - P.INSERT_HOLE / 2, y - P.INSERT_HOLE / 2, x + P.INSERT_HOLE / 2, y + P.INSERT_HOLE / 2)) for x, y in P.BOSS_XY)
     row("Nearest brass insert to antenna (Q9)", f"{dm:.1f} mm", ">= 15", dm >= 15, "BOSS_XY, insert hole 3.2")
     # standards s.7: no thick walls over the antenna. The 2.4 mm PETG top wall sits over the module; no RF measurement exists, so this is OPEN, not PASS.
-    row("PETG top wall over the antenna", f"{P.WALL:.2f} mm wall, {P.INNER_Y1 - P.OVERHANG:.1f} mm air to antenna tip (ASSUMED)", "no thick wall over the antenna (standards s.7): RF effect checked",
+    row("PETG top wall over the antenna", f"{P.WALL_LOW:.2f} mm wall, {P.INNER_Y1 - P.OVERHANG:.1f} mm air to antenna tip (ASSUMED)", "no thick wall over the antenna (standards s.7): RF effect checked",
         False, "params_v3 WALL, INNER_Y1; standards s.7; P1S/PETG review (Arsany answer 2026-11-10)",
         "OPEN: effect on the antenna not measured. Options: RF check on a Prototype 1 print, or a thinner wall over the antenna. Decide before the lid is locked", open_=True)
     # 6 walls
-    for n, v in [("Side wall (rim land)", P.WALL), ("Tray floor", P.FLOOR), ("Lid under counterbore", P.LID_T - P.WIN_CB_DEPTH), ("USB pocket remaining wall", P.WALL - P.USB_POCKET[2]),
+    cw = P.min_wall_corners()
+    for n, v in [("Rim land left/top/bottom", P.WALL_LOW), ("Rim land right (USB side)", P.WALL), ("Tray floor", P.FLOOR), ("Corner wall, min (cavity to skin)", cw), ("Lid under counterbore", P.LID_T - P.WIN_CB_DEPTH), ("USB pocket remaining wall", P.WALL - P.USB_POCKET[2]),
                  ("Light collar wall", (P.COLLAR_OD - P.WIN_D) / 2), ("Vent cup wall", P.CUP_WALL), ("Pinhole tube wall", (P.PIN_TUBE_OD - P.PIN_D) / 2),
                  ("Boss wall around insert", (P.BOSS_D - P.INSERT_HOLE) / 2)]:
         row(f"Wall: {n}", f"{v:.2f} mm", ">= 1.2 (role rule)", v >= P.MIN_WALL - 1e-9, "params_v3")
@@ -132,8 +143,8 @@ def main(tail=None):
     row("Seal tunnel clearance per side (thickness)", f"{(P.TUNNEL_H - P.BOARD_T) / 2:.2f} mm", ">= 0.30 (PETG/FDM; sealant fills the rest)", (P.TUNNEL_H - P.BOARD_T) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_H 2.2 [ASSUMED 0.3]")
     row("Seal tunnel clearance per side (width)", f"{(P.TUNNEL_W - P.TAIL_W) / 2:.2f} mm", ">= 0.30", (P.TUNNEL_W - P.TAIL_W) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_W 12.6")
     row("PETG insert boss wall (round the 3.2 hole)", f"{(P.BOSS_D - P.INSERT_HOLE) / 2:.2f} mm", f">= {P.PETG_BOSS_WALL} (PETG target; floor 1.2)", (P.BOSS_D - P.INSERT_HOLE) / 2 >= P.PETG_BOSS_WALL - 1e-9, "params_v3 BOSS_D 6.4; insert datasheet still to check")
-    skin = min(min((y - P.OUT_Y0) - P.BOSS_D / 2, (P.OUT_Y1 - y) - P.BOSS_D / 2) for _, y in P.BOSS_XY)
-    row("Boss to outside surface (skin)", f"{skin:.2f} mm", ">= 1.2", skin >= 1.2 - 1e-9, "params_v3 BOSS_XY, OUT_Y0/OUT_Y1")
+    skin = min(P.outer_dist(x, y) - P.BOSS_D / 2 for x, y in P.BOSS_XY)
+    row("Boss to outside surface (skin)", f"{skin:.2f} mm", ">= 1.2", skin >= 1.2 - 1e-9, "params_v3 BOSS_XY, outer rounded outline (outer_dist)")
     cgap = min(((P.CELL_Y0 - (y + P.BOSS_D / 2)) if y < P.CELL_Y0 else 99.0) for x, y in P.BOSS_XY if P.CELL_X0 - P.BOSS_D / 2 <= x <= P.CELL_X1 + P.BOSS_D / 2)
     row("Boss below the cell cavity (bottom row, y gap)", f"{cgap:.2f} mm", ">= 0.2 (no overlap; tray vs cell boolean row also checks)", cgap >= 0.2 - 1e-9, "params_v3 BOSS_XY vs CELL_BAY_CAVITY y -42.0")
     row("Lid plate above the film counterbore", f"{P.LID_T - P.WIN_CB_DEPTH:.2f} mm", ">= 1.2", P.LID_T - P.WIN_CB_DEPTH >= 1.2 - 1e-9, "params_v3 LID_T 2.4")
@@ -155,7 +166,7 @@ def main(tail=None):
         elif flip == "y_up":    # plug prints standing on its 13.4 x 7.6 face, Y axis up
             m.apply_transform(trimesh.transformations.rotation_matrix(-math.pi / 2, [1, 0, 0]))
         span, nf = downward_bridges(m, m.bounds[0][2])
-        row(f"Max bridge/overhang span, print orientation: {n}", f"{span:.1f} mm ({nf} faces)", "<= 10 mm (P1S bridges; no steep overhangs)", span <= 10.0, "trimesh, faces with normal z < -0.7 above the bed",
+        row(f"Max bridge/overhang span, print orientation: {n}", f"{span:.1f} mm ({nf} faces)", "<= 10 mm reach from bed contact (P1S bridges; no steep overhangs)", span <= 10.0, "trimesh, faces with normal z < -0.7 above the bed, reach to bed-contact vertices",
             "USB window top 9.6; lid counterbore 6.4" if n != "plug" else "")
     return list(ROWS)
 

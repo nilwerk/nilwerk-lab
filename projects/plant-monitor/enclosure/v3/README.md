@@ -119,3 +119,24 @@ Only U1 has a datasheet page. The Mouser JST datasheet returned HTTP 503 and the
 **Files.** `enclosure_v3_assembly_tail14.step`, `enclosure_v3_assembly_tail20.step`, `enclosure_v3_reference_board_cell_tail{14,20}.step` (reference bodies, not printed). Renders: `renders/tail14_plan.png`, `renders/tail20_plan.png`, `renders/tail_compare_side.png`. Interface values for Emil: `mechanical/enclosure_v3/LOCKED_INTERFACE.md` (generated, a test keeps it current). The slice 2 files stay as the record of the 25 mm DXF tail.
 
 **Still open:** tail length (A-071, Arsany); J2 height (A-076: datasheet or a measured sample. NOT locked: inner height 7.6 if J2 <= 4.5, or 8.6 if J2 = 5.5, box +1.0 mm; both options are in `LOCKED_INTERFACE.md`); board retention (item 6); J1, U3 and the other heights; Drive copy of these exports (not done by the agent, see the PR).
+
+## 10. Slice 4 (Yara, task 4.E3 EXTRA, Arsany 2026-11-12): compact product shell
+Branch `agent/mechanical/4.E3-s4`, stacked on PR #83 (slice 3), which is stacked on PR #74. Merge order: #74, #83, this. Files: `enclosure_v3_compact_*` (STEP, STL, 3MF; slice 2/3 files stay as the record). Renders: `renders/compact_*.png`. Fit check records: `fit_check_v3_compact_tail14.md`, `fit_check_v3_compact_tail20.md`.
+
+**Outer size, slice 3 -> slice 4 (lid on, from `params_v3`):**
+
+| | Outer X x Y x Z (mm) | Box volume (mm3) | Solid volume, outer skin (mm3) |
+|---|---|---|---|
+| Slice 3 (floor 1.6, inner 7.6 = J2 4.5, ASSUMED) | 98.1 x 57.7 x 11.6 | 65,660 | 65,571 |
+| **Slice 4, model (inner 8.6 = J2 5.5 budget, A-076)** | **97.3 x 56.9 x 12.2** | 67,544 | 66,974 |
+| Slice 4, option A if J2 is sourced at 4.5 (`INNER_H_OPT_A`) | 97.3 x 56.9 x 11.2 | 62,007 | 61,451 |
+
+Read: the footprint is 2.2 % smaller (5,660 -> 5,536 mm2). The model is taller by 0.6 mm because the J2 budget (+1.0 mm inner) is larger than the floor saving (-0.4 mm). The compact volume (-5.5 % box) comes only if the J2 datasheet is <= 4.5 mm. This is the open point for Arsany (A-076).
+
+**What changed:** plan corners rounded (R 4.0 outside, 1.5 inside); bottom edge 1.2 mm and lid top 2.2 mm rounded (one continuous skin, seam only at the lid line); floor 1.6 -> 1.2 (rule floor); rim land left/top/bottom 2.4 -> 1.6 (`WALL_LOW`), right side 2.4 kept (USB overmold pocket 1.2 deep leaves 1.2); bottom bosses at y -45.4 (cell clearance), top bosses y 3.2 -> 2.5 (skin to the 1.6 top wall). Interfaces unchanged: board outline, USB-C cut-out, light window, AHT20 vents, bay, screws, pinhole.
+
+**Print (0.4 mm nozzle, PETG, P1S):** tray floor down, lid outer face down, plug as before. No support needed for the shell: the checker's largest reach of a downward face above the bed is 0.9 mm (tray) and 1.4 mm (lid), both the soft edges; the USB window top spans 2.4 mm (wall thickness). Not verified in a slicer yet (no Bambu Studio run).
+
+**Fusion 360 strategy (standard s.1a):** parameter table = `params_v3.py` (names as in the file). Bodies: tray, lid, tail plug (3 bodies, STEP). Features to edit in Fusion: the outer fillets (`FILLET`, `FILLET_BOT`, `FILLET_TOP`), the cavity corner (`FILLET_INNER`), the USB window and pocket (`USB_W`, `USB_H`, `USB_POCKET`), the light window (`WIN_D`), the vents (`VENT_*`). A change to `INNER_H` (J2) moves the lid and the tray together: flag it in Fusion, do not edit one body only.
+
+**Open in this slice:** A-071 tail length (14 or 20 mm; board change needed, not decided here); A-076 J2 height (budget 8.6 used); A-084 PETG wall over the antenna (now 1.6 mm, RF effect not measured); screw torque (not checked, ASSUMED); no slicer run, no seal or splash test, no print. Renders: the soil in the side view is schematic (the repo has no soil data).

@@ -30,9 +30,10 @@ def test_all_fit_checks_pass_for_both_tail_variants(tail):
 
 
 def test_inner_size_numbers():
-    assert round(P.INNER_X1 - P.INNER_X0, 1) == 93.3 and round(P.INNER_Y1 - P.INNER_Y0, 1) == 52.9 and P.INNER_H == pytest.approx(7.6)
+    assert round(P.INNER_X1 - P.INNER_X0, 1) == 93.3 and round(P.INNER_Y1 - P.INNER_Y0, 1) == 53.7 and P.INNER_H == pytest.approx(8.6)   # slice 4: budget 8.6 (J2 5.5)
+    assert P.INNER_H_OPT_A == pytest.approx(7.6)                # option A (J2 4.5, ASSUMED) kept as the record
     assert P.INNER_H_IF_J2_5_5 == pytest.approx(8.6)           # the alternative that the sourced J2 value needs (LOCKED_INTERFACE shows both)
-    assert (round(P.OUT_X1 - P.OUT_X0, 1), round(P.OUT_Y1 - P.OUT_Y0, 1)) == (98.1, 57.7)
+    assert (round(P.OUT_X1 - P.OUT_X0, 1), round(P.OUT_Y1 - P.OUT_Y0, 1)) == (97.3, 56.9)     # slice 4 outer footprint (slice 3: 98.1 x 57.7)
 
 
 def test_params_derived_from_board_file_not_hardcoded():
@@ -70,7 +71,8 @@ def test_negative_control_collision_detected():
 
 
 def test_walls_rule():
-    assert min(P.WALL, P.FLOOR, P.LID_T - P.WIN_CB_DEPTH, P.WALL - P.USB_POCKET[2], (P.COLLAR_OD - P.WIN_D) / 2, P.CUP_WALL) >= P.MIN_WALL - 1e-9
+    assert min(P.WALL, P.WALL_LOW, P.FLOOR, P.LID_T - P.WIN_CB_DEPTH, P.WALL - P.USB_POCKET[2], (P.COLLAR_OD - P.WIN_D) / 2, P.CUP_WALL) >= P.MIN_WALL - 1e-9
+    assert P.min_wall_corners() >= P.MIN_WALL - 1e-9            # corner wall between the rounded skin and the cavity corners (slice 4)
 
 
 def test_antenna_gap_both_methods():
@@ -100,18 +102,18 @@ def test_height_rows_are_not_vacuous(monkeypatch):
     """QA (Ines): the height rows must move when an ASSUMED part height moves. INNER_H is fixed, so J2 is tested against it."""
     comps = B.components()
     gap, worst = F.lid_clearance(comps)
-    assert gap == pytest.approx(0.5, abs=1e-6) and worst["ref"] == "J2" and worst["h"] == 4.5   # positive control: today's J2 = 4.5
-    monkeypatch.setitem(P.H_BY_REF, "J2", 5.0)                  # mutation: J2 +0.5 mm
+    assert gap == pytest.approx(1.5, abs=1e-6) and worst["ref"] == "J2" and worst["h"] == 4.5   # positive control: J2 4.5 in an 8.6 budget
+    monkeypatch.setitem(P.H_BY_REF, "J2", 6.6)                  # mutation: J2 +2.1 mm over the budget
     gap5, worst5 = F.lid_clearance(B.components())
-    assert gap5 == pytest.approx(0.0, abs=1e-6) and worst5["ref"] == "J2"
+    assert gap5 == pytest.approx(-0.6, abs=1e-6) and worst5["ref"] == "J2"
     assert gap5 < P.LID_CLEAR - 1e-9                            # the row would FAIL
     monkeypatch.setitem(P.H_BY_REF, "J2", 4.0)                  # mutation: J2 -0.5 mm -> row passes with more air (no false fail)
-    assert F.lid_clearance(B.components())[0] == pytest.approx(1.0, abs=1e-6)
+    assert F.lid_clearance(B.components())[0] == pytest.approx(2.0, abs=1e-6)
 
 
 def test_j2_height_mutation_fails_fit_check(monkeypatch):
     """End to end: J2 at 5.0 mm must turn the 'Tallest part to lid' row into a FAIL in the full fit check."""
-    monkeypatch.setitem(P.H_BY_REF, "J2", 5.0)
+    monkeypatch.setitem(P.H_BY_REF, "J2", 6.6)
     rows = F.main()
     failed = [r[0] for r in rows if r[3] == "FAIL"]
     assert any(n.startswith("Tallest part to lid") for n in failed), failed

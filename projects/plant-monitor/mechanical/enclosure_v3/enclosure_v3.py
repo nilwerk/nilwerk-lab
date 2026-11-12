@@ -1,4 +1,5 @@
-"""Enclosure v3 slice 2 (CadQuery): tray, lid, tail seal plug, plus reference bodies (board, cell). Frame: see params_v3.py."""
+"""Enclosure v3 (CadQuery): tray, lid, tail seal plug, plus reference bodies (board, cell). Frame: see params_v3.py.
+Slice 4 (compact product shell): rounded plan outline, soft bottom and top edges, one continuous outer skin; interfaces unchanged."""
 import cadquery as cq
 import params_v3 as P
 import board_src as B
@@ -6,6 +7,11 @@ import board_src as B
 
 def _box(x0, y0, z0, x1, y1, z1):
     return cq.Workplane("XY").box(x1 - x0, y1 - y0, z1 - z0, centered=False).translate((x0, y0, z0))
+
+
+def _rbox(x0, y0, z0, x1, y1, z1, r):
+    """Box with vertical edges rounded to r (plan corners)."""
+    return _box(x0, y0, z0, x1, y1, z1).edges("|Z").fillet(r)
 
 
 def _cyl(x, y, z0, z1, d):
@@ -35,8 +41,9 @@ def free_clamp_pads():
 
 def tray():
     h = P.FLOOR + P.INNER_H
-    body = _box(P.OUT_X0, P.OUT_Y0, -P.FLOOR, P.OUT_X1, P.OUT_Y1, P.INNER_H).edges("|Z").fillet(P.FILLET)
-    cav = _box(P.INNER_X0, P.INNER_Y0, 0, P.INNER_X1, P.INNER_Y1, P.INNER_H + 1)
+    # outer: rounded plan (FILLET) and a soft bottom edge (FILLET_BOT, on the bed); the rim at the lid seam stays square
+    body = _rbox(P.OUT_X0, P.OUT_Y0, -P.FLOOR, P.OUT_X1, P.OUT_Y1, P.INNER_H, P.FILLET).faces("<Z").edges().fillet(P.FILLET_BOT)
+    cav = _rbox(P.INNER_X0, P.INNER_Y0, 0, P.INNER_X1, P.INNER_Y1, P.INNER_H + 1, P.FILLET_INNER)
     t = body.cut(cav)
     # board standoff pads under the 4 board corners (bottom of the board is GND copper only)
     for (x, y) in [(1.8, -1.8), (32.7, -1.8), (1.8, -40.2), (32.7, -40.2)]:
@@ -59,7 +66,7 @@ def tray():
 def lid():
     """Lid prints outer face down on the bed; everything below is drawn in assembled position (underside at z = INNER_H)."""
     z0 = P.INNER_H
-    L = _box(P.OUT_X0, P.OUT_Y0, z0, P.OUT_X1, P.OUT_Y1, z0 + P.LID_T).edges("|Z").fillet(P.FILLET)
+    L = _rbox(P.OUT_X0, P.OUT_Y0, z0, P.OUT_X1, P.OUT_Y1, z0 + P.LID_T, P.FILLET).faces(">Z").edges().fillet(P.FILLET_TOP)
     top = z0 + P.LID_T
     # screw clearance holes (M2, counterbored head not needed: pan head sits on the 2.4 mm lid)
     for (x, y) in P.BOSS_XY:
@@ -95,9 +102,9 @@ def lid():
 def plug():
     """Tail seal plug (prints with Y up). Slides over the tail from its free end, drops into the notch, tunnel filled with sealant [ASSUMED]."""
     cx = P.BOARD_W / 2
-    p = _box(cx - P.PLUG_W / 2, P.INNER_Y0 - P.WALL, 0, cx + P.PLUG_W / 2, P.INNER_Y0, P.INNER_H)
+    p = _box(cx - P.PLUG_W / 2, P.INNER_Y0 - P.PLUG_T, 0, cx + P.PLUG_W / 2, P.INNER_Y0, P.INNER_H)
     zc = (P.BOARD_Z0 + P.BOARD_Z1) / 2
-    return p.cut(_box(cx - P.TUNNEL_W / 2, P.INNER_Y0 - P.WALL - 1, zc - P.TUNNEL_H / 2, cx + P.TUNNEL_W / 2, P.INNER_Y0 + 1, zc + P.TUNNEL_H / 2))
+    return p.cut(_box(cx - P.TUNNEL_W / 2, P.INNER_Y0 - P.PLUG_T - 1, zc - P.TUNNEL_H / 2, cx + P.TUNNEL_W / 2, P.INNER_Y0 + 1, zc + P.TUNNEL_H / 2))
 
 
 def board_ghost(tail_l=None):
