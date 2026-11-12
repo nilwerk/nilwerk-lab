@@ -7,5 +7,5 @@
 - Task: 4.E3 slice 4, EXTRA round requested by Arsany 2026-11-12 · PR: #88 (https://github.com/nilwerk/nilwerk-lab/pull/88), stacked on #83 and #74 (merge order #74, #83, #88) · Persona: Yara (3D Product Designer)
 - Checks: fit check 50 PASS / 0 FAIL / 6 OPEN for both tail variants; pytest mechanical folder 45 passed (enclosure v3 suite 18 passed)
 - Print: tray floor down, lid outer face down; no support for the shell (largest downward reach 1.4 mm). Plain soft edges, no seams except the lid line.
-- Agent minutes: about 12.5 min (start 00:09 CET, last check 00:22 CET; final figure in the Agent Log) · Agent's own human-hour estimate: 14 h (CAD rework, checks, renders, skills search, PR)
+- Agent minutes: about 13.5 min (start 00:09 CET, last check 00:23 CET; final figure in the Agent Log) · Agent's own human-hour estimate: 14 h (CAD rework, checks, renders, skills search, PR)
 - Unverified: the J2 height (the budget is used, not the datasheet value); the tail length (the open tail decision, Arsany has not chosen); no Bambu Studio slice, no print, no seal or splash test, no RF measurement; the renders are a rasterised view of the model, not a photo of a print.
