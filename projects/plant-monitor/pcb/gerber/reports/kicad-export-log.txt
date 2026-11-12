@@ -1,0 +1,84 @@
+9.0.9
+Found 0 violations
+Found 0 unconnected items
+Saved DRC Report to /out/drc/board-error.rpt
+Found 62 violations
+Found 117 unconnected items
+Saved DRC Report to /out/drc/board-all.rpt
+Plotted to '/out/board/plant-monitor-F_Cu.gtl'.
+Plotted to '/out/board/plant-monitor-B_Cu.gbl'.
+Plotted to '/out/board/plant-monitor-F_Paste.gtp'.
+Plotted to '/out/board/plant-monitor-B_Paste.gbp'.
+Plotted to '/out/board/plant-monitor-F_Silkscreen.gto'.
+Plotted to '/out/board/plant-monitor-B_Silkscreen.gbo'.
+Plotted to '/out/board/plant-monitor-F_Mask.gts'.
+Plotted to '/out/board/plant-monitor-B_Mask.gbs'.
+Plotted to '/out/board/plant-monitor-Edge_Cuts.gm1'.
+Created file '/out/board/plant-monitor-PTH.drl'
+Created file '/out/board/plant-monitor-NPTH.drl'
+Created file '/out/board/plant-monitor-PTH-drl_map.gbr'.
+Created file '/out/board/plant-monitor-NPTH-drl_map.gbr'.
+Done.
+Wrote position data to '/out/board/cpl.csv'.
+Found 0 violations
+Found 0 unconnected items
+Saved DRC Report to /out/drc/panel-error.rpt
+Found 129 violations
+Found 263 unconnected items
+Saved DRC Report to /out/drc/panel-all.rpt
+Plotted to '/out/panel/plant-monitor-panel-F_Cu.gtl'.
+Plotted to '/out/panel/plant-monitor-panel-B_Cu.gbl'.
+Plotted to '/out/panel/plant-monitor-panel-F_Paste.gtp'.
+Plotted to '/out/panel/plant-monitor-panel-B_Paste.gbp'.
+Plotted to '/out/panel/plant-monitor-panel-F_Silkscreen.gto'.
+Plotted to '/out/panel/plant-monitor-panel-B_Silkscreen.gbo'.
+Plotted to '/out/panel/plant-monitor-panel-F_Mask.gts'.
+Plotted to '/out/panel/plant-monitor-panel-B_Mask.gbs'.
+Plotted to '/out/panel/plant-monitor-panel-Edge_Cuts.gm1'.
+Created file '/out/panel/plant-monitor-panel-PTH.drl'
+Created file '/out/panel/plant-monitor-panel-NPTH.drl'
+Created file '/out/panel/plant-monitor-panel-PTH-drl_map.gbr'.
+Created file '/out/panel/plant-monitor-panel-NPTH-drl_map.gbr'.
+Done.
+Wrote position data to '/out/panel/cpl.csv'.
+/out/board:
+total 172
+drwxr-xr-x 2 root root  4096 Nov 12 23:16 .
+drwxr-xr-x 5 root root  4096 Nov 12 23:16 ..
+-rw-r--r-- 1 root root  3219 Nov 12 23:16 cpl.csv
+-rw-r--r-- 1 root root  5768 Nov 12 23:16 plant-monitor-B_Cu.gbl
+-rw-r--r-- 1 root root   722 Nov 12 23:16 plant-monitor-B_Mask.gbs
+-rw-r--r-- 1 root root   456 Nov 12 23:16 plant-monitor-B_Paste.gbp
+-rw-r--r-- 1 root root   457 Nov 12 23:16 plant-monitor-B_Silkscreen.gbo
+-rw-r--r-- 1 root root   810 Nov 12 23:16 plant-monitor-Edge_Cuts.gm1
+-rw-r--r-- 1 root root 25302 Nov 12 23:16 plant-monitor-F_Cu.gtl
+-rw-r--r-- 1 root root  8885 Nov 12 23:16 plant-monitor-F_Mask.gts
+-rw-r--r-- 1 root root  8785 Nov 12 23:16 plant-monitor-F_Paste.gtp
+-rw-r--r-- 1 root root   457 Nov 12 23:16 plant-monitor-F_Silkscreen.gto
+-rw-r--r-- 1 root root 21268 Nov 12 23:16 plant-monitor-NPTH-drl_map.gbr
+-rw-r--r-- 1 root root   361 Nov 12 23:16 plant-monitor-NPTH.drl
+-rw-r--r-- 1 root root 36973 Nov 12 23:16 plant-monitor-PTH-drl_map.gbr
+-rw-r--r-- 1 root root   959 Nov 12 23:16 plant-monitor-PTH.drl
+-rw-r--r-- 1 root root   720 Nov 12 23:16 plant-monitor-drill.rpt
+-rw-r--r-- 1 root root  2737 Nov 12 23:16 plant-monitor-job.gbrjob
+
+/out/panel:
+total 228
+drwxr-xr-x 2 root root  4096 Nov 12 23:16 .
+drwxr-xr-x 5 root root  4096 Nov 12 23:16 ..
+-rw-r--r-- 1 root root  6429 Nov 12 23:16 cpl.csv
+-rw-r--r-- 1 root root 10792 Nov 12 23:16 plant-monitor-panel-B_Cu.gbl
+-rw-r--r-- 1 root root  1015 Nov 12 23:16 plant-monitor-panel-B_Mask.gbs
+-rw-r--r-- 1 root root   462 Nov 12 23:16 plant-monitor-panel-B_Paste.gbp
+-rw-r--r-- 1 root root   463 Nov 12 23:16 plant-monitor-panel-B_Silkscreen.gbo
+-rw-r--r-- 1 root root  1380 Nov 12 23:16 plant-monitor-panel-Edge_Cuts.gm1
+-rw-r--r-- 1 root root 47127 Nov 12 23:16 plant-monitor-panel-F_Cu.gtl
+-rw-r--r-- 1 root root 15261 Nov 12 23:16 plant-monitor-panel-F_Mask.gts
+-rw-r--r-- 1 root root 14850 Nov 12 23:16 plant-monitor-panel-F_Paste.gtp
+-rw-r--r-- 1 root root   463 Nov 12 23:16 plant-monitor-panel-F_Silkscreen.gto
+-rw-r--r-- 1 root root 38515 Nov 12 23:16 plant-monitor-panel-NPTH-drl_map.gbr
+-rw-r--r-- 1 root root   476 Nov 12 23:16 plant-monitor-panel-NPTH.drl
+-rw-r--r-- 1 root root 43039 Nov 12 23:16 plant-monitor-panel-PTH-drl_map.gbr
+-rw-r--r-- 1 root root  1570 Nov 12 23:16 plant-monitor-panel-PTH.drl
+-rw-r--r-- 1 root root   774 Nov 12 23:16 plant-monitor-panel-drill.rpt
+-rw-r--r-- 1 root root  2797 Nov 12 23:16 plant-monitor-panel-job.gbrjob
