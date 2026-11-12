@@ -80,7 +80,7 @@ A first CI run of this slice found 2 real DRC errors (J2 mounting pads 0.2 mm ou
 
 Not done: routing of any net, GND zone fill, silkscreen, mounting holes (Q7), fiducials and panel (F5, F6), U5/U6 footprints, 4 of 5 simulations. Next slice: route the power path (VBUS, VBAT, 3V3, GND) and verify with CI DRC including unconnected items at warning level.
 
-**Panel (round 2, Arsany accepted A-069 recommendation 2, 2026-11-10):** the board outline is unchanged. `jlcpcb/panel.py` lays out 2 boards (34.5 x 67 mm, 2 mm apart) in an 83 x 79 mm panel with 6 mm rails, 2 tooling holes (2 mm NPTH) on the rails, and 3 fiducials (1 mm copper, 3.85 mm from the panel edge). Geometry checks 7/7 PASS, DXF in `jlcpcb/panel/panel.dxf`. **Not done:** the panel Gerber and drill set (copper fiducials, mask openings, panel outline) does not exist. It needs a KiCad panel run or the JLC panelizer. Mouse-bite hole spec is not read (UNVERIFIED). Checklist: F5 OPEN, F6 FAIL until the panel Gerber exists.
+**Panel (round 2, Arsany accepted A-069 recommendation 2, 2026-11-10):** the board outline is unchanged. `jlcpcb/panel.py` lays out 2 boards (34.5 x 67.8 mm after A-071, 2 mm apart) in an 83 x 79.8 mm panel with 6 mm rails, 2 tooling holes (2 mm NPTH) on the rails, and 3 fiducials (1 mm copper, 3.85 mm from the panel edge). Geometry checks 7/7 PASS, DXF in `jlcpcb/panel/panel.dxf`. **Not done:** the panel Gerber and drill set (copper fiducials, mask openings, panel outline) does not exist. It needs a KiCad panel run or the JLC panelizer. Mouse-bite hole spec is not read (UNVERIFIED). Checklist: F5 OPEN, F6 FAIL until the panel Gerber exists.
 
 ## Files
 | File | What |
@@ -108,7 +108,7 @@ What the DRC does **not** say: it runs at error level only, so warnings are not 
 | O2, rule 14, R-06 | antenna at the edge, keep-out both layers, cell >= 15 mm away | module overhangs the top edge by 6.0 mm [mine], at the right side; keep-out rule area 17.2 x 2.0 mm on F.Cu+B.Cu (3 mm each side of the module [mine]); 15 mm clear box on `Cmts.User` | antenna end to cell cavity 26.2 mm; nothing else in the keep-out |
 | O3 | >= 9 ground vias under the module, solid GND bottom | 12 vias 0.3/0.7 mm in the module ground pad area; GND zone on B.Cu over the body only (not the tail) | 12 vias; zone **not filled** |
 | O4 | USB-C on an edge, far from the antenna, ESD within 10 mm | J1 right edge, mouth flush; D1 0.5 mm from it; C10 at the connector | J1 28.5 mm from antenna; D1 gap 0.5 mm |
-| O5 / S1 | stake electrodes as copper on a tail of the board, opposite the antenna, under solder mask | tail 12 x 25 mm [mine], E1 pads on F.Cu only (no mask opening), SOIL_PROBE electrode between two GND electrodes (guard) | tail at the far end |
+| O5 / S1 | stake electrodes as copper on a tail of the board, opposite the antenna, under solder mask | tail 12 x 25.8 mm [mine; 25.0 before, A-071 accepted 2026-11-12: matches the 14 mm enclosure variant], E1 pads on F.Cu only (no mask opening), SOIL_PROBE electrode between two GND electrodes (guard) | tail at the far end |
 | O6 | AHT20 >= 10 mm from TP4056; soil front end at the tail; J2 at the cell end | U5 top left, U3 centre right (25.5 mm); U7/R12/C8 at the tail neck; J2 left edge facing the cell | U5-U3 25.5 mm |
 | section 5 | 0.2/0.2 mm, via 0.3/0.7, copper to edge >= 0.5, 2 layers 1.6 mm, power 0.4 / VBAT 0.5 | `.kicad_pro` rules and net classes Default/Power/Battery | pad-to-pad >= 0.2 mm: 0 violations; pads >= 0.5 mm from edge; via spacing |
 | section 5 | TP4056 EP: copper + 4-6 thermal vias | 4 vias in the EP pad | 4 |
@@ -116,7 +116,7 @@ What the DRC does **not** say: it runs at error level only, so warnings are not 
 
 Requirement IDs (TEAM.md section 6; component C-01 in `architecture.md` maps them): FR-D01 (five plausible values: decoupling at the module and sensors, `gen_pcb.py` placement of C5/C4/C12/C6/C7), FR-D06 (low-battery: divider R7/R8 and ADC pin, unchanged), FR-D07 (pinhole factory reset SW3), NFR-01 and NFR-12 (no part or load added by the layout; sleep sum unchanged, `check_netlist.py`), NFR-02 and FR-D10 (soil probe E1 on the stake with guard electrodes, calibrated per FR-D10), NFR-08 (ESD D1 within 10 mm of J1), NFR-09 (BOM unchanged, no new part). The soil-sensing requirement is NFR-02/FR-D10; there is no separate layout NFR for the stake.
 
-Outline (new, **announce to the Lead and Yara**): body 34.5 x 42 mm plus tail 12 x 25 mm = 34.5 x 67 mm overall, module overhang 6 mm above. Everything in this paragraph is [mine] and changes when Yara answers Q1-Q11.
+Outline (new, **announce to the Lead and Yara**): body 34.5 x 42 mm plus tail 12 x 25.8 mm = 34.5 x 67.8 mm overall (was 25.0 mm, 67.0 mm; A-071 accepted 2026-11-12, 14 mm enclosure variant), module overhang 6 mm above. Yara must use the new DXF (`plant-monitor-outline.dxf`). Everything in this paragraph is [mine] and changes when Yara answers Q1-Q11.
 
 ## What is NOT done (honest list)
 - **No routing**, no zone fill, no silkscreen text, no mounting holes (Q7), no fiducials/panel rails (section 5 panel rule).

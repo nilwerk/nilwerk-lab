@@ -27,7 +27,7 @@ def uid(*k):
 # ---------------------------------------------------------------------------------------------
 BOARD_W = 34.5        # [mine] = cell width 34.5; brief section 3 option A (cell beside), board about 34.5 x 38 -> 42 here for the parts
 BODY_L = 42.0         # [mine] result of the placement below (not a given); Yara Q2 (inner length) still [open]
-TAIL_W, TAIL_L = 12.0, 25.0   # [mine] O5/S1: electrodes are copper on a tail of the same board; stake size is Yara Q5 [open]
+TAIL_W, TAIL_L = 12.0, 25.8   # [mine] O5/S1: electrodes are copper on a tail of the same board. 25.8 mm = tail for the 14 mm enclosure variant (A-071, accepted by Arsany 2026-11-12; was 25.0). Stake size is Yara Q5 [open]
 TAIL_X0 = (BOARD_W - TAIL_W) / 2
 # Cell bay beside the board (brief section 3 option A, recommendation).  Cavity from pcb-enclosure-bay.md (Yara 2026-11-08), not computed here.
 CELL_CAV = (53.0, 35.1)   # L (along x), W (along y), mm
