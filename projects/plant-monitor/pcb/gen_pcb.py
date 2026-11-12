@@ -55,8 +55,8 @@ RULES = dict(clearance=0.2, track=0.2, power_track=0.4, vbat_track=0.5, via_dia=
 # ---------------------------------------------------------------------------------------------
 # Footprints (slice 2).  Pads are dicts: num,type(smd|thru_hole|np_thru_hole),shape,x,y,ang,w,h,drill,layers,rratio.
 # kind "lib"        = pad geometry read from a KiCad / Espressif library .kicad_mod in footprints/ (footprints/SOURCES.md says where from)
-# kind "datasheet"  = drawn by Emil from a manufacturer drawing (XKB TS-1187A P.C.B. LAYOUT)
-# kind "placeholder"= pad NUMBERS right, geometry NOT from a drawing (AHT20, BH1750: no recommended land pattern was available)
+# kind "datasheet"  = drawn by Emil from a manufacturer drawing (XKB TS-1187A P.C.B. LAYOUT; AHT20 Fig. 1 bottom view)
+# kind "placeholder"= pad NUMBERS right, geometry NOT from a drawing (BH1750 still, see footprints/SOURCES.md)
 # kind "electrode"  = our own copper (soil probe), not a part
 # ---------------------------------------------------------------------------------------------
 import kmod
@@ -89,7 +89,9 @@ FOOT["NW:SW_TS-1187A-B-A-B_5.1x5.1"] = dict(
     court=(-3.75, -2.85, 3.75, 2.85), kind="datasheet")
 # U5 / U6 (slice 3): LCSC/EasyEDA footprint data, copied to footprints/*.kicad_mod (source and open points in footprints/SOURCES.md).
 # Pad 7 (EP) of the BH1750 is NOT copied: ROHM datasheet note 10 says the central pad must not be soldered or connected.
-FOOT["NW:AHT20_DFN-6_3x3"] = dict(pads=kmod.load("AHT20_DFN-6_3x3")["pads"], court=kmod.load("AHT20_DFN-6_3x3")["court"], kind="easyeda")
+# U5 AHT20 (A-083, accepted 2026-11-12): pads from the datasheet, Fig. 1 bottom view 0.55 x 0.4 mm, pitch 1.0 mm; pin 1 = top right of the
+# bottom view (Table 5 top view mirrored). Replaces the LCSC/EasyEDA 0.8 x 0.5 mm pads. Source and open points: footprints/SOURCES.md.
+FOOT["NW:AHT20_DFN-6_3x3"] = dict(pads=kmod.load("AHT20_DFN-6_3x3")["pads"], court=kmod.load("AHT20_DFN-6_3x3")["court"], kind="datasheet")
 FOOT["NW:WSOF-6_BH1750FVI"] = dict(pads=kmod.load("WSOF-6_BH1750FVI")["pads"], court=kmod.load("WSOF-6_BH1750FVI")["court"], kind="easyeda")
 # E1: soil electrodes, copper only on F.Cu (no mask opening: covered by solder mask, O5), tail frame, origin = tail top centre
 FOOT["NW:SOIL_PROBE_STAKE"] = dict(pads=[P("2", -4.0, 11.0, 1.5, 20.0, layers=("F.Cu",)), P("1", 0.0, 11.0, 3.5, 20.0, layers=("F.Cu",)),
