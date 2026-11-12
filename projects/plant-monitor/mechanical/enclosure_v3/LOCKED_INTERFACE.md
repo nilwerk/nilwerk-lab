@@ -59,11 +59,13 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 ## 8. Housing envelope (for Emil's keep-out)
 | Item | Value | Status | Note |
 |---|---|---|---|
-| Inner cavity | 93.3 x 52.9 x 7.6 | ASSUMED | J2 height is the open point (4.5 ASSUMED vs 5.5 distributor) |
-| Outer, lid on | 98.1 x 57.7 x 11.6 | ASSUMED | floor 1.6 + inner + lid 2.4; +1.0 gasket (not modelled) |
+| Inner cavity, **option A: model value (J2 4.5 ASSUMED)** | 93.3 x 52.9 x 7.6 | **OPEN, not locked** | holds only if the J2 datasheet is <= 4.5 (budget 1.0 + 1.6 + J2 + 0.5) |
+| Outer, lid on, option A | 98.1 x 57.7 x 11.6 | OPEN | floor 1.6 + inner + lid 2.4; +1.0 gasket (not modelled) |
+| Inner cavity, **option B: J2 5.5 (distributor value, sourced)** | 93.3 x 52.9 x 8.6 | OPEN | the sourced J2 value needs this height (+1.0 mm) |
+| Outer, lid on, option B | 98.1 x 57.7 x 12.6 | OPEN | +1.0 gasket (not modelled) |
 
 ## 9. Open points (NEEDS ARSANY / Emil)
 1. **Tail length (A-071)**: choose 14 or 20 mm. Board tail becomes 25.8 or 31.8 mm; the DXF is 25.0 today.
-2. **J2 height**: model 4.5 ASSUMED; distributor values 5.5 mm. At 5.5 the inner height must grow by 1.0 mm.
+2. **J2 height (A-076, Arsany)**: OPEN, the inner height is NOT locked. Model value 4.5 ASSUMED gives inner 7.6 (option A). The only sourced value, distributor 5.5, needs inner 8.6 (option B, box +1.0 mm). Decide after the J2 datasheet or a measured sample; until then Emil keeps the inner height open.
 3. **Board retention**: two more keep-clear pads or two M2 holes (no metal within 15 mm of the antenna).
 4. **Device heights** still ASSUMED (see `params_v3.H_SRC`): J1, U3 and the 0603/SOT parts.

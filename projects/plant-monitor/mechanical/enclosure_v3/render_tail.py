@@ -32,7 +32,7 @@ def plan(tail):
     ax.annotate(f"electrode copper tip y {cu_tip:.1f}: {P.TAIL_VARIANTS[tail]:.0f} mm beyond the wall", (P.TAIL_X0 + 0.3, cu_tip), (P.TAIL_X0 + 16, cu_tip - 6), fontsize=7,
                 arrowprops=dict(arrowstyle="-"))
     ax.set_xlim(P.OUT_X0 - 45, P.OUT_X1 + 5); ax.set_ylim(-80, P.OUT_Y1 + 4); ax.set_aspect("equal")
-    ax.set_title(f"Tail variant {tail} mm (electrode beyond the outer bottom face). Board tail {tl:.1f} mm (DXF today 25.0): board change OPEN (A-071)", fontsize=9)
+    ax.set_title(f"Tail variant {tail} mm (electrode beyond the outer bottom face). Board tail {tl:.1f} mm (DXF today 25.0): board change OPEN (tail decision open)", fontsize=9)
     ax.set_xlabel("X mm"); ax.set_ylabel("Y mm (lid off, PCB frame)")
     fig.savefig(REN / f"tail{tail}_plan.png", bbox_inches="tight", facecolor="white"); plt.close(fig)
 

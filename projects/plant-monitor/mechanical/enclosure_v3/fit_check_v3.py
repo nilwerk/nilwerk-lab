@@ -1,6 +1,7 @@
 """Fit check for enclosure v3 (slice 3: tail variants 14 / 20 mm, sourced heights).
 Run: python fit_check_v3.py [--tail 14|20] [--md out.md]. Exit 1 on any FAIL. OPEN rows are reported, never counted as PASS, never fail the run."""
-import sys, math
+import sys, math, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # so `python3 -I fit_check_v3.py` still finds the sibling modules
 import numpy as np
 import trimesh
 import params_v3 as P
@@ -11,9 +12,13 @@ ROWS = []
 TAIL = "14"
 
 
-def row(name, value, need, ok, src, note="", open_=False):
-    """ok=True -> PASS, ok=False -> FAIL; open_=True (with ok=False) -> OPEN: a point the repo cannot close yet, not a failure."""
-    status = "PASS" if ok else ("OPEN" if open_ else "FAIL")
+def row(name, value, need, ok, src, note="", open_=False, unsure=False):
+    """ok=False -> FAIL, or OPEN if open_=True (a point the repo cannot close yet, not a failure).
+    unsure=True -> OPEN even when ok: the number passes but rests on an unsourced value (ASSUMED / SECONDARY / CONFLICT). Only ok and not unsure is PASS."""
+    if not ok:
+        status = "OPEN" if open_ else "FAIL"
+    else:
+        status = "OPEN" if unsure else "PASS"
     ROWS.append((name, value, need, status, src, note))
 
 
@@ -80,12 +85,17 @@ def main(tail=None):
     row("Board to cell cavity gap (X)", f"{0 - P.CELL_X1:.1f} mm", "= 5.0 (gen_pcb CELL_GAP)", abs(-P.CELL_X1 - 5.0) < 1e-9, "DXF CELL_BAY_CAVITY")
     # 3 heights: derived from H_BY_REF (ASSUMED). test_v3 sets J2 to 5.0 and expects this row to FAIL.
     gap, worst = lid_clearance(comps)
-    row("Tallest part to lid underside (derived from assumed heights)", f"{gap:.2f} mm ({worst['ref']}, {worst['h']} ASSUMED)", f">= {P.LID_CLEAR} (+0.7 mm gasket thickness not counted)", gap >= P.LID_CLEAR - 1e-9,
-        "H_BY_REF [ASSUMED]; J2 height needs a datasheet value (Needs Arsany)")
-    # height sourcing: a row per sourced height, so the table shows what is read and what is still assumed
+    wsrc = P.H_SRC.get(worst["ref"], ("ASSUMED", ""))[0]
+    # FAIL if the number is short (mutation test). PASS only if the tallest part is datasheet-sourced; here it is J2 (CONFLICT), so OPEN.
+    row("Tallest part to lid underside (derived from assumed heights)", f"{gap:.2f} mm ({worst['ref']} {worst['h']}, {wsrc})", f">= {P.LID_CLEAR} (+0.7 mm gasket thickness not counted)", gap >= P.LID_CLEAR - 1e-9,
+        "H_BY_REF; J2 height needs a datasheet value (OPEN, A-076)",
+        "OPEN: the number rests on J2 4.5, which is ASSUMED and conflicts with the 5.5 distributor value (row 14)", unsure=wsrc != "DATASHEET")
+    # height sourcing: one row for all heights. Only DATASHEET counts as sourced; SECONDARY, CONFLICT and ASSUMED stay listed and are not PASS.
     srcs = {k: v[0] for k, v in P.H_SRC.items()}
-    row("Heights with a datasheet page in the model", f"{sum(1 for v in srcs.values() if v == 'DATASHEET')} of {len(P.H_BY_REF)} (U1 only)", "every height in the fit check cites a datasheet, else ASSUMED",
-        srcs.get("U1") == "DATASHEET", "params_v3 H_SRC; the other heights are SECONDARY (distributors) or ASSUMED, listed below")
+    n_dc = sum(1 for v in srcs.values() if v == "DATASHEET")
+    n_sec, n_conf, n_ass = (sum(1 for v in srcs.values() if v == s) for s in ("SECONDARY", "CONFLICT", "ASSUMED"))
+    row("Heights with a datasheet page in the model", f"{n_dc} of {len(P.H_BY_REF)} DATASHEET (U1); {n_sec} SECONDARY, {n_conf} CONFLICT, {n_ass} ASSUMED", "every height cites a datasheet; the rest are listed as SECONDARY or ASSUMED",
+        n_dc == len(P.H_BY_REF), "params_v3 H_SRC; a distributor listing is not a datasheet citation (standards s.7)", "OPEN: sourcing is incomplete; see H_SRC for each part", open_=True)
     j2_alt = 5.5
     gap_alt = P.INNER_H - (P.BOARD_Z1 + j2_alt)
     row("J2 at the distributor value 5.5 mm (not used in the model)", f"{gap_alt:.2f} mm to lid underside (needs INNER_H >= {P.BOARD_Z1 + j2_alt + P.LID_CLEAR:.1f})",
@@ -105,6 +115,10 @@ def main(tail=None):
     row("Antenna tip line to cell cavity (my 28.4 method)", f"{d_tip:.1f} mm", ">= 15", d_tip >= 15, "jlc_prep/README s.1 item 2")
     dm = min(B.gap(ant, (x - P.INSERT_HOLE / 2, y - P.INSERT_HOLE / 2, x + P.INSERT_HOLE / 2, y + P.INSERT_HOLE / 2)) for x, y in P.BOSS_XY)
     row("Nearest brass insert to antenna (Q9)", f"{dm:.1f} mm", ">= 15", dm >= 15, "BOSS_XY, insert hole 3.2")
+    # standards s.7: no thick walls over the antenna. The 2.4 mm PETG top wall sits over the module; no RF measurement exists, so this is OPEN, not PASS.
+    row("PETG top wall over the antenna", f"{P.WALL:.2f} mm wall, {P.INNER_Y1 - P.OVERHANG:.1f} mm air to antenna tip (ASSUMED)", "no thick wall over the antenna (standards s.7): RF effect checked",
+        False, "params_v3 WALL, INNER_Y1; standards s.7; P1S/PETG review (Arsany answer 2026-11-10)",
+        "OPEN: effect on the antenna not measured. Options: RF check on a Prototype 1 print, or a thinner wall over the antenna. Decide before the lid is locked", open_=True)
     # 6 walls
     for n, v in [("Side wall (rim land)", P.WALL), ("Tray floor", P.FLOOR), ("Lid under counterbore", P.LID_T - P.WIN_CB_DEPTH), ("USB pocket remaining wall", P.WALL - P.USB_POCKET[2]),
                  ("Light collar wall", (P.COLLAR_OD - P.WIN_D) / 2), ("Vent cup wall", P.CUP_WALL), ("Pinhole tube wall", (P.PIN_TUBE_OD - P.PIN_D) / 2),
@@ -123,7 +137,9 @@ def main(tail=None):
     cgap = min(((P.CELL_Y0 - (y + P.BOSS_D / 2)) if y < P.CELL_Y0 else 99.0) for x, y in P.BOSS_XY if P.CELL_X0 - P.BOSS_D / 2 <= x <= P.CELL_X1 + P.BOSS_D / 2)
     row("Boss below the cell cavity (bottom row, y gap)", f"{cgap:.2f} mm", ">= 0.2 (no overlap; tray vs cell boolean row also checks)", cgap >= 0.2 - 1e-9, "params_v3 BOSS_XY vs CELL_BAY_CAVITY y -42.0")
     row("Lid plate above the film counterbore", f"{P.LID_T - P.WIN_CB_DEPTH:.2f} mm", ">= 1.2", P.LID_T - P.WIN_CB_DEPTH >= 1.2 - 1e-9, "params_v3 LID_T 2.4")
-    row("Screw torque limit (informational, not a fit check)", f"{P.PETG_SCREW_TORQUE_NM} N m", "insert datasheet governs", True, "ASSUMED; torque is for the bench, see README")
+    # the 0.25 N m limit is not sourced (insert datasheet not read): not checked, so OPEN, never PASS
+    row("Screw torque limit", f"{P.PETG_SCREW_TORQUE_NM} N m (ASSUMED)", "insert datasheet governs; bench check", False,
+        "ASSUMED: no insert datasheet read; torque is for the bench, see README", "NOT CHECKED: an assumed torque cannot pass a check", open_=True)
     # 7 build volume
     for n, s in [("tray", tray), ("lid", lid), ("plug", plug)]:
         bb = s.val().BoundingBox()

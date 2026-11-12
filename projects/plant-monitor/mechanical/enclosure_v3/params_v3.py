@@ -34,9 +34,10 @@ assert abs((CELL_X1 - CELL_X0) - CELL_CAV[0]) < 1e-6 and abs((CELL_Y1 - CELL_Y0)
 STANDOFF = 1.0                     # [ASSUMED] board underside above floor (bottom copper is GND only, nothing mounted there)
 BOARD_Z0, BOARD_Z1 = STANDOFF, STANDOFF + BOARD_T
 LID_CLEAR = 0.5                    # [ASSUMED] min air gap tallest part to lid underside
-# Component heights above the board top [ASSUMED: typical values from memory, NOT read in this repo; the board file has no heights].
-# J2 4.5 is ASSUMED and is the tallest part: NO datasheet and no 3D model for S2B-PH-SM4-TB exist in the repo (the footprint
-# points at a KiCad .wrl that is not here). NEEDS ARSANY: a datasheet value for the J2 height (Needs Arsany candidate). Do not replace from memory.
+# Component heights above the board top, mm. Only U1 is read from a datasheet (H_SRC). Every other value is tagged in H_SRC as
+# SECONDARY (distributor listing, PDF not read) or ASSUMED (no source read in this repo or session). None is presented as sourced.
+# J2 4.5 is ASSUMED and is the tallest part; the only sourced value (distributor, 5.5) conflicts with it. No datasheet or 3D model
+# for S2B-PH-SM4-TB is in the repo (the footprint points at a KiCad .wrl that is not here). OPEN, A-076 (Arsany): J2 datasheet height.
 H_BY_REF = {"U1": 2.4, "J1": 3.3, "J2": 4.5, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "U3": 1.75, "U5": 1.0, "U6": 0.75,
             "D1": 1.1, "U2": 1.1, "U4": 1.1, "Q1": 1.1, "U7": 1.1, "D2": 0.8, "D3": 0.8, "E1": 0.04}
 H_DEFAULT = 0.55                   # [ASSUMED] 0603 R/C
@@ -59,7 +60,8 @@ for _r in ("D1", "U2", "U4", "U7", "Q1", "D2", "D3", "E1"):
 # Inner height is a FIXED design value, not derived from H_BY_REF. The fit check row "Tallest part to lid underside" tests the
 # assumed heights against it, so changing an assumed height (e.g. J2) fails the check instead of silently moving the box.
 # Budget at 7.6: standoff 1.0 + board 1.6 + J2 4.5 + air 0.5 = 7.6.
-INNER_H = 7.6
+INNER_H = 7.6                      # model value, NOT LOCKED: it holds only if J2 is <= 4.5 (J2 4.5 is ASSUMED, see H_SRC)
+INNER_H_IF_J2_5_5 = round(STANDOFF + BOARD_T + 5.5 + LID_CLEAR, 1)   # 8.6: inner height the sourced distributor value (5.5) needs (OPEN, A-076)
 # ---- shell ----
 WALL = 2.4                         # rim land for the flat gasket; >= 1.2 rule
 FLOOR = 1.6

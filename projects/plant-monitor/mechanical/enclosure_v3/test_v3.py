@@ -13,22 +13,25 @@ def rows():
     return F.main()
 
 
-EXPECTED_OPEN = ("Board tail in DXF", "J2 at the distributor value 5.5 mm")
+EXPECTED_OPEN = ("Board tail in DXF", "Tallest part to lid underside", "J2 at the distributor value 5.5 mm", "Heights with a datasheet page in the model",
+                 "PETG top wall over the antenna", "Screw torque limit")
 
 
 @pytest.mark.parametrize("tail", ["14", "20"])
 def test_all_fit_checks_pass_for_both_tail_variants(tail):
-    """No FAIL for either variant. The only non-PASS rows are the two OPEN points named in EXPECTED_OPEN (board DXF tail, J2 5.5 mm)."""
+    """No FAIL for either variant. The OPEN rows are exactly EXPECTED_OPEN: board DXF tail (A-071), the J2 height (rows 'Tallest part' and 'J2 5.5', A-076),
+    heights not datasheet-sourced, the PETG wall over the antenna, and the unchecked screw torque. Nothing OPEN is counted as PASS."""
     rows = F.main(tail)
     bad = [r for r in rows if r[3] == "FAIL"]
     assert not bad, bad
     opened = tuple(r[0].split(" (")[0] for r in rows if r[3] == "OPEN")
     assert sorted(opened) == sorted(EXPECTED_OPEN), opened
-    assert sum(r[3] == "PASS" for r in rows) >= 48
+    assert sum(r[3] == "PASS" for r in rows) >= 47
 
 
 def test_inner_size_numbers():
     assert round(P.INNER_X1 - P.INNER_X0, 1) == 93.3 and round(P.INNER_Y1 - P.INNER_Y0, 1) == 52.9 and P.INNER_H == pytest.approx(7.6)
+    assert P.INNER_H_IF_J2_5_5 == pytest.approx(8.6)           # the alternative that the sourced J2 value needs (LOCKED_INTERFACE shows both)
     assert (round(P.OUT_X1 - P.OUT_X0, 1), round(P.OUT_Y1 - P.OUT_Y0, 1)) == (98.1, 57.7)
 
 
