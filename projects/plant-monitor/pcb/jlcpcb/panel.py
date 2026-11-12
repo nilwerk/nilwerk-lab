@@ -17,17 +17,22 @@ PCB = os.path.normpath(os.path.join(HERE, ".."))
 sys.path.insert(0, PCB)
 import check_layout as CL  # noqa: E402  (own reader of the board file, independent of gen_pcb.py)
 
-# --- panel rules (JLC, from the checklist F5/F6 source: https://jlcpcb.com/capabilities/pcb-capabilities, read 2026-11-09) ---
-MIN_PANEL = 70.0            # min panel 70 x 70 mm (V-cut); used as the size floor here too
-RAIL_MIN = 5.0              # SMT tooling edge 5 mm: rail must be >= 5 mm
-BOARD_GAP = 2.0             # mouse-bite panel: 2 mm board spacing
-TOOL_HOLE = 2.0             # tooling hole 2 mm (NPTH)
-TOOL_EDGE = 2.0             # tooling hole centre-to-edge chosen = 2.0 mm from panel edge (edge distance of the hole >= 1 mm + radius)
-FID_DIA = 1.0               # 1 mm fiducial (copper)
-FID_MASK = 2.0              # mask opening 2 mm (2 x copper dia) [mine: JLC default]
-FID_EDGE = 3.85             # fiducial copper edge >= 3.85 mm from panel edge
-COPPER_EDGE = 0.5           # copper to routed edge (same as the board rule)
-RAIL = 6.0                  # [mine] rail width: 5 mm tooling edge, plus fiducial centre at 4.35 mm from the edge and 0.5 mm copper clear of the board
+# --- panel rules. Source: JLCPCB PCB capabilities page, https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-12) ---
+# Quoted from the page: "Mouse bites Panel" 3 (board spacing 1.6 or 2 mm), 5 (min tooling edge width 3 mm; for SMT assembly
+# use 5 mm tooling edges, 2 mm tooling holes, and 1 mm fiducials centered at 3.85 mm from the panel edges), and
+# "V-Cut" 4 (min. panel dimensions 70 x 70 mm: this figure is stated for V-cut panels only).
+N_BOARDS = 2                # boards per panel (this panel: 2 copies of the outline)
+MIN_PANEL = 70.0            # [mine] conservative size floor: the 70 x 70 mm figure is the V-cut minimum, not a mouse-bite one
+RAIL_MIN = 5.0              # SMT tooling edge 5 mm (JLC SMT figure): rail must be >= 5 mm
+BOARD_GAP = 2.0             # board spacing 2 mm (JLC: 1.6 or 2 mm)
+TOOL_HOLE = 2.0             # tooling hole diameter 2 mm, NPTH (JLC SMT figure)
+TOOL_CENTRE = 3.0           # [mine, UNVERIFIED] tooling hole centre 3.0 mm from the panel edge: the page gives the diameter, not the position
+                            # (hole edge 2.0 mm from the panel edge; checks require >= 1 mm)
+FID_DIA = 1.0               # 1 mm fiducial, copper (JLC SMT figure)
+FID_CENTRE = 3.85           # fiducial CENTRE 3.85 mm from the panel edge (JLC SMT figure); copper edge is 3.35 mm from the edge
+FID_MASK = 2.0              # [mine, UNVERIFIED] mask opening 2 mm (2 x copper dia): not on the JLC page
+COPPER_EDGE = 0.5           # [mine] fiducial copper to routed board edge: same 0.5 mm as check_layout's board-edge rule (JLC minimum 0.2 mm)
+RAIL = 6.0                  # [mine] rail width: >= 5 mm SMT tooling edge; holds the tooling holes and fiducials
 
 def board():
     B = CL.load()
@@ -37,14 +42,13 @@ def board():
 
 def layout():
     b = board()
-    n = 2
+    n = N_BOARDS
     W = n * b["w"] + (n - 1) * BOARD_GAP + 2 * RAIL
     H = b["h"] + 2 * RAIL
     offs = [(RAIL + i * (b["w"] + BOARD_GAP), RAIL) for i in range(n)]
     # tooling holes: left and right rail, middle height (diagonal pair would also do; the pair on one axis is simpler to check)
-    tools = [(TOOL_EDGE + 1.0, H / 2), (W - TOOL_EDGE - 1.0, H / 2)]
-    fids = [(FID_EDGE + FID_DIA / 2, FID_EDGE + FID_DIA / 2), (W - FID_EDGE - FID_DIA / 2, FID_EDGE + FID_DIA / 2),
-            (FID_EDGE + FID_DIA / 2, H - FID_EDGE - FID_DIA / 2)]
+    tools = [(TOOL_CENTRE, H / 2), (W - TOOL_CENTRE, H / 2)]
+    fids = [(FID_CENTRE, FID_CENTRE), (W - FID_CENTRE, FID_CENTRE), (FID_CENTRE, H - FID_CENTRE)]
     return dict(b=b, W=W, H=H, offs=offs, tools=tools, fids=fids)
 
 def checks(L=None):
@@ -64,9 +68,9 @@ def checks(L=None):
     th_ok = all(min(x, W - x, y, H - y) - TOOL_HOLE / 2 >= 1.0 for x, y in L["tools"]) and all(
         not (ox - 0.5 < x < ox + b["w"] + 0.5 and oy - 0.5 < y < oy + b["h"] + 0.5) for x, y in L["tools"] for ox, oy in offs)
     ck(th_ok, f"{len(L['tools'])} tooling holes {TOOL_HOLE:.1f} mm NPTH in the rails, edge distance >= 1 mm, 0.5 mm clear of boards")
-    # fiducials: 1 mm copper, centre 4.35 mm from panel edge, copper clear of board >= 0.5 mm
-    fe = [min(x, W - x, y, H - y) - FID_DIA / 2 for x, y in L["fids"]]
-    ck(all(abs(e - FID_EDGE) < 1e-9 for e in fe), f"{len(L['fids'])} fiducials, copper edge {FID_EDGE} mm from the panel edge (JLC)")
+    # fiducials: 1 mm copper, CENTRE 3.85 mm from the panel edge (JLC SMT figure), copper clear of board >= 0.5 mm
+    fe = [min(x, W - x, y, H - y) for x, y in L["fids"]]
+    ck(all(abs(e - FID_CENTRE) < 1e-9 for e in fe), f"{len(L['fids'])} fiducials, centre {FID_CENTRE} mm from the panel edge (JLC SMT rule), copper edge {FID_CENTRE - FID_DIA / 2:.2f} mm")
     fc = []
     for x, y in L["fids"]:
         for ox, oy in offs:
