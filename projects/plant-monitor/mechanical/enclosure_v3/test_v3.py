@@ -14,19 +14,24 @@ def rows():
 
 
 EXPECTED_OPEN = ("Board tail in DXF", "Tallest part to lid underside", "J2 at the distributor value 5.5 mm", "Heights with a datasheet page in the model",
-                 "PETG top wall over the antenna", "Screw torque limit")
+                 "PETG top wall over the antenna", "Screw torque limit",
+                 # fix round 2 (Ines, Theo, Arsany rule: a pass against an ASSUMED value is not a pass)
+                 "Antenna tip to top wall", "Interference lid vs board+parts", "PETG min feature: vent slot width", "PETG min feature: pinhole d",
+                 "PETG min feature: light window d", "PETG min feature: lid screw clearance hole", "PETG min feature: plug wall",
+                 "Seal tunnel clearance per side", "Model heights equal their cited source")
 
 
 @pytest.mark.parametrize("tail", ["14", "20"])
 def test_all_fit_checks_pass_for_both_tail_variants(tail):
-    """No FAIL for either variant. The OPEN rows are exactly EXPECTED_OPEN: board DXF tail (A-071), the J2 height (rows 'Tallest part' and 'J2 5.5', A-076),
-    heights not datasheet-sourced, the PETG wall over the antenna, and the unchecked screw torque. Nothing OPEN is counted as PASS."""
+    """No FAIL for either variant. The OPEN rows are exactly EXPECTED_OPEN (15): the board DXF tail (A-071), the J2 height (A-076, rows 'Tallest part',
+    'J2 5.5', 'Interference lid'), heights not datasheet-sourced, the PETG wall over the antenna, the unchecked torque, and every pass that rests on an
+    ASSUMED threshold (antenna air, PETG feature floor, seal clearance). Nothing OPEN is counted as PASS."""
     rows = F.main(tail)
     bad = [r for r in rows if r[3] == "FAIL"]
     assert not bad, bad
     opened = tuple(r[0].split(" (")[0] for r in rows if r[3] == "OPEN")
     assert sorted(opened) == sorted(EXPECTED_OPEN), opened
-    assert sum(r[3] == "PASS" for r in rows) >= 47
+    assert sum(r[3] == "PASS" for r in rows) == 39
 
 
 def test_inner_size_numbers():
@@ -149,3 +154,56 @@ def test_locked_interface_file_is_current():
 
 def test_electrode_span_from_board():
     assert BF.facts()["copper_end"] == pytest.approx(-63.0, abs=1e-6) and BF.facts()["tail_end"] == pytest.approx(-67.0, abs=1e-6)
+
+
+# ---- fix round 2 (Ines, Theo): one mutation test per SOURCED value. A changed value must make the fit check FAIL or the locked-interface file stale.
+def _fit_fails(rows):
+    return [r[0] for r in rows if r[3] == "FAIL"]
+
+
+def _locked_stale():
+    import locked_interface as LI
+    return LI.OUT.read_text(encoding="utf-8") != LI.text()
+
+
+@pytest.mark.parametrize("ref,new", [("U1", 3.4), ("U5", 2.0), ("U6", 1.75), ("SW1", 2.5), ("SW2", 2.5), ("SW3", 2.5)])
+def test_sourced_height_mutation_fails(monkeypatch, ref, new):
+    """Sourced heights (U1 DATASHEET 2.4; U5, U6, SW1-3 SECONDARY). U1 2.4 -> 3.4 is the Ines case: it is not in the locked file, so the
+    cited-source row (54) must be the one that FAILS."""
+    monkeypatch.setitem(P.H_BY_REF, ref, new)
+    fails = _fit_fails(F.main())
+    assert any(n.startswith("Model heights equal their cited source") for n in fails) or _locked_stale(), fails
+    if ref == "U1":
+        assert any(n.startswith("Model heights equal their cited source") for n in fails), fails
+
+
+def test_sourced_j2_5_5_mutation_fails_lid_interference(monkeypatch):
+    """Sourced J2 value 5.5 (distributor, CONFLICT): the lid must overlap the tallest part, so the interference row FAILS (not only the clearance row)."""
+    monkeypatch.setitem(P.H_BY_REF, "J2", 5.5)
+    fails = _fit_fails(F.main())
+    assert "Interference lid vs board+parts" in fails and any(n.startswith("Tallest part to lid underside") for n in fails), fails
+
+
+def test_sourced_overhang_mutation_fails(monkeypatch):
+    """DXF antenna overhang (4.5, read from the PCB file): +1.0 mm leaves no air above the antenna."""
+    monkeypatch.setattr(P, "OVERHANG", P.OVERHANG + 1.0)
+    assert "Antenna tip to top wall" in [n.split(" (")[0] for n in _fit_fails(F.main())]
+
+
+def test_sourced_cell_cavity_mutation_fails(monkeypatch):
+    """Cell bay cavity (bay.dims A_eemb603449, 53.0 x 35.1 x 7.2): +1.0 mm in X must fail the cell row."""
+    monkeypatch.setattr(P, "CELL_CAV", (P.CELL_CAV[0] + 1.0, P.CELL_CAV[1], P.CELL_CAV[2]))
+    assert any(n.startswith("Cell cavity (X x Y)") for n in _fit_fails(F.main()))
+
+
+def test_sourced_board_width_mutation_fails_locked_file(monkeypatch):
+    """Board outline from the PCB file (DXF body width 34.5): +1.0 mm must make LOCKED_INTERFACE.md stale (the fit check reads the board copy at import)."""
+    import board_facts as BF
+    real = BF.facts
+
+    def mutated():
+        d = dict(real())
+        d["board_w"] = d["board_w"] + 1.0
+        return d
+    monkeypatch.setattr(BF, "facts", mutated)
+    assert _locked_stale()

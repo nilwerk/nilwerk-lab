@@ -35,7 +35,7 @@ STANDOFF = 1.0                     # [ASSUMED] board underside above floor (bott
 BOARD_Z0, BOARD_Z1 = STANDOFF, STANDOFF + BOARD_T
 LID_CLEAR = 0.5                    # [ASSUMED] min air gap tallest part to lid underside
 # Component heights above the board top, mm. Only U1 is read from a datasheet (H_SRC). Every other value is tagged in H_SRC as
-# SECONDARY (distributor listing, PDF not read) or ASSUMED (no source read in this repo or session). None is presented as sourced.
+# SECONDARY (distributor listing, PDF not read), CONFLICT (J2: model 4.5, distributor 5.5) or ASSUMED (no source read). None is presented as sourced.
 # J2 4.5 is ASSUMED and is the tallest part; the only sourced value (distributor, 5.5) conflicts with it. No datasheet or 3D model
 # for S2B-PH-SM4-TB is in the repo (the footprint points at a KiCad .wrl that is not here). OPEN, A-076 (Arsany): J2 datasheet height.
 H_BY_REF = {"U1": 2.4, "J1": 3.3, "J2": 4.5, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "U3": 1.75, "U5": 1.0, "U6": 0.75,
@@ -57,6 +57,9 @@ H_SRC = {
 }
 for _r in ("D1", "U2", "U4", "U7", "Q1", "D2", "D3", "E1"):
     H_SRC.setdefault(_r, ("ASSUMED", "not read in this session (package class value kept)"))
+# The number each cited source states, for every part whose height cites a source (DATASHEET or SECONDARY). The fit check (row 54)
+# fails if H_BY_REF differs from it, so a changed sourced height cannot slip through without a new citation.
+H_CITED = {"U1": 2.4, "U5": 1.0, "U6": 0.75, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5}
 # Inner height is a FIXED design value, not derived from H_BY_REF. The fit check row "Tallest part to lid underside" tests the
 # assumed heights against it, so changing an assumed height (e.g. J2) fails the check instead of silently moving the box.
 # Budget at 7.6: standoff 1.0 + board 1.6 + J2 4.5 + air 0.5 = 7.6.

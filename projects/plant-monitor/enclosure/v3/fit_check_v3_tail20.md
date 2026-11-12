@@ -6,7 +6,7 @@ Tail variant: 20 mm (A-071 open)
 | 2 | Board tail in DXF (input/) matches the variant | DXF 25.00 mm vs variant 31.80 mm (+6.80) | = variant tail | **OPEN** | board DXF = #73; a longer tail for the 20 mm variant is a board outline change for Emil (not in repo) (OPEN: board outline change needed for this variant, Arsany A-071 decides) |
 | 3 | Interference tail (20 variant) vs tray and seal plug | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect: tail solid vs tray and tail_plug |
 | 4 | Right-most part (J1 shell) to right wall (X) | 0.30 mm (board edge 0.80) | >= 0.30 (FDM + PCB +-0.2) | **PASS** | params_v3 INNER_X1, DXF outline |
-| 5 | Antenna tip to top wall (Y) | 1.00 mm | >= 1.0 [ASSUMED] | **PASS** | DXF MODULE_U1 (overhang derived by Emil); Q10 detuning open |
+| 5 | Antenna tip to top wall (Y) | 1.00 mm | >= 1.0 [ASSUMED] | **OPEN** | DXF MODULE_U1 (overhang derived by Emil); Q10 detuning open (OPEN: the 1.0 mm threshold is ASSUMED, so a pass against it is not a pass (Arsany rule)) |
 | 6 | Tail width vs tunnel (per side) | 0.30 mm | >= 0.30 | **PASS** | DXF tail 12.0; JLC outline +-0.2 (layout-brief s.5) |
 | 7 | Tail thickness vs tunnel height (per side) | 0.30 mm | >= 0.15 (JLC 1.6 +-10 % = 0.16) | **PASS** | layout-brief s.5 thickness tolerance |
 | 8 | Cell cavity (X x Y) inside the inner box | 53.0 x 35.1 | = bay.dims A_eemb603449 (53.0 x 35.1) | **PASS** | pcb-enclosure-bay.md; bay.py |
@@ -16,7 +16,7 @@ Tail variant: 20 mm (A-071 open)
 | 12 | Tallest part to lid underside (derived from assumed heights) | 0.50 mm (J2 4.5, CONFLICT) | >= 0.5 (+0.7 mm gasket thickness not counted) | **OPEN** | H_BY_REF; J2 height needs a datasheet value (OPEN, A-076) (OPEN: the number rests on J2 4.5, which is ASSUMED and conflicts with the 5.5 distributor value (row 14)) |
 | 13 | Heights with a datasheet page in the model | 1 of 17 DATASHEET (U1); 5 SECONDARY, 1 CONFLICT, 10 ASSUMED | every height cites a datasheet; the rest are listed as SECONDARY or ASSUMED | **OPEN** | params_v3 H_SRC; a distributor listing is not a datasheet citation (standards s.7) (OPEN: sourcing is incomplete; see H_SRC for each part) |
 | 14 | J2 at the distributor value 5.5 mm (not used in the model) | -0.50 mm to lid underside (needs INNER_H >= 8.6) | >= 0.5 | **OPEN** | JLCPCB Z-height 5.5 mm and elecfans JST drawing (secondary); JST PDF not readable (OPEN: model keeps 4.5 ASSUMED. If the datasheet says 5.5, INNER_H grows by 1.0 mm (box 98.1 x 57.7 x 12.6). Arsany/Emil decide) |
-| 15 | Interference lid vs board+parts | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect of the CadQuery solids |
+| 15 | Interference lid vs board+parts | 0.000 mm3 | 0 (contact allowed) | **OPEN** | boolean intersect of the CadQuery solids (OPEN: evaluated at the model height of J2 (4.5, CONFLICT); the sourced 5.5 is tested by the mutation test) |
 | 16 | Interference tray vs board+parts | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect of the CadQuery solids |
 | 17 | Interference plug vs board+parts | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect of the CadQuery solids |
 | 18 | Interference tray vs cell | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect of the CadQuery solids |
@@ -34,12 +34,12 @@ Tail variant: 20 mm (A-071 open)
 | 30 | Wall: Vent cup wall | 1.20 mm | >= 1.2 (role rule) | **PASS** | params_v3 |
 | 31 | Wall: Pinhole tube wall | 1.20 mm | >= 1.2 (role rule) | **PASS** | params_v3 |
 | 32 | Wall: Boss wall around insert | 1.60 mm | >= 1.2 (role rule) | **PASS** | params_v3 |
-| 33 | PETG min feature: vent slot width | 1.00 mm | >= 0.8 (2 lines) | **PASS** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] |
-| 34 | PETG min feature: pinhole d | 1.80 mm | >= 0.8 (2 lines) | **PASS** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] |
-| 35 | PETG min feature: light window d | 3.60 mm | >= 0.8 (2 lines) | **PASS** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] |
-| 36 | PETG min feature: lid screw clearance hole | 2.40 mm | >= 0.8 (2 lines) | **PASS** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] |
-| 37 | PETG min feature: plug wall (tail tunnel) | 2.40 mm | >= 0.8 (2 lines) | **PASS** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] |
-| 38 | Seal tunnel clearance per side (thickness) | 0.30 mm | >= 0.30 (PETG/FDM; sealant fills the rest) | **PASS** | params_v3 TUNNEL_H 2.2 [ASSUMED 0.3] |
+| 33 | PETG min feature: vent slot width | 1.00 mm | >= 0.8 (2 lines) | **OPEN** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] (OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass) |
+| 34 | PETG min feature: pinhole d | 1.80 mm | >= 0.8 (2 lines) | **OPEN** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] (OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass) |
+| 35 | PETG min feature: light window d | 3.60 mm | >= 0.8 (2 lines) | **OPEN** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] (OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass) |
+| 36 | PETG min feature: lid screw clearance hole | 2.40 mm | >= 0.8 (2 lines) | **OPEN** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] (OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass) |
+| 37 | PETG min feature: plug wall (tail tunnel) | 2.40 mm | >= 0.8 (2 lines) | **OPEN** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] (OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass) |
+| 38 | Seal tunnel clearance per side (thickness) | 0.30 mm | >= 0.30 (PETG/FDM; sealant fills the rest) | **OPEN** | params_v3 TUNNEL_H 2.2 [ASSUMED 0.3] (OPEN: the 0.3 mm clearance is ASSUMED, so a pass against it is not a pass) |
 | 39 | Seal tunnel clearance per side (width) | 0.30 mm | >= 0.30 | **PASS** | params_v3 TUNNEL_W 12.6 |
 | 40 | PETG insert boss wall (round the 3.2 hole) | 1.60 mm | >= 1.6 (PETG target; floor 1.2) | **PASS** | params_v3 BOSS_D 6.4; insert datasheet still to check |
 | 41 | Boss to outside surface (skin) | 1.20 mm | >= 1.2 | **PASS** | params_v3 BOSS_XY, OUT_Y0/OUT_Y1 |
@@ -55,5 +55,6 @@ Tail variant: 20 mm (A-071 open)
 | 51 | Max bridge/overhang span, print orientation: lid | 6.4 mm (252 faces) | <= 10 mm (P1S bridges; no steep overhangs) | **PASS** | trimesh, faces with normal z < -0.7 above the bed (USB window top 9.6; lid counterbore 6.4) |
 | 52 | STL watertight: plug | True | True | **PASS** | trimesh |
 | 53 | Max bridge/overhang span, print orientation: plug | 0.0 mm (0 faces) | <= 10 mm (P1S bridges; no steep overhangs) | **PASS** | trimesh, faces with normal z < -0.7 above the bed |
+| 54 | Model heights equal their cited source (6 parts) | 6 of 6 equal | model value = cited value for every part | **OPEN** | params_v3 H_CITED vs H_BY_REF; standards s.7 (never invent a component dimension) (OPEN: U5, U6, SW1-3 cite distributor listings (SECONDARY), the PDFs were not read) |
 
-47 PASS, 0 FAIL, 6 OPEN (tail 20 mm variant)
+39 PASS, 0 FAIL, 15 OPEN (tail 20 mm variant)

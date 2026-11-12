@@ -74,7 +74,8 @@ def main(tail=None):
     # 1 board inside the inner box
     mx = max(c["box"][2] for c in comps.values())
     row("Right-most part (J1 shell) to right wall (X)", f"{P.INNER_X1 - mx:.2f} mm (board edge {P.INNER_X1 - P.BOARD_W:.2f})", ">= 0.30 (FDM + PCB +-0.2)", P.INNER_X1 - mx >= 0.3 - 1e-9, "params_v3 INNER_X1, DXF outline")
-    row("Antenna tip to top wall (Y)", f"{P.INNER_Y1 - P.OVERHANG:.2f} mm", ">= 1.0 [ASSUMED]", P.INNER_Y1 - P.OVERHANG >= 1.0 - 1e-9, "DXF MODULE_U1 (overhang derived by Emil); Q10 detuning open")
+    row("Antenna tip to top wall (Y)", f"{P.INNER_Y1 - P.OVERHANG:.2f} mm", ">= 1.0 [ASSUMED]", P.INNER_Y1 - P.OVERHANG >= 1.0 - 1e-9, "DXF MODULE_U1 (overhang derived by Emil); Q10 detuning open",
+        "OPEN: the 1.0 mm threshold is ASSUMED, so a pass against it is not a pass (Arsany rule)", unsure=True)
     row("Tail width vs tunnel (per side)", f"{(P.TUNNEL_W - P.TAIL_W) / 2:.2f} mm", ">= 0.30", (P.TUNNEL_W - P.TAIL_W) / 2 >= 0.3 - 1e-9, "DXF tail 12.0; JLC outline +-0.2 (layout-brief s.5)")
     row("Tail thickness vs tunnel height (per side)", f"{(P.TUNNEL_H - P.BOARD_T) / 2:.2f} mm", ">= 0.15 (JLC 1.6 +-10 % = 0.16)", (P.TUNNEL_H - P.BOARD_T) / 2 >= 0.15 - 1e-9, "layout-brief s.5 thickness tolerance")
     # 2 cell
@@ -105,7 +106,10 @@ def main(tail=None):
     ov = {n: vol_overlap(a, b) for n, a, b in [("lid vs board+parts", lid, board), ("tray vs board+parts", tray, board), ("plug vs board+parts", plug, board),
                                               ("tray vs cell", tray, cell), ("lid vs cell", lid, cell), ("plug vs tray", plug, tray)]}
     for n, v in ov.items():
-        row(f"Interference {n}", f"{v:.3f} mm3", "0 (contact allowed)", v < 1e-3, "boolean intersect of the CadQuery solids")
+        lid_row = n == "lid vs board+parts"      # the lid clears the tallest part, so this depends on the J2 height (ASSUMED 4.5)
+        row(f"Interference {n}", f"{v:.3f} mm3", "0 (contact allowed)", v < 1e-3, "boolean intersect of the CadQuery solids",
+            f"OPEN: evaluated at the model height of {worst['ref']} ({worst['h']}, {wsrc}); the sourced 5.5 is tested by the mutation test" if lid_row else "",
+            unsure=lid_row and wsrc != "DATASHEET")
     # 5 antenna
     ant = (P.MODULE_X0, 0.0, P.MODULE_X1, P.OVERHANG)
     cell_rect = (P.CELL_X0, P.CELL_Y0, P.CELL_X1, P.CELL_Y1)
@@ -128,8 +132,10 @@ def main(tail=None):
     feats = {"vent slot width": P.VENT_W, "pinhole d": P.PIN_D, "light window d": P.WIN_D, "lid screw clearance hole": P.SCREW_D,
              "plug wall (tail tunnel)": P.PLUG_T}
     for n, v in feats.items():
-        row(f"PETG min feature: {n}", f"{v:.2f} mm", f">= {P.PETG_MIN_FEATURE} (2 lines)", v >= P.PETG_MIN_FEATURE - 1e-9, "params_v3 PETG_MIN_FEATURE [ASSUMED 0.8]")
-    row("Seal tunnel clearance per side (thickness)", f"{(P.TUNNEL_H - P.BOARD_T) / 2:.2f} mm", ">= 0.30 (PETG/FDM; sealant fills the rest)", (P.TUNNEL_H - P.BOARD_T) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_H 2.2 [ASSUMED 0.3]")
+        row(f"PETG min feature: {n}", f"{v:.2f} mm", f">= {P.PETG_MIN_FEATURE} (2 lines)", v >= P.PETG_MIN_FEATURE - 1e-9, "params_v3 PETG_MIN_FEATURE [ASSUMED 0.8]",
+            "OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass", unsure=True)
+    row("Seal tunnel clearance per side (thickness)", f"{(P.TUNNEL_H - P.BOARD_T) / 2:.2f} mm", ">= 0.30 (PETG/FDM; sealant fills the rest)", (P.TUNNEL_H - P.BOARD_T) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_H 2.2 [ASSUMED 0.3]",
+        "OPEN: the 0.3 mm clearance is ASSUMED, so a pass against it is not a pass", unsure=True)
     row("Seal tunnel clearance per side (width)", f"{(P.TUNNEL_W - P.TAIL_W) / 2:.2f} mm", ">= 0.30", (P.TUNNEL_W - P.TAIL_W) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_W 12.6")
     row("PETG insert boss wall (round the 3.2 hole)", f"{(P.BOSS_D - P.INSERT_HOLE) / 2:.2f} mm", f">= {P.PETG_BOSS_WALL} (PETG target; floor 1.2)", (P.BOSS_D - P.INSERT_HOLE) / 2 >= P.PETG_BOSS_WALL - 1e-9, "params_v3 BOSS_D 6.4; insert datasheet still to check")
     skin = min(min((y - P.OUT_Y0) - P.BOSS_D / 2, (P.OUT_Y1 - y) - P.BOSS_D / 2) for _, y in P.BOSS_XY)
@@ -157,6 +163,12 @@ def main(tail=None):
         span, nf = downward_bridges(m, m.bounds[0][2])
         row(f"Max bridge/overhang span, print orientation: {n}", f"{span:.1f} mm ({nf} faces)", "<= 10 mm (P1S bridges; no steep overhangs)", span <= 10.0, "trimesh, faces with normal z < -0.7 above the bed",
             "USB window top 9.6; lid counterbore 6.4" if n != "plug" else "")
+    # 9 sourced heights: each model height must equal the number its cited source states (params_v3 H_CITED). A changed sourced height
+    # FAILS here until its citation is changed too. Distributor values (SECONDARY) are not PDF-checked, so the row stays OPEN.
+    mism = {k: (P.H_BY_REF[k], v) for k, v in P.H_CITED.items() if abs(P.H_BY_REF[k] - v) > 1e-9}
+    row(f"Model heights equal their cited source ({len(P.H_CITED)} parts)", f"{len(P.H_CITED) - len(mism)} of {len(P.H_CITED)} equal" + (f"; MISMATCH {mism}" if mism else ""),
+        "model value = cited value for every part", not mism, "params_v3 H_CITED vs H_BY_REF; standards s.7 (never invent a component dimension)",
+        "OPEN: U5, U6, SW1-3 cite distributor listings (SECONDARY), the PDFs were not read", unsure=any(P.H_SRC[k][0] != "DATASHEET" for k in P.H_CITED))
     return list(ROWS)
 
 
