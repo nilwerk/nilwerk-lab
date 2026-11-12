@@ -184,7 +184,7 @@ if __name__ == "__main__":
     write(L)
     for ok, msg in res:
         print(("PASS  " if ok else "FAIL  ") + msg)
-    print(f"panel {L['W']:.1f} x {L['H']:.1f} mm, 2 boards {L['b']['w']:.2f} x {L['b']['h']:.2f} mm each (outline unchanged), wrote panel/panel.dxf")
+    print(f"panel {L['W']:.1f} x {L['H']:.1f} mm, 2 boards {L['b']['w']:.2f} x {L['b']['h']:.2f} mm each (outline from the board file, tail 25.8 mm per A-071), wrote panel/panel.dxf")
     print(f"tabs {len(L['tabs'])} ({len(L['tabs']) // N_BOARDS} per board), mouse-bite holes {len(L['holes'])}")
     print("RESULT: panel checks PASS" if all(o for o, _ in res) else "RESULT: panel checks FAIL")
     sys.exit(0 if all(o for o, _ in res) else 1)
