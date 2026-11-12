@@ -4,4 +4,4 @@
 
 - Task: PR-2026-11-10 · Persona: Poppy (PR & Social) · Files: `showcase/content/2026-11-10/catches/` (`posts.md`, `claim-check.md`, `images/`, `build_images.py`)
 - Agent minutes: see the Agent Log · Agent's own human-hour estimate: 2 h (estimated)
-- Unverified: draft only, nothing scheduled or published; German not yet checked by Theo/Nora; technical rows not yet checked by Theo; the enclosure fix has not been re-run by QA (the figures are the author's run plus green CI); all counts "as of 10 Nov 2026, 08:40 Berlin", recount on posting day; the "about 100 agent minutes" tile is the lead's rough figure, not yet in the Agent Log.
+- Unverified: draft only, nothing scheduled or published; German not yet checked by Theo/Nora; technical rows not yet checked by Theo; QA re-ran the fix round at b98bd69 on 11 Nov (PASS WITH NOTES, PR #79); all counts "as of 10 Nov 2026, 10:45 Berlin", recount on posting day (16 Nov); #74 is at e401390 now; the unlogged "about 100 agent minutes" figure was cut.

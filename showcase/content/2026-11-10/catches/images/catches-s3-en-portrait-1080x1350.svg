@@ -8,22 +8,21 @@
 <text x="72" y="338" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2.2" fill="#15181d">Fixed, and it</text>
 <text x="72" y="420" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2.2" fill="#15181d">cannot drift</text>
 <text x="72" y="502" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2.2" fill="#0f7a5c">again.</text>
-<text x="72" y="630" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">The check reads the board file now. A new test fails if the</text>
-<text x="72" y="669" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">stored board copy drifts from the design (checked on</text>
-<text x="72" y="708" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">purpose). The re-run also found a real clash between the</text>
-<text x="72" y="747" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">printed tray and the J1 USB-C shell. Fixed in the code; QA&#x27;s</text>
-<text x="72" y="786" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">re-run is next.</text>
-<rect x="72" y="851" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
-<rect x="72" y="851" width="460" height="10" rx="5" fill="#0f7a5c"/>
-<text x="302" y="943" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">1 FAIL</text>
-<text x="302" y="983" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">QA, head a405f53 (older)</text>
-<rect x="548" y="851" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
-<rect x="548" y="851" width="460" height="10" rx="5" fill="#0f7a5c"/>
-<text x="778" y="943" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">0 FAIL</text>
-<text x="778" y="983" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">author&#x27;s run, fixed head b98bd69</text>
-<rect x="72" y="1079" width="430" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1107" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">CALCULATED · QA RE-RUN PENDING</text>
+<text x="72" y="630" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">The check reads the board file now; a new test catches any</text>
+<text x="72" y="669" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">drift (checked on purpose). The re-run also found a clash</text>
+<text x="72" y="708" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">(0.686 mm³) with a candidate part: the J1 USB-C shell. QA</text>
+<text x="72" y="747" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">re-ran the fix on 11 Nov: PASS WITH NOTES.</text>
+<rect x="72" y="812" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="72" y="812" width="460" height="10" rx="5" fill="#0f7a5c"/>
+<text x="302" y="904" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">1 FAIL</text>
+<text x="302" y="944" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">QA, head a405f53, #73 board</text>
+<rect x="548" y="812" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
+<rect x="548" y="812" width="460" height="10" rx="5" fill="#0f7a5c"/>
+<text x="778" y="904" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">0 FAIL</text>
+<text x="778" y="944" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">author&#x27;s run, fixed head b98bd69</text>
+<rect x="72" y="1040" width="417" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1068" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">CALCULATED · QA RE-RUN 11 NOV</text>
 <text x="72" y="1182" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FOR ENGINEERS</text>
 <text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Overhang, module position, cell cavity read from the board file; drift test</text>
-<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">(negative run). Clash 0.686 mm3 on a405f53. 35 PASS / 0 FAIL, 8 tests on</text>
-<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">b98bd69: author&#x27;s run; QA re-run pending.</text>
+<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">(negative run). Clash 0.686 mm3 on a405f53 (QA, #73 board). 35 PASS / 0 FAIL,</text>
+<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">8 tests on b98bd69: author&#x27;s run, re-run by QA on 11 Nov (PASS WITH NOTES).</text>
 <line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">AI agents, led and reviewed by humans</text></svg>

@@ -8,22 +8,22 @@
 <text x="72" y="338" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#15181d">Behoben, und es</text>
 <text x="72" y="414" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#15181d">driftet nicht</text>
 <text x="72" y="490" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="70" letter-spacing="-2.2" fill="#0f7a5c">mehr weg.</text>
-<text x="72" y="612" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">Die Prüfung liest jetzt die Platinendatei. Ein neuer Test</text>
-<text x="72" y="651" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">schlägt fehl, wenn die gespeicherte Platinenkopie vom Entwurf</text>
-<text x="72" y="690" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">abweicht (absichtlich geprüft). Der Lauf fand außerdem eine</text>
-<text x="72" y="729" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">Kollision zwischen Gehäuse und USB-C-Schale von J1. Im Code</text>
-<text x="72" y="768" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">behoben; QA-Nachlauf folgt.</text>
+<text x="72" y="612" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">Die Prüfung liest jetzt die Platinendatei; ein neuer Test</text>
+<text x="72" y="651" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">fängt Abweichungen ab (absichtlich geprüft). Der Lauf fand</text>
+<text x="72" y="690" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">außerdem eine Kollision (0,686 mm³) mit einem Kandidaten: der</text>
+<text x="72" y="729" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">USB-C-Schale von J1. QA hat am 11. Nov. nachgeprüft:</text>
+<text x="72" y="768" font-family="Inter, sans-serif" font-weight="400" font-size="28" fill="#15181d">BESTANDEN MIT HINWEISEN.</text>
 <rect x="72" y="833" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
 <rect x="72" y="833" width="460" height="10" rx="5" fill="#0f7a5c"/>
 <text x="302" y="925" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">1 FAIL</text>
-<text x="302" y="965" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">QA, Stand a405f53 (älter)</text>
+<text x="302" y="965" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">QA, Stand a405f53, Platine #73</text>
 <rect x="548" y="833" width="460" height="206" rx="18" fill="#ffffff" stroke="#e2ded5" stroke-width="2"/>
 <rect x="548" y="833" width="460" height="10" rx="5" fill="#0f7a5c"/>
 <text x="778" y="925" font-family="'Space Grotesk', Inter, sans-serif" font-weight="700" font-size="76" letter-spacing="-2" text-anchor="middle" fill="#15181d">0 FAIL</text>
 <text x="778" y="965" font-family="Inter, sans-serif" font-weight="400" font-size="22" text-anchor="middle" fill="#5b616b">Lauf des Autors, Stand b98bd69</text>
-<rect x="72" y="1061" width="417" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1089" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">BERECHNET · QA-NACHLAUF OFFEN</text>
+<rect x="72" y="1061" width="495" height="44" rx="8" fill="none" stroke="#b4541a" stroke-width="2"/><text x="92" y="1089" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.0" fill="#b4541a">BERECHNET · QA-NACHPRÜFUNG 11. NOV.</text>
 <text x="72" y="1182" font-family="'JetBrains Mono', monospace" font-weight="600" font-size="20" letter-spacing="1.5" fill="#0f7a5c">FÜR INGENIEURE</text>
-<text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Überstand, Modulposition und Akkufach aus der Platinendatei; Drift-Test per</text>
-<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Negativlauf (Autor). Kollision 0,686 mm³ auf a405f53. 35 PASS / 0 FAIL, 8</text>
-<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Tests auf b98bd69: Lauf des Autors, QA-Nachlauf offen.</text>
+<text x="72" y="1210" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">Überstand, Modulposition, Akkufach aus der Platinendatei; Drift-Test</text>
+<text x="72" y="1234" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">(Negativlauf). Kollision 0,686 mm³ auf a405f53 (QA, Platine #73). 35 PASS / 0</text>
+<text x="72" y="1258" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="20" fill="#5b616b">FAIL, 8 Tests auf b98bd69 (Autor); QA 11. Nov.: BESTANDEN MIT HINWEISEN.</text>
 <line x1="72" y1="1278" x2="1008" y2="1278" stroke="#e2ded5" stroke-width="2"/><text x="72" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" fill="#5b616b">@nilwerk · nilwerk.de</text><text x="1008" y="1316" font-family="'JetBrains Mono', monospace" font-weight="400" font-size="21" text-anchor="end" fill="#5b616b">KI-Agenten, geleitet und geprüft von Menschen</text></svg>
