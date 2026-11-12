@@ -10,9 +10,10 @@
 #include "nw_prov_proto.h"
 
 /* ---- limits (ble-provisioning.md section 1) ----
- * Traceability: the 5 attempts and 5 minutes come from ADR-011 (status Proposed). They are not NFR-03, which is the 3-minute setup budget. */
-#define NW_PROV_MAX_FAILED_HANDSHAKES 5      /* ADR-011 (Proposed): "5 failed handshakes ... ends setup mode" */
-#define NW_PROV_SETUP_TIMEOUT_MS (5u * 60u * 1000u) /* ADR-011 (Proposed): "5 minutes without completion ends setup mode" */
+ * Traceability: FR-D03 (setup mode and its end). The 5 attempts and the 300 s cut-off come from ADR-011 (Accepted) and the
+ * A-070 answer of 2026-11-10. They are not NFR-03, which is the 3-minute user-time target. */
+#define NW_PROV_MAX_FAILED_HANDSHAKES 5      /* FR-D03, ADR-011 (Accepted), A-070 (2026-11-10): 5 failed handshakes end setup mode */
+#define NW_PROV_SETUP_TIMEOUT_MS (5u * 60u * 1000u) /* FR-D03, ADR-011 (Accepted), A-070 (2026-11-10): 300 s device cut-off from setup-mode entry */
 /* [proposed] button gestures, not in the contract: the pinhole button (C-01) held at boot or at run time. Final times need a bench check. */
 #define NW_PROV_BUTTON_SETUP_MS 3000u        /* hold >= 3 s: (re)enter setup mode, credentials kept until a new claim succeeds */
 #define NW_PROV_BUTTON_RESET_MS 10000u       /* hold >= 10 s: factory reset (FR-D07): wipe stored credentials, then setup mode */
