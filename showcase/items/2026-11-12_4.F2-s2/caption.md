@@ -1,6 +1,6 @@
 # 4.F2 slice 2 close-out: the BLE glue is in main and compiled by CI; nothing has run on a board
 
-What it shows: the host test run on the merged 4.F2 code (7 of 7 suites, glue 348 checks, provisioning 530 checks, all passing), next to the CI `firmware` job that built the ESP-IDF image for esp32c3 and passed.
+What it shows: the host test run on the merged 4.F2 code (7 of 7 suites, glue 348 checks, provisioning 530 checks, all passing), next to the CI `firmware` job that built the ESP-IDF image for esp32c3 and passed on commit `c4da8ca` (run 42772396148, artifact `firmware-esp32c3`: https://github.com/nilwerk/nilwerk-lab/actions/runs/42772396148). That job is skipped on this PR's head `bdd9e58`, which changes docs and showcase only; no new build was run for this item.
 
 ![ctest output on the host: 7 of 7 suites pass; glue 348 checks, provisioning 530 checks, 0 failed](host-tests.png)
 
