@@ -28,6 +28,23 @@ def bbox(pts):
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def electrode_span():
+    """Soil electrode copper (E1, pad 1 = SOIL_PROBE, 20 mm long) read from the board: returns (copper_end_y, rotation) in DXF y (negative)."""
+    root = bs.parse_sexpr(open(IN_PCB, encoding="utf-8").read())
+    for fp in bs.kids(root, "footprint"):
+        ref = [p[2] for p in bs.kids(fp, "property") if p[1] == "Reference"][0]
+        if ref != "E1":
+            continue
+        at = bs.kid(fp, "at"); fy = float(at[2]); rot = float(at[3]) if len(at) > 3 else 0.0
+        assert rot == 0.0, "E1 rotation not handled"
+        for pd in bs.kids(fp, "pad"):
+            if pd[1] == "1":
+                pat = bs.kid(pd, "at"); sz = bs.kid(pd, "size")
+                cu_bot_kicad = fy + float(pat[2]) + float(sz[2]) / 2
+                return -cu_bot_kicad
+    raise ValueError("E1 pad 1 not found")
+
+
 def facts():
     L = dxf_layers()
     ob = bbox(L["OUTLINE"]); cav = bbox(L["CELL_BAY_CAVITY"]); mod = bbox(L["MODULE_U1"])
@@ -43,7 +60,8 @@ def facts():
         board_w=ob[2] - ob[0], board_len=ob[3] - ob[1], body_l=-ys[-2], tail_w=xs_tail[-1] - xs_tail[0], tail_x0=xs_tail[0],
         tail_l=ys[-2] - ob[1] if False else -ob[1] - (-ys[-2]), overhang=mod[3] - 0.0,
         module_x0=mod[0], module_x1=mod[2], module_ymin=mod[1],
-        cell=(cav[0], cav[1], cav[2], cav[3]), thickness=float(bs.kid(g, "thickness")[1]), at=at, max_x=max(b[2] for b in boxes().values() if b[2] < 40.0))
+        cell=(cav[0], cav[1], cav[2], cav[3]), thickness=float(bs.kid(g, "thickness")[1]), at=at, max_x=max(b[2] for b in boxes().values() if b[2] < 40.0),
+        copper_end=electrode_span(), tail_end=ob[1])
 
 
 def placeholder_refs():

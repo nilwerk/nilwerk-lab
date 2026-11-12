@@ -100,9 +100,10 @@ def plug():
     return p.cut(_box(cx - P.TUNNEL_W / 2, P.INNER_Y0 - P.WALL - 1, zc - P.TUNNEL_H / 2, cx + P.TUNNEL_W / 2, P.INNER_Y0 + 1, zc + P.TUNNEL_H / 2))
 
 
-def board_ghost():
-    """Reference body: 1.6 mm board from the outline + tallest-part boxes per component (heights ASSUMED). Not printed."""
-    W, Lb, Lt = P.BOARD_W, P.BODY_L, P.BODY_L + P.TAIL_L
+def board_ghost(tail_l=None):
+    """Reference body: 1.6 mm board from the outline + tallest-part boxes per component (heights ASSUMED). Not printed.
+    tail_l: board tail length for a tail variant (params_v3.TAIL_L_VARIANT); default = the 25 mm DXF tail."""
+    W, Lb, Lt = P.BOARD_W, P.BODY_L, P.BODY_L + (P.TAIL_L if tail_l is None else tail_l)
     pts = [(0, 0), (W, 0), (W, -Lb), (P.TAIL_X0 + P.TAIL_W, -Lb), (P.TAIL_X0 + P.TAIL_W, -Lt), (P.TAIL_X0, -Lt), (P.TAIL_X0, -Lb), (0, -Lb)]
     b = cq.Workplane("XY").workplane(offset=P.BOARD_Z0).polyline(pts).close().extrude(P.BOARD_T)
     for ref, c in B.components().items():

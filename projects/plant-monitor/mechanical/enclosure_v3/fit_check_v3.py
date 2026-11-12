@@ -1,4 +1,5 @@
-"""Fit check for enclosure v3 slice 2: clearances table with real PASS / FAIL. Run: python fit_check_v3.py [--md out.md]. Exit 1 on any FAIL."""
+"""Fit check for enclosure v3 (slice 3: tail variants 14 / 20 mm, sourced heights).
+Run: python fit_check_v3.py [--tail 14|20] [--md out.md]. Exit 1 on any FAIL. OPEN rows are reported, never counted as PASS, never fail the run."""
 import sys, math
 import numpy as np
 import trimesh
@@ -7,10 +8,13 @@ import board_src as B
 import enclosure_v3 as E
 
 ROWS = []
+TAIL = "14"
 
 
-def row(name, value, need, ok, src, note=""):
-    ROWS.append((name, value, need, "PASS" if ok else "FAIL", src, note))
+def row(name, value, need, ok, src, note="", open_=False):
+    """ok=True -> PASS, ok=False -> FAIL; open_=True (with ok=False) -> OPEN: a point the repo cannot close yet, not a failure."""
+    status = "PASS" if ok else ("OPEN" if open_ else "FAIL")
+    ROWS.append((name, value, need, status, src, note))
 
 
 def vol_overlap(a, b):
@@ -41,11 +45,27 @@ def lid_clearance(comps):
     return P.INNER_H - (P.BOARD_Z1 + worst["h"]), worst
 
 
-def main():
+def main(tail=None):
+    tail = tail or TAIL
     ROWS.clear()
     comps = B.components()
+    tail_l = P.TAIL_L_VARIANT[tail]                       # board tail length for this variant (params_v3)
     tray, lid, plug = E.tray(), E.lid(), E.plug()
-    board, cell = E.board_ghost(), E.cell_ghost()
+    board, cell = E.board_ghost(tail_l), E.cell_ghost()
+    # 0 tail variant (A-071 open): the electrode length beyond the outer bottom face, derived from the variant board tail
+    tail_end = -(P.BODY_L + tail_l)
+    cu_end = tail_end + P.TIP_MARGIN
+    exposed = -cu_end - (-P.OUT_Y0)
+    row(f"Tail variant {tail} mm: electrode copper beyond outer bottom face", f"{exposed:.2f} mm (copper tip y {cu_end:.2f})", f"= {P.TAIL_VARIANTS[tail]:.1f} mm (variant)",
+        abs(exposed - P.TAIL_VARIANTS[tail]) < 1e-6, "params_v3 TAIL_VARIANTS; copper from board E1 pad (board_facts.electrode_span), tip margin 4.0 from DXF")
+    dxf_tail = P.TAIL_L
+    row("Board tail in DXF (input/) matches the variant", f"DXF {dxf_tail:.2f} mm vs variant {tail_l:.2f} mm (+{tail_l - dxf_tail:.2f})", "= variant tail",
+        abs(tail_l - dxf_tail) < 1e-6, "board DXF = #73; a longer tail for the 20 mm variant is a board outline change for Emil (not in repo)",
+        "OPEN: board outline change needed for this variant, Arsany A-071 decides", open_=abs(tail_l - dxf_tail) >= 1e-6)
+    # tail solid vs housing: the tail runs through the tunnel in the plug; must not hit tray or plug
+    tail_solid = E._box(P.TAIL_X0, tail_end, P.BOARD_Z0, P.TAIL_X0 + P.TAIL_W, -P.BODY_L, P.BOARD_Z1)
+    row(f"Interference tail ({tail} variant) vs tray and seal plug", f"{max(vol_overlap(tail_solid, tray), vol_overlap(tail_solid, plug)):.3f} mm3", "0 (contact allowed)",
+        max(vol_overlap(tail_solid, tray), vol_overlap(tail_solid, plug)) < 1e-3, "boolean intersect: tail solid vs tray and tail_plug")
     # 1 board inside the inner box
     mx = max(c["box"][2] for c in comps.values())
     row("Right-most part (J1 shell) to right wall (X)", f"{P.INNER_X1 - mx:.2f} mm (board edge {P.INNER_X1 - P.BOARD_W:.2f})", ">= 0.30 (FDM + PCB +-0.2)", P.INNER_X1 - mx >= 0.3 - 1e-9, "params_v3 INNER_X1, DXF outline")
@@ -62,6 +82,15 @@ def main():
     gap, worst = lid_clearance(comps)
     row("Tallest part to lid underside (derived from assumed heights)", f"{gap:.2f} mm ({worst['ref']}, {worst['h']} ASSUMED)", f">= {P.LID_CLEAR} (+0.7 mm gasket thickness not counted)", gap >= P.LID_CLEAR - 1e-9,
         "H_BY_REF [ASSUMED]; J2 height needs a datasheet value (Needs Arsany)")
+    # height sourcing: a row per sourced height, so the table shows what is read and what is still assumed
+    srcs = {k: v[0] for k, v in P.H_SRC.items()}
+    row("Heights with a datasheet page in the model", f"{sum(1 for v in srcs.values() if v == 'DATASHEET')} of {len(P.H_BY_REF)} (U1 only)", "every height in the fit check cites a datasheet, else ASSUMED",
+        srcs.get("U1") == "DATASHEET", "params_v3 H_SRC; the other heights are SECONDARY (distributors) or ASSUMED, listed below")
+    j2_alt = 5.5
+    gap_alt = P.INNER_H - (P.BOARD_Z1 + j2_alt)
+    row("J2 at the distributor value 5.5 mm (not used in the model)", f"{gap_alt:.2f} mm to lid underside (needs INNER_H >= {P.BOARD_Z1 + j2_alt + P.LID_CLEAR:.1f})",
+        f">= {P.LID_CLEAR}", gap_alt >= P.LID_CLEAR - 1e-9, "JLCPCB Z-height 5.5 mm and elecfans JST drawing (secondary); JST PDF not readable",
+        "OPEN: model keeps 4.5 ASSUMED. If the datasheet says 5.5, INNER_H grows by 1.0 mm (box 98.1 x 57.7 x 12.6). Arsany/Emil decide", open_=True)
     # 4 3D collisions
     ov = {n: vol_overlap(a, b) for n, a, b in [("lid vs board+parts", lid, board), ("tray vs board+parts", tray, board), ("plug vs board+parts", plug, board),
                                               ("tray vs cell", tray, cell), ("lid vs cell", lid, cell), ("plug vs tray", plug, tray)]}
@@ -123,11 +152,15 @@ def to_md(rows):
 
 
 if __name__ == "__main__":
-    rows = main()
+    tail = sys.argv[sys.argv.index("--tail") + 1] if "--tail" in sys.argv else TAIL
+    if tail not in P.TAIL_VARIANTS:
+        sys.exit(f"--tail must be one of {list(P.TAIL_VARIANTS)}")
+    rows = main(tail)
     md = to_md(rows)
     print(md)
-    npass = sum(r[3] == "PASS" for r in rows); nfail = len(rows) - npass
-    print(f"{npass} PASS, {nfail} FAIL")
+    npass = sum(r[3] == "PASS" for r in rows); nopen = sum(r[3] == "OPEN" for r in rows); nfail = sum(r[3] == "FAIL" for r in rows)
+    summary = f"{npass} PASS, {nfail} FAIL, {nopen} OPEN (tail {tail} mm variant)"
+    print(summary)
     if "--md" in sys.argv:
-        open(sys.argv[sys.argv.index("--md") + 1], "w").write(md + f"\n{npass} PASS, {nfail} FAIL\n")
+        open(sys.argv[sys.argv.index("--md") + 1], "w").write(f"Tail variant: {tail} mm (A-071 open)\n\n" + md + f"\n{summary}\n")
     sys.exit(1 if nfail else 0)

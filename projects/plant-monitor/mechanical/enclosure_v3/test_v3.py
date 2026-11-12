@@ -1,4 +1,4 @@
-"""Tests for enclosure v3 slice 2. Run: python -m pytest test_v3.py"""
+"""Tests for enclosure v3 (slice 2 checks, slice 3 tail variants and sourced heights). Run: python -m pytest test_v3.py"""
 import pytest
 import params_v3 as P
 import board_src as B
@@ -13,9 +13,18 @@ def rows():
     return F.main()
 
 
-def test_all_fit_checks_pass(rows):
-    bad = [r for r in rows if r[3] != "PASS"]
+EXPECTED_OPEN = ("Board tail in DXF", "J2 at the distributor value 5.5 mm")
+
+
+@pytest.mark.parametrize("tail", ["14", "20"])
+def test_all_fit_checks_pass_for_both_tail_variants(tail):
+    """No FAIL for either variant. The only non-PASS rows are the two OPEN points named in EXPECTED_OPEN (board DXF tail, J2 5.5 mm)."""
+    rows = F.main(tail)
+    bad = [r for r in rows if r[3] == "FAIL"]
     assert not bad, bad
+    opened = tuple(r[0].split(" (")[0] for r in rows if r[3] == "OPEN")
+    assert sorted(opened) == sorted(EXPECTED_OPEN), opened
+    assert sum(r[3] == "PASS" for r in rows) >= 48
 
 
 def test_inner_size_numbers():
@@ -103,3 +112,37 @@ def test_j2_height_mutation_fails_fit_check(monkeypatch):
     rows = F.main()
     failed = [r[0] for r in rows if r[3] == "FAIL"]
     assert any(n.startswith("Tallest part to lid") for n in failed), failed
+
+
+def test_tail_variants_derived_from_board_and_wall():
+    """Electrode beyond the outer bottom face: 14 mm and 20 mm map to board tails 25.8 and 31.8 (DXF tail 25.0, copper tip margin 4.0)."""
+    assert P.EXPOSED_NOW == pytest.approx(13.2, abs=1e-6)                 # copper tip -63.0 minus outer face -49.8
+    assert P.TIP_MARGIN == pytest.approx(4.0, abs=1e-6)
+    assert P.TAIL_L_VARIANT["14"] == pytest.approx(25.8, abs=1e-6) and P.TAIL_L_VARIANT["20"] == pytest.approx(31.8, abs=1e-6)
+    for tail, tl in P.TAIL_L_VARIANT.items():
+        assert P.tail_len_for(P.TAIL_VARIANTS[tail]) == pytest.approx(tl)
+
+
+def test_board_ghost_follows_tail_variant():
+    import cadquery as cq
+    for tail, tl in P.TAIL_L_VARIANT.items():
+        bb = E.board_ghost(tl).val().BoundingBox()
+        assert bb.ymin == pytest.approx(-(P.BODY_L + tl), abs=1e-6)
+    assert E.board_ghost().val().BoundingBox().ymin == pytest.approx(-(P.BODY_L + P.TAIL_L), abs=1e-6)   # default = DXF tail
+
+
+def test_height_sources_cover_the_model():
+    """Every height in the fit check has a source tag. Only U1 is read from its datasheet; the rest are SECONDARY, CONFLICT or ASSUMED."""
+    assert set(P.H_BY_REF) <= set(P.H_SRC), set(P.H_BY_REF) - set(P.H_SRC)
+    assert {k for k, v in P.H_SRC.items() if v[0] == "DATASHEET"} == {"U1"}
+    assert "5.5" in P.H_SRC["J2"][1] and P.H_BY_REF["J2"] == 4.5          # the conflict is recorded, the model value is not silently changed
+
+
+def test_locked_interface_file_is_current():
+    """LOCKED_INTERFACE.md is generated; fails if it drifts from params_v3 / board_facts (run locked_interface.py to refresh)."""
+    import locked_interface as LI
+    assert LI.OUT.read_text(encoding="utf-8") == LI.text()
+
+
+def test_electrode_span_from_board():
+    assert BF.facts()["copper_end"] == pytest.approx(-63.0, abs=1e-6) and BF.facts()["tail_end"] == pytest.approx(-67.0, abs=1e-6)

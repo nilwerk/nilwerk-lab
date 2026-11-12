@@ -84,3 +84,37 @@ CadQuery is the source: `mechanical/enclosure_v3/params_v3.py` (parameters, same
 ## 8. Files (versioned v3; v1/v2 untouched)
 `enclosure_v3_{tray,lid,tail_plug}.{step,stl,3mf}`, `enclosure_v3_assembly.step`, `enclosure_v3_reference_board_cell.step`, `renders/v3_{hero,exploded,section,plan}.png`, `fit_check_v3.md`.
 Run from `projects/plant-monitor/mechanical/enclosure_v3/` (Python 3.11, `pip install cadquery trimesh numpy matplotlib networkx pytest`): `python3 build_v3.py && python3 render_v3.py && python3 fit_check_v3.py && python3 -m pytest test_v3.py` (12 tests; CadQuery 2.8.0 used in the fix round). Renders are matplotlib painter's-algorithm renders of the exported STL, so depth sorting has small artefacts.
+
+## 9. Slice 3 (Yara, task 4.E3-s3): tail variants 14 / 20 mm and sourced heights
+
+Stacked on slice 2 (sections above unchanged; their height values are superseded by section 9 where they differ). Nothing printed, ordered or uploaded.
+
+**Tail length (A-071, Arsany decides, NOT decided here).** Read as the **soil electrode copper beyond the outer bottom face** of the enclosure (the number used in section 1b item 7). Today 13.2 mm of the 20 mm copper is outside (copper tip y -63.0, outer face y -49.8). The enclosure does not move between variants, so the printed housing is identical (same STL vertices and volumes as slice 2, checked). Only the **board tail** changes:
+
+| Variant | Electrode beyond the outer face | Board tail (body edge to tip) | vs the 25.0 mm DXF | Status |
+|---|---|---|---|---|
+| 14 mm | 14.0 | 25.8 | +0.8 | **OPEN**: board outline change for Emil |
+| 20 mm | 20.0 | 31.8 | +6.8 | **OPEN**: board outline change for Emil (the "+6" of the PR) |
+
+Derivation: copper tip = outer face - electrode length; tail tip = copper tip - 4.0 (bare tip, DXF). Code: `params_v3.TAIL_VARIANTS`, `tail_len_for()`, `board_facts.electrode_span()`.
+
+**Sourced heights (H_SRC in `params_v3.py`).** The fit check uses the same height table; each has a tag.
+
+| Ref | Part (LCSC) | Model height | Source | Status |
+|---|---|---|---|---|
+| U1 | ESP32-C3-MINI-1-N4 (C2838502) | 2.4 | Espressif datasheet v2.2, Table 1-1 p.3: 13.2 x 16.6 x 2.4 mm | **DATASHEET** |
+| U5 | AHT20 (C2757850) | 1.0 | datasheets.com, sekorm listings: 3 x 3 x 1.0 | SECONDARY (PDF not read) |
+| U6 | BH1750FVI-TR (C78960) | 0.75 | Arrow and RS Online: max 0.75 (Future 0.7) | SECONDARY (PDF not read) |
+| SW1-3 | TS-1187A-B-A-B (C318884) | 1.5 | JLCPCB, LCSC, HQ Online: 1.5 | SECONDARY (XKB PDF not read) |
+| J2 | S2B-PH-SM4-TB (C295747) | 4.5 | JLCPCB Z-height **5.5**; elecfans copy of the JST drawing 5.5 | **CONFLICT, OPEN** (fit row: 5.5 would fail, needs INNER_H 8.6) |
+| J1 | TYPE-C-31-M-12 (C165948) | 3.3 | none (LCSC datasheet link gives a wrapper page) | ASSUMED |
+| U3 | TP4056 ESOP-8 (C16581) | 1.75 | none (LCSC datasheet link gives a wrapper page) | ASSUMED |
+| others | D1, U2, U4, U7, Q1, D2, D3, R/C | 0.55-1.1 | not read | ASSUMED |
+
+Only U1 has a datasheet page. The Mouser JST datasheet returned HTTP 503 and the LCSC PDFs return wrapper pages in this session, so J1, J2 and U3 could not be read. **No value was typed from memory.**
+
+**Fit check (real runs, `fit_check_v3.py --tail 14|20`):** 50 PASS, 0 FAIL, 2 OPEN for each variant. OPEN = the board outline change (row 2) and the J2 5.5 mm conflict (row 14). Reports: `fit_check_v3_tail14.md`, `fit_check_v3_tail20.md`. Tests: `test_v3.py` (18 passed; full mechanical folder 45 passed).
+
+**Files.** `enclosure_v3_assembly_tail14.step`, `enclosure_v3_assembly_tail20.step`, `enclosure_v3_reference_board_cell_tail{14,20}.step` (reference bodies, not printed). Renders: `renders/tail14_plan.png`, `renders/tail20_plan.png`, `renders/tail_compare_side.png`. Interface values for Emil: `mechanical/enclosure_v3/LOCKED_INTERFACE.md` (generated, a test keeps it current). The slice 2 files stay as the record of the 25 mm DXF tail.
+
+**Still open:** tail length (A-071, Arsany); J2 height (datasheet or a measured sample; 5.5 would add 1.0 mm to the box height); board retention (item 6); J1, U3 and the other heights; Drive copy of these exports (not done by the agent, see the PR).

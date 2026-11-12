@@ -40,6 +40,22 @@ LID_CLEAR = 0.5                    # [ASSUMED] min air gap tallest part to lid u
 H_BY_REF = {"U1": 2.4, "J1": 3.3, "J2": 4.5, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "U3": 1.75, "U5": 1.0, "U6": 0.75,
             "D1": 1.1, "U2": 1.1, "U4": 1.1, "Q1": 1.1, "U7": 1.1, "D2": 0.8, "D3": 0.8, "E1": 0.04}
 H_DEFAULT = 0.55                   # [ASSUMED] 0603 R/C
+# Where each height comes from (slice 3). DATASHEET = read from the manufacturer PDF (page given). SECONDARY = distributor listing
+# values only (manufacturer PDF not readable in this session), used as a cross-check, never as the model value unless it equals it.
+# ASSUMED = no source read; kept as an assumption and listed in the PR.
+H_SRC = {
+    "U1":  ("DATASHEET", "ESP32-C3-MINI-1 datasheet v2.2 (documentation.espressif.com/esp32-c3-mini-1_datasheet_en.pdf), Table 1-1 p.3: size 13.2 x 16.6 x 2.4 mm"),
+    "U5":  ("SECONDARY", "AHT20 3.0 x 3.0 x 1.0 mm: datasheets.com and sekorm listings; Aosong PDF drawing not read"),
+    "U6":  ("SECONDARY", "BH1750FVI WSOF6 max 0.75 mm: Arrow and RS Online listings (Future Electronics 0.7); ROHM PDF not read"),
+    "SW1": ("SECONDARY", "TS-1187A-B-A-B 1.5 mm: JLCPCB, LCSC and HQ Online listings; XKB PDF not read"),
+    "SW2": ("SECONDARY", "same part as SW1 (LCSC C318884)"),
+    "SW3": ("SECONDARY", "same part as SW1 (LCSC C318884)"),
+    "J2":  ("CONFLICT", "model 4.5 ASSUMED. Distributor values: JLCPCB Z-height 5.5 mm; elecfans copy of the JST PH drawing 5.5 mm to the wafer end face. Official JST drawing not readable. OPEN: see fit check row"),
+    "J1":  ("ASSUMED", "TYPE-C-31-M-12 (LCSC C165948): no height read; LCSC datasheet link returns a wrapper page, no value from a listing"),
+    "U3":  ("ASSUMED", "TP4056-42-ESOP8 (LCSC C16581): datasheet link returns a wrapper page; height not read"),
+}
+for _r in ("D1", "U2", "U4", "U7", "Q1", "D2", "D3", "E1"):
+    H_SRC.setdefault(_r, ("ASSUMED", "not read in this session (package class value kept)"))
 # Inner height is a FIXED design value, not derived from H_BY_REF. The fit check row "Tallest part to lid underside" tests the
 # assumed heights against it, so changing an assumed height (e.g. J2) fails the check instead of silently moving the box.
 # Budget at 7.6: standoff 1.0 + board 1.6 + J2 4.5 + air 0.5 = 7.6.
@@ -90,4 +106,21 @@ PETG_BOSS_WALL = 1.6               # wall around a heat-set insert hole in PETG 
 PETG_SCREW_TORQUE_NM = 0.25        # [ASSUMED] max M2 tightening torque into a PETG insert; the insert datasheet governs
 PETG_SHRINK = 0.004                # [ASSUMED] 0.4 % PETG shrink; set by the test print (standards s.3 says calibrate)
 SEAL_TYPE = "silicone sheet gasket 1.0 mm (bought part, not PETG; ASSUMED)"
-# Tail / stake length is NOT decided (open point, Arsany/Emil). Tunnel and plug are sized for the current 25 mm tail only.
+# ---- tail length variants (A-071, Arsany's call, NOT decided here) ----
+# "Tail length" = length of the soil electrode copper beyond the OUTER bottom face of the enclosure (mm). Read from the board:
+# the electrode copper runs from BODY_L+1 to BODY_L+21 (pad at y 11 of the E1 footprint, size 20), the board tail ends 4.0 mm
+# further (board_facts.electrode_span). The enclosure does not move; only the board tail length changes with the variant.
+TAIL_VARIANTS = {"14": 14.0, "20": 20.0}
+_CU_END, _TAIL_END = _F["copper_end"], _F["tail_end"]           # DXF (negative y)
+TIP_MARGIN = _CU_END - _TAIL_END                                    # 4.0 bare tip beyond the copper (read from DXF)
+EXPOSED_NOW = (-_CU_END) - (-OUT_Y0)                                # copper beyond the outer bottom face today, 13.2
+
+
+def tail_len_for(exposed):
+    """Board tail length (body edge to tail tip) that gives `exposed` mm of electrode copper beyond the outer bottom face."""
+    cu_end = OUT_Y0 - exposed                  # y of copper tip (negative)
+    return -(cu_end - TIP_MARGIN) - BODY_L
+
+
+TAIL_L_VARIANT = {k: tail_len_for(v) for k, v in TAIL_VARIANTS.items()}   # {"14": 25.8, "20": 31.8}
+# The tunnel (TAIL_W x BOARD_T) and plug do not depend on the tail length: the printed housing is identical for both variants.
