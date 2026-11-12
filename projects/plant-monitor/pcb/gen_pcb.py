@@ -222,6 +222,109 @@ def footprint_text(p: D.Part):
     L.append("\t)")
     return "\n".join(L)
 
+# ---------------------------------------------------------------------------------------------
+# F.Silkscreen (A-086, accepted 2026-11-12): reference designators and polarity only, no logos.
+# Text height 1.0 mm, line 0.15 mm (JLC F15). Every label is placed where its box keeps >= 0.15 mm (min silk clearance) from every
+# pad and from the other labels, and stays inside the outline. Checked by KiCad DRC (silk rules) in CI.
+# ---------------------------------------------------------------------------------------------
+SILK_REFS = ["U1", "U5", "U6", "J1", "J2", "D2", "D3"]
+SILK_H, SILK_LINE, SILK_CLR = 1.0, 0.15, 0.15
+SILK_CHAR_W = 0.62 * SILK_H       # [mine] character advance of KiCad's default font, used for the label box estimate
+
+def _pads_world():
+    out = []
+    for p in D.PARTS:
+        x, y, r = PLACE[p.ref]
+        for pd in FOOT[p.footprint]["pads"]:
+            cx, cy = rot(pd["x"], pd["y"], r)
+            w, h = (pd["h"], pd["w"]) if round(r) % 180 == 90 else (pd["w"], pd["h"])
+            out.append(dict(ref=p.ref, num=pd["num"], x=x + cx, y=y + cy, w=w, h=h))
+    return out
+
+def _court_world(p):
+    x, y, r = PLACE[p.ref]
+    c = FOOT[p.footprint]["court"]
+    pts = [rot(a, b, r) for a, b in [(c[0], c[1]), (c[2], c[1]), (c[2], c[3]), (c[0], c[3])]]
+    xs = [q[0] + x for q in pts]; ys = [q[1] + y for q in pts]
+    return min(xs), min(ys), max(xs), max(ys)
+
+def _inside_outline(x0, y0, x1, y1):
+    pts = outline_pts()
+    def inside(px, py):
+        c = False
+        for i in range(len(pts)):
+            (ax, ay), (bx, by) = pts[i], pts[(i + 1) % len(pts)]
+            if (ay > py) != (by > py) and px < (bx - ax) * (py - ay) / (by - ay) + ax:
+                c = not c
+        return c
+    return all(inside(px, py) for px in (x0, x1) for py in (y0, y1))
+
+def _sep(a, b):
+    """Gap between two boxes (x0,y0,x1,y1); >= SILK_CLR means clear."""
+    dx = max(b[0] - a[2], a[0] - b[2]); dy = max(b[1] - a[3], a[1] - b[3])
+    return max(dx, dy)
+
+def _label_box(cx, cy, text):
+    w = SILK_CHAR_W * len(text); h = SILK_H
+    return (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+
+def silk_items():
+    pads = _pads_world()
+    pad_boxes = [(q["x"] - q["w"] / 2, q["y"] - q["h"] / 2, q["x"] + q["w"] / 2, q["y"] + q["h"] / 2) for q in pads]
+    placed = []     # label boxes already placed
+    out, notes = [], []
+    def try_place(text, cands):
+        for cx, cy in cands:
+            bx = _label_box(cx, cy, text)
+            if not _inside_outline(*bx):
+                continue
+            if any(_sep(bx, pb) < SILK_CLR for pb in pad_boxes) or any(_sep(bx, o) < SILK_CLR for o in placed):
+                continue
+            placed.append(bx)
+            return cx, cy
+        raise SystemExit(f"silk: no clear place for {text!r}")
+    def emit(text, cx, cy, tag):
+        out.append(f'\t(gr_text "{text}" (at {f(cx)} {f(cy)}) (layer "F.SilkS") (uuid "{uid("silk", tag)}") '
+                   f'(effects (font (size {SILK_H} {SILK_H}) (thickness {SILK_LINE}))))')
+    # reference designators: 4 sides of the courtyard, nearest first
+    gap = 0.4
+    for ref in SILK_REFS:
+        p = next(q for q in D.PARTS if q.ref == ref)
+        x0, y0, x1, y1 = _court_world(p)
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        w, h = SILK_CHAR_W * len(ref) / 2, SILK_H / 2
+        cands = [(mx, y0 - gap - h), (mx, y1 + gap + h), (x0 - gap - w, my), (x1 + gap + w, my),
+                 (mx - (x1 - x0) / 4, y0 - gap - h), (mx + (x1 - x0) / 4, y1 + gap + h)]
+        cx, cy = try_place(ref, cands)
+        emit(ref, cx, cy, "ref-" + ref)
+        notes.append(f"{ref} label at ({cx:.2f}, {cy:.2f})")
+    # battery connector polarity: + at CELL+ (J2 pad 1), - at CELL- (pad 2); pads from the library footprint
+    j2 = [q for q in pads if q["ref"] == "J2"]
+    for num, sign in (("1", "+"), ("2", "-")):
+        q = next(z for z in j2 if z["num"] == num)
+        d = SILK_H / 2 + 0.5 + q["w"] / 2
+        cands = [(q["x"], q["y"] + d + 0.2), (q["x"], q["y"] - d - 0.2), (q["x"] + d, q["y"]), (q["x"] - d, q["y"])]
+        cx, cy = try_place(sign, cands)
+        emit(sign, cx, cy, "pol-J2-" + num)
+        notes.append(f"J2 pad {num} ({'CELL+' if sign == '+' else 'CELL-'}) polarity mark '{sign}' at ({cx:.2f}, {cy:.2f})")
+    # LED cathode bar on the outer side of pad 1 (cathode, design.py D2/D3 pin 1 = K)
+    for ref in ("D2", "D3"):
+        ps = [q for q in pads if q["ref"] == ref]
+        p1 = next(q for q in ps if q["num"] == "1"); p2 = next(q for q in ps if q["num"] == "2")
+        side = -1 if p1["x"] < p2["x"] else 1
+        xb = p1["x"] + side * (p1["w"] / 2 + 0.3)
+        yb0, yb1 = p1["y"] - 0.45, p1["y"] + 0.45
+        bar = (xb - 0.02, yb0, xb + 0.02, yb1)
+        if any(_sep(bar, pb) < SILK_CLR for pb in pad_boxes):
+            raise SystemExit(f"silk: cathode bar of {ref} touches a pad")
+        out.append(f'\t(gr_line (start {f(xb)} {f(yb0)}) (end {f(xb)} {f(yb1)}) (stroke (width {SILK_LINE}) (type solid)) (layer "F.SilkS") (uuid "{uid("silk", "cath-" + ref)}"))')
+        notes.append(f"{ref} cathode bar at x={xb:.2f} (pad 1 side)")
+    # antenna keep-out label: off the board, above the module antenna (no room for 1 mm text inside the 1.0 mm keep-out strip)
+    ax, ay = U1_CX - 2.0, -U1_OVERHANG - 0.9
+    emit("ANT KEEP-OUT", ax, ay, "ant")
+    notes.append(f"antenna keep-out label at ({ax:.2f}, {ay:.2f}), off the board (rail area in the panel)")
+    return out, notes
+
 def outline_pts():
     return [(0, 0), (BOARD_W, 0), (BOARD_W, BODY_L), (TAIL_X0 + TAIL_W, BODY_L), (TAIL_X0 + TAIL_W, BODY_L + TAIL_L),
             (TAIL_X0, BODY_L + TAIL_L), (TAIL_X0, BODY_L), (0, BODY_L)]
@@ -255,6 +358,8 @@ def build_pcb(extra_segs=(), extra_vias=()):
     user_rect("ant15", U1_CX - U1_W / 2 - ANT_CLEAR_MM, -U1_OVERHANG - ANT_CLEAR_MM, U1_CX + U1_W / 2 + ANT_CLEAR_MM, 0, "Cmts.User")
     o.append(f'\t(gr_text "CELL BAY {CELL_CAV[0]} x {CELL_CAV[1]} mm (enclosure v3 cavity, pcb-enclosure-bay.md); not copper" (at {f((CELL_X0 + CELL_X1) / 2)} {f((CELL_Y0 + CELL_Y1) / 2)}) (layer "Dwgs.User") (uuid "{uid("t1")}") (effects (font (size 1 1) (thickness 0.15))))')
     o.append(f'\t(gr_text "ANTENNA: module overhangs {U1_OVERHANG} mm; 15 mm clear box (Espressif guideline)" (at {f(U1_CX - 12)} {f(-U1_OVERHANG - 8)}) (layer "Cmts.User") (uuid "{uid("t2")}") (effects (font (size 1 1) (thickness 0.15))))')
+    silk, silk_notes = silk_items()
+    o.extend(silk)
     # vias
     n_gnd = NETS["GND"]
     for k, (tag, x, y) in enumerate(via_list()):
