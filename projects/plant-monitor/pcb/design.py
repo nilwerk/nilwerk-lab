@@ -178,14 +178,14 @@ add("U5", "AHT20", "AHT20", "NW:AHT20_DFN-6_3x3", "C2757850", "AHT20",
      ("1", "NC", "NC", "R"), ("6", "NC", "NC", "R")],
     "Fix for Theo C1: LCSC C2757850 (Aosong/ASAIR AHT20, datasheet 2024-07 linked from the LCSC page) is a 6-pin DFN 3.0 x 3.0 x 1.0 mm: "
     "1 NC, 2 VDD, 3 SCL, 4 SDA, 5 GND, 6 NC (Table 5, top view). Custom footprint still to be drawn in 4.P2 from the datasheet figure 1. I2C 0x38. 4.P2 flag: pin_verified=False until the placed footprint is compared with the drawing.",
-    custom_fp=True, pin_verified=False, block=B)
+    custom_fp=False, pin_verified=False, block=B)   # slice 3: footprint from LCSC/EasyEDA data (footprints/SOURCES.md)
 cap("C6", *C100N, "3V3", "GND", B, "AHT20 decoupling")
 add("U6", "BH1750", "BH1750FVI", "NW:WSOF-6_BH1750FVI", "C78960", "BH1750FVI-TR",
     [("1", "VCC", "3V3", "L"), ("5", "DVI", "3V3", "L"), ("2", "ADDR", "GND", "L"),
      ("4", "SDA", "I2C_SDA", "R"), ("6", "SCL", "I2C_SCL", "R"), ("3", "GND", "GND", "R")],
     "ADDR low = 0x23. Pins verified against LCSC C78960 datasheet (1 VCC, 2 ADDR, 3 GND, 4 SDA, 5 DVI, 6 SCL). DVI tied to VCC directly: "
     "datasheet wants DVI low >= 1 us after VCC (RC example 1k/1uF) or a reset: OPEN POINT 7, firmware must also re-init after power-up. 4.P2 flag: pin_verified=False until the placed footprint is compared with the drawing.",
-    custom_fp=True, pin_verified=False, block=B)
+    custom_fp=False, pin_verified=False, block=B)   # slice 3: footprint from LCSC/EasyEDA data (footprints/SOURCES.md)
 cap("C7", *C100N, "3V3", "GND", B, "BH1750 decoupling")
 res("R13", "4.7k", "C23162", "0603WAF4701T5E", "3V3", "I2C_SDA", B,
     "ADDED by 4.P1 (BOM draft has no I2C pull-ups). LCSC number from memory: unverified")
