@@ -1,5 +1,6 @@
 """Enclosure v3 (CadQuery): tray, lid, tail seal plug, plus reference bodies (board, cell). Frame: see params_v3.py.
-Slice 4 (compact product shell): rounded plan outline, soft bottom and top edges, one continuous outer skin; interfaces unchanged."""
+Slice 4 (compact product shell): rounded plan outline, soft bottom and top edges, one continuous outer skin. Interface changes vs slice 3 (listed in enclosure/v3/README.md section 10): top screw bosses y 3.2 -> 2.5 and
+x -2.5 -> -3.5 (both rows), outer envelope 98.1 x 57.7 x 11.6 -> 97.3 x 56.9 x 12.2 (J2 5.5, A-076)."""
 import cadquery as cq
 import params_v3 as P
 import board_src as B

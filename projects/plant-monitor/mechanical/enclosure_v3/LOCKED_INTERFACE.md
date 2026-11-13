@@ -18,15 +18,16 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 | Item | Value | Status | Note |
 |---|---|---|---|
 | Board mounting holes | **none on the board** | READ | the enclosure uses bosses and clamp pads; retention is an open point for Emil (item 6) |
-| Screw bosses (enclosure) | 6 at (x, y) = (-55.0, 2.5), (-27.0, 2.5), (-2.5, 2.5), (-55.0, -45.4), (-27.0, -45.4), (-2.5, -45.4) | ASSUMED | M2 heat-set inserts, hole 3.2 x 4.0 deep, boss d 6.4 |
+| Screw bosses (enclosure) | 6 at (x, y) = (-55.0, 2.5), (-27.0, 2.5), (-3.5, 2.5), (-55.0, -45.4), (-27.0, -45.4), (-3.5, -45.4) | ASSUMED | M2 heat-set inserts, hole 3.2 x 4.0 deep, boss d 6.4 |
 | Standoff pads under the board | 4 corners, height 1.0 | ASSUMED | bottom copper is GND only |
 | Clamp pads on the board top | free 2 x 2 mm squares (computed in `enclosure_v3.free_clamp_pads`) | OPEN | Emil asked for 2 more keep-clear pads or 2 M2 holes (item 6) |
 
-## 3. USB-C cut-out (J1)
+## 3. USB-C cut-out (J1 = TYPE-C-31-M-12, LCSC C165948)
 | Item | Value | Status | Note |
 |---|---|---|---|
 | J1 centre (x = right edge, y) | x 34.50, y -33.0, rotated 90 deg | READ | J1 footprint position |
-| J1 height (board top to centre) | 3.30 (centre at z 4.25) | ASSUMED | no datasheet read; see fit check |
+| J1 height, flat (model value, board top to centre) | 3.30 (centre at z 4.25) | ASSUMED | no datasheet height read for the flat part; see fit check |
+| **J1 height, upright male (TYPE-C-31-M-12 datasheet)** | **11.94 +-0.25** | **OPEN** | orientation is decision **A-087** (Arsany); no value chosen. Upright does not fit the 7.6 mm inner box (fit row 55) |
 | Window in right wall | 9.6 x 3.9 | ASSUMED | plug 8.94 x 3.26 + 0.3 per side |
 | Overmold pocket (from outside) | 14.0 x 8.0 x 1.2 deep | ASSUMED | wall left 1.2 |
 
@@ -61,11 +62,12 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 |---|---|---|---|
 | Inner cavity, **option A: J2 4.5 ASSUMED (not the model since slice 4)** | 93.3 x 53.7 x 7.6 | **OPEN, not locked** | holds only if the J2 datasheet is <= 4.5 (budget 1.0 + 1.6 + J2 + 0.5) |
 | Outer, lid on, option A | 97.3 x 56.9 x 11.2 | OPEN | floor 1.2 + inner + lid 2.4; +1.0 gasket (not modelled) |
-| Inner cavity, **option B: J2 5.5 (distributor value), the slice 4 model budget** | 93.3 x 53.7 x 8.6 | OPEN | budgeted until J2 is sourced (A-076); the sourced value needs this height (+1.0 mm) |
+| Inner cavity, **option B (model): J2 5.5** | 93.3 x 53.7 x 8.6 | OPEN (not a datasheet value) | J2 5.5 from the LCSC C295747 listing (A-076); 0.5 mm air to the lid |
 | Outer, lid on, option B | 97.3 x 56.9 x 12.2 | OPEN | +1.0 gasket (not modelled) |
 
 ## 9. Open points (NEEDS ARSANY / Emil)
 1. **Tail length (A-071)**: choose 14 or 20 mm. Board tail becomes 25.8 or 31.8 mm; the DXF is 25.0 today.
-2. **J2 height (A-076, Arsany)**: OPEN, the inner height is NOT locked. Model value 4.5 ASSUMED gives inner 7.6 (option A). The only sourced value, distributor 5.5, needs inner 8.6 (option B, box +1.0 mm). Decide after the J2 datasheet or a measured sample; until then Emil keeps the inner height open.
+2. **J2 height (A-076)**: model 5.5 from the LCSC C295747 Z-height listing (SECONDARY). The JST drawing is still to confirm, and element14 lists 8.0 mm for a likely B2B variant, so the exact part must be confirmed before the inner height is locked. Inner 8.6 (option B) is the model; option A 7.6 is for reference only.
 3. **Board retention**: two more keep-clear pads or two M2 holes (no metal within 15 mm of the antenna).
-4. **Device heights** still ASSUMED (see `params_v3.H_SRC`): J1, U3 and the 0603/SOT parts.
+4. **J1 orientation (A-087)**: approved flat / edge-mount by Arsany 2026-11-13. Model: flat 3.30, ASSUMED (no datasheet height for the flat part read); the part is still to be picked by Emil. The upright male version (11.94 +-0.25, datasheet) does not fit this box and is not used.
+5. **Device heights** still ASSUMED (see `params_v3.H_SRC`): U3 and the 0603/SOT parts.

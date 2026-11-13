@@ -35,12 +35,13 @@ STANDOFF = 1.0                     # [ASSUMED] board underside above floor (bott
 BOARD_Z0, BOARD_Z1 = STANDOFF, STANDOFF + BOARD_T
 LID_CLEAR = 0.5                    # [ASSUMED] min air gap tallest part to lid underside
 # Component heights above the board top, mm. Only U1 is read from a datasheet (H_SRC). Every other value is tagged in H_SRC as
-# SECONDARY (distributor listing, PDF not read) or ASSUMED (no source read in this repo or session). None is presented as sourced.
-# J2 4.5 is ASSUMED and is the tallest part; the only sourced value (distributor, 5.5) conflicts with it. No datasheet or 3D model
-# for S2B-PH-SM4-TB is in the repo (the footprint points at a KiCad .wrl that is not here). OPEN, A-076 (Arsany): J2 datasheet height.
-H_BY_REF = {"U1": 2.4, "J1": 3.3, "J2": 4.5, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "U3": 1.75, "U5": 1.0, "U6": 0.75,
+# SECONDARY (distributor listing, PDF not read) or ASSUMED (no source read). None is presented as sourced.
+# J2 = 5.5 mm (A-076, answered 2026-11-13 from the LCSC C295747 Z-height listing). The JST drawing is still to confirm, and an element14
+# listing shows 8.0 mm for a likely B2B variant, so the exact part must be confirmed. No datasheet or 3D model for S2B-PH-SM4-TB is in the repo.
+H_BY_REF = {"U1": 2.4, "J1": 3.3, "J2": 5.5, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "U3": 1.75, "U5": 1.0, "U6": 0.75,
             "D1": 1.1, "U2": 1.1, "U4": 1.1, "Q1": 1.1, "U7": 1.1, "D2": 0.8, "D3": 0.8, "E1": 0.04}
 H_DEFAULT = 0.55                   # [ASSUMED] 0603 R/C
+# J1_UPRIGHT is not a model height (the model uses the flat 3.3 for J1); it is recorded so the upright value is not lost (see fit row 55).
 # Where each height comes from (slice 3). DATASHEET = read from the manufacturer PDF (page given). SECONDARY = distributor listing
 # values only (manufacturer PDF not readable in this session), used as a cross-check, never as the model value unless it equals it.
 # ASSUMED = no source read; kept as an assumption and listed in the PR.
@@ -51,18 +52,25 @@ H_SRC = {
     "SW1": ("SECONDARY", "TS-1187A-B-A-B 1.5 mm: JLCPCB, LCSC and HQ Online listings; XKB PDF not read"),
     "SW2": ("SECONDARY", "same part as SW1 (LCSC C318884)"),
     "SW3": ("SECONDARY", "same part as SW1 (LCSC C318884)"),
-    "J2":  ("CONFLICT", "model 4.5 ASSUMED. Distributor values: JLCPCB Z-height 5.5 mm; elecfans copy of the JST PH drawing 5.5 mm to the wafer end face. Official JST drawing not readable. OPEN: see fit check row"),
-    "J1":  ("ASSUMED", "TYPE-C-31-M-12 (LCSC C165948): no height read; LCSC datasheet link returns a wrapper page, no value from a listing"),
+    "J2":  ("SECONDARY", "sourced: LCSC C295747 Z-height listing 5.5 mm (A-076 budget); IBS Electronics lists 5.5 mm; element14 lists 8.0 mm for a likely B2B variant (not confirmed as this part); JST drawing to confirm"),
+    "J1":  ("ASSUMED", "TYPE-C-31-M-12 (LCSC C165948) flat part, model value 3.30: no datasheet height for the flat part read (LCSC link returns a wrapper page); kept ASSUMED. A-087 approved flat / edge-mount (Arsany 2026-11-13); the part is still to be picked by Emil"),
+    # The upright male version of the same connector is a different height. Brief value from the TYPE-C-31-M-12 datasheet (upright male): 11.94 +-0.25 mm.
+    # Recorded as OPEN, not used in the model: the orientation is decision A-087 (Arsany). No value is chosen. The datasheet PDF was not read in this session.
+    "J1_UPRIGHT": ("OPEN", "TYPE-C-31-M-12 (LCSC C165948) datasheet, upright male version: H 11.94 +-0.25 mm (value from the review brief; PDF not read here). Orientation A-087 (Arsany)"),
     "U3":  ("ASSUMED", "TP4056-42-ESOP8 (LCSC C16581): datasheet link returns a wrapper page; height not read"),
 }
 for _r in ("D1", "U2", "U4", "U7", "Q1", "D2", "D3", "E1"):
     H_SRC.setdefault(_r, ("ASSUMED", "not read in this session (package class value kept)"))
+J1_UPRIGHT_H, J1_UPRIGHT_TOL = 11.94, 0.25   # TYPE-C-31-M-12 upright male, datasheet brief value (OPEN, A-087); not used by the model
+# The number each cited source states, for every part whose height cites a source (DATASHEET or SECONDARY). The fit check (row 54)
+# fails if H_BY_REF differs from it, so a changed sourced height cannot slip through without a new citation.
+H_CITED = {"U1": 2.4, "U5": 1.0, "U6": 0.75, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "J2": 5.5}
 # Inner height is a FIXED design value, not derived from H_BY_REF. The fit check row "Tallest part to lid underside" tests the
 # assumed heights against it, so changing an assumed height (e.g. J2) fails the check instead of silently moving the box.
 # Budget at 7.6: standoff 1.0 + board 1.6 + J2 4.5 + air 0.5 = 7.6.
 INNER_H_OPT_A = round(STANDOFF + BOARD_T + 4.5 + LID_CLEAR, 1)      # 7.6: option A, J2 4.5 (ASSUMED, not sourced)
 INNER_H_IF_J2_5_5 = round(STANDOFF + BOARD_T + 5.5 + LID_CLEAR, 1)   # 8.6: option B, J2 5.5 (distributor value)
-# Slice 4 (A-076, Arsany): the larger height is budgeted until J2 is sourced, so the model uses option B. Option A stays in INNER_H_OPT_A.
+# A-076 (answered 2026-11-13 from the J2 listing 5.5 mm): the model uses option B, inner 8.6. Option A (7.6) stays in INNER_H_OPT_A for reference only.
 INNER_H = INNER_H_IF_J2_5_5
 # ---- shell ----
 WALL_LOW = 1.6                     # slice 4: left, top and bottom rim land (gasket land), was 2.4; >= 1.2 rule
@@ -82,9 +90,10 @@ FILLET_BOT = 1.2                   # tray bottom edge (on the bed), soft edge; 1
 FILLET_TOP = 2.2                   # lid top edge (lid is 2.4 thick, fillet must stay < LID_T)
 # ---- fasteners [rule: M2 + brass heat-set inserts] ----
 SCREW_D, INSERT_HOLE, BOSS_D = 2.4, 3.2, 6.4                  # PETG: M2 clearance 2.4 (was 2.2); insert hole 3.2 [ASSUMED] for M2 x 3 mm insert; boss 6.4 = 1.6 mm wall round the hole (was 5.6 = 1.2)
-BOSS_XY = [(-55.0, 2.5), (-27.0, 2.5), (-2.5, 2.5)]   # slice 4: y 3.2 -> 2.5 (skin to the 1.6 top wall >= 1.2)  # top row; nearest insert hole to the antenna rect = 21.2 mm (fit check), RF rule is 15 mm (layout-brief Q9)
+BOSS_XY = [(-55.0, 2.5), (-27.0, 2.5), (-3.5, 2.5)]   # slice 4: y 3.2 -> 2.5 (skin to the 1.6 top wall >= 1.2); x -2.5 -> -3.5 (plan gap to the board corner 0.34 -> 1.10 mm); RF rule 15 mm to the antenna (Q9)
 # bottom row: 1.2 mm skin to the outside (BOSS_STRIP 5.4 gives room) and the boss top at -42.2 clears the cell cavity (-42.0)
-BOSS_XY += [(-55.0, -45.4), (-27.0, -45.4), (-2.5, -45.4)]   # absolute: boss top must stay below the cell cavity (-42.0)
+BOSS_XY += [(-55.0, -45.4), (-27.0, -45.4), (-3.5, -45.4)]   # absolute: boss top must stay below the cell cavity (-42.0); x -2.5 -> -3.5 (same gap fix as the top row)
+BOSS_BOARD_GAP_MIN = 1.0           # [ASSUMED] min plan gap boss edge to board outline (insertion slop + FDM spread); not a sourced limit
 INSERT_DEPTH = 4.0
 # ---- USB-C [ASSUMED plug 8.94 x 3.26 (USB-C spec) + 0.3 per side FDM] ----
 J1_Y, J1_Z = _F["at"]["J1"][1], BOARD_Z1 + 3.3 / 2
