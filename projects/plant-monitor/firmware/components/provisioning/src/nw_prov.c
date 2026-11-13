@@ -70,7 +70,7 @@ void nw_prov_button(nw_prov_t *p, uint32_t held_ms, uint32_t now_ms)
     if (held_ms >= NW_PROV_BUTTON_RESET_MS) {
         if (p->ops.store.erase(p->ops.store_ctx) != 0) return;
     }
-    start_setup(p, now_ms);                                  /* restarts the 5 min window and the guess counter ("button restarts it") */
+    start_setup(p, now_ms);                                  /* restarts the 300 s window and the guess counter ("button restarts it") */
 }
 
 int nw_prov_on_handshake(nw_prov_t *p, bool ok, uint32_t now_ms)
@@ -138,7 +138,7 @@ int nw_prov_on_wifi_result(nw_prov_t *p, nw_prov_wifi_result_t r, uint32_t now_m
         if (p->ops.claim_post) p->ops.claim_post(p->ops.ctx, p->claim_token, p->pending.name);
         return NW_PROV_OK;
     }
-    /* wifi_failed leaves setup mode open for a retry until the 5 min limit (section 2). The claim token and name are kept. */
+    /* wifi_failed leaves setup mode open for a retry until the 300 s limit (section 2). The claim token and name are kept. */
     p->state = NW_PROV_S_SESSION;
     p->have_wifi = false;
     wipe(p->pending.ssid, sizeof p->pending.ssid);
@@ -180,7 +180,7 @@ int nw_prov_on_claim_result(nw_prov_t *p, nw_prov_claim_result_t r, const char *
 
 void nw_prov_tick(nw_prov_t *p, uint32_t now_ms)
 {
-    /* The 5 min window is not enforced while a Wi-Fi join or claim call is in flight (they have their own timeouts);
+    /* The 300 s window is not enforced while a Wi-Fi join or claim call is in flight (they have their own timeouts);
      * it is checked again as soon as that attempt fails. */
     if ((p->state == NW_PROV_S_ADVERTISING || p->state == NW_PROV_S_SESSION) &&
         (uint32_t)(now_ms - p->setup_started_ms) >= NW_PROV_SETUP_TIMEOUT_MS)

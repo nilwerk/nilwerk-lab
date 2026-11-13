@@ -54,7 +54,7 @@ typedef enum {
     NW_PROV_S_WIFI_CONNECTING,
     NW_PROV_S_CLAIMING,
     NW_PROV_S_CLAIMED,           /* done: stored, BLE off */
-    NW_PROV_S_CLOSED,            /* setup ended by the guessing limit or the 5 min limit; BLE off; nothing stored */
+    NW_PROV_S_CLOSED,            /* setup ended by the guessing limit or the 300 s limit; BLE off; nothing stored */
 } nw_prov_state_t;
 
 typedef struct {
