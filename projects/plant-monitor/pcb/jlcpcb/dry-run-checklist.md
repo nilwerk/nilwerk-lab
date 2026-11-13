@@ -1,9 +1,10 @@
 # JLCPCB dry-run checklist: plant-monitor, Plan 4.P4 prep
 
 **DRAFT. NOT ORDERED. NOT A RELEASE.** Routing is not done (only 4 GND stub tracks; all nets unrouted), 3 distinct footprints are placeholders or own copper, 4 of 5 simulations are not run. 
-Generated 2026-11-12 07:05Z by `make_jlcpcb_package.py` from branch `agent/pcb/4.P2-s2`, board from `plant-monitor.kicad_pcb` (4.P2 slice 2; CI head 8ad6122, run 42772372983).
+Rows, Gerber set and CI result: CI `pcb-fab` artifact of head `8ad6122` (run 42772372983). First generated 2026-11-12 07:05Z by `make_jlcpcb_package.py` (branch `agent/pcb/4.P2-s2`).
+Edited by hand 2026-11-13 at generator head `67e8607` (branch `agent/pcb/4.P2-s4`, EXTRA fix round on PR #90): row F20 set to OPEN with its three open nets, and the result line recounted from the table. Not regenerated: `make_jlcpcb_package.py` at 67e8607 would change rows against the current board (F19 would become FAIL, the track count in R1 changes) and still prints F20 as PASS.
 
-**Result:** NOT ORDERABLE: 4 FAIL, 12 OPEN or UNVERIFIED, 20 PASS (of 40 items). Dry run only.
+**Result:** NOT ORDERABLE: 4 FAIL, 14 OPEN or UNVERIFIED, 18 PASS (of 40 items). Dry run only.
 
 Legend: PASS = within the limit; FAIL = outside the limit or missing; OPEN = cannot be checked until a later slice; UNVERIFIED = needs the JLC page or a physical check; CHOICE / NOTE = a cart choice or a remark.
 
@@ -28,7 +29,7 @@ Legend: PASS = within the limit; FAIL = outside the limit or missing; OPEN = can
 | F17 | NPTH / mounting holes | NPTH annular >= 0.45 mm recommended; mounting holes need the enclosure (Q7) | no NPTH in drill file; no mounting holes placed | **OPEN** | Mounting holes depend on Yara's answer Q7 (layout-4P2.md). |
 | F18 | Gerber set complete | copper, mask, silk, paste, edge, drill | 22 files in the CI artifact; missing: none; 22 of 22 zip members match the artifact file of the same name (content check) | **OPEN** | CI pcb-fab artifact of head 8ad6122, run 42772372983. The zip is a container, so the check is per file, not per zip. OPEN: this artifact predates the current board (outline and silk changed after it) and #87 is not regenerated; the match is for that artifact only. |
 | F19 | Drill file vs board vias | drill holes = vias + drilled pads in the board | round holes 18 (board: 16 vias + 2 round pad holes), slots 4 (board: 4 oval pad holes) | **PASS** | J1 shield legs (4 slots) and 2 NPTH pegs come from the real footprint; the board is no longer 'vias only'. JLC must accept the 0.6 x 1.2 / 1.7 mm slots (UNVERIFIED). |
-| F20 | KiCad DRC (CI, error level) | 0 errors | 0 DRC violations; 0 unconnected pads | **PASS** | Error level only, KiCad 9 in CI. Unconnected items are warning-level and the board is unrouted, so this is no connectivity result. |
+| F20 | KiCad DRC (CI, error level) | 0 errors | 0 DRC violations; 3 nets open: VBUS J1.A9, CC1 R1.1, DW_OC Q1.5 (CI report: 0 unconnected pads) | **OPEN** | Route report (`route_power.py` route_all at 67e8607, run on a copy; board unchanged): `('VBUS', 'no route from J1.A9', 0)`, `('CC1', 'no route from R1.1', 0)`, `('DW_OC', 'no route from Q1.5', 0)`. The CI "0 unconnected pads" is no connectivity result: unconnected items are warning-level in `gen_pcb.py`, so they are not in the error-level report. Open until the three nets are routed (layout-4P2.md, open power-section connections). |
 | F21 | KiCad ERC (CI) | 0 errors | errors 0, warnings 0 | **PASS** |  |
 | F22 | Copper zones | zones must be filled before release (CAM) | 0/2 zones filled | **OPEN** | GND zone on B.Cu not filled: routing slice. |
 | F23 | CPL origin / orientation vs Gerber | CPL coordinates must share the Gerber origin (JLC CAM preview) | KiCad pos (Y sign negated vs board file) | **UNVERIFIED** | Checked here only against the board file. JLC CAM preview must confirm. |
