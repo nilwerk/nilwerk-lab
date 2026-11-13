@@ -13,19 +13,21 @@ def rows():
     return F.main()
 
 
-EXPECTED_OPEN = ("Board tail in DXF", "Tallest part to lid underside", "J2 at the distributor value 5.5 mm", "Heights with a datasheet page in the model",
+EXPECTED_OPEN = ("Board tail in DXF", "Tallest part to lid underside", "J2 at 5.5 mm", "Heights with a datasheet page in the model",
                  "PETG top wall over the antenna", "Screw torque limit",
                  # fix round 2 (Ines, Theo, Arsany rule: a pass against an ASSUMED value is not a pass)
                  "Antenna tip to top wall", "Interference lid vs board+parts", "PETG min feature: vent slot width", "PETG min feature: pinhole d",
                  "PETG min feature: light window d", "PETG min feature: lid screw clearance hole", "PETG min feature: plug wall",
                  "Seal tunnel clearance per side", "Model heights equal their cited source",
                  # fix round 3 (Theo verdict on 689c161): seal width and PETG boss wall are passes against ASSUMED / own-target values; J1 upright is A-087 (OPEN)
-                 "Seal tunnel clearance per side", "PETG insert boss wall", "J1 USB-C height, flat vs upright")
+                 "Seal tunnel clearance per side", "PETG insert boss wall", "J1 USB-C height, flat vs upright",
+                 # slice 4 (Yara, 2026-11-13): boss to board outline plan gap, threshold ASSUMED 1.0 mm
+                 "Boss to board outline")
 
 
 @pytest.mark.parametrize("tail", ["14", "20"])
 def test_all_fit_checks_pass_for_both_tail_variants(tail):
-    """No FAIL for either variant. The OPEN rows are exactly EXPECTED_OPEN (18): the board DXF tail (A-071), the J2 height (A-076, rows 'Tallest part',
+    """No FAIL for either variant. The OPEN rows are exactly EXPECTED_OPEN (19): the board DXF tail (A-071), the J2 height (A-076, rows 'Tallest part',
     'J2 5.5', 'Interference lid'), heights not datasheet-sourced, the PETG wall over the antenna, the unchecked torque, the J1 upright height (A-087), and every
     pass that rests on an ASSUMED threshold or our own target (antenna air, PETG feature floor, seal clearance, PETG boss wall). Nothing OPEN is counted as PASS."""
     rows = F.main(tail)
@@ -33,13 +35,14 @@ def test_all_fit_checks_pass_for_both_tail_variants(tail):
     assert not bad, bad
     opened = tuple(r[0].split(" (")[0] for r in rows if r[3] == "OPEN")
     assert sorted(opened) == sorted(EXPECTED_OPEN), opened
-    assert sum(r[3] == "PASS" for r in rows) == 37
+    assert sum(r[3] == "PASS" for r in rows) == 40
 
 
 def test_inner_size_numbers():
-    assert round(P.INNER_X1 - P.INNER_X0, 1) == 93.3 and round(P.INNER_Y1 - P.INNER_Y0, 1) == 52.9 and P.INNER_H == pytest.approx(7.6)
+    assert round(P.INNER_X1 - P.INNER_X0, 1) == 93.3 and round(P.INNER_Y1 - P.INNER_Y0, 1) == 53.7 and P.INNER_H == pytest.approx(8.6)   # slice 4: budget 8.6 (J2 5.5)
+    assert P.INNER_H_OPT_A == pytest.approx(7.6)                # option A (J2 4.5, ASSUMED) kept as the record
     assert P.INNER_H_IF_J2_5_5 == pytest.approx(8.6)           # the alternative that the sourced J2 value needs (LOCKED_INTERFACE shows both)
-    assert (round(P.OUT_X1 - P.OUT_X0, 1), round(P.OUT_Y1 - P.OUT_Y0, 1)) == (98.1, 57.7)
+    assert (round(P.OUT_X1 - P.OUT_X0, 1), round(P.OUT_Y1 - P.OUT_Y0, 1)) == (97.3, 56.9)     # slice 4 outer footprint (slice 3: 98.1 x 57.7)
 
 
 def test_params_derived_from_board_file_not_hardcoded():
@@ -77,7 +80,8 @@ def test_negative_control_collision_detected():
 
 
 def test_walls_rule():
-    assert min(P.WALL, P.FLOOR, P.LID_T - P.WIN_CB_DEPTH, P.WALL - P.USB_POCKET[2], (P.COLLAR_OD - P.WIN_D) / 2, P.CUP_WALL) >= P.MIN_WALL - 1e-9
+    assert min(P.WALL, P.WALL_LOW, P.FLOOR, P.LID_T - P.WIN_CB_DEPTH, P.WALL - P.USB_POCKET[2], (P.COLLAR_OD - P.WIN_D) / 2, P.CUP_WALL) >= P.MIN_WALL - 1e-9
+    assert P.min_wall_corners() >= P.MIN_WALL - 1e-9            # corner wall between the rounded skin and the cavity corners (slice 4)
 
 
 def test_antenna_gap_both_methods():
@@ -107,18 +111,18 @@ def test_height_rows_are_not_vacuous(monkeypatch):
     """QA (Ines): the height rows must move when an ASSUMED part height moves. INNER_H is fixed, so J2 is tested against it."""
     comps = B.components()
     gap, worst = F.lid_clearance(comps)
-    assert gap == pytest.approx(0.5, abs=1e-6) and worst["ref"] == "J2" and worst["h"] == 4.5   # positive control: today's J2 = 4.5
-    monkeypatch.setitem(P.H_BY_REF, "J2", 5.0)                  # mutation: J2 +0.5 mm
+    assert gap == pytest.approx(0.5, abs=1e-6) and worst["ref"] == "J2" and worst["h"] == 5.5   # positive control: J2 5.5 in the 8.6 budget (0.5 air)
+    monkeypatch.setitem(P.H_BY_REF, "J2", 6.6)                  # mutation: J2 +1.1 mm over the budget
     gap5, worst5 = F.lid_clearance(B.components())
-    assert gap5 == pytest.approx(0.0, abs=1e-6) and worst5["ref"] == "J2"
+    assert gap5 == pytest.approx(-0.6, abs=1e-6) and worst5["ref"] == "J2"
     assert gap5 < P.LID_CLEAR - 1e-9                            # the row would FAIL
     monkeypatch.setitem(P.H_BY_REF, "J2", 4.0)                  # mutation: J2 -0.5 mm -> row passes with more air (no false fail)
-    assert F.lid_clearance(B.components())[0] == pytest.approx(1.0, abs=1e-6)
+    assert F.lid_clearance(B.components())[0] == pytest.approx(2.0, abs=1e-6)
 
 
 def test_j2_height_mutation_fails_fit_check(monkeypatch):
     """End to end: J2 at 5.0 mm must turn the 'Tallest part to lid' row into a FAIL in the full fit check."""
-    monkeypatch.setitem(P.H_BY_REF, "J2", 5.0)
+    monkeypatch.setitem(P.H_BY_REF, "J2", 6.6)
     rows = F.main()
     failed = [r[0] for r in rows if r[3] == "FAIL"]
     assert any(n.startswith("Tallest part to lid") for n in failed), failed
@@ -145,7 +149,7 @@ def test_height_sources_cover_the_model():
     """Every height in the fit check has a source tag. Only U1 is read from its datasheet; the rest are SECONDARY, CONFLICT or ASSUMED."""
     assert set(P.H_BY_REF) <= set(P.H_SRC), set(P.H_BY_REF) - set(P.H_SRC)
     assert {k for k, v in P.H_SRC.items() if v[0] == "DATASHEET"} == {"U1"}
-    assert "5.5" in P.H_SRC["J2"][1] and P.H_BY_REF["J2"] == 4.5          # the conflict is recorded, the model value is not silently changed
+    assert "5.5" in P.H_SRC["J2"][1] and P.H_BY_REF["J2"] == 5.5 and P.H_SRC["J2"][0] == "SECONDARY"   # A-076: model value = listing value, not a datasheet
     assert P.H_SRC["J1_UPRIGHT"][0] == "OPEN" and (P.J1_UPRIGHT_H, P.J1_UPRIGHT_TOL) == (11.94, 0.25)   # upright J1 recorded as OPEN (A-087), model keeps flat 3.3
 
 
@@ -180,9 +184,16 @@ def test_sourced_height_mutation_fails(monkeypatch, ref, new):
         assert any(n.startswith("Model heights equal their cited source") for n in fails), fails
 
 
-def test_sourced_j2_5_5_mutation_fails_lid_interference(monkeypatch):
-    """Sourced J2 value 5.5 (distributor, CONFLICT): the lid must overlap the tallest part, so the interference row FAILS (not only the clearance row)."""
-    monkeypatch.setitem(P.H_BY_REF, "J2", 5.5)
+def test_j2_above_5_5_budget_mutation_fails_lid_interference(monkeypatch):
+    """J2 above the 5.5 mm budget (6.2 mm, inner 8.6): the lid overlaps the tallest part, so the interference row and the clearance row FAIL."""
+    monkeypatch.setitem(P.H_BY_REF, "J2", 6.2)
+    fails = _fit_fails(F.main())
+    assert "Interference lid vs board+parts" in fails and any(n.startswith("Tallest part to lid underside") for n in fails), fails
+
+
+def test_j2_5_5_with_option_a_inner_7_6_fails_lid_interference(monkeypatch):
+    """Sourced J2 5.5 in option A (inner 7.6, the old J2 4.5 budget): the lid overlaps the part. This is why the box moved to 8.6 (A-076)."""
+    monkeypatch.setattr(P, "INNER_H", P.INNER_H_OPT_A)
     fails = _fit_fails(F.main())
     assert "Interference lid vs board+parts" in fails and any(n.startswith("Tallest part to lid underside") for n in fails), fails
 
