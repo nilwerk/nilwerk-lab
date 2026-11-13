@@ -784,7 +784,6 @@
 	(gr_text "-" (at 5.3 32.4) (layer "F.SilkS") (uuid "7c306894-8d0c-5fa6-8501-288939a689df") (effects (font (size 1.0 1.0) (thickness 0.15))))
 	(gr_line (start 6.475 37.35) (end 6.475 38.25) (stroke (width 0.15) (type solid)) (layer "F.SilkS") (uuid "c3670e2f-c2f3-5952-98ba-102ffa0195a8"))
 	(gr_line (start 6.275 39.75) (end 6.275 40.65) (stroke (width 0.15) (type solid)) (layer "F.SilkS") (uuid "bd37d2f0-af56-5d9d-81e6-636a46ac17e8"))
-	(gr_text "ANT KEEP-OUT" (at 24.9 -5.4) (layer "F.SilkS") (uuid "b5192d93-cc7f-5982-904d-35a8300ef80d") (effects (font (size 1.0 1.0) (thickness 0.15))))
 	(via (at 25.9125 5.5125) (size 0.7) (drill 0.3) (layers "F.Cu" "B.Cu") (net 14) (uuid "5dcd1bec-cf0c-5545-be86-63f0f581235b"))
 	(via (at 25.9125 7.4875) (size 0.7) (drill 0.3) (layers "F.Cu" "B.Cu") (net 14) (uuid "3cf7da87-2621-5a1c-a8af-5177c9fdfcdf"))
 	(via (at 25.9125 4.525) (size 0.7) (drill 0.3) (layers "F.Cu" "B.Cu") (net 14) (uuid "8273f035-d369-5896-a407-578a0ae734d8"))

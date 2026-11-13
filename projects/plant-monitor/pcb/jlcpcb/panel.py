@@ -60,7 +60,7 @@ def mouse_bites(b, offs):
     pts = [(x - b["x0"], y - b["y0"]) for x, y in b["poly"]]     # board-local, y down, origin at the outline's top-left
     n = len(pts)
     ymin = min(p[1] for p in pts)
-    tabs, holes = [], []
+    tabs, holes, hole_s = [], [], []
     for bi, (ox, oy) in enumerate(offs):
         # no hole in a courtyard of a connector or the module: U1 antenna overhang, J1 USB-C mouth and J2 flush with the edge.
         # Those stretches stay uncut (they act as tabs). The stake electrodes E1 are not in this list: their copper is checked
@@ -83,9 +83,28 @@ def mouse_bites(b, offs):
                 hx, hy = ox + p[0] + ux * s, oy + p[1] + uy * s
                 if all(abs(s - t) >= TAB_W / 2 + MB_DIA / 2 for t in tc) and not any(
                         a <= hx <= c and d <= hy <= e for a, d, c, e in keep_out):
-                    holes.append((hx, hy))
+                    holes.append((hx, hy)); hole_s.append((bi, ei, s))
                 s += MB_PITCH
-    return tabs, holes
+    return tabs, holes, hole_s
+
+def tab_runs(b, L):
+    """Width (mm) of the uncut run that holds each tab, measured along its outline edge: from the edge of the hole on one side
+    (centre - MB_DIA/2) to the edge of the hole on the other side (centre + MB_DIA/2). An edge end counts as the boundary.
+    This is the measured tab width; TAB_W is the design target that places the holes, not the check."""
+    pts = [(x - b["x0"], y - b["y0"]) for x, y in b["poly"]]
+    n = len(pts)
+    ln = [math.hypot(pts[(i + 1) % n][0] - pts[i][0], pts[(i + 1) % n][1] - pts[i][1]) for i in range(n)]
+    by_edge = {}
+    for bi, ei, s in L["hole_s"]:
+        by_edge.setdefault((bi, ei), []).append(s)
+    widths = []
+    for bi, ei, t in L["tabs"]:
+        S = sorted(by_edge.get((bi, ei), []))
+        left = [s for s in S if s < t]; right = [s for s in S if s > t]
+        lo = left[-1] + MB_DIA / 2 if left else 0.0
+        hi = right[0] - MB_DIA / 2 if right else ln[ei]
+        widths.append(hi - lo)
+    return widths
 
 def panel_pts(b, ox, oy, x, y):
     """Board world point (KiCad board coords) -> panel coords."""
@@ -100,8 +119,8 @@ def layout():
     # tooling holes: left and right rail, middle height (diagonal pair would also do; the pair on one axis is simpler to check)
     tools = [(TOOL_CENTRE, H / 2), (W - TOOL_CENTRE, H / 2)]
     fids = [(FID_CENTRE, FID_CENTRE), (W - FID_CENTRE, FID_CENTRE), (FID_CENTRE, H - FID_CENTRE)]
-    tabs, holes = mouse_bites(b, offs)
-    return dict(b=b, W=W, H=H, offs=offs, tools=tools, fids=fids, tabs=tabs, holes=holes)
+    tabs, holes, hole_s = mouse_bites(b, offs)
+    return dict(b=b, W=W, H=H, offs=offs, tools=tools, fids=fids, tabs=tabs, holes=holes, hole_s=hole_s)
 
 def checks(L=None):
     L = L or layout()
@@ -130,7 +149,9 @@ def checks(L=None):
             fc.append(math.hypot(dx, dy) - FID_DIA / 2)
     ck(min(fc) >= COPPER_EDGE, f"fiducial copper to board edge >= {COPPER_EDGE} mm (min {min(fc):.2f} mm)")
     # tabs and mouse bites (A-085)
-    ck(TAB_W >= 5.0, f"breakaway tab width {TAB_W:.1f} mm >= 5 mm (JLC minimum for mouse-bite breakaways)")
+    tw = tab_runs(b, L)
+    ck(len(tw) == len(L["tabs"]) and min(tw) >= 5.0,
+       f"breakaway tabs measured from the holes: uncut run {min(tw):.2f}..{max(tw):.2f} mm over {len(tw)} tabs, each >= 5 mm (JLC minimum for mouse-bite breakaways)")
     per_board = [sum(1 for t in L["tabs"] if t[0] == bi) for bi in range(len(offs))]
     ck(min(per_board) >= TABS_MIN, f"tabs per board {min(per_board)}..{max(per_board)} >= {TABS_MIN} (every outline edge has a tab or a perforation)")
     ck(0.5 <= MB_DIA <= 0.8 and 0.2 <= MB_WEB <= 0.3, f"mouse-bite holes {MB_DIA:.1f} mm dia, web {MB_WEB:.1f} mm (pitch {MB_PITCH:.1f} mm) within JLC 0.5-0.8 mm / 0.2-0.3 mm")
@@ -152,7 +173,9 @@ def checks(L=None):
                 pads.append((px - pd["w"] / 2, py - pd["h"] / 2, px + pd["w"] / 2, py + pd["h"] / 2))
     worst = min((math.hypot(max(x0 - hx, 0, hx - x1), max(y0 - hy, 0, hy - y1)) - MB_DIA / 2
                  for hx, hy in L["holes"] for x0, y0, x1, y1 in pads), default=99.0)
-    ck(worst >= MB_CLEAR, f"copper to mouse-bite hole edge >= {MB_CLEAR} mm (min {worst:.2f} mm, pad boxes)")
+    # Scope (Theo C6): PAD BOXES ONLY. Track copper (278 segments of the board, power + GND stubs) and zone/board-edge copper
+    # are NOT measured here; the hole-to-track distance is open (see jlcpcb/dry-run-checklist.md F5).
+    ck(worst >= MB_CLEAR, f"copper to mouse-bite hole edge >= {MB_CLEAR} mm (min {worst:.2f} mm, PAD BOXES ONLY; tracks and zone copper not checked)")
     return out
 
 def write(L=None):

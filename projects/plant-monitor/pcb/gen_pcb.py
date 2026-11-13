@@ -229,6 +229,7 @@ def footprint_text(p: D.Part):
 # ---------------------------------------------------------------------------------------------
 SILK_REFS = ["U1", "U5", "U6", "J1", "J2", "D2", "D3"]
 SILK_H, SILK_LINE, SILK_CLR = 1.0, 0.15, 0.15
+SILK_CHECKS = []                  # filled by silk_items(): one PASS/FAIL line per silk element, printed by __main__
 SILK_CHAR_W = 0.62 * SILK_H       # [mine] character advance of KiCad's default font, used for the label box estimate
 
 def _pads_world():
@@ -272,6 +273,7 @@ def silk_items():
     pads = _pads_world()
     pad_boxes = [(q["x"] - q["w"] / 2, q["y"] - q["h"] / 2, q["x"] + q["w"] / 2, q["y"] + q["h"] / 2) for q in pads]
     placed = []     # label boxes already placed
+    labels = []     # every silk element (text or bar): (name, box). All of them go through the final check below
     out, notes = [], []
     def try_place(text, cands):
         for cx, cy in cands:
@@ -280,7 +282,7 @@ def silk_items():
                 continue
             if any(_sep(bx, pb) < SILK_CLR for pb in pad_boxes) or any(_sep(bx, o) < SILK_CLR for o in placed):
                 continue
-            placed.append(bx)
+            placed.append(bx); labels.append((text, bx))
             return cx, cy
         raise SystemExit(f"silk: no clear place for {text!r}")
     def emit(text, cx, cy, tag):
@@ -307,7 +309,7 @@ def silk_items():
         cx, cy = try_place(sign, cands)
         emit(sign, cx, cy, "pol-J2-" + num)
         notes.append(f"J2 pad {num} ({'CELL+' if sign == '+' else 'CELL-'}) polarity mark '{sign}' at ({cx:.2f}, {cy:.2f})")
-    # LED cathode bar on the outer side of pad 1 (cathode, design.py D2/D3 pin 1 = K)
+    # LED cathode bar on the outer side of pad 1 (cathode, design.py D2/D3 pin 1 = K: [mine, UNVERIFIED] against the LED datasheet, see design.py)
     for ref in ("D2", "D3"):
         ps = [q for q in pads if q["ref"] == ref]
         p1 = next(q for q in ps if q["num"] == "1"); p2 = next(q for q in ps if q["num"] == "2")
@@ -315,14 +317,25 @@ def silk_items():
         xb = p1["x"] + side * (p1["w"] / 2 + 0.3)
         yb0, yb1 = p1["y"] - 0.45, p1["y"] + 0.45
         bar = (xb - 0.02, yb0, xb + 0.02, yb1)
-        if any(_sep(bar, pb) < SILK_CLR for pb in pad_boxes):
-            raise SystemExit(f"silk: cathode bar of {ref} touches a pad")
+        labels.append((f"{ref} cathode bar", bar))
         out.append(f'\t(gr_line (start {f(xb)} {f(yb0)}) (end {f(xb)} {f(yb1)}) (stroke (width {SILK_LINE}) (type solid)) (layer "F.SilkS") (uuid "{uid("silk", "cath-" + ref)}"))')
         notes.append(f"{ref} cathode bar at x={xb:.2f} (pad 1 side)")
-    # antenna keep-out label: off the board, above the module antenna (no room for 1 mm text inside the 1.0 mm keep-out strip)
-    ax, ay = U1_CX - 2.0, -U1_OVERHANG - 0.9
-    emit("ANT KEEP-OUT", ax, ay, "ant")
-    notes.append(f"antenna keep-out label at ({ax:.2f}, {ay:.2f}), off the board (rail area in the panel)")
+    # No antenna keep-out label on the silk (A-086 lists references and polarity only; the keep-out is labelled in the PR text).
+    # Final enforcement, for EVERY silk element in `labels`: inside the board outline and SILK_CLR from pads and from other labels.
+    global SILK_CHECKS
+    SILK_CHECKS = []
+    bad = []
+    for i, (name, bx) in enumerate(labels):
+        others = [b for j, (_, b) in enumerate(labels) if j != i]
+        d_pad = min((_sep(bx, pb) for pb in pad_boxes), default=99.0)
+        d_lab = min((_sep(bx, o) for o in others), default=99.0)
+        ok = _inside_outline(*bx) and d_pad >= SILK_CLR and d_lab >= SILK_CLR
+        SILK_CHECKS.append(f"{'PASS' if ok else 'FAIL'}  silk {name!r}: inside outline, pad clearance {d_pad:.2f} mm, "
+                           f"label clearance {d_lab:.2f} mm (>= {SILK_CLR:.2f} mm; text box estimated, see SILK_CHAR_W)")
+        if not ok:
+            bad.append(name)
+    if bad:
+        raise SystemExit("silk: FAIL " + ", ".join(bad))
     return out, notes
 
 def outline_pts():
@@ -440,6 +453,9 @@ if __name__ == "__main__":
     for row in report:
         print("route:", row)
     open(os.path.join(HERE, "plant-monitor.kicad_pcb"), "w").write(build_pcb(segs, vias))
+    for line in SILK_CHECKS:
+        print("silk:", line)
+    print(f"silk: {sum(l.startswith('PASS') for l in SILK_CHECKS)} of {len(SILK_CHECKS)} silk elements PASS")
     update_pro()
     write_dxf()
     print("wrote plant-monitor.kicad_pcb and updated plant-monitor.kicad_pro")

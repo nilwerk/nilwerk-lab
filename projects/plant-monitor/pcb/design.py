@@ -132,10 +132,10 @@ cap("C1", *C10U, "VBUS", "GND", B, "TP4056 VCC input")
 cap("C2", *C10U, "VBAT", "GND", B, "TP4056 BAT output")
 res("R10", "1k", "C21190", "0603WAF1001T5E", "VBUS", "LED_CHRG_A", B, "CHRG LED series; no current when USB is unplugged")
 add("D2", "LED", "LED red CHRG", "LED_SMD:LED_0603_1608Metric", "C2286", "KT-0603R",
-    [("1", "K", "CHRG_N", "L"), ("2", "A", "LED_CHRG_A", "R")], "pin 1 = cathode assumed; check footprint polarity", block=B)
+    [("1", "K", "CHRG_N", "L"), ("2", "A", "LED_CHRG_A", "R")], "[mine, UNVERIFIED] pin 1 = cathode assumed (KT-0603R LED datasheet and footprint polarity not checked); check before the dry run", block=B)
 res("R11", "1k", "C21190", "0603WAF1001T5E", "VBUS", "LED_STDBY_A", B, "STDBY LED series")
 add("D3", "LED", "LED green STDBY", "LED_SMD:LED_0805_2012Metric", "C2297", "KT-0805G",
-    [("1", "K", "STDBY_N", "L"), ("2", "A", "LED_STDBY_A", "R")], "pin 1 = cathode assumed", block=B)
+    [("1", "K", "STDBY_N", "L"), ("2", "A", "LED_STDBY_A", "R")], "[mine, UNVERIFIED] pin 1 = cathode assumed (KT-0805G LED datasheet and footprint polarity not checked); check before the dry run", block=B)
 add("J2", "JSTPH2", "JST PH 2-pin (cell)", "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal", "C295747",
     "S2B-PH-SM4-TB(LF)(SN)",
     [("1", "CELL+", "VBAT", "R"), ("2", "CELL-", "CELL_NEG", "R"), ("MP1", "MP", "NC", "R"), ("MP2", "MP", "NC", "R")],
