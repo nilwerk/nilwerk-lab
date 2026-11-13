@@ -1,0 +1,12 @@
+# Firmware and edge AI
+- Contract constants live in code with FR/NFR ID comments; tests and PRs cite the same IDs.
+- Golden-file drift test: report payload checked against `docs/interfaces/device-report.schema.json` and a checked-in example.
+- Every reviewer condition becomes a named host test that cites the review comment.
+- Every timing or power PR states the estimated µA per state and the deep-sleep budget.
+- Persistent device state (RTC/NVS) is listed in the feature spec before training.
+- N-of-M debounce: worst-case alert latency stated in the PR.
+- Windows are segment-aware. Synthetic data is flagged, reported separately and has provenance (source, licence, version).
+- Edge AI budgets: int8, < 30 KB flash, < 20 KB RAM, < 50 ms, always compared to the watering-interval baseline.
+- Security: TLS, per-device token, signed OTA with rollback.
+- Flash or OpenOCD errors: check the board profile, port, cable and bootloader mode before touching code.
+- Slice tasks to about 5 agent minutes; one PR concern each.

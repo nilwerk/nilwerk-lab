@@ -1,0 +1,12 @@
+# Pipeline
+- Firmware: ESP-IDF build for esp32c3, size report, host unit tests.
+- App: install, lint, typecheck, tests when `package.json` exists.
+- Cloud: lint, typecheck, tests; SQL migrations on a fresh Postgres; contract tests against `docs/interfaces/`.
+- ML: pytest, a tiny training smoke run, model size against budget.
+- PCB: kicad-cli ERC and DRC with zero errors; Gerber, BOM, CPL and PDF as artifacts.
+- Simulation: ngspice pass/fail checks under `pcb/sim/`.
+- Enclosure: CadQuery regenerates STEP and STL; mesh is watertight.
+- Integration: interface schemas validate; a firmware payload fixture validates against the ingest schema.
+- Every job skips cleanly and says so in the job summary, so "skipped" never reads as "passed".
+- Generate SHA-256 for every artifact and verify it in the consuming job (Kai: not yet in `ci.yml`).
+- Cache toolchains and dependencies, keyed on lockfiles.
