@@ -1,0 +1,25 @@
+Internal ctest changing into directory: projects/plant-monitor/firmware/build-host
+Test project projects/plant-monitor/firmware/build-host
+    Start 1: glue_unit
+1/7 Test #1: glue_unit ........................   Passed    0.01 sec
+    Start 2: sensors_unit
+2/7 Test #2: sensors_unit .....................   Passed    0.01 sec
+    Start 3: provisioning_unit
+3/7 Test #3: provisioning_unit ................   Passed    0.01 sec
+    Start 4: board_pins_cite_pinmap
+4/7 Test #4: board_pins_cite_pinmap ...........   Passed    0.03 sec
+    Start 5: provisioning_contract
+5/7 Test #5: provisioning_contract ............   Passed    0.02 sec
+    Start 6: provisioning_mutation_checks
+6/7 Test #6: provisioning_mutation_checks .....   Passed   11.12 sec
+    Start 7: mutation_checks
+7/7 Test #7: mutation_checks ..................   Passed    7.79 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =  19.00 sec
+
+$ projects/plant-monitor/firmware/build-host/test_glue | tail -1
+glue host tests: 348 checks, 0 failed
+$ projects/plant-monitor/firmware/build-host/test_prov | tail -1
+provisioning host tests: 530 checks, 0 failed
