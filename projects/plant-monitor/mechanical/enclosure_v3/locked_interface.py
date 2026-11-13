@@ -80,16 +80,16 @@ def text():
     a("|---|---|---|---|")
     XY = f"{P.INNER_X1 - P.INNER_X0:.1f} x {P.INNER_Y1 - P.INNER_Y0:.1f}"
     OXY = f"{P.OUT_X1 - P.OUT_X0:.1f} x {P.OUT_Y1 - P.OUT_Y0:.1f}"
-    a(f"| Inner cavity, **option A: model value (J2 4.5 ASSUMED)** | {XY} x {P.INNER_H:.1f} | **OPEN, not locked** | holds only if the J2 datasheet is <= 4.5 (budget 1.0 + 1.6 + J2 + 0.5) |")
-    a(f"| Outer, lid on, option A | {OXY} x {P.FLOOR + P.INNER_H + P.LID_T:.1f} | OPEN | floor {P.FLOOR} + inner + lid {P.LID_T}; +1.0 gasket (not modelled) |")
-    a(f"| Inner cavity, **option B: J2 5.5 (distributor value, sourced)** | {XY} x {P.INNER_H_IF_J2_5_5:.1f} | OPEN | the sourced J2 value needs this height (+1.0 mm) |")
+    a(f"| Inner cavity, **option A: J2 4.5 ASSUMED (not the model since slice 4)** | {XY} x {P.INNER_H_OPT_A:.1f} | **OPEN, not locked** | holds only if the J2 datasheet is <= 4.5 (budget 1.0 + 1.6 + J2 + 0.5) |")
+    a(f"| Outer, lid on, option A | {OXY} x {P.FLOOR + P.INNER_H_OPT_A + P.LID_T:.1f} | OPEN | floor {P.FLOOR} + inner + lid {P.LID_T}; +1.0 gasket (not modelled) |")
+    a(f"| Inner cavity, **option B (model): J2 5.5** | {XY} x {P.INNER_H_IF_J2_5_5:.1f} | OPEN (not a datasheet value) | J2 5.5 from the LCSC C295747 listing (A-076); 0.5 mm air to the lid |")
     a(f"| Outer, lid on, option B | {OXY} x {P.FLOOR + P.INNER_H_IF_J2_5_5 + P.LID_T:.1f} | OPEN | +1.0 gasket (not modelled) |")
     a("")
     a("## 9. Open points (NEEDS ARSANY / Emil)")
     a(f"1. **Tail length (A-071)**: choose 14 or 20 mm. Board tail becomes {P.TAIL_L_VARIANT['14']:.1f} or {P.TAIL_L_VARIANT['20']:.1f} mm; the DXF is 25.0 today.")
-    a(f"2. **J2 height (A-076, Arsany)**: OPEN, the inner height is NOT locked. Model value 4.5 ASSUMED gives inner {P.INNER_H:.1f} (option A). The only sourced value, distributor 5.5, needs inner {P.INNER_H_IF_J2_5_5:.1f} (option B, box +1.0 mm). Decide after the J2 datasheet or a measured sample; until then Emil keeps the inner height open.")
+    a(f"2. **J2 height (A-076)**: model 5.5 from the LCSC C295747 Z-height listing (SECONDARY). The JST drawing is still to confirm, and element14 lists 8.0 mm for a likely B2B variant, so the exact part must be confirmed before the inner height is locked. Inner {P.INNER_H_IF_J2_5_5:.1f} (option B) is the model; option A {P.INNER_H_OPT_A:.1f} is for reference only.")
     a("3. **Board retention**: two more keep-clear pads or two M2 holes (no metal within 15 mm of the antenna).")
-    a("4. **J1 orientation (A-087, Arsany)**: flat 3.30 (ASSUMED, model) or upright male 11.94 +-0.25 (datasheet, OPEN). The inner height cannot hold the upright part; the choice decides the USB-C side of the box. Not decided here.")
+    a("4. **J1 orientation (A-087)**: approved flat / edge-mount by Arsany 2026-11-13. Model: flat 3.30, ASSUMED (no datasheet height for the flat part read); the part is still to be picked by Emil. The upright male version (11.94 +-0.25, datasheet) does not fit this box and is not used.")
     a("5. **Device heights** still ASSUMED (see `params_v3.H_SRC`): U3 and the 0603/SOT parts.")
     return "\n".join(L) + "\n"
 
