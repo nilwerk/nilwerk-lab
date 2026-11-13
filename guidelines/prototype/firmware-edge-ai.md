@@ -10,3 +10,7 @@
 - Security: TLS, per-device token, signed OTA with rollback.
 - Flash or OpenOCD errors: check the board profile, port, cable and bootloader mode before touching code.
 - Slice tasks to about 5 agent minutes; one PR concern each.
+
+- Reference conventions from Arsany's other project (C99, CMocka, layered `hardware_layer`/`sensor_layer`) live in `skills/vendor/agents-reference/firmware.instructions.md`. Ideas worth keeping: only the hardware layer touches registers; one module per component with its own test; no magic numbers. Our toolchain is ESP-IDF, so do not copy its build rules.
+- Verify board pinouts, voltage limits and library support in official vendor documentation. Never guess from a similar board.
+- State exactly what was and was not tested on hardware. Never claim a flash, sensor reading or physical test that did not happen.

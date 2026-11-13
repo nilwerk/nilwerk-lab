@@ -6,3 +6,5 @@
 - `skills/` holds the online references. `skills/ROLE-MAP.md` says which agent reads which file.
 
 Lifecycle: a rule enters here through a PR, reviewed by Theo (technical) and Ines (testable). Rules that are project-specific stay in `projects/<project>/`.
+
+Also: `guidelines/prototype/handoffs.md` (briefs between embedded, PCB and enclosure), `guidelines/prototype/safety.md` (electrical and battery rules). Ready-to-run skills: `skills/vendor/README.md`.

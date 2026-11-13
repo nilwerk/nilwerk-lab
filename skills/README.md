@@ -13,4 +13,6 @@ Folders:
 - `skills/pipeline-qa.md` — GitHub Actions, CI checks, test frameworks (Kai, Ines).
 - `skills/architecture.md` — OpenAPI, RLS, MCP spec, Mermaid (Theo).
 
+Vendored, ready-to-run skills (KiCad, SPICE, EMC, sourcing, CadQuery, print prep): `skills/vendor/README.md`.
+
 Role mapping (which skill file and which guideline file each agent reads): `skills/ROLE-MAP.md`.
