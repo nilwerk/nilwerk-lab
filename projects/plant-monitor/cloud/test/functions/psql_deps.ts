@@ -9,6 +9,10 @@ export function psql(url: string, sql: string, vars: Record<string, string> = {}
   return { ok: r.status === 0, out: r.stdout.trim(), err: r.stderr.trim() };
 }
 
+export const storage: { userId: string; knownPaths: string[] }[] = [];
+let failPhotos = false;
+export const setFailPhotos = (v: boolean) => { failPhotos = v; };
+
 export function psqlDeps(url: string, users: Record<string, string>): Deps {
   return {
     async rpc(name, args): Promise<RpcResult> {
@@ -23,5 +27,11 @@ export function psqlDeps(url: string, users: Record<string, string>): Deps {
     },
     async getUserId(jwt) { return users[jwt] ?? null; },
     randomBytes: (n) => new Uint8Array(randomBytes(n)),
+    // Storage is not available in plain Postgres: the test records which prefixes the handler asked to delete.
+    async deleteUserPhotos(userId, knownPaths) { storage.push({ userId, knownPaths }); return failPhotos ? { message: "storage down" } : null; },
+    async deleteAuthUser(userId) {
+      const r = psql(url, `delete from auth.users where id = :'u'`, { u: userId });   // not-found deletes 0 rows: idempotent
+      return r.ok ? null : { message: r.err };
+    },
   };
 }

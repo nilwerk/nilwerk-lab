@@ -416,15 +416,15 @@ def main():
     row("F2", "Board thickness", "FR-4 0.4-4.5 mm; 1.6 mm in list (+-10 %)", f"{board['thickness']} mm", "PASS" if board['thickness'] == 1.6 else "FAIL", JLC_SRC)
     row("F3", "Outer copper weight", "2-layer: 1 / 2 / 2.5 / 3.5 / 4.5 oz", "1 oz (not stored in the board file; choice in cart)", "CHOICE", JLC_SRC)
     row("F4", "Board size", "min 5 x 5 mm; 2-layer FR-4 max 1020 x 600 mm", f"{bw:.2f} x {bh:.2f} mm, 1 board", "PASS", JLC_SRC)
-    # Panel (Nora / Arsany round, 2026-11-10): 2 boards, rails, tooling holes, fiducials, outline unchanged. panel.py checks the geometry;
+    # Panel (Nora / Arsany round, 2026-11-10): 2 boards, rails, tooling holes, fiducials, outline from the board file. panel.py checks the geometry;
     # the panel Gerber/drill set does not exist yet, so the Gerber-level rows stay FAIL/OPEN.
     pl = PNL.layout()
     pchk = PNL.checks(pl)
-    pgeo = f"{PNL.N_BOARDS} boards {bw:.2f} x {bh:.2f} mm in a {pl['W']:.1f} x {pl['H']:.1f} mm panel (rails {PNL.RAIL:.0f} mm, board gap {PNL.BOARD_GAP:.0f} mm)"
+    pgeo = f"{PNL.N_BOARDS} boards {bw:.2f} x {bh:.2f} mm in a {pl['W']:.1f} x {pl['H']:.1f} mm panel (rails {PNL.RAIL:.0f} mm, board gap {PNL.BOARD_GAP:.0f} mm, {len(pl['tabs']) // PNL.N_BOARDS} tabs per board, {len(pl['holes'])} mouse-bite holes)"
     row("F5", "Panel / rails for this outline", "min panel 70 x 70 mm (V-cut panels only); SMT tooling edge (rail) 5 mm (general minimum 3 mm); board spacing 1.6 or 2 mm",
         pgeo + f"; geometry checks {sum(o for o, _ in pchk)}/{len(pchk)} PASS; panel Gerber not generated",
         "OPEN" if all(o for o, _ in pchk) else "FAIL",
-        "Panel designed in jlcpcb/panel/ (panel.py, panel.dxf), outline unchanged. Not yet in a Gerber/drill set: needs a KiCad panel (CI) or the JLC panelizer. Rails 6 mm meet the SMT 5 mm tooling edge (panel.py RAIL_MIN = 5; the general 3 mm minimum does not apply to SMT). Board gap 2 mm is within JLC's 1.6-2 mm. The 70 x 70 mm figure is for V-cut; this panel has no V-cut, so it is only a conservative floor [mine] (panel is 83.0 x 79.0 mm). The panel has no mouse-bite holes yet; their spec (0.5-0.8 mm holes) is read but not applied. Not verified: the J1 (USB-C) edge overhang in the panelised PCBA. Not verified: any JLC panelizer result. " + JLC_SRC)
+        "Panel designed in jlcpcb/panel/ (panel.py, panel.dxf), outline from the board file (tail 25.8 mm, A-071). Not yet in a Gerber/drill set: needs a KiCad panel (CI) or the JLC panelizer. Rails 6 mm meet the SMT 5 mm tooling edge (panel.py RAIL_MIN = 5; the general 3 mm minimum does not apply to SMT). Board gap 2 mm is within JLC's 1.6-2 mm. The 70 x 70 mm figure is for V-cut; this panel has no V-cut, so it is only a conservative floor [mine] (panel is 83.0 x 79.8 mm). Breakaway tabs and mouse bites (A-085, 2026-11-12): 9 uncut tabs per board, uncut run measured hole edge to hole edge for every tab, each >= 5 mm (panel.py tab_runs; JLC minimum 5 mm for a mouse-bite breakaway), and 0.5 mm holes at 0.8 mm pitch (JLC 0.5-0.8 mm holes, 0.2-0.3 mm web) on the other outline edges; no hole in the U1, J1 or J2 courtyards. The web of 0.3 mm is [mine]; copper to hole edge 0.2 mm is [mine, UNVERIFIED for holes]. Scope: the copper check covers pad boxes only; track and zone copper near the holes is NOT checked (open). Not verified: the J1 (USB-C) edge overhang in the panelised PCBA. Not verified: any JLC panelizer result. " + JLC_SRC)
     row("F6", "SMT tooling and fiducials", "SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials centred at 3.85 mm from the panel edges",
         f"designed: {len(pl['fids'])} fiducials (1 mm copper, centre 3.85 mm from the edge, copper edge 3.35 mm), {len(pl['tools'])} tooling holes (2 mm NPTH, centre 3.0 mm [mine, UNVERIFIED]), rails {PNL.RAIL:.0f} mm; in the Gerber/drill set: fiducials 0, tooling holes 0",
         "FAIL",
@@ -444,15 +444,15 @@ def main():
         "A-069 applied (lowest risk): vias moved out of pads, so no filled-and-capped via process is needed. Alternative for Arsany: keep vias in the pads and order JLC filled and capped vias (price NOT read, UNVERIFIED). The 12 module vias still touch the pad copper with their 0.7 mm ring (hole is in the gap); the JLC DFM view must confirm.")
     row("F13", "Via to via / hole spacing", "via hole to hole >= 0.25 mm (layout-brief)", chk_line("via-to-via"), chk("via-to-via"), "check_layout.py")
     row("F14", "Solder mask bridge", ">= 0.10 mm bridge (1 oz green); mask opening 1:1 to pad", "min pad gap >= 0.2 mm (check_layout); pad_to_mask_clearance 0", "PASS", JLC_SRC)
-    row("F15", "Silkscreen", "text height >= 1.0 mm, line >= 0.15 mm, pad to silk >= 0.15 mm", "no silkscreen text placed in the board file", "OPEN",
-        "Reference designators and polarity marks for D2, D3, U1, U3 are still to be placed (4.P4 prep does not place them).")
+    row("F15", "Silkscreen", "text height >= 1.0 mm, line >= 0.15 mm, pad to silk >= 0.15 mm", "silk references and polarity placed in the board file (see detail)", "OPEN",
+        "Placed on F.SilkS (A-086, accepted 2026-11-12, references and polarity only, no logos): reference designators U1, U5, U6, J1, J2, D2, D3; polarity J2 + and - (CELL+ / CELL-), D2 and D3 cathode bar; no antenna keep-out label on the silk (A-086 lists refs and polarity only; the keep-out is labelled in the PR text). Every silk element is checked in gen_pcb.py: inside the outline and 0.15 mm clearance, one PASS line each. Text 1.0 mm, line 0.15 mm. Silk-to-pad clearance is checked by KiCad DRC in CI, not yet confirmed (no DRC run in this slice; warning-level DRC not run: KiCad 9 image not reachable from the agent session).")
     row("F16", "Surface finish", "HASL lead-free / ENIG / OSP", "HASL lead-free proposed (layout-brief section 5)", "CHOICE", JLC_SRC)
     row("F17", "NPTH / mounting holes", "NPTH annular >= 0.45 mm recommended; mounting holes need the enclosure (Q7)", "no NPTH in drill file; no mounting holes placed", "OPEN",
         "Mounting holes depend on Yara's answer Q7 (layout-4P2.md).")
     row("F18", "Gerber set complete", "copper, mask, silk, paste, edge, drill",
         f"{gchk['gerber_files']} files in the CI artifact; missing: {', '.join(gchk['gerber_missing']) or 'none'}; {gchk['files_match']} of {gchk['zip_members']} zip members match the artifact file of the same name (content check)",
-        "PASS" if not gchk["gerber_missing"] and gchk["files_match"] == gchk["zip_members"] else "FAIL",
-        f"CI pcb-fab artifact of head {a.ci_head}, run {a.ci_run}. The zip is a container, so the check is per file, not per zip.")
+        "OPEN",  # Theo C1: artifact 8ad6122 predates the current outline and silk; PASS only after #87 is regenerated from the current board
+        f"CI pcb-fab artifact of head {a.ci_head}, run {a.ci_run}. The zip is a container, so the check is per file, not per zip. OPEN: this artifact predates the current board (outline and silk changed after it) and #87 is not regenerated; the match is for that artifact only.")
     row("F19", "Drill file vs board vias", "drill holes = vias + drilled pads in the board",
         f"round holes {gchk['drill_holes']} (board: {len(board['vias'])} vias + {n_pad_round} round pad holes), slots {gchk['drill_slots']} (board: {n_pad_slot} oval pad holes)",
         "PASS" if gchk["drill_holes"] == len(board["vias"]) + n_pad_round and gchk["drill_slots"] == n_pad_slot else "FAIL",

@@ -61,11 +61,14 @@ jobs:
           CT="$P/docs/interfaces/ $P/docs/adr/"
           gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/" $CT
           gate app "test -f $P/app/package.json" "$P/app/" $CT
-          gate cloud "test -f $P/cloud/package.json" "$P/cloud/" $CT
+          # cloud = Deno lint/typecheck of the Supabase edge functions (they are Deno code, there is no cloud/package.json and must not be one).
+          # Their tests run in cloud-db (Node 22 + Postgres), see the comment there.
+          gate cloud "find $P/cloud/supabase/functions -name index.ts 2>/dev/null | grep -q ." "$P/cloud/" $CT
           gate clouddb "test -f $P/cloud/test.sh" "$P/cloud/" $CT
           gate ml "find $P/ml -name '*.py' 2>/dev/null | grep -q ." "$P/ml/"
           gate pcb "ls $P/pcb/*.kicad_pro" "$P/pcb/"
-          gate sim "find $P/pcb/sim \\( -name '*.cir' -o -name '*.sp' \\) 2>/dev/null | grep -q ." "$P/pcb/"
+          # sim = ngspice netlists (.cir/.sp), a run_all.sh, or a Python check script that drives ngspice (ldo_dropout.py)
+          gate sim "find $P/pcb/sim \\( -name '*.cir' -o -name '*.sp' -o -name '*.py' -o -name run_all.sh \\) 2>/dev/null | grep -q ." "$P/pcb/"
           gate mechanical "ls $P/mechanical/*.py" "$P/mechanical/"
           gate interfaces "find $P/docs/interfaces \\( -name '*.json' -o -name '*.yaml' -o -name '*.yml' \\) 2>/dev/null | grep -q ." "$P/docs/interfaces/"
           gate powerbudget "find $P/hardware/power-budget -name '*.py' 2>/dev/null | grep -q ." "$P/hardware/power-budget/"
@@ -117,45 +120,32 @@ jobs:
       - run: npm test --if-present -- --ci
 
   cloud:
+    name: cloud edge functions (Deno lint + typecheck)
     needs: detect
     if: needs.detect.outputs.cloud == 'true'
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    # The edge functions are Deno code (supabase/functions, npm: specifiers, .ts imports). There is no cloud/package.json.
+    # Only static checks live here. The edge-function TESTS stay in the cloud-db job: they are node:test files
+    # (Node 22 type stripping) that need the migrated Postgres, so they cannot run under plain `deno test` without a rewrite.
     defaults:
       run:
         working-directory: projects/plant-monitor/cloud
-    env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: denoland/setup-deno@v2
         with:
-          node-version: 22
-      - run: npm ci || npm install
-      - name: Apply SQL migrations to a fresh Postgres
-        run: |
-          if ls supabase/migrations/*.sql >/dev/null 2>&1; then
-            for f in supabase/migrations/*.sql; do echo "== $f"; psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
-          else
-            echo "No migrations yet."
-          fi
-      - run: npm run lint --if-present
-      - run: npm run typecheck --if-present
-      - run: npm test --if-present
+          deno-version: "2.1.4"          # the version this was verified with
+      - run: deno lint supabase/functions
+      - name: Typecheck entry points and the test files
+        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts
 
   cloud-db:
     name: cloud DB tests
     needs: detect
     if: needs.detect.outputs.clouddb == 'true'
     runs-on: ubuntu-latest
-    # Not gated on cloud/package.json: test.sh needs only Postgres + psql (migrations, RLS, retention, 2.4 contract test).
+    # Not gated on cloud/package.json (there is none): test.sh needs only Postgres + psql (migrations, RLS, retention, 2.4 contract test)
+    # and runs the edge-function tests (test/functions/api.test.ts) with Node 22 type stripping. Deno lint/typecheck is the `cloud` job.
     services:
       postgres:
         image: postgres:16
@@ -245,16 +235,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
       - run: sudo apt-get update && sudo apt-get install -y ngspice
-      - name: Run simulations (each check script must exit non-zero on failure)
+      - run: pip install matplotlib      # optional: only for the plot artifact, the checks do not need it
+      - name: Run simulations (the exit code of each check script is the test)
         working-directory: projects/plant-monitor/pcb/sim
+        shell: bash                        # explicit bash = -eo pipefail, so `| tee` cannot hide a failing script
         run: |
-          set -e
-          if [ -f run_all.sh ]; then bash run_all.sh; else for c in *.cir *.sp; do [ -f "$c" ] && ngspice -b "$c"; done; fi
+          mkdir -p out
+          ran=0
+          if [ -f run_all.sh ]; then
+            bash run_all.sh; ran=1
+          else
+            for c in *.cir *.sp; do
+              if [ -f "$c" ]; then echo "== ngspice -b $c"; ngspice -b "$c"; ran=1; fi
+            done
+            for p in *.py; do
+              if [ -f "$p" ]; then echo "== python3 -I $p"; python3 -I "$p" | tee "out/${p%.py}.log"; ran=1; fi   # exit code of the script fails the step
+            done
+          fi
+          [ "$ran" = 1 ] || { echo "::error::sim gate matched but nothing ran"; exit 1; }
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: sim-results
-          path: projects/plant-monitor/pcb/sim/out
+          path: |
+            projects/plant-monitor/pcb/sim/out
+            projects/plant-monitor/pcb/sim/*.png
           if-no-files-found: ignore
 
   mechanical:

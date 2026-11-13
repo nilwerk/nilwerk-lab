@@ -46,3 +46,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.claim-token]
 verify_jwt = false
+[functions.delete-account]
+verify_jwt = false   # 4.B2b DELETE /account: the function verifies the user JWT itself (auth.getUser), FR-A01, NFR-07

@@ -51,6 +51,20 @@ Revised 8 Nov, evening, after Arsany added an opening post: everything after it 
 
 All existing diary cards say "as of 8 Nov" and "PR open": **recount and edit text, image and claim-check on the day of posting** (merged since? new numbers?). Fiction card: dark theme, label in image and first text line.
 
+## Re-score, Tue 10 Nov 2026, 08:40 Berlin (Poppy, daily task)
+
+Candidates from the five open pull requests of the morning (all with architect and QA verdicts, CI green, none merged):
+
+| Candidate | Visual form | Score | Note |
+|---|---|---|---|
+| Yara and Ines: the enclosure check that could not fail (hard-coded 6.0 vs real 4.5 mm), fixed | real plan render of the model + two number tiles | 2 (+1 true catch before it cost anything) = **3** | Draft pack built: `content/2026-11-10/catches/` (5-slide carousel EN/DE). Needs: QA re-run after the fix round, recount of merges. |
+| Emil: 16 vias out of pads, a real short found in a placeholder switch | board drawing from the real file | 2 +1 = 3 | Part of slide 4 of the pack; the PCB view (`items/2026-11-10_4.P2-s2`) is a good single-image candidate for another day (Emil last featured Sat 14 in the forecast). |
+| Mira: firmware compiled in CI after two fixes | CI text | 1 +1 = 2 | slide 4 |
+| Sana: 41 of 41 mutants killed (delete account) | text/number | 1 | slide 4 |
+| Leo: setup flow on main, QA mutation found a trim bug | test output | 1 +1 = 2 | slide 4; his real setup screenshots (`items/2026-11-08_4.A3-ui`) still score 4 for the Fri 13 slot |
+
+Placement: **Tue 10 stays the company post "Why we exist"** (Arsany's brief, built, binding). The new pack is the **next free slot after Fri 13's screenshot post**: proposal Mon 16 Nov (replacing Yara's battery-bay card, since the enclosure story has moved on) or earlier if Arsany prefers; the rule "never the same agent on two days in a row" allows Yara on Mon 16 only if Leo posts Fri 13. Everything must be **recounted on the posting day** (merge state, QA re-run on the enclosure fix). The earlier Logbook "Day 2 number of the day" draft (`content/2026-11-10/posts.md`, sprint 1 numbers as of 6 Nov) is superseded by the company post and stays as a reserve.
+
 ## Daily routine (also in `../DAILY.md`)
 
 Evening before: re-score the candidates, build tomorrow's card and text, claim-check row first, recount. Next morning: recount again, then (if Drive is linked) create the Metricool draft with `draft: true`, slot 10:00; otherwise hand Arsany the file names and caption. After posting: note it in the Content Plan; after a day look at reach and saves.

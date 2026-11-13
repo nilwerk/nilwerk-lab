@@ -4,13 +4,17 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react-nativ
 import { Root } from '../../App';
 import { AuthProvider } from '../auth/AuthContext';
 import { createFakeAuth } from '../auth/fakeAuth';
+import { PlantsProvider } from '../plants/PlantsContext';
+import { createFakePlants } from '../plants/fakePlants';
+import { t } from '../i18n';
+import { createFakeSetup } from '../provisioning/fakeProvisioning';
 import { SCREEN_FR } from '../ui/frIds';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import fs from 'fs';
 import path from 'path';
 
 const mount = async (service = createFakeAuth(), contactEmail = 'hello@example.invalid') => {
-  await render(<SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}><AuthProvider service={service}><Root contactEmail={contactEmail} /></AuthProvider></SafeAreaProvider>);
+  await render(<SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}><AuthProvider service={service}><PlantsProvider service={createFakePlants()}><Root contactEmail={contactEmail} setup={createFakeSetup().services} /></PlantsProvider></AuthProvider></SafeAreaProvider>);
   return service;
 };
 const type = async (label: string, text: string) => fireEvent.changeText(await screen.findByLabelText(label), text);
@@ -39,6 +43,8 @@ describe('signed-out flow', () => {
     await type('Password', 'long-enough-1');
     await type('Display name (optional)', 'Sam');
     await tap('Create account');
+    expect(await screen.findByRole('header', { name: 'My plants' })).toBeTruthy();
+    fireEvent.press(screen.getByRole('tab', { name: 'Profile' }));
     expect(await screen.findByRole('header', { name: 'Profile' })).toBeTruthy();
     expect(svc.accounts[0].profile.displayName).toBe('Sam');
     expect(await screen.findByText('sam@example.com')).toBeTruthy();
@@ -66,7 +72,7 @@ describe('signed-out flow', () => {
     expect(await screen.findByText('E-mail or password is not right.')).toBeTruthy();
     await type('Password', 'long-enough-1');
     await tap('Sign in');
-    expect(await screen.findByRole('header', { name: 'Profile' })).toBeTruthy();
+    expect(await screen.findByRole('header', { name: 'My plants' })).toBeTruthy();
   });
 });
 
@@ -75,6 +81,8 @@ describe('signed-in flow', () => {
     const svc = createFakeAuth();
     await svc.signUp('sam@example.com', 'long-enough-1', 'Sam');
     await mount(svc);
+    await screen.findByRole('header', { name: 'My plants' });
+    await fireEvent.press(screen.getByRole('tab', { name: 'Profile' }));
     await screen.findByRole('header', { name: 'Profile' });
     return svc;
   };
@@ -122,10 +130,46 @@ describe('signed-in flow', () => {
   });
 });
 
+describe('legal line (A-052, draft)', () => {
+  const LINE = 'Contact and privacy: hello@example.invalid. E-mail is processed by Google (Gmail).';
+  test('welcome, profile and premium all show contact + Google processor', async () => {
+    const svc = createFakeAuth();
+    await svc.signUp('sam@example.com', 'long-enough-1', 'Sam');
+    await svc.signOut();
+    await mount(svc);
+    expect(await screen.findByText(LINE)).toBeTruthy();
+    await tap('I already have an account');
+    await type('E-mail', 'sam@example.com');
+    await type('Password', 'long-enough-1');
+    await tap('Sign in');
+    fireEvent.press(await screen.findByRole('tab', { name: 'Profile' }));
+    await screen.findByRole('header', { name: 'Profile' });
+    expect(await screen.findByText(LINE)).toBeTruthy();
+    await tap('What is Premium?');
+    expect(await screen.findByText(LINE)).toBeTruthy();
+  });
+  test('an empty CONTACT_EMAIL hides the Premium link but the legal line keeps the default contact', async () => {
+    await mount(createFakeAuth(), '');
+    expect(await screen.findByText(/nilwerk\.team@gmail\.com\. E-mail is processed by Google/)).toBeTruthy();
+  });
+  test('the line makes no claim beyond contact and processor', () => {
+    expect(t('legal.line', { email: 'x@y.z' })).toBe('Contact and privacy: x@y.z. E-mail is processed by Google (Gmail).');
+  });
+  test('source is marked as a draft for review', () => {
+    const src = fs.readFileSync(path.resolve(__dirname, '../ui/LegalLine.tsx'), 'utf8');
+    expect(src).toMatch(/DRAFT.*needs Arsany\/legal review/);
+  });
+  test('source cites NFR-07 and flags the Expo push / non-EU open point (PR #55 C1, C2)', () => {
+    const src = fs.readFileSync(path.resolve(__dirname, '../ui/LegalLine.tsx'), 'utf8');
+    expect(src).toMatch(/NFR-07/);
+    expect(src).toMatch(/Expo push.*non-EU/);
+  });
+});
+
 describe('requirement citations', () => {
   test('every screen has FR ids in the map and in its source header', () => {
     const files: Record<keyof typeof SCREEN_FR, string> = {
-      welcome: 'WelcomeScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen',
+      welcome: 'WelcomeScreen', plants: 'PlantsScreen', plantDetail: 'PlantDetailScreen', removePlant: 'RemovePlantScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen', setup: 'setup/SetupSteps',
     };
     for (const [screenName, ids] of Object.entries(SCREEN_FR)) {
       expect(ids.length).toBeGreaterThan(0);

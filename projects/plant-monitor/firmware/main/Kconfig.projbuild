@@ -30,4 +30,22 @@ menu "Plant Monitor"
         bool "Bench app: after 5 readings, deep sleep 60 s, then repeat (NFR-12 IO3 check)"
         default y
 
+    config PLANT_SETUP_FLOW
+        bool "Run the BLE setup flow at boot (task 4.F2)"
+        default y
+        help
+            Boot decision (first boot / button) and BLE provisioning (NimBLE, security 2) before the bench loop.
+            Needs a per-unit security-2 salt and verifier in NVS namespace "nw_sec2" or BLE stays off (fail closed).
+            NOT RUN ON HARDWARE.
+
+    config PLANT_API_BASE_URL
+        string "Cloud API base URL for POST /device-claim (https, no trailing slash)"
+        default "https://api.invalid"
+        help
+            PLACEHOLDER: the real Supabase edge-function URL is Leo's (4.B2). ".invalid" never resolves, so a claim ends as claim_failed/network.
+
+    config PLANT_FW_VERSION
+        string "Firmware version string sent as fw in /device-claim (max 32 chars)"
+        default "0.4.2-dev"
+
 endmenu

@@ -23,6 +23,7 @@
 #define NW_PIN_BAT_SENS 0   /* pcb/pinmap-sleep.md:11 BAT_SENS  (ADC1_CH0) */
 #define NW_PIN_SOIL_PWR 3   /* pcb/pinmap-sleep.md:14 SOIL_PWR  (must be LOW in deep sleep, NFR-12) */
 #define NW_PIN_SOIL_OUT 4   /* pcb/pinmap-sleep.md:15 SOIL_OUT  (custom board: PCNT; dev kit: analog probe on ADC1_CH4) */
+#define NW_PIN_BUTTON 9     /* pcb/pinmap-sleep.md:20 BOOT_N  (setup button; dev kit BOOT key; NOT an RTC pin: cannot wake deep sleep) */
 #define NW_PIN_I2C_SDA 6    /* pcb/pinmap-sleep.md:17 I2C_SDA */
 #define NW_PIN_I2C_SCL 7    /* pcb/pinmap-sleep.md:18 I2C_SCL */
 /* IO1 is NOT connected and must not be driven (pcb/pinmap-sleep.md:12, A-045 Option A: Q2/R6 removed). No NW_PIN_ for it on purpose. */

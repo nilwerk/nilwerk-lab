@@ -2,6 +2,7 @@
 import React from 'react';
 import { Linking } from 'react-native';
 import { Body, Button, Screen } from '../ui/primitives';
+import { LegalLine } from '../ui/LegalLine';
 import { t } from '../i18n';
 
 export function contactUrl(email: string): string | null {
@@ -15,6 +16,7 @@ export function PremiumScreen({ contactEmail, onBack }: { contactEmail: string; 
       <Body>{t('premium.body')}</Body>
       <Body>{t('premium.activatedByNilwerk')}</Body>
       {url ? <Button label={t('premium.contactUs')} onPress={() => { Linking.openURL(url).catch(() => undefined); }} /> : <Body muted>{t('premium.noContact')}</Body>}
+      <LegalLine contactEmail={contactEmail} />
     </Screen>
   );
 }

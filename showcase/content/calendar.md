@@ -1,4 +1,4 @@
-# SUPERSEDED by `series.md` (Nilwerk Logbook, 14-day calendar from 9 Nov). Kept for its daily routine and rules.
+# SUPERSEDED by `series.md` (Nilwerk Logbook) and, for Instagram, `company/calendar.md` (latest re-score 10 Nov 2026). Kept for its daily routine and rules.
 
 # Content calendar: Mon 9 Nov to Fri 20 Nov 2026 (next 14 days, earlier version)
 

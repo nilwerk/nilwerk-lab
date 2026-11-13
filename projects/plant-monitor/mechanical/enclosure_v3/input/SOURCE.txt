@@ -1,0 +1,4 @@
+Board copy for enclosure v3: branch agent/pcb/4.P2-s2 (PR #73) @ b2e211f, files projects/plant-monitor/pcb/plant-monitor.kicad_pcb and plant-monitor-outline.dxf, copied unchanged (git show).
+sha256:
+26891b29bc6c67edf01e3740305b52d4a8057420d5077e82f6973763f225597e  plant-monitor.kicad_pcb
+fc0820f1ae46453b929f36a66af678e0c71468eacb5ae11c75a809338a2628be  plant-monitor-outline.dxf

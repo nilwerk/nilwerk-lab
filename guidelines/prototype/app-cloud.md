@@ -1,0 +1,12 @@
+# App and cloud
+- Expo dev build, not Expo Go, for BLE provisioning.
+- Supabase in the EU region; RLS on every table, with a test that a user sees only their own rows (NFR-06).
+- TLS and per-device tokens for all device data; no plaintext secrets (NFR-07).
+- Storage-object cleanup stays separate from row cascade deletes.
+- Colours in theme tokens; strings in the string catalogue; UI checked at 390 px width.
+- LLM output never reaches a user without deterministic, unit-tested guardrails (FR-P02).
+- Prompts live in versioned files; tests check constraints, not exact text. Write the fixture set before editing a prompt.
+- Provider behind an interface with a mock until the open provider question is answered. No real API keys in code or CI.
+- Cost note per premium user per month for every LLM or API call path.
+- MCP server: read-only, per-user revocable keys, schemas in `docs/interfaces/mcp-tools.json`, a test that a revoked key fails.
+- ML under `ml/`: Python 3.11, a data card per dataset.

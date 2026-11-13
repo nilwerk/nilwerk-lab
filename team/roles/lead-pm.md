@@ -29,6 +29,7 @@ Inputs: <docs, sheet tabs, files, prior PRs>
 Output: <repo paths> ; Drive: Plant Monitor/04_Builds/<ws>/vN (if exported files)
 Branch: agent/<role>/<task-id>   PR title: [<task-id>] <title>
 Out of scope today: <what not to do>
+Skills and guidelines: your row in `skills/ROLE-MAP.md` (online references, vendored skills in `skills/vendor/`, rules in `guidelines/`). Read it before starting; cite the skill, command and output you used.
 Time: record start/end with `date`, end your result with the Time block (TEAM.md §10)
 ```
 

@@ -7,10 +7,11 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 SQL=supabase/migrations/20261108000004_device_api.sql
 SQL5=supabase/migrations/20261108000005_devices_plant_check.sql
+SQL6=supabase/migrations/20261110000006_delete_account.sql
 LIB=supabase/functions/_shared/lib.ts
 HAN=supabase/functions/_shared/handlers.ts
-BK="$(mktemp -d)"; cp "$SQL" "$BK/sql"; cp "$SQL5" "$BK/sql5"; cp "$LIB" "$BK/lib"; cp "$HAN" "$BK/han"
-restore() { cp "$BK/sql" "$SQL"; cp "$BK/sql5" "$SQL5"; cp "$BK/lib" "$LIB"; cp "$BK/han" "$HAN"; }
+BK="$(mktemp -d)"; cp "$SQL" "$BK/sql"; cp "$SQL5" "$BK/sql5"; cp "$SQL6" "$BK/sql6"; cp "$LIB" "$BK/lib"; cp "$HAN" "$BK/han"
+restore() { cp "$BK/sql" "$SQL"; cp "$BK/sql5" "$SQL5"; cp "$BK/sql6" "$SQL6"; cp "$BK/lib" "$LIB"; cp "$BK/han" "$HAN"; }
 trap 'restore; rm -rf "$BK"' EXIT
 survived=0; total=0
 mutant() { # name file old new
@@ -65,6 +66,29 @@ mutant "SQL-14 new owner inherits the old owner's plant link" "$SQL" "plant_id =
 # N2: devices_update_own must check that the new plant_id belongs to the caller (RLS stage)
 mutant "RLS-1 devices_update_own without plant ownership check" "$SQL5" "    and (plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid())));" "    );" rls
 mutant "RLS-2 policy forbids clearing the plant link (plant_id is null branch removed)" "$SQL5" "(plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid()))" "(exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid()))" rls
+# 4.B2b DELETE /account (FR-A01, FR-A08, NFR-07, NFR-06)
+mutant "DA-1 no token check (any caller is treated as the user)"   "$HAN" 'if (!uid) return err(401, "unauthorized", "missing or invalid user JWT");
+  const r = await readJson(req);
+  if ("fail" in r) return r.fail;
+  const b = r.body as Record<string, unknown>;
+  if (typeof b !== "object" || b === null || Array.isArray(b) || Object.keys(b)' 'if (false) return err(401, "unauthorized", "missing or invalid user JWT");
+  const r = await readJson(req);
+  if ("fail" in r) return r.fail;
+  const b = r.body as Record<string, unknown>;
+  if (typeof b !== "object" || b === null || Array.isArray(b) || Object.keys(b)'
+mutant "DA-2 confirm literal not checked"                           "$HAN" ' || b.confirm !== "DELETE") {' ') {'
+mutant "DA-3 body may carry extra properties (e.g. a user id)"      "$HAN" 'Object.keys(b).some((k) => k !== "confirm")' 'false'
+mutant "DA-4 any HTTP method deletes"                               "$HAN" 'if (req.method !== "DELETE") return methodNotAllowed();' ''
+mutant "DA-5 auth user is not deleted"                              "$HAN" 'if (await deps.deleteAuthUser(uid)) return internal();' ''
+mutant "DA-6 photo failure ignored (account deleted anyway)"        "$HAN" 'if (await deps.deleteUserPhotos(uid, paths as string[])) return internal();' 'await deps.deleteUserPhotos(uid, paths as string[]);'
+mutant "DA-7 photos not deleted"                                    "$HAN" 'if (await deps.deleteUserPhotos(uid, paths as string[])) return internal();' ''
+mutant "DA-8 devices not released before deletion"                  "$SQL6" 'update public.devices set owner_id = null, plant_id = null where owner_id = p_user;' 'select 1;'
+mutant "DA-9 device credentials not revoked"                        "$SQL6" 'update public.device_credentials set revoked_at = coalesce(revoked_at, now())' 'update public.device_credentials set revoked_at = revoked_at'
+mutant "DA-10 releases every user's devices (cross-user)"           "$SQL6" 'update public.devices set owner_id = null, plant_id = null where owner_id = p_user;' 'update public.devices set owner_id = null, plant_id = null;'
+mutant "DA-11 revokes every device token (cross-user)"              "$SQL6" 'where device_id in (select id from public.devices where owner_id = p_user);' ';'
+mutant "DA-12 open claim tokens survive"                            "$SQL6" 'delete from public.claim_tokens where user_id = p_user;' 'select 1;'
+mutant "DA-13 photo paths of all users returned (cross-user)"       "$SQL6" 'from public.plant_images where owner_id = p_user;' 'from public.plant_images;'
+# not mutants (equivalent here): DA-14 dropping `authenticated` from the revoke in migration 6 changes nothing in plain Postgres, because the test harness never grants function execute to API roles (Supabase default privileges do; the grants test in api.test.ts "API roles cannot call" covers the revoke on the real roles only as far as the harness allows); deleteAuthUser idempotency lives in supabase.ts (404 tolerated), which no test can reach without a live project.
 # not a mutant: dropping `p.owner_id = auth.uid()` is equivalent for authenticated users, because plants_select_own already hides foreign plants from the subquery; the explicit check is defence in depth.
 restore
 echo "mutants: $total, survived: $survived"
