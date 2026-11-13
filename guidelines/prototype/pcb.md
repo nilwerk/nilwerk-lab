@@ -15,3 +15,8 @@
 - Run KiCad tools on a working copy only. Autorouter completion is not layout verification: inspect pours, return paths, high-current loops, antenna keep-outs and pad connectivity. Refill zones after routing.
 - ngspice only with usable vendor models; state what is not modelled. Without a model, do datasheet worst-case calculations and list the bench measurements needed. Never invent a pass/fail.
 - The vendored `kicad`, `spice`, `emc`, `datasheets`, `bom`, `lcsc` and `jlcpcb` skills (see `skills/vendor/README.md`) cover these checks.
+
+## Second-opinion checks (from the 14 Nov skills trial)
+- Before each package, run `analyze_pcb --full`, `analyze_gerbers` and `fab_release_gate` from `skills/vendor/kicad` on a **copy**. Triage every finding as TRUE, FALSE POSITIVE or UNCLEAR with evidence. Never quote a heuristic finding as a verdict.
+- Compare the Gerber outline size with the board outline before any order. A stale zip is a release blocker (found on 14 Nov: 67.05 mm vs 67.8 mm).
+- Put an MPN in every schematic symbol field, and add board fiducials, or the release gate stays red.

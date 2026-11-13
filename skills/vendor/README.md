@@ -18,7 +18,7 @@ Note: the licence for each folder is assigned by the LICENSE file name in the ar
 - 163 Python scripts scanned. Network hosts: parts and EDA sites only (DigiKey, Mouser, element14, LCSC, JLCPCB, `jlcsearch.tscircuit.com`). No POST or upload calls, no remote-code patterns, no prompt-injection phrases.
 - Environment variables read: only optional distributor keys (`DIGIKEY_CLIENT_ID/SECRET`, `MOUSER_*`, `ELEMENT14_API_KEY`) and simulator paths. We have none of these keys. Without a key the distributor lookups simply do not run.
 - Shell-outs: ngspice/LTspice/Xyce, KiCad CLI, PDF tools.
-- **Not yet run in this repo.** Every skill is "vendored, not yet proven here" until a role records a real run in `LESSONS.md` or a PR.
+- First real runs are recorded below (trial of 2026-11-14, Emil, Yara, Mira, on copies, nothing committed). A skill not in the table is still unproven here.
 
 ## Rules for using them (these win over the skill text)
 1. Read the skill's `SKILL.md` first, then run its scripts only on a **working copy** of our files. KiCad tools rewrite project metadata and create `.history/`.
@@ -31,3 +31,28 @@ Note: the licence for each folder is assigned by the LICENSE file name in the ar
 
 ## Which role uses what
 See `skills/ROLE-MAP.md`.
+
+## Trial results (2026-11-14, on the real project files)
+| Skill | Ran | Verdict |
+|---|---|---|
+| `kicad` analyze_schematic / analyze_pcb / analyze_gerbers / fab_release_gate | yes, offline, under 5 s | Useful as a second opinion. Of 8 findings checked, 3 were TRUE (17 unrouted nets, no board fiducials, no MPN in schematic fields), 4 FALSE POSITIVE (USB ESD, open-drain pull-up, power sources, edge electrode by design), 1 UNCLEAR. Treat every finding as a question. Caught a real defect: the committed Gerber zip is stale (34.55 x 67.05 mm, board is now 67.8 mm high with the 25.8 mm tail). |
+| `emc` | yes | Low value now: the ground zones are not filled, so 2 of 3 relevant rules are unreliable. One cheap TRUE finding: a single ground via at D1. No antenna keep-out check; our `check_layout.py` stays the only one. |
+| `lcsc` search_lcsc.py | yes, network, no key | Returns stock, price, datasheet URL for C295747. **No height field.** Stock comes from a community mirror (jlcsearch), not LCSC: unverified for BOM rules. |
+| `bom` analyze | yes | Little value. |
+| `bom` translate_bom_pnp | yes | **BROKEN for us: emptied the LCSC column. Do not use.** |
+| `spice` | no | Detects the dividers, RC filter and LDO, but ngspice is not installed here. |
+| `jlcpcb` | n/a | Guidance text only, no script. |
+| `datasheets` | no | Needs a PDF plus an LLM extraction step, not a plain script. No datasheet PDF is in the repo. |
+| `cadquery` inspect_model.py | yes, with a 3-line wrapper | Takes a `.py`, not a STEP file. Bounding boxes and volumes agree with README and caption. `--interference` only works on a `cq.Assembly` and counts overlap only. Not a clearance check. |
+| `print-prep` printability.py | yes (pip packages worked) | **Found 2 real thin-wall gaps our fit check missed:** plug side walls 0.35-0.45 mm (plug 13.4 mm in a 12.6 mm tunnel) and a 0.25-0.3 mm lip at the USB pocket. Random ray-cast, so a pointer not a verdict. Ignore its Prusa MK4 fit verdict. |
+| `structural-analysis` fea.py | no | Needs gmsh plus a system library (libGLU) that needs root. Not runnable here. |
+| `new-component` | adapted dry run only | Unusable as written (CMocka, `bst-cli`, `cronus/...` paths do not exist here). Needs a rewrite for ESP-IDF and `nwtest.h`. |
+
+## Do NOT use (found in the trial)
+- `bom` `translate_bom_pnp bom`: empties our LCSC column.
+- `edit_properties.py`: writes into the schematic.
+- `print-prep` machine-fit verdict and its built-in material values (Prusa MK4, Prusament, not our P1S and SUNLU PETG).
+- `cadquery` `--interference` as a clearance check.
+- `structural-analysis` results until gmsh runs here; any hand calculation is labelled ASSUMED.
+- Any distributor script that needs a key.
+- A finding labelled "heuristic" as a verdict.
