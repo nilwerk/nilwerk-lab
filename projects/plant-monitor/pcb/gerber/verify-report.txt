@@ -1,0 +1,112 @@
+verify_gerber.py: gerbonara 1.5.0 (independent parser), PCB files from projects/plant-monitor/pcb
+
+==== BOARD: plant-monitor-jlc-board.zip
+PASS  BOARD: 15 of 15 required files present (missing: none)
+      zip members (15): Drill_NPTH_Through.DRL, Drill_NPTH_Through_Map.GBR, Drill_PTH_Through.DRL, Drill_PTH_Through_Map.GBR, Drill_Report.rpt, Gerber_BoardOutlineLayer.GKO, Gerber_BottomLayer.GBL, Gerber_BottomPasteMaskLayer.GBP, Gerber_BottomSilkscreenLayer.GBO, Gerber_BottomSolderMaskLayer.GBS, Gerber_JobFile.gbrjob, Gerber_TopLayer.GTL, Gerber_TopPasteMaskLayer.GTP, Gerber_TopSilkscreenLayer.GTO, Gerber_TopSolderMaskLayer.GTS
+PASS  BOARD: parses with pcb-tools, 4 objects: Drill_NPTH_Through.DRL
+PASS  BOARD: parses with gerbonara, 477 objects: Drill_NPTH_Through_Map.GBR
+PASS  BOARD: parses with pcb-tools, 78 objects: Drill_PTH_Through.DRL
+PASS  BOARD: parses with gerbonara, 829 objects: Drill_PTH_Through_Map.GBR
+PASS  BOARD: parses with gerbonara, 8 objects: Gerber_BoardOutlineLayer.GKO
+PASS  BOARD: parses with gerbonara, 116 objects: Gerber_BottomLayer.GBL
+PASS  BOARD: parses with gerbonara, 0 objects (0 = layer is empty in this design): Gerber_BottomPasteMaskLayer.GBP
+PASS  BOARD: parses with gerbonara, 0 objects (0 = layer is empty in this design): Gerber_BottomSilkscreenLayer.GBO
+PASS  BOARD: parses with gerbonara, 6 objects: Gerber_BottomSolderMaskLayer.GBS
+PASS  BOARD: parses with gerbonara, 449 objects: Gerber_TopLayer.GTL
+PASS  BOARD: parses with gerbonara, 209 objects: Gerber_TopPasteMaskLayer.GTP
+PASS  BOARD: parses with gerbonara, 0 objects (0 = layer is empty in this design): Gerber_TopSilkscreenLayer.GTO
+PASS  BOARD: parses with gerbonara, 212 objects: Gerber_TopSolderMaskLayer.GTS
+PASS  BOARD: Edge.Cuts is one closed loop: 8 segments, open ends 0, arcs 0
+PASS  BOARD: Edge.Cuts segments equal the PCB outline (8 lines, same endpoints, y sign applied)
+      loop 1: 8 segments, x 0.00..34.50, y -67.00..0.00 (gerber sign), area 1749.0 mm2
+      PCB file: 35 vias (drill {0.3: 35}), 0 PTH pads round, 4 PTH pads oval (slots), 2 NPTH pads
+PASS  BOARD: PTH file holes = PCB vias + plated pads: round {0.3: 35} (PCB {0.3: 35}), slots 4 (PCB 4)
+PASS  BOARD: NPTH file holes = PCB np_thru_hole pads: {0.65: 2} (PCB {0.65: 2})
+PASS  BOARD: PTH 0.30 mm: 35 of 35 hole positions match the PCB to 0.002 mm
+PASS  BOARD: NPTH 0.65 mm: 2 of 2 hole positions match the PCB to 0.002 mm
+PASS  BOARD top soldermask: 210 of 210 pads on F.Cu (smd + thru_hole with F.Mask) have an opening equal to the pad, to 0.01 mm; 212 mask flashes in file
+PASS  BOARD top paste: 205 of 205 SMD pads have a paste aperture equal to the pad
+PASS  BOARD top mask: 2 flashes have no pad on this side; NPTH pads with a mask opening = 2
+      spot check, top side (first 10 pads with a mask: PCB pad -> mask flash, Gerber coordinates, mm):
+        RF_Module: pad 1   PCB ( 21.000, -2.500) 0.40x0.80 -> mask ( 21.000, -2.500) 0.80x0.40 match
+        RF_Module: pad 2   PCB ( 21.000, -3.300) 0.40x0.80 -> mask ( 21.000, -3.300) 0.80x0.40 match
+        RF_Module: pad 3   PCB ( 21.000, -4.100) 0.40x0.80 -> mask ( 21.000, -4.100) 0.80x0.40 match
+        RF_Module: pad 4   PCB ( 21.000, -4.900) 0.40x0.80 -> mask ( 21.000, -4.900) 0.80x0.40 match
+        RF_Module: pad 5   PCB ( 21.000, -5.700) 0.40x0.80 -> mask ( 21.000, -5.700) 0.80x0.40 match
+        RF_Module: pad 6   PCB ( 21.000, -6.500) 0.40x0.80 -> mask ( 21.000, -6.500) 0.80x0.40 match
+        RF_Module: pad 7   PCB ( 21.000, -7.300) 0.40x0.80 -> mask ( 21.000, -7.300) 0.80x0.40 match
+        RF_Module: pad 8   PCB ( 21.000, -8.100) 0.40x0.80 -> mask ( 21.000, -8.100) 0.80x0.40 match
+        RF_Module: pad 9   PCB ( 21.000, -8.900) 0.40x0.80 -> mask ( 21.000, -8.900) 0.80x0.40 match
+        RF_Module: pad 10  PCB ( 21.000, -9.700) 0.40x0.80 -> mask ( 21.000, -9.700) 0.80x0.40 match
+PASS  BOARD bottom soldermask: 4 of 4 pads on B.Cu (smd + thru_hole with B.Mask) have an opening equal to the pad, to 0.01 mm; 6 mask flashes in file
+PASS  BOARD bottom paste: 0 of 0 SMD pads have a paste aperture equal to the pad
+PASS  BOARD bottom mask: 2 flashes have no pad on this side; NPTH pads with a mask opening = 2
+      spot check, bottom side (first 10 pads with a mask: PCB pad -> mask flash, Gerber coordinates, mm):
+        Connector_ pad S1  PCB ( 27.720,-37.320) 1.00x2.10 -> mask ( 27.720,-37.320) 2.10x1.00 match
+        Connector_ pad S1  PCB ( 31.900,-37.320) 1.00x1.60 -> mask ( 31.900,-37.320) 1.60x1.00 match
+        Connector_ pad S1  PCB ( 27.720,-28.680) 1.00x2.10 -> mask ( 27.720,-28.680) 2.10x1.00 match
+        Connector_ pad S1  PCB ( 31.900,-28.680) 1.00x1.60 -> mask ( 31.900,-28.680) 1.60x1.00 match
+PASS  BOARD: gbrjob lists 9 files; every Path exists in the zip: True
+      gbrjob: X 34.55 x Y 67.05 mm, 2 copper layers, ProjectId plant-monitor, Revision field 'rev?'
+
+==== PANEL 2-up: plant-monitor-jlc-panel-2up.zip
+PASS  PANEL 2-up: 15 of 15 required files present (missing: none)
+      zip members (15): Drill_NPTH_Through.DRL, Drill_NPTH_Through_Map.GBR, Drill_PTH_Through.DRL, Drill_PTH_Through_Map.GBR, Drill_Report.rpt, Gerber_BoardOutlineLayer.GKO, Gerber_BottomLayer.GBL, Gerber_BottomPasteMaskLayer.GBP, Gerber_BottomSilkscreenLayer.GBO, Gerber_BottomSolderMaskLayer.GBS, Gerber_JobFile.gbrjob, Gerber_TopLayer.GTL, Gerber_TopPasteMaskLayer.GTP, Gerber_TopSilkscreenLayer.GTO, Gerber_TopSolderMaskLayer.GTS
+PASS  PANEL 2-up: parses with pcb-tools, 12 objects: Drill_NPTH_Through.DRL
+PASS  PANEL 2-up: parses with gerbonara, 869 objects: Drill_NPTH_Through_Map.GBR
+PASS  PANEL 2-up: parses with pcb-tools, 156 objects: Drill_PTH_Through.DRL
+PASS  PANEL 2-up: parses with gerbonara, 957 objects: Drill_PTH_Through_Map.GBR
+PASS  PANEL 2-up: parses with gerbonara, 20 objects: Gerber_BoardOutlineLayer.GKO
+PASS  PANEL 2-up: parses with gerbonara, 232 objects: Gerber_BottomLayer.GBL
+PASS  PANEL 2-up: parses with gerbonara, 0 objects (0 = layer is empty in this design): Gerber_BottomPasteMaskLayer.GBP
+PASS  PANEL 2-up: parses with gerbonara, 0 objects (0 = layer is empty in this design): Gerber_BottomSilkscreenLayer.GBO
+PASS  PANEL 2-up: parses with gerbonara, 14 objects: Gerber_BottomSolderMaskLayer.GBS
+PASS  PANEL 2-up: parses with gerbonara, 901 objects: Gerber_TopLayer.GTL
+PASS  PANEL 2-up: parses with gerbonara, 418 objects: Gerber_TopPasteMaskLayer.GTP
+PASS  PANEL 2-up: parses with gerbonara, 0 objects (0 = layer is empty in this design): Gerber_TopSilkscreenLayer.GTO
+PASS  PANEL 2-up: parses with gerbonara, 429 objects: Gerber_TopSolderMaskLayer.GTS
+PASS  PANEL 2-up: Edge.Cuts = 3 closed loops (expected 3: panel rails + 2 boards), open ends 0, arcs 0
+      loop 1: 8 segments, x 6.00..40.50, y -73.00..-6.00 (gerber sign), area 1749.0 mm2
+      loop 2: 8 segments, x 42.50..77.00, y -73.00..-6.00 (gerber sign), area 1749.0 mm2
+      loop 3: 4 segments, x 0.00..83.00, y -79.00..0.00 (gerber sign), area 6557.0 mm2
+      PCB file: 70 vias (drill {0.3: 70}), 0 PTH pads round, 8 PTH pads oval (slots), 6 NPTH pads
+PASS  PANEL 2-up: PTH file holes = PCB vias + plated pads: round {0.3: 70} (PCB {0.3: 70}), slots 8 (PCB 8)
+PASS  PANEL 2-up: NPTH file holes = PCB np_thru_hole pads: {0.65: 4, 2.0: 2} (PCB {0.65: 4, 2.0: 2})
+PASS  PANEL 2-up: PTH 0.30 mm: 70 of 70 hole positions match the PCB to 0.002 mm
+PASS  PANEL 2-up: NPTH 0.65 mm: 4 of 4 hole positions match the PCB to 0.002 mm
+PASS  PANEL 2-up: NPTH 2.00 mm: 2 of 2 hole positions match the PCB to 0.002 mm
+PASS  PANEL 2-up top soldermask: 423 of 423 pads on F.Cu (smd + thru_hole with F.Mask) have an opening equal to the pad, to 0.01 mm; 429 mask flashes in file
+PASS  PANEL 2-up top paste: 410 of 410 SMD pads have a paste aperture equal to the pad
+PASS  PANEL 2-up top mask: 6 flashes have no pad on this side; NPTH pads with a mask opening = 6
+      spot check, top side (first 10 pads with a mask: PCB pad -> mask flash, Gerber coordinates, mm):
+        RF_Module: pad 1   PCB ( 27.000, -8.500) 0.40x0.80 -> mask ( 27.000, -8.500) 0.80x0.40 match
+        RF_Module: pad 2   PCB ( 27.000, -9.300) 0.40x0.80 -> mask ( 27.000, -9.300) 0.80x0.40 match
+        RF_Module: pad 3   PCB ( 27.000,-10.100) 0.40x0.80 -> mask ( 27.000,-10.100) 0.80x0.40 match
+        RF_Module: pad 4   PCB ( 27.000,-10.900) 0.40x0.80 -> mask ( 27.000,-10.900) 0.80x0.40 match
+        RF_Module: pad 5   PCB ( 27.000,-11.700) 0.40x0.80 -> mask ( 27.000,-11.700) 0.80x0.40 match
+        RF_Module: pad 6   PCB ( 27.000,-12.500) 0.40x0.80 -> mask ( 27.000,-12.500) 0.80x0.40 match
+        RF_Module: pad 7   PCB ( 27.000,-13.300) 0.40x0.80 -> mask ( 27.000,-13.300) 0.80x0.40 match
+        RF_Module: pad 8   PCB ( 27.000,-14.100) 0.40x0.80 -> mask ( 27.000,-14.100) 0.80x0.40 match
+        RF_Module: pad 9   PCB ( 27.000,-14.900) 0.40x0.80 -> mask ( 27.000,-14.900) 0.80x0.40 match
+        RF_Module: pad 10  PCB ( 27.000,-15.700) 0.40x0.80 -> mask ( 27.000,-15.700) 0.80x0.40 match
+PASS  PANEL 2-up bottom soldermask: 8 of 8 pads on B.Cu (smd + thru_hole with B.Mask) have an opening equal to the pad, to 0.01 mm; 14 mask flashes in file
+PASS  PANEL 2-up bottom paste: 0 of 0 SMD pads have a paste aperture equal to the pad
+PASS  PANEL 2-up bottom mask: 6 flashes have no pad on this side; NPTH pads with a mask opening = 6
+      spot check, bottom side (first 10 pads with a mask: PCB pad -> mask flash, Gerber coordinates, mm):
+        Connector_ pad S1  PCB ( 33.720,-43.320) 1.00x2.10 -> mask ( 33.720,-43.320) 2.10x1.00 match
+        Connector_ pad S1  PCB ( 37.900,-43.320) 1.00x1.60 -> mask ( 37.900,-43.320) 1.60x1.00 match
+        Connector_ pad S1  PCB ( 33.720,-34.680) 1.00x2.10 -> mask ( 33.720,-34.680) 2.10x1.00 match
+        Connector_ pad S1  PCB ( 37.900,-34.680) 1.00x1.60 -> mask ( 37.900,-34.680) 1.60x1.00 match
+        Connector_ pad S1  PCB ( 70.220,-43.320) 1.00x2.10 -> mask ( 70.220,-43.320) 2.10x1.00 match
+        Connector_ pad S1  PCB ( 74.400,-43.320) 1.00x1.60 -> mask ( 74.400,-43.320) 1.60x1.00 match
+        Connector_ pad S1  PCB ( 70.220,-34.680) 1.00x2.10 -> mask ( 70.220,-34.680) 2.10x1.00 match
+        Connector_ pad S1  PCB ( 74.400,-34.680) 1.00x1.60 -> mask ( 74.400,-34.680) 1.60x1.00 match
+PASS  PANEL 2-up fiducial (3.85, -3.85): copper 1.00 mm on F.Cu found; mask opening 2.00 mm found
+PASS  PANEL 2-up fiducial (79.15, -3.85): copper 1.00 mm on F.Cu found; mask opening 2.00 mm found
+PASS  PANEL 2-up fiducial (3.85, -75.15): copper 1.00 mm on F.Cu found; mask opening 2.00 mm found
+PASS  PANEL 2-up tooling hole (3.00, -39.50): NPTH 2.00 mm in the NPTH drill file found
+PASS  PANEL 2-up tooling hole (80.00, -39.50): NPTH 2.00 mm in the NPTH drill file found
+PASS  PANEL 2-up: gbrjob lists 9 files; every Path exists in the zip: True
+      gbrjob: X 83.05 x Y 79.05 mm, 2 copper layers, ProjectId plant-monitor-panel, Revision field 'rev?'
+
+RESULT: ALL CHECKS PASS (0 FAIL)
