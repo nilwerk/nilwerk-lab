@@ -23,7 +23,7 @@ Repo checks pass with `/usr/bin/python3 -I`: `check_layout.py` <!-- gen:layout_p
 
 ## What is blocked
 
-Checklist results: <!-- gen:result -->**4 FAIL, 12 OPEN or UNVERIFIED, 20 PASS** (of 40 items)<!-- /gen:result --> (`dry-run-checklist.md`, result line).
+Checklist results: <!-- gen:result -->**4 FAIL, 14 OPEN or UNVERIFIED, 18 PASS** (of 40 items)<!-- /gen:result --> (`dry-run-checklist.md`, result line).
 
 | Blocker | Why it blocks | Checklist |
 |---|---|---|

@@ -27,7 +27,7 @@ def uid(*k):
 # ---------------------------------------------------------------------------------------------
 BOARD_W = 34.5        # [mine] = cell width 34.5; brief section 3 option A (cell beside), board about 34.5 x 38 -> 42 here for the parts
 BODY_L = 42.0         # [mine] result of the placement below (not a given); Yara Q2 (inner length) still [open]
-TAIL_W, TAIL_L = 12.0, 25.0   # [mine] O5/S1: electrodes are copper on a tail of the same board; stake size is Yara Q5 [open]
+TAIL_W, TAIL_L = 12.0, 25.8   # [mine] O5/S1: electrodes are copper on a tail of the same board. 25.8 mm = tail for the 14 mm enclosure variant (A-071, accepted by Arsany 2026-11-12; was 25.0). Stake size is Yara Q5 [open]
 TAIL_X0 = (BOARD_W - TAIL_W) / 2
 # Cell bay beside the board (brief section 3 option A, recommendation).  Cavity from pcb-enclosure-bay.md (Yara 2026-11-08), not computed here.
 CELL_CAV = (53.0, 35.1)   # L (along x), W (along y), mm
@@ -55,8 +55,8 @@ RULES = dict(clearance=0.2, track=0.2, power_track=0.4, vbat_track=0.5, via_dia=
 # ---------------------------------------------------------------------------------------------
 # Footprints (slice 2).  Pads are dicts: num,type(smd|thru_hole|np_thru_hole),shape,x,y,ang,w,h,drill,layers,rratio.
 # kind "lib"        = pad geometry read from a KiCad / Espressif library .kicad_mod in footprints/ (footprints/SOURCES.md says where from)
-# kind "datasheet"  = drawn by Emil from a manufacturer drawing (XKB TS-1187A P.C.B. LAYOUT)
-# kind "placeholder"= pad NUMBERS right, geometry NOT from a drawing (AHT20, BH1750: no recommended land pattern was available)
+# kind "datasheet"  = drawn by Emil from a manufacturer drawing (XKB TS-1187A P.C.B. LAYOUT; AHT20 Fig. 1 bottom view)
+# kind "placeholder"= pad NUMBERS right, geometry NOT from a drawing (BH1750 still, see footprints/SOURCES.md)
 # kind "electrode"  = our own copper (soil probe), not a part
 # ---------------------------------------------------------------------------------------------
 import kmod
@@ -89,7 +89,9 @@ FOOT["NW:SW_TS-1187A-B-A-B_5.1x5.1"] = dict(
     court=(-3.75, -2.85, 3.75, 2.85), kind="datasheet")
 # U5 / U6 (slice 3): LCSC/EasyEDA footprint data, copied to footprints/*.kicad_mod (source and open points in footprints/SOURCES.md).
 # Pad 7 (EP) of the BH1750 is NOT copied: ROHM datasheet note 10 says the central pad must not be soldered or connected.
-FOOT["NW:AHT20_DFN-6_3x3"] = dict(pads=kmod.load("AHT20_DFN-6_3x3")["pads"], court=kmod.load("AHT20_DFN-6_3x3")["court"], kind="easyeda")
+# U5 AHT20 (A-083, accepted 2026-11-12): pads from the datasheet, Fig. 1 bottom view 0.55 x 0.4 mm, pitch 1.0 mm; pin 1 = top right of the
+# bottom view (Table 5 top view mirrored). Replaces the LCSC/EasyEDA 0.8 x 0.5 mm pads. Source and open points: footprints/SOURCES.md.
+FOOT["NW:AHT20_DFN-6_3x3"] = dict(pads=kmod.load("AHT20_DFN-6_3x3")["pads"], court=kmod.load("AHT20_DFN-6_3x3")["court"], kind="datasheet")
 FOOT["NW:WSOF-6_BH1750FVI"] = dict(pads=kmod.load("WSOF-6_BH1750FVI")["pads"], court=kmod.load("WSOF-6_BH1750FVI")["court"], kind="easyeda")
 # E1: soil electrodes, copper only on F.Cu (no mask opening: covered by solder mask, O5), tail frame, origin = tail top centre
 FOOT["NW:SOIL_PROBE_STAKE"] = dict(pads=[P("2", -4.0, 11.0, 1.5, 20.0, layers=("F.Cu",)), P("1", 0.0, 11.0, 3.5, 20.0, layers=("F.Cu",)),
@@ -220,6 +222,122 @@ def footprint_text(p: D.Part):
     L.append("\t)")
     return "\n".join(L)
 
+# ---------------------------------------------------------------------------------------------
+# F.Silkscreen (A-086, accepted 2026-11-12): reference designators and polarity only, no logos.
+# Text height 1.0 mm, line 0.15 mm (JLC F15). Every label is placed where its box keeps >= 0.15 mm (min silk clearance) from every
+# pad and from the other labels, and stays inside the outline. Checked by KiCad DRC (silk rules) in CI.
+# ---------------------------------------------------------------------------------------------
+SILK_REFS = ["U1", "U5", "U6", "J1", "J2", "D2", "D3"]
+SILK_H, SILK_LINE, SILK_CLR = 1.0, 0.15, 0.15
+SILK_CHECKS = []                  # filled by silk_items(): one PASS/FAIL line per silk element, printed by __main__
+SILK_CHAR_W = 0.62 * SILK_H       # [mine] character advance of KiCad's default font, used for the label box estimate
+
+def _pads_world():
+    out = []
+    for p in D.PARTS:
+        x, y, r = PLACE[p.ref]
+        for pd in FOOT[p.footprint]["pads"]:
+            cx, cy = rot(pd["x"], pd["y"], r)
+            w, h = (pd["h"], pd["w"]) if round(r) % 180 == 90 else (pd["w"], pd["h"])
+            out.append(dict(ref=p.ref, num=pd["num"], x=x + cx, y=y + cy, w=w, h=h))
+    return out
+
+def _court_world(p):
+    x, y, r = PLACE[p.ref]
+    c = FOOT[p.footprint]["court"]
+    pts = [rot(a, b, r) for a, b in [(c[0], c[1]), (c[2], c[1]), (c[2], c[3]), (c[0], c[3])]]
+    xs = [q[0] + x for q in pts]; ys = [q[1] + y for q in pts]
+    return min(xs), min(ys), max(xs), max(ys)
+
+def _inside_outline(x0, y0, x1, y1):
+    pts = outline_pts()
+    def inside(px, py):
+        c = False
+        for i in range(len(pts)):
+            (ax, ay), (bx, by) = pts[i], pts[(i + 1) % len(pts)]
+            if (ay > py) != (by > py) and px < (bx - ax) * (py - ay) / (by - ay) + ax:
+                c = not c
+        return c
+    return all(inside(px, py) for px in (x0, x1) for py in (y0, y1))
+
+def _sep(a, b):
+    """Gap between two boxes (x0,y0,x1,y1); >= SILK_CLR means clear."""
+    dx = max(b[0] - a[2], a[0] - b[2]); dy = max(b[1] - a[3], a[1] - b[3])
+    return max(dx, dy)
+
+def _label_box(cx, cy, text):
+    w = SILK_CHAR_W * len(text); h = SILK_H
+    return (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+
+def silk_items():
+    pads = _pads_world()
+    pad_boxes = [(q["x"] - q["w"] / 2, q["y"] - q["h"] / 2, q["x"] + q["w"] / 2, q["y"] + q["h"] / 2) for q in pads]
+    placed = []     # label boxes already placed
+    labels = []     # every silk element (text or bar): (name, box). All of them go through the final check below
+    out, notes = [], []
+    def try_place(text, cands):
+        for cx, cy in cands:
+            bx = _label_box(cx, cy, text)
+            if not _inside_outline(*bx):
+                continue
+            if any(_sep(bx, pb) < SILK_CLR for pb in pad_boxes) or any(_sep(bx, o) < SILK_CLR for o in placed):
+                continue
+            placed.append(bx); labels.append((text, bx))
+            return cx, cy
+        raise SystemExit(f"silk: no clear place for {text!r}")
+    def emit(text, cx, cy, tag):
+        out.append(f'\t(gr_text "{text}" (at {f(cx)} {f(cy)}) (layer "F.SilkS") (uuid "{uid("silk", tag)}") '
+                   f'(effects (font (size {SILK_H} {SILK_H}) (thickness {SILK_LINE}))))')
+    # reference designators: 4 sides of the courtyard, nearest first
+    gap = 0.4
+    for ref in SILK_REFS:
+        p = next(q for q in D.PARTS if q.ref == ref)
+        x0, y0, x1, y1 = _court_world(p)
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        w, h = SILK_CHAR_W * len(ref) / 2, SILK_H / 2
+        cands = [(mx, y0 - gap - h), (mx, y1 + gap + h), (x0 - gap - w, my), (x1 + gap + w, my),
+                 (mx - (x1 - x0) / 4, y0 - gap - h), (mx + (x1 - x0) / 4, y1 + gap + h)]
+        cx, cy = try_place(ref, cands)
+        emit(ref, cx, cy, "ref-" + ref)
+        notes.append(f"{ref} label at ({cx:.2f}, {cy:.2f})")
+    # battery connector polarity: + at CELL+ (J2 pad 1), - at CELL- (pad 2); pads from the library footprint
+    j2 = [q for q in pads if q["ref"] == "J2"]
+    for num, sign in (("1", "+"), ("2", "-")):
+        q = next(z for z in j2 if z["num"] == num)
+        d = SILK_H / 2 + 0.5 + q["w"] / 2
+        cands = [(q["x"], q["y"] + d + 0.2), (q["x"], q["y"] - d - 0.2), (q["x"] + d, q["y"]), (q["x"] - d, q["y"])]
+        cx, cy = try_place(sign, cands)
+        emit(sign, cx, cy, "pol-J2-" + num)
+        notes.append(f"J2 pad {num} ({'CELL+' if sign == '+' else 'CELL-'}) polarity mark '{sign}' at ({cx:.2f}, {cy:.2f})")
+    # LED cathode bar on the outer side of pad 1 (cathode, design.py D2/D3 pin 1 = K: [mine, UNVERIFIED] against the LED datasheet, see design.py)
+    for ref in ("D2", "D3"):
+        ps = [q for q in pads if q["ref"] == ref]
+        p1 = next(q for q in ps if q["num"] == "1"); p2 = next(q for q in ps if q["num"] == "2")
+        side = -1 if p1["x"] < p2["x"] else 1
+        xb = p1["x"] + side * (p1["w"] / 2 + 0.3)
+        yb0, yb1 = p1["y"] - 0.45, p1["y"] + 0.45
+        bar = (xb - 0.02, yb0, xb + 0.02, yb1)
+        labels.append((f"{ref} cathode bar", bar))
+        out.append(f'\t(gr_line (start {f(xb)} {f(yb0)}) (end {f(xb)} {f(yb1)}) (stroke (width {SILK_LINE}) (type solid)) (layer "F.SilkS") (uuid "{uid("silk", "cath-" + ref)}"))')
+        notes.append(f"{ref} cathode bar at x={xb:.2f} (pad 1 side)")
+    # No antenna keep-out label on the silk (A-086 lists references and polarity only; the keep-out is labelled in the PR text).
+    # Final enforcement, for EVERY silk element in `labels`: inside the board outline and SILK_CLR from pads and from other labels.
+    global SILK_CHECKS
+    SILK_CHECKS = []
+    bad = []
+    for i, (name, bx) in enumerate(labels):
+        others = [b for j, (_, b) in enumerate(labels) if j != i]
+        d_pad = min((_sep(bx, pb) for pb in pad_boxes), default=99.0)
+        d_lab = min((_sep(bx, o) for o in others), default=99.0)
+        ok = _inside_outline(*bx) and d_pad >= SILK_CLR and d_lab >= SILK_CLR
+        SILK_CHECKS.append(f"{'PASS' if ok else 'FAIL'}  silk {name!r}: inside outline, pad clearance {d_pad:.2f} mm, "
+                           f"label clearance {d_lab:.2f} mm (>= {SILK_CLR:.2f} mm; text box estimated, see SILK_CHAR_W)")
+        if not ok:
+            bad.append(name)
+    if bad:
+        raise SystemExit("silk: FAIL " + ", ".join(bad))
+    return out, notes
+
 def outline_pts():
     return [(0, 0), (BOARD_W, 0), (BOARD_W, BODY_L), (TAIL_X0 + TAIL_W, BODY_L), (TAIL_X0 + TAIL_W, BODY_L + TAIL_L),
             (TAIL_X0, BODY_L + TAIL_L), (TAIL_X0, BODY_L), (0, BODY_L)]
@@ -253,6 +371,8 @@ def build_pcb(extra_segs=(), extra_vias=()):
     user_rect("ant15", U1_CX - U1_W / 2 - ANT_CLEAR_MM, -U1_OVERHANG - ANT_CLEAR_MM, U1_CX + U1_W / 2 + ANT_CLEAR_MM, 0, "Cmts.User")
     o.append(f'\t(gr_text "CELL BAY {CELL_CAV[0]} x {CELL_CAV[1]} mm (enclosure v3 cavity, pcb-enclosure-bay.md); not copper" (at {f((CELL_X0 + CELL_X1) / 2)} {f((CELL_Y0 + CELL_Y1) / 2)}) (layer "Dwgs.User") (uuid "{uid("t1")}") (effects (font (size 1 1) (thickness 0.15))))')
     o.append(f'\t(gr_text "ANTENNA: module overhangs {U1_OVERHANG} mm; 15 mm clear box (Espressif guideline)" (at {f(U1_CX - 12)} {f(-U1_OVERHANG - 8)}) (layer "Cmts.User") (uuid "{uid("t2")}") (effects (font (size 1 1) (thickness 0.15))))')
+    silk, silk_notes = silk_items()
+    o.extend(silk)
     # vias
     n_gnd = NETS["GND"]
     for k, (tag, x, y) in enumerate(via_list()):
@@ -333,6 +453,9 @@ if __name__ == "__main__":
     for row in report:
         print("route:", row)
     open(os.path.join(HERE, "plant-monitor.kicad_pcb"), "w").write(build_pcb(segs, vias))
+    for line in SILK_CHECKS:
+        print("silk:", line)
+    print(f"silk: {sum(l.startswith('PASS') for l in SILK_CHECKS)} of {len(SILK_CHECKS)} silk elements PASS")
     update_pro()
     write_dxf()
     print("wrote plant-monitor.kicad_pcb and updated plant-monitor.kicad_pro")
