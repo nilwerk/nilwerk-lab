@@ -39,11 +39,12 @@ def text():
     a(f"| Standoff pads under the board | 4 corners, height {P.STANDOFF} | ASSUMED | bottom copper is GND only |")
     a(f"| Clamp pads on the board top | free 2 x 2 mm squares (computed in `enclosure_v3.free_clamp_pads`) | OPEN | Emil asked for 2 more keep-clear pads or 2 M2 holes (item 6) |")
     a("")
-    a("## 3. USB-C cut-out (J1)")
+    a("## 3. USB-C cut-out (J1 = TYPE-C-31-M-12, LCSC C165948)")
     a("| Item | Value | Status | Note |")
     a("|---|---|---|---|")
     a(f"| J1 centre (x = right edge, y) | x {P.BOARD_W:.2f}, y {P.J1_Y:.1f}, rotated 90 deg | READ | J1 footprint position |")
-    a(f"| J1 height (board top to centre) | {P.H_BY_REF['J1']:.2f} (centre at z {P.J1_Z:.2f}) | {sec('J1')} | no datasheet read; see fit check |")
+    a(f"| J1 height, flat (model value, board top to centre) | {P.H_BY_REF['J1']:.2f} (centre at z {P.J1_Z:.2f}) | {sec('J1')} | no datasheet height read for the flat part; see fit check |")
+    a(f"| **J1 height, upright male (TYPE-C-31-M-12 datasheet)** | **{P.J1_UPRIGHT_H:.2f} +-{P.J1_UPRIGHT_TOL:.2f}** | **{sec('J1_UPRIGHT')}** | orientation is decision **A-087** (Arsany); no value chosen. Upright does not fit the 7.6 mm inner box (fit row 55) |")
     a(f"| Window in right wall | {P.USB_W} x {P.USB_H} | ASSUMED | plug 8.94 x 3.26 + 0.3 per side |")
     a(f"| Overmold pocket (from outside) | {P.USB_POCKET[0]} x {P.USB_POCKET[1]} x {P.USB_POCKET[2]} deep | ASSUMED | wall left {P.WALL - P.USB_POCKET[2]:.1f} |")
     a("")
@@ -88,7 +89,8 @@ def text():
     a(f"1. **Tail length (A-071)**: choose 14 or 20 mm. Board tail becomes {P.TAIL_L_VARIANT['14']:.1f} or {P.TAIL_L_VARIANT['20']:.1f} mm; the DXF is 25.0 today.")
     a(f"2. **J2 height (A-076, Arsany)**: OPEN, the inner height is NOT locked. Model value 4.5 ASSUMED gives inner {P.INNER_H:.1f} (option A). The only sourced value, distributor 5.5, needs inner {P.INNER_H_IF_J2_5_5:.1f} (option B, box +1.0 mm). Decide after the J2 datasheet or a measured sample; until then Emil keeps the inner height open.")
     a("3. **Board retention**: two more keep-clear pads or two M2 holes (no metal within 15 mm of the antenna).")
-    a("4. **Device heights** still ASSUMED (see `params_v3.H_SRC`): J1, U3 and the 0603/SOT parts.")
+    a("4. **J1 orientation (A-087, Arsany)**: flat 3.30 (ASSUMED, model) or upright male 11.94 +-0.25 (datasheet, OPEN). The inner height cannot hold the upright part; the choice decides the USB-C side of the box. Not decided here.")
+    a("5. **Device heights** still ASSUMED (see `params_v3.H_SRC`): U3 and the 0603/SOT parts.")
     return "\n".join(L) + "\n"
 
 

@@ -40,8 +40,8 @@ Tail variant: 14 mm (A-071 open)
 | 36 | PETG min feature: lid screw clearance hole | 2.40 mm | >= 0.8 (2 lines) | **OPEN** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] (OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass) |
 | 37 | PETG min feature: plug wall (tail tunnel) | 2.40 mm | >= 0.8 (2 lines) | **OPEN** | params_v3 PETG_MIN_FEATURE [ASSUMED 0.8] (OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass) |
 | 38 | Seal tunnel clearance per side (thickness) | 0.30 mm | >= 0.30 (PETG/FDM; sealant fills the rest) | **OPEN** | params_v3 TUNNEL_H 2.2 [ASSUMED 0.3] (OPEN: the 0.3 mm clearance is ASSUMED, so a pass against it is not a pass) |
-| 39 | Seal tunnel clearance per side (width) | 0.30 mm | >= 0.30 | **PASS** | params_v3 TUNNEL_W 12.6 |
-| 40 | PETG insert boss wall (round the 3.2 hole) | 1.60 mm | >= 1.6 (PETG target; floor 1.2) | **PASS** | params_v3 BOSS_D 6.4; insert datasheet still to check |
+| 39 | Seal tunnel clearance per side (width) | 0.30 mm | >= 0.30 [ASSUMED] | **OPEN** | params_v3 TUNNEL_W 12.6; 0.3 per side as in the thickness row (OPEN: the 0.3 mm clearance is ASSUMED (same value as the thickness row), so a pass against it is not a pass) |
+| 40 | PETG insert boss wall (round the 3.2 hole) | 1.60 mm | >= 1.6 (PETG target; floor 1.2) | **OPEN** | params_v3 BOSS_D 6.4; insert datasheet still to check (OPEN: 1.6 mm is this PR's own PETG target (PETG_BOSS_WALL), not a sourced limit; the insert datasheet is not read, so a pass against it is not a pass) |
 | 41 | Boss to outside surface (skin) | 1.20 mm | >= 1.2 | **PASS** | params_v3 BOSS_XY, OUT_Y0/OUT_Y1 |
 | 42 | Boss below the cell cavity (bottom row, y gap) | 0.20 mm | >= 0.2 (no overlap; tray vs cell boolean row also checks) | **PASS** | params_v3 BOSS_XY vs CELL_BAY_CAVITY y -42.0 |
 | 43 | Lid plate above the film counterbore | 1.80 mm | >= 1.2 | **PASS** | params_v3 LID_T 2.4 |
@@ -56,5 +56,6 @@ Tail variant: 14 mm (A-071 open)
 | 52 | STL watertight: plug | True | True | **PASS** | trimesh |
 | 53 | Max bridge/overhang span, print orientation: plug | 0.0 mm (0 faces) | <= 10 mm (P1S bridges; no steep overhangs) | **PASS** | trimesh, faces with normal z < -0.7 above the bed |
 | 54 | Model heights equal their cited source (6 parts) | 6 of 6 equal | model value = cited value for every part | **OPEN** | params_v3 H_CITED vs H_BY_REF; standards s.7 (never invent a component dimension) (OPEN: U5, U6, SW1-3 cite distributor listings (SECONDARY), the PDFs were not read) |
+| 55 | J1 USB-C height, flat vs upright | flat 3.30 (ASSUMED): 1.70 mm to lid; upright 11.94 +-0.25 (OPEN): -6.94 mm | >= 0.5 (orientation not decided) | **OPEN** | TYPE-C-31-M-12 datasheet, upright male (brief value, PDF not read here); params_v3 H_SRC J1_UPRIGHT (OPEN: orientation is decision A-087 (Arsany). Flat is ASSUMED; upright does not fit the 7.6 mm inner box. No value is chosen) |
 
-39 PASS, 0 FAIL, 15 OPEN (tail 14 mm variant)
+37 PASS, 0 FAIL, 18 OPEN (tail 14 mm variant)

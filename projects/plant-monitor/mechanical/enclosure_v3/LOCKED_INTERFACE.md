@@ -22,11 +22,12 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 | Standoff pads under the board | 4 corners, height 1.0 | ASSUMED | bottom copper is GND only |
 | Clamp pads on the board top | free 2 x 2 mm squares (computed in `enclosure_v3.free_clamp_pads`) | OPEN | Emil asked for 2 more keep-clear pads or 2 M2 holes (item 6) |
 
-## 3. USB-C cut-out (J1)
+## 3. USB-C cut-out (J1 = TYPE-C-31-M-12, LCSC C165948)
 | Item | Value | Status | Note |
 |---|---|---|---|
 | J1 centre (x = right edge, y) | x 34.50, y -33.0, rotated 90 deg | READ | J1 footprint position |
-| J1 height (board top to centre) | 3.30 (centre at z 4.25) | ASSUMED | no datasheet read; see fit check |
+| J1 height, flat (model value, board top to centre) | 3.30 (centre at z 4.25) | ASSUMED | no datasheet height read for the flat part; see fit check |
+| **J1 height, upright male (TYPE-C-31-M-12 datasheet)** | **11.94 +-0.25** | **OPEN** | orientation is decision **A-087** (Arsany); no value chosen. Upright does not fit the 7.6 mm inner box (fit row 55) |
 | Window in right wall | 9.6 x 3.9 | ASSUMED | plug 8.94 x 3.26 + 0.3 per side |
 | Overmold pocket (from outside) | 14.0 x 8.0 x 1.2 deep | ASSUMED | wall left 1.2 |
 
@@ -68,4 +69,5 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 1. **Tail length (A-071)**: choose 14 or 20 mm. Board tail becomes 25.8 or 31.8 mm; the DXF is 25.0 today.
 2. **J2 height (A-076, Arsany)**: OPEN, the inner height is NOT locked. Model value 4.5 ASSUMED gives inner 7.6 (option A). The only sourced value, distributor 5.5, needs inner 8.6 (option B, box +1.0 mm). Decide after the J2 datasheet or a measured sample; until then Emil keeps the inner height open.
 3. **Board retention**: two more keep-clear pads or two M2 holes (no metal within 15 mm of the antenna).
-4. **Device heights** still ASSUMED (see `params_v3.H_SRC`): J1, U3 and the 0603/SOT parts.
+4. **J1 orientation (A-087, Arsany)**: flat 3.30 (ASSUMED, model) or upright male 11.94 +-0.25 (datasheet, OPEN). The inner height cannot hold the upright part; the choice decides the USB-C side of the box. Not decided here.
+5. **Device heights** still ASSUMED (see `params_v3.H_SRC`): U3 and the 0603/SOT parts.

@@ -41,6 +41,7 @@ LID_CLEAR = 0.5                    # [ASSUMED] min air gap tallest part to lid u
 H_BY_REF = {"U1": 2.4, "J1": 3.3, "J2": 4.5, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "U3": 1.75, "U5": 1.0, "U6": 0.75,
             "D1": 1.1, "U2": 1.1, "U4": 1.1, "Q1": 1.1, "U7": 1.1, "D2": 0.8, "D3": 0.8, "E1": 0.04}
 H_DEFAULT = 0.55                   # [ASSUMED] 0603 R/C
+# J1_UPRIGHT is not a model height (the model uses the flat 3.3 for J1); it is recorded so the upright value is not lost (see fit row 55).
 # Where each height comes from (slice 3). DATASHEET = read from the manufacturer PDF (page given). SECONDARY = distributor listing
 # values only (manufacturer PDF not readable in this session), used as a cross-check, never as the model value unless it equals it.
 # ASSUMED = no source read; kept as an assumption and listed in the PR.
@@ -52,11 +53,15 @@ H_SRC = {
     "SW2": ("SECONDARY", "same part as SW1 (LCSC C318884)"),
     "SW3": ("SECONDARY", "same part as SW1 (LCSC C318884)"),
     "J2":  ("CONFLICT", "model 4.5 ASSUMED. Distributor values: JLCPCB Z-height 5.5 mm; elecfans copy of the JST PH drawing 5.5 mm to the wafer end face. Official JST drawing not readable. OPEN: see fit check row"),
-    "J1":  ("ASSUMED", "TYPE-C-31-M-12 (LCSC C165948): no height read; LCSC datasheet link returns a wrapper page, no value from a listing"),
+    "J1":  ("ASSUMED", "TYPE-C-31-M-12 (LCSC C165948), FLAT model value 3.30: no height read; LCSC datasheet link returns a wrapper page, no value from a listing"),
+    # The upright male version of the same connector is a different height. Brief value from the TYPE-C-31-M-12 datasheet (upright male): 11.94 +-0.25 mm.
+    # Recorded as OPEN, not used in the model: the orientation is decision A-087 (Arsany). No value is chosen. The datasheet PDF was not read in this session.
+    "J1_UPRIGHT": ("OPEN", "TYPE-C-31-M-12 (LCSC C165948) datasheet, upright male version: H 11.94 +-0.25 mm (value from the review brief; PDF not read here). Orientation A-087 (Arsany)"),
     "U3":  ("ASSUMED", "TP4056-42-ESOP8 (LCSC C16581): datasheet link returns a wrapper page; height not read"),
 }
 for _r in ("D1", "U2", "U4", "U7", "Q1", "D2", "D3", "E1"):
     H_SRC.setdefault(_r, ("ASSUMED", "not read in this session (package class value kept)"))
+J1_UPRIGHT_H, J1_UPRIGHT_TOL = 11.94, 0.25   # TYPE-C-31-M-12 upright male, datasheet brief value (OPEN, A-087); not used by the model
 # The number each cited source states, for every part whose height cites a source (DATASHEET or SECONDARY). The fit check (row 54)
 # fails if H_BY_REF differs from it, so a changed sourced height cannot slip through without a new citation.
 H_CITED = {"U1": 2.4, "U5": 1.0, "U6": 0.75, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5}

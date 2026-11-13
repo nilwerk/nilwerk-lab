@@ -92,7 +92,7 @@ def main(tail=None):
         "H_BY_REF; J2 height needs a datasheet value (OPEN, A-076)",
         "OPEN: the number rests on J2 4.5, which is ASSUMED and conflicts with the 5.5 distributor value (row 14)", unsure=wsrc != "DATASHEET")
     # height sourcing: one row for all heights. Only DATASHEET counts as sourced; SECONDARY, CONFLICT and ASSUMED stay listed and are not PASS.
-    srcs = {k: v[0] for k, v in P.H_SRC.items()}
+    srcs = {k: P.H_SRC[k][0] for k in P.H_BY_REF}          # model parts only (J1_UPRIGHT is recorded, not a model height)
     n_dc = sum(1 for v in srcs.values() if v == "DATASHEET")
     n_sec, n_conf, n_ass = (sum(1 for v in srcs.values() if v == s) for s in ("SECONDARY", "CONFLICT", "ASSUMED"))
     row("Heights with a datasheet page in the model", f"{n_dc} of {len(P.H_BY_REF)} DATASHEET (U1); {n_sec} SECONDARY, {n_conf} CONFLICT, {n_ass} ASSUMED", "every height cites a datasheet; the rest are listed as SECONDARY or ASSUMED",
@@ -136,8 +136,10 @@ def main(tail=None):
             "OPEN: the 0.8 mm floor is ASSUMED (no sourced PETG limit), so a pass against it is not a pass", unsure=True)
     row("Seal tunnel clearance per side (thickness)", f"{(P.TUNNEL_H - P.BOARD_T) / 2:.2f} mm", ">= 0.30 (PETG/FDM; sealant fills the rest)", (P.TUNNEL_H - P.BOARD_T) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_H 2.2 [ASSUMED 0.3]",
         "OPEN: the 0.3 mm clearance is ASSUMED, so a pass against it is not a pass", unsure=True)
-    row("Seal tunnel clearance per side (width)", f"{(P.TUNNEL_W - P.TAIL_W) / 2:.2f} mm", ">= 0.30", (P.TUNNEL_W - P.TAIL_W) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_W 12.6")
-    row("PETG insert boss wall (round the 3.2 hole)", f"{(P.BOSS_D - P.INSERT_HOLE) / 2:.2f} mm", f">= {P.PETG_BOSS_WALL} (PETG target; floor 1.2)", (P.BOSS_D - P.INSERT_HOLE) / 2 >= P.PETG_BOSS_WALL - 1e-9, "params_v3 BOSS_D 6.4; insert datasheet still to check")
+    row("Seal tunnel clearance per side (width)", f"{(P.TUNNEL_W - P.TAIL_W) / 2:.2f} mm", ">= 0.30 [ASSUMED]", (P.TUNNEL_W - P.TAIL_W) / 2 >= 0.3 - 1e-9, "params_v3 TUNNEL_W 12.6; 0.3 per side as in the thickness row",
+        "OPEN: the 0.3 mm clearance is ASSUMED (same value as the thickness row), so a pass against it is not a pass", unsure=True)
+    row("PETG insert boss wall (round the 3.2 hole)", f"{(P.BOSS_D - P.INSERT_HOLE) / 2:.2f} mm", f">= {P.PETG_BOSS_WALL} (PETG target; floor 1.2)", (P.BOSS_D - P.INSERT_HOLE) / 2 >= P.PETG_BOSS_WALL - 1e-9, "params_v3 BOSS_D 6.4; insert datasheet still to check",
+        "OPEN: 1.6 mm is this PR's own PETG target (PETG_BOSS_WALL), not a sourced limit; the insert datasheet is not read, so a pass against it is not a pass", unsure=True)
     skin = min(min((y - P.OUT_Y0) - P.BOSS_D / 2, (P.OUT_Y1 - y) - P.BOSS_D / 2) for _, y in P.BOSS_XY)
     row("Boss to outside surface (skin)", f"{skin:.2f} mm", ">= 1.2", skin >= 1.2 - 1e-9, "params_v3 BOSS_XY, OUT_Y0/OUT_Y1")
     cgap = min(((P.CELL_Y0 - (y + P.BOSS_D / 2)) if y < P.CELL_Y0 else 99.0) for x, y in P.BOSS_XY if P.CELL_X0 - P.BOSS_D / 2 <= x <= P.CELL_X1 + P.BOSS_D / 2)
@@ -169,6 +171,14 @@ def main(tail=None):
     row(f"Model heights equal their cited source ({len(P.H_CITED)} parts)", f"{len(P.H_CITED) - len(mism)} of {len(P.H_CITED)} equal" + (f"; MISMATCH {mism}" if mism else ""),
         "model value = cited value for every part", not mism, "params_v3 H_CITED vs H_BY_REF; standards s.7 (never invent a component dimension)",
         "OPEN: U5, U6, SW1-3 cite distributor listings (SECONDARY), the PDFs were not read", unsure=any(P.H_SRC[k][0] != "DATASHEET" for k in P.H_CITED))
+    # 10 J1 USB-C height: the model uses the flat 3.3 (ASSUMED); the upright male version is 11.94 +-0.25 (datasheet brief value, OPEN, A-087).
+    # The upright value is tested against the same inner box; it does not fit, so the row stays OPEN until the orientation is decided. No value is chosen here.
+    gap_flat = P.INNER_H - (P.BOARD_Z1 + P.H_BY_REF["J1"])
+    gap_up = P.INNER_H - (P.BOARD_Z1 + P.J1_UPRIGHT_H)
+    row("J1 USB-C height, flat vs upright", f"flat {P.H_BY_REF['J1']:.2f} (ASSUMED): {gap_flat:.2f} mm to lid; upright {P.J1_UPRIGHT_H:.2f} +-{P.J1_UPRIGHT_TOL} (OPEN): {gap_up:.2f} mm",
+        f">= {P.LID_CLEAR} (orientation not decided)", gap_up >= P.LID_CLEAR - 1e-9,
+        "TYPE-C-31-M-12 datasheet, upright male (brief value, PDF not read here); params_v3 H_SRC J1_UPRIGHT",
+        "OPEN: orientation is decision A-087 (Arsany). Flat is ASSUMED; upright does not fit the 7.6 mm inner box. No value is chosen", open_=True)
     return list(ROWS)
 
 
