@@ -87,13 +87,10 @@ for _k, _v in _LIB.items():
 FOOT["NW:SW_TS-1187A-B-A-B_5.1x5.1"] = dict(
     pads=[P("1", -3.0, -1.875, 1.0, 0.75), P("2", 3.0, -1.875, 1.0, 0.75), P("3", -3.0, 1.875, 1.0, 0.75), P("4", 3.0, 1.875, 1.0, 0.75)],
     court=(-3.75, -2.85, 3.75, 2.85), kind="datasheet")
-# PLACEHOLDERS (pad numbers right, geometry NOT from a drawing): no recommended land pattern was available for these two
-FOOT["NW:AHT20_DFN-6_3x3"] = dict(pads=[P("1", -1.4, -1.0, 0.7, 0.5), P("2", -1.4, 0.0, 0.7, 0.5), P("3", -1.4, 1.0, 0.7, 0.5),
-                                        P("4", 1.4, 1.0, 0.7, 0.5), P("5", 1.4, 0.0, 0.7, 0.5), P("6", 1.4, -1.0, 0.7, 0.5)],
-                                  court=(-1.7, -1.7, 1.7, 1.7), kind="placeholder")
-FOOT["NW:WSOF-6_BH1750FVI"] = dict(pads=[P("1", -1.4, -0.95, 0.8, 0.5), P("2", -1.4, 0.0, 0.8, 0.5), P("3", -1.4, 0.95, 0.8, 0.5),
-                                         P("4", 1.4, 0.95, 0.8, 0.5), P("5", 1.4, 0.0, 0.8, 0.5), P("6", 1.4, -0.95, 0.8, 0.5)],
-                                   court=(-1.9, -1.7, 1.9, 1.7), kind="placeholder")
+# U5 / U6 (slice 3): LCSC/EasyEDA footprint data, copied to footprints/*.kicad_mod (source and open points in footprints/SOURCES.md).
+# Pad 7 (EP) of the BH1750 is NOT copied: ROHM datasheet note 10 says the central pad must not be soldered or connected.
+FOOT["NW:AHT20_DFN-6_3x3"] = dict(pads=kmod.load("AHT20_DFN-6_3x3")["pads"], court=kmod.load("AHT20_DFN-6_3x3")["court"], kind="easyeda")
+FOOT["NW:WSOF-6_BH1750FVI"] = dict(pads=kmod.load("WSOF-6_BH1750FVI")["pads"], court=kmod.load("WSOF-6_BH1750FVI")["court"], kind="easyeda")
 # E1: soil electrodes, copper only on F.Cu (no mask opening: covered by solder mask, O5), tail frame, origin = tail top centre
 FOOT["NW:SOIL_PROBE_STAKE"] = dict(pads=[P("2", -4.0, 11.0, 1.5, 20.0, layers=("F.Cu",)), P("1", 0.0, 11.0, 3.5, 20.0, layers=("F.Cu",)),
                                          P("2", 4.0, 11.0, 1.5, 20.0, layers=("F.Cu",))],
@@ -227,7 +224,7 @@ def outline_pts():
     return [(0, 0), (BOARD_W, 0), (BOARD_W, BODY_L), (TAIL_X0 + TAIL_W, BODY_L), (TAIL_X0 + TAIL_W, BODY_L + TAIL_L),
             (TAIL_X0, BODY_L + TAIL_L), (TAIL_X0, BODY_L), (0, BODY_L)]
 
-def build_pcb():
+def build_pcb(extra_segs=(), extra_vias=()):
     o = []
     o.append('(kicad_pcb')
     o.append('\t(version 20241229)\n\t(generator "nilwerk_gen_pcb")\n\t(generator_version "9.0")')
@@ -262,6 +259,12 @@ def build_pcb():
         o.append(f'\t(via (at {f(x)} {f(y)}) (size {RULES["via_dia"]}) (drill {RULES["via_drill"]}) (layers "F.Cu" "B.Cu") (net {n_gnd}) (uuid "{uid("via", k)}"))')
     for k, (x1, y1, x2, y2, w) in enumerate(stub_tracks()):
         o.append(f'\t(segment (start {f(x1)} {f(y1)}) (end {f(x2)} {f(y2)}) (width {f(w)}) (layer "F.Cu") (net {n_gnd}) (uuid "{uid("stub", k)}"))')
+    # slice 3: power-section tracks and vias from route_power.py (net name, width, layer)
+    for k, (x1, y1, x2, y2, w, lay, nn) in enumerate(extra_segs):
+        lname = "F.Cu" if lay == 0 else "B.Cu"
+        o.append(f'\t(segment (start {f(x1)} {f(y1)}) (end {f(x2)} {f(y2)}) (width {f(w)}) (layer "{lname}") (net {NETS[nn]}) (uuid "{uid("pwr", k)}"))')
+    for k, (x, y, nn) in enumerate(extra_vias):
+        o.append(f'\t(via (at {f(x)} {f(y)}) (size {RULES["via_dia"]}) (drill {RULES["via_drill"]}) (layers "F.Cu" "B.Cu") (net {NETS[nn]}) (uuid "{uid("pvia", k)}"))')
     # antenna keep-out (rule area) on both layers: no tracks, vias, pads, copper pour (O2).  Footprints are 'allowed' only because the module U1
     # itself overlaps the zone (its antenna end); check_layout.py asserts that no OTHER footprint touches the zone.
     kx0, ky0, kx1, ky1 = ANT_KEEPOUT
@@ -325,7 +328,11 @@ def write_dxf():
     open(os.path.join(HERE, "plant-monitor-outline.dxf"), "w").write("\n".join(out) + "\n")
 
 if __name__ == "__main__":
-    open(os.path.join(HERE, "plant-monitor.kicad_pcb"), "w").write(build_pcb())
+    import route_power
+    segs, vias, report = route_power.route_all()
+    for row in report:
+        print("route:", row)
+    open(os.path.join(HERE, "plant-monitor.kicad_pcb"), "w").write(build_pcb(segs, vias))
     update_pro()
     write_dxf()
     print("wrote plant-monitor.kicad_pcb and updated plant-monitor.kicad_pro")

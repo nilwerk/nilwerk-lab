@@ -189,10 +189,11 @@ def main():
     j1 = fps["J1"]
     check(abs(j1["rot"] - 90) < 0.01 and abs(j1["x"] + 3.65 - max(xs)) < 0.01, "USB-C mouth (body front, library F.Fab 3.65 mm) flush with the right outline edge  [O4]")
     # vias
-    u1v = [v for v in B["vias"] if rect_gap((v["x"], v["y"], v["x"], v["y"]), fps["U1"]["box"]) == 0]
+    netname = {n[1]: n[2] for n in B["root"][1:] if isinstance(n, list) and n[0] == "net" and len(n) > 2}
+    u1v = [v for v in B["vias"] if netname.get(v["net"]) == "GND" and rect_gap((v["x"], v["y"], v["x"], v["y"]), fps["U1"]["box"]) == 0]
     check(len(u1v) >= 9, f"{len(u1v)} ground vias under the module (>= 9)  [O3, Espressif]")
     u3 = fps["U3"]; ep = [p for p in u3["pads"] if p["num"] == "9"][0]; epb = pad_box(ep)
-    u3v = [v for v in B["vias"] if rect_gap((v["x"], v["y"], v["x"], v["y"]), (epb[0] - 3.0, epb[1] - 3.0, epb[2] + 3.0, epb[3] + 3.0)) == 0]
+    u3v = [v for v in B["vias"] if netname.get(v["net"]) == "GND" and rect_gap((v["x"], v["y"], v["x"], v["y"]), (epb[0] - 3.0, epb[1] - 3.0, epb[2] + 3.0, epb[3] + 3.0)) == 0]
     check(4 <= len(u3v) <= 6, f"{len(u3v)} thermal vias at the TP4056 exposed pad (4-6)  [section 5 Cell/charger]")
     stub_ok = all(any(abs(s["a"][0] - v["x"]) < 1e-6 and abs(s["a"][1] - v["y"]) < 1e-6 and s["net"] == v["net"] and epb[0] <= s["b"][0] <= epb[2] and epb[1] <= s["b"][1] <= epb[3] for s in B["segs"]) for v in u3v)
     check(stub_ok, "every TP4056 thermal via is joined to the exposed pad by a track stub (the via is outside the pad)  [Needs-Arsany A-069]")
@@ -206,7 +207,6 @@ def main():
     check(not inpad, f"{len(inpad)} via holes inside an SMD pad (0 required, A-069 option 'move vias out of pads') {inpad[:4]}  [JLC via-in-pad rule]")
     ovl = sum(1 for v in B["vias"] for f in B["fps"] for p in f["pads"] if cu(p) and p["ptype"] == "smd" and rect_gap((v["x"], v["y"], v["x"], v["y"]), pad_box(p)) < v["size"] / 2)
     print(f"INFO  {ovl} via copper/pad copper overlaps (hole outside the pad, annulus touches a same-net pad; not via-in-pad)")
-    netname = {n[1]: n[2] for n in B["root"][1:] if isinstance(n, list) and n[0] == "net" and len(n) > 2}
     bad = [(i, f["ref"], p["num"]) for i, v in enumerate(B["vias"]) for f in B["fps"] for p in f["pads"] if cu(p) and p["net"] != netname.get(v["net"]) and rect_gap((v["x"], v["y"], v["x"], v["y"]), pad_box(p)) < v["size"] / 2 + 0.2 - 1e-9]
     check(not bad, f"via copper to a pad of another net >= 0.2 mm, {len(bad)} violations {bad[:4]}  [section 5 clearance rule]")
     check(all(abs(v["size"] - 0.7) < 1e-9 and abs(v["drill"] - 0.3) < 1e-9 for v in B["vias"]), "all vias 0.3 mm drill / 0.7 mm pad  [section 5 Via]")
@@ -216,7 +216,7 @@ def main():
     tht = sorted({f["ref"] for f in B["fps"] for p in f["pads"] if p["ptype"] != "smd"})
     check(all(("F.Cu" in p["layers"]) or p["ptype"] != "smd" or "F.Cu" not in p["layers"] and "F.Paste" in p["layers"] for f in B["fps"] for p in f["pads"]) and tht == ["J1"],
           f"SMD pads on the top side only; through-hole/NPTH pads only on {tht} (USB-C shield legs and positioning pegs of the real footprint)  [section 5 Assembly]")
-    print(f"\nrouting: {len(B['segs'])} track segments (TP4056 GND stubs only), GND zone not filled, nets not routed (next slice).")
+    print(f"\nrouting: {len(B['segs'])} track segments (power section from route_power.py + TP4056 GND stubs), GND zone not filled, signal nets not routed (next slices).")
     print(f"RESULT: {len(FAILS)} FAIL" if FAILS else "RESULT: all layout checks PASS")
     return B
 
