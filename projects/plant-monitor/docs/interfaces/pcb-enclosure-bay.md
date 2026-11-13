@@ -42,3 +42,6 @@ Arsany buys the **EEMB LP603449-PCM, Amazon.de ASIN B08FD39Y5R** (listing read 2
 | Connector and wires | JST plug (pitch unverified, PH 2.0 mm assumed), 2 wires assumed, **length not stated** | unverified: needs Arsany's read of photo 3. The PCB side is J2 JST PH 2-pin SMD (S2B-PH-SM4-TB, right angle, about 6 x 4.5 mm footprint plus the mating housing) |
 
 What Yara needs to plan: a bay of at least 51 x 34.5 x 6.3 mm plus her own tolerance, swelling and wire-routing clearance (the plug end needs room for the wires to bend, length unknown until the cell arrives), the cell sitting beside or under the PCB (4.P2 decides the outline; any outline change is announced to the Lead the same day), and a polarity warning on the assembly drawing (check the plug polarity with a meter before connecting).
+
+## Update 2026-11-10: enclosure v3 inner size (Q2 answer, Yara, slice 2)
+Inner cavity **93.3 x 52.9 x 7.6 mm** (re-run on the #73 board), outer 98.1 x 57.7 x 11.6 mm (PETG review A-071) (walls 2.4, floor 1.6, lid 2.4), cell beside the board, 0.3 mm beyond the J1 shell, 1.0 mm above the antenna (overhang 4.5) (ASSUMED). The cell cavity above is unchanged. Details, assumptions and what Emil must keep fixed: `enclosure/v3/README.md`; numbers in `mechanical/enclosure_v3/params_v3.py`.
