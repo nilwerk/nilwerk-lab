@@ -3,6 +3,8 @@
 **DRAFT. NOT ORDERED. NOT A RELEASE.** Routing is not done (only 4 GND stub tracks; all nets unrouted), 3 distinct footprints are placeholders or own copper, 4 of 5 simulations are not run. 
 Generated 2026-11-12 07:05Z by `make_jlcpcb_package.py` from branch `agent/pcb/4.P2-s2`, board from `plant-monitor.kicad_pcb` (4.P2 slice 2; CI head 8ad6122, run 42772372983).
 
+**SUPERSEDED (2026-11-13):** the Gerber set these rows refer to (`gerbers/plant-monitor-gerber.zip`) is replaced by `../gerber/` (PR #87). Results below are the 2026-11-12 record and are not re-graded here; F5 and F6 are Ines's re-check.
+
 **Result:** NOT ORDERABLE: 4 FAIL, 12 OPEN or UNVERIFIED, 20 PASS (of 40 items). Dry run only.
 
 Legend: PASS = within the limit; FAIL = outside the limit or missing; OPEN = cannot be checked until a later slice; UNVERIFIED = needs the JLC page or a physical check; CHOICE / NOTE = a cart choice or a remark.
