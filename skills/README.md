@@ -15,4 +15,6 @@ Folders:
 
 Vendored, ready-to-run skills (KiCad, SPICE, EMC, sourcing, CadQuery, print prep): `skills/vendor/README.md`.
 
+Earlier Nilwerk-owner projects to learn from (Drive): `skills/references/old-projects.md`.
+
 Role mapping (which skill file and which guideline file each agent reads): `skills/ROLE-MAP.md`.

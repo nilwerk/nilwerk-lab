@@ -28,3 +28,10 @@ Every role agent reads, before a task: its role file (`team/roles/<role>.md`), i
 | Kai · Pipeline | `kicad`, `kicad-tools` | possible CI checks (to be proven) |
 | Nora · Lead | `bom`, `jlcpcb`, `lcsc` | ready-to-click order lists for Arsany (never ordered by agents) |
 | Leo, Sana, Poppy | none | |
+
+## Reference projects (`skills/references/old-projects.md`)
+| Role | Read | For |
+|---|---|---|
+| Yara · 3D | `orbit-case`, `Soil Monitor case` (Drive links in the file) | CadQuery fit-check pipeline, probe guide channel, honest limits |
+| Emil · PCB | `v4_c6_lipo` (Drive link in the file) | charger power path, local footprints, JLCPCB BOM/CPL package, via-in-pad option, validation record |
+| Theo · Architect, Ines · QA | the same file, read-only | to compare claims against earlier results |
