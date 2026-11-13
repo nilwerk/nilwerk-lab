@@ -1,6 +1,6 @@
 # ADR-002: BLE provisioning with proof-of-possession and one-time claim token
 
-Status: Accepted for G2 review; amendment proposed by ADR-011 · Date: 2026-11-03 · Deciders: Theo (Arsany informed)
+Status: Accepted for G2 review; amendment accepted by ADR-011 (A-080, 2026-11-12) · Date: 2026-11-03 · Deciders: Theo (Arsany informed)
 
 ## Context
 FR-D03, FR-A03, FR-A08, NFR-03, NFR-06, UC-02. Device must get Wi-Fi credentials, a name, and be bound to exactly one user, set up in <= 3 min on iOS and Android.
@@ -15,5 +15,5 @@ Use ESP-IDF `wifi_provisioning` over BLE (protocomm, security with proof-of-poss
 ## Consequences
 + Maintained library with Expo plugin (Q-03). - Needs an Expo dev build, not Expo Go (risk O-4). PoP must be provisioned per unit in production flow (3 units: manual).
 
-## Amendment (proposed, see ADR-011)
+## Amendment (accepted, see ADR-011)
 The "security with proof-of-possession" is narrowed to protocomm security 2 (SRP6a + AES-GCM); the custom endpoints grow to carry hub configuration (ADR-012); BLE is explicitly off outside setup mode; Wi-Fi credentials are not stored in the cloud profile. The claim-token mechanism is unchanged.
