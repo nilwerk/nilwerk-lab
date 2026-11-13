@@ -180,7 +180,7 @@ Contracts are written in 2.4 (`docs/interfaces/`); this table fixes the style an
 
 ## 5. Key flows
 
-**Setup (UC-02, FR-D03, FR-A03; proposed in v0.2, ADR-011).**
+**Setup (UC-02, FR-D03, FR-A03; accepted (A-080, 2026-11-12), ADR-011).**
 1. The app (user signed in) asks the `claim` function (L-08) for a one-time claim token bound to the user's profile. Separately, if a hub is on the LAN, the app finds it via mDNS, pairs with the code shown on the hub, and requests a per-device MQTT credential plus the hub CA certificate (L-24). Phone and hub are on the home LAN at this point.
 2. The user powers the sensor, or holds the button: setup mode, BLE advertising (the only time BLE is on).
 3. The app connects over BLE and runs the protocomm **security 2** handshake (SRP6a using the PoP from the label/QR as password; the device holds a per-unit salt and verifier, so the PoP itself is never sent). All following traffic is AES-GCM encrypted with the session key.
@@ -207,7 +207,7 @@ What is encrypted, and where: Wi-Fi passphrase, claim token and MQTT credential 
 | Topic | Decision | ADR |
 |---|---|---|
 | MCU + on-device AI | ESP32-C3-MINI-1, ESP-IDF, TFLite Micro int8 | ADR-001 |
-| Setup + claim | BLE provisioning with PoP, one-time claim token (ADR-002); v0.2 upgrade: security 2 + encrypted credential handling, BLE only in setup | ADR-002, ADR-011 (Proposed) |
+| Setup + claim | BLE provisioning with PoP, one-time claim token (ADR-002); v0.2 upgrade: security 2 + encrypted credential handling, BLE only in setup | ADR-002, ADR-011 (Accepted, A-080, 2026-11-12) |
 | Backend | Supabase EU; edge functions for ingest, tips, analytics, MCP | ADR-003 |
 | Device identity | Per-device bearer token, hashed in DB, revocable | ADR-004 |
 | App | Expo + TS, supabase-js direct under RLS | ADR-005 |

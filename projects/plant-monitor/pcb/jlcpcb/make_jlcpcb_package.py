@@ -6,7 +6,7 @@ Nothing here logs in, uploads, orders or pays. Everything is derived from the ge
   gerbers/plant-monitor-gerber.zip  Gerber + drill, copied from the CI `pcb-fab` artifact (KiCad 9 export, job `pcb`)
   bom-jlc.csv                       JLCPCB assembly BOM (Comment, Designator, Footprint, LCSC Part #)
   cpl-jlc.csv                       JLCPCB pick-and-place, top side
-  bom-lcsc.csv                      every BOM line with LCSC stock, JLC stock, price breaks, cost at 3 / 5 / 1000 boards
+  bom-lcsc.csv                      every BOM line with LCSC stock, JLC stock, price breaks, cost at N_PRICE boards (3 / 6 / 1000)
   dry-run-checklist.md              JLCPCB limits against this board (each row: source, value, result)
   cart-list.md                      what Arsany would click; marked NOT ORDERED
   MANIFEST.sha256                   hashes of all of the above
@@ -40,10 +40,19 @@ BOARD = os.path.join(PCB, "plant-monitor.kicad_pcb")
 BOM_PCB = os.path.join(PCB, "bom.csv")
 BOM_DRAFT = os.path.normpath(os.path.join(PCB, "..", "hardware", "bom", "bom-draft.csv"))
 
-N_CART = 5                 # proposal: 3 builds + 2 spare (Arsany decides, same logic as the cell order)
-N_PRICE = (3, 5, 1000)     # boards: TEAM.md section 10 asks for the price at 3 pcs and 1k pcs
+# Units: the JLC order unit is the PANEL (cart-list.md step 1 and 2). Stock is checked for N_CART_PANELS panels, and
+# boards = panels x panel.N_BOARDS (2). 3 panels = 6 boards covers the earlier 5-board proposal (3 builds + 2 spare)
+# with whole panels. The number of panels is Arsany's choice; this is only the basis of the stock rows (A5, A6).
+N_CART_PANELS = 3
+N_PRICE = (3, 6, 1000)     # boards: TEAM.md section 10 asks for 3 pcs and 1k pcs; 6 boards = N_CART_PANELS panels
 
-JLC_SRC = "https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-09)"
+sys.path.insert(0, HERE)
+import panel as PNL  # noqa: E402  (panel.py: rails, tooling holes, fiducials; N_BOARDS, RAIL, ...)
+N_CART_BOARDS = N_CART_PANELS * PNL.N_BOARDS
+assert N_CART_BOARDS in N_PRICE
+
+PACKAGE_DATE = "2026-11-12"   # the one date used in the package files: the day it was regenerated
+JLC_SRC = f"https://jlcpcb.com/capabilities/pcb-capabilities (read {PACKAGE_DATE})"
 JLC_CART_SRC = "JLCPCB order page: read on checkout by Arsany (not read by the agent)"
 
 
@@ -220,7 +229,7 @@ def zip_gerbers(fab, out_zip):
     gdir = os.path.join(fab, "gerbers")
     with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as z:
         for n in sorted(os.listdir(gdir)):
-            info = zipfile.ZipInfo(n, date_time=(2026, 11, 9, 0, 0, 0))
+            info = zipfile.ZipInfo(n, date_time=(2026, 11, 12, 0, 0, 0))  # PACKAGE_DATE
             info.compress_type = zipfile.ZIP_DEFLATED
             with open(os.path.join(gdir, n), "rb") as fh:
                 z.writestr(info, fh.read())
@@ -228,6 +237,21 @@ def zip_gerbers(fab, out_zip):
 
 # ----------------------------------------------------------------------------------------------
 # Build
+def fill_readme(out, vals):
+    """README.md keeps its counts inside <!-- gen:key -->...<!-- /gen:key --> markers. This run fills them, so the README
+    always states the same numbers as dry-run-checklist.md, cart-list.md and the Gerber zip. Returns the number of markers."""
+    p = os.path.join(out, "README.md")
+    txt = open(p, encoding="utf8").read()
+    def sub(m):
+        key = m.group(1)
+        if key not in vals:
+            raise KeyError(f"README marker gen:{key} has no value from the generator")
+        return f"<!-- gen:{key} -->{vals[key]}<!-- /gen:{key} -->"
+    new, n = re.subn(r"<!-- gen:(\w+) -->.*?<!-- /gen:\1 -->", sub, txt, flags=re.S)
+    open(p, "w", encoding="utf8").write(new)
+    return n
+
+
 # ----------------------------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser()
@@ -253,6 +277,13 @@ def main():
     # ---- gerber zip (CI export, copied) ----
     zip_path = os.path.join(out, "gerbers", "plant-monitor-gerber.zip")
     zip_gerbers(fab, zip_path)
+    # content check: every zip member against the CI artifact file of the same name (the zip itself is a container)
+    with zipfile.ZipFile(zip_path) as zf:
+        members = zf.namelist()
+        gchk["files_match"] = sum(1 for n in members if os.path.exists(os.path.join(fab, "gerbers", n))
+                                  and open(os.path.join(fab, "gerbers", n), "rb").read() == zf.read(n))
+    gchk["zip_members"] = len(members)
+    n_cart = N_CART_BOARDS
 
     # ---- BOM (JLC format) and cost table ----
     bom_jlc, bom_lcsc = [], []
@@ -267,8 +298,8 @@ def main():
             bom_lcsc.append(dict(designators=",".join(b["refs"]), qty_per_board=b["qty"], lcsc=b["lcsc"] or "NONE",
                                  mpn=b["mpn"], value=b["value"], package=b["footprint"].split(":")[-1],
                                  lcsc_stock="", jlc_stock="", jlc_library="", lifecycle="",
-                                 price_3=f"UNVERIFIED", price_5="UNVERIFIED", price_1000="UNVERIFIED",
-                                 cost_3="", cost_5="", cost_1000="", status="UNVERIFIED: no LCSC number"))
+                                 **{f"price_{n}": "UNVERIFIED" for n in N_PRICE}, **{f"cost_{n}": "" for n in N_PRICE},
+                                 status="UNVERIFIED: no LCSC number"))
             continue
         breaks = parse_breaks(d["price_breaks_usd(qty:price)"])
         lcsc_qty[b["lcsc"]] = lcsc_qty.get(b["lcsc"], 0) + b["qty"]
@@ -287,15 +318,14 @@ def main():
             pcol[n] = (p, st)
             if st != "ok":
                 price_flags.append(f"{b['lcsc']} at {n} boards")
-        if jstock < N_CART * b["qty"]:
+        if jstock < N_CART_BOARDS * b["qty"]:
             jlc_short.append(b["lcsc"])
-        if lstock < N_CART * b["qty"]:
+        if lstock < N_CART_BOARDS * b["qty"]:
             lcsc_short.append(b["lcsc"])
         bom_lcsc.append(dict(designators=",".join(b["refs"]), qty_per_board=b["qty"], lcsc=b["lcsc"], mpn=b["mpn"],
                              value=b["value"], package=b["footprint"].split(":")[-1], lcsc_stock=lstock,
                              jlc_stock=jstock, jlc_library=lib, lifecycle=d["lifecycle_lcsc"],
-                             price_3=f"{pcol[3][0]:.4f}", price_5=f"{pcol[5][0]:.4f}", price_1000=f"{pcol[1000][0]:.4f}",
-                             cost_3=f"{cost[3]:.4f}", cost_5=f"{cost[5]:.4f}", cost_1000=f"{cost[1000]:.4f}",
+                             **{f"price_{n}": f"{pcol[n][0]:.4f}" for n in N_PRICE}, **{f"cost_{n}": f"{cost[n]:.4f}" for n in N_PRICE},
                              status=f"{d['status']} {d['verified_utc']}"))
         bom_jlc.append(dict(Comment=b["value"], Designator=",".join(b["refs"]),
                             Footprint=b["footprint"].split(":")[-1], **{"LCSC Part #": b["lcsc"]}))
@@ -303,8 +333,8 @@ def main():
     cell = draft_by_ref.get("B1")
     bom_lcsc.append(dict(designators="B1 (not assembled by JLC)", qty_per_board=1, lcsc="NONE (listing ASIN B08FD39Y5R)",
                          mpn=cell["mpn"] if cell else "", value="LiPo cell", package="pouch 51x34.5x6.3",
-                         lcsc_stock="", jlc_stock="", jlc_library="", lifecycle="", price_3="UNVERIFIED",
-                         price_5="UNVERIFIED", price_1000="UNVERIFIED", cost_3="", cost_5="", cost_1000="",
+                         lcsc_stock="", jlc_stock="", jlc_library="", lifecycle="",
+                         **{f"price_{n}": "UNVERIFIED" for n in N_PRICE}, **{f"cost_{n}": "" for n in N_PRICE},
                          status="UNVERIFIED: price, seller and stock not read by the agent; Arsany buys (A-034)"))
 
     def write_csv(path, rows, fields):
@@ -317,7 +347,7 @@ def main():
     write_csv(os.path.join(out, "bom-jlc.csv"), bom_jlc, ["Comment", "Designator", "Footprint", "LCSC Part #"])
     write_csv(os.path.join(out, "bom-lcsc.csv"), bom_lcsc,
               ["designators", "qty_per_board", "lcsc", "mpn", "value", "package", "lcsc_stock", "jlc_stock",
-               "jlc_library", "lifecycle", "price_3", "price_5", "price_1000", "cost_3", "cost_5", "cost_1000", "status"])
+               "jlc_library", "lifecycle"] + [f"price_{n}" for n in N_PRICE] + [f"cost_{n}" for n in N_PRICE] + ["status"])
 
     # totals (LCSC catalogue price, per board; excludes JLC PCB fab, PCBA fees, Extended fee, VAT, shipping)
     tot = {}
@@ -386,10 +416,19 @@ def main():
     row("F2", "Board thickness", "FR-4 0.4-4.5 mm; 1.6 mm in list (+-10 %)", f"{board['thickness']} mm", "PASS" if board['thickness'] == 1.6 else "FAIL", JLC_SRC)
     row("F3", "Outer copper weight", "2-layer: 1 / 2 / 2.5 / 3.5 / 4.5 oz", "1 oz (not stored in the board file; choice in cart)", "CHOICE", JLC_SRC)
     row("F4", "Board size", "min 5 x 5 mm; 2-layer FR-4 max 1020 x 600 mm", f"{bw:.2f} x {bh:.2f} mm, 1 board", "PASS", JLC_SRC)
-    row("F5", "Panel / rails for this outline", "min panel 70 x 70 mm for V-cut; mouse-bite panel: rails >= 3 mm, 2 mm board spacing", f"single outline {bw:.1f} x {bh:.1f} mm; no panel, no rails designed", "FAIL",
-        "Board is below the 70 mm panel minimum: needs a panel with rails (JLC `Panel` rules). Not designed in 4.P2 (layout-4P2.md).")
-    row("F6", "SMT tooling and fiducials", "SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials 3.85 mm from panel edge", f"fiducials {len(fiducials)}, tooling holes {len(tooling)}", "FAIL",
-        JLC_SRC)
+    # Panel (Nora / Arsany round, 2026-11-10): 2 boards, rails, tooling holes, fiducials, outline unchanged. panel.py checks the geometry;
+    # the panel Gerber/drill set does not exist yet, so the Gerber-level rows stay FAIL/OPEN.
+    pl = PNL.layout()
+    pchk = PNL.checks(pl)
+    pgeo = f"{PNL.N_BOARDS} boards {bw:.2f} x {bh:.2f} mm in a {pl['W']:.1f} x {pl['H']:.1f} mm panel (rails {PNL.RAIL:.0f} mm, board gap {PNL.BOARD_GAP:.0f} mm)"
+    row("F5", "Panel / rails for this outline", "min panel 70 x 70 mm (V-cut panels only); SMT tooling edge (rail) 5 mm (general minimum 3 mm); board spacing 1.6 or 2 mm",
+        pgeo + f"; geometry checks {sum(o for o, _ in pchk)}/{len(pchk)} PASS; panel Gerber not generated",
+        "OPEN" if all(o for o, _ in pchk) else "FAIL",
+        "Panel designed in jlcpcb/panel/ (panel.py, panel.dxf), outline unchanged. Not yet in a Gerber/drill set: needs a KiCad panel (CI) or the JLC panelizer. Rails 6 mm meet the SMT 5 mm tooling edge (panel.py RAIL_MIN = 5; the general 3 mm minimum does not apply to SMT). Board gap 2 mm is within JLC's 1.6-2 mm. The 70 x 70 mm figure is for V-cut; this panel has no V-cut, so it is only a conservative floor [mine] (panel is 83.0 x 79.0 mm). The panel has no mouse-bite holes yet; their spec (0.5-0.8 mm holes) is read but not applied. Not verified: the J1 (USB-C) edge overhang in the panelised PCBA. Not verified: any JLC panelizer result. " + JLC_SRC)
+    row("F6", "SMT tooling and fiducials", "SMT: 5 mm tooling edges, 2 mm tooling holes, 1 mm fiducials centred at 3.85 mm from the panel edges",
+        f"designed: {len(pl['fids'])} fiducials (1 mm copper, centre 3.85 mm from the edge, copper edge 3.35 mm), {len(pl['tools'])} tooling holes (2 mm NPTH, centre 3.0 mm [mine, UNVERIFIED]), rails {PNL.RAIL:.0f} mm; in the Gerber/drill set: fiducials 0, tooling holes 0",
+        "FAIL",
+        "Copper fiducials and the tooling holes exist only in panel/panel.dxf; they must be in the panel Gerber (copper, mask opening 2 mm [mine, UNVERIFIED: not on the JLC page], drill). Fails until then. " + JLC_SRC)
     row("F7", "Min track width / space", "0.15 / 0.15 mm under mask (1 oz); 0.25 mm bare", f"{board['tracks']} tracks (TP4056 GND stubs, 0.4 mm; all nets still unrouted)", "OPEN",
         "Nothing to check until routing. Design rule 0.2 mm (layout-brief section 5).")
     row("F8", "Pad to pad, different nets", "0.15 mm (JLC: SMD pad to pad, different nets)", "check_layout clearance (>= 0.2 mm rule)", chk("pad-to-pad clearance"), f"check_layout.py: {chk('pad-to-pad clearance')}")
@@ -410,8 +449,10 @@ def main():
     row("F16", "Surface finish", "HASL lead-free / ENIG / OSP", "HASL lead-free proposed (layout-brief section 5)", "CHOICE", JLC_SRC)
     row("F17", "NPTH / mounting holes", "NPTH annular >= 0.45 mm recommended; mounting holes need the enclosure (Q7)", "no NPTH in drill file; no mounting holes placed", "OPEN",
         "Mounting holes depend on Yara's answer Q7 (layout-4P2.md).")
-    row("F18", "Gerber set complete", "copper, mask, silk, paste, edge, drill", f"{gchk['gerber_files']} files; missing: {', '.join(gchk['gerber_missing']) or 'none'}", "PASS" if not gchk["gerber_missing"] else "FAIL",
-        f"CI pcb-fab artifact of head {a.ci_head}, run {a.ci_run}.")
+    row("F18", "Gerber set complete", "copper, mask, silk, paste, edge, drill",
+        f"{gchk['gerber_files']} files in the CI artifact; missing: {', '.join(gchk['gerber_missing']) or 'none'}; {gchk['files_match']} of {gchk['zip_members']} zip members match the artifact file of the same name (content check)",
+        "PASS" if not gchk["gerber_missing"] and gchk["files_match"] == gchk["zip_members"] else "FAIL",
+        f"CI pcb-fab artifact of head {a.ci_head}, run {a.ci_run}. The zip is a container, so the check is per file, not per zip.")
     row("F19", "Drill file vs board vias", "drill holes = vias + drilled pads in the board",
         f"round holes {gchk['drill_holes']} (board: {len(board['vias'])} vias + {n_pad_round} round pad holes), slots {gchk['drill_slots']} (board: {n_pad_slot} oval pad holes)",
         "PASS" if gchk["drill_holes"] == len(board["vias"]) + n_pad_round and gchk["drill_slots"] == n_pad_slot else "FAIL",
@@ -427,11 +468,11 @@ def main():
         "B1 (LiPo cell) is not in the JLC BOM: Arsany buys it (A-034).")
     row("A3", "Designators: BOM = CPL", "same set of 45 designators", f"BOM {len(bom_refs_sorted)}, CPL {len(cpl_refs)}, equal {bom_refs_sorted == cpl_refs}", "PASS" if bom_refs_sorted == cpl_refs else "FAIL", "")
     row("A4", "LCSC lifecycle normal", "not NRND / EOL", f"{len(lifecycle_bad)} lines not normal" + (f": {', '.join(lifecycle_bad)}" if lifecycle_bad else ""), "PASS" if not lifecycle_bad else "FAIL", "LCSC productCycle, read 2026-11-09 (refresh_live.py)")
-    row("A5", "JLC stock for 5 boards", "JLC library stock >= qty per board x 5", f"{len(jlc_short)} lines short" + (f": {', '.join(jlc_short)}" if jlc_short else ""), "PASS" if not jlc_short else "FAIL", "JLC stock as read 2026-11-09 (refresh_live.py)")
-    row("A6", "LCSC stock for 5 boards (hand-buy path)", "LCSC stock >= qty x 5", f"{len(lcsc_short)} lines short" + (f": {', '.join(lcsc_short)}" if lcsc_short else ""), "NOTE" if lcsc_short else "PASS",
+    row("A5", f"JLC stock for {N_CART_PANELS} panels = {n_cart} boards", f"JLC library stock >= qty per board x {n_cart} boards", f"{len(jlc_short)} lines short" + (f": {', '.join(jlc_short)}" if jlc_short else ""), "PASS" if not jlc_short else "FAIL", "JLC stock as read 2026-11-09 (refresh_live.py)")
+    row("A6", f"LCSC stock for {N_CART_PANELS} panels = {n_cart} boards (hand-buy path)", f"LCSC stock >= qty x {n_cart} boards", f"{len(lcsc_short)} lines short" + (f": {', '.join(lcsc_short)}" if lcsc_short else ""), "NOTE" if lcsc_short else "PASS",
         "Matters only if Arsany buys parts himself; JLC PCBA uses JLC stock (A5).")
-    row("A7", "Price basis", "LCSC catalogue USD price breaks (3, 5, 1000 boards)",
-        f"parts only per board: 3 boards {per_board[3]:.2f} USD, 5 boards {per_board[5]:.2f} USD, 1000 boards {per_board[1000]:.2f} USD",
+    row("A7", "Price basis", f"LCSC catalogue USD price breaks ({N_PRICE[0]}, {n_cart}, {N_PRICE[2]} boards)",
+        f"parts only per board: {N_PRICE[0]} boards {per_board[N_PRICE[0]]:.2f} USD, {n_cart} boards {per_board[n_cart]:.2f} USD, {N_PRICE[2]} boards {per_board[N_PRICE[2]]:.2f} USD",
         "NOTE", "Excludes JLC PCB fab, PCBA labour, stencil, Extended-part fee, tax, shipping (UNVERIFIED: not read). Cell B1 excluded (UNVERIFIED). "
         f"Lines below the first LCSC price break (first break used, UNVERIFIED for that quantity): {len(set(price_flags))} "
         f"({'; '.join(sorted(set(price_flags))) if price_flags else 'none'})")
@@ -469,7 +510,11 @@ def main():
     md.append("\nJLCPCB limit source: " + JLC_SRC + ". Re-check on the day of the order, the pages change.")
     md.append("Repo checks run in this script: `check_layout.py` and `check_netlist.py` with `/usr/bin/python3 -I`. ")
     md.append("\nCost basis (per board, USD, LCSC catalogue, read 2026-11-09): " +
-              f"3 boards {per_board[3]:.2f}, 5 boards {per_board[5]:.2f}, 1000 boards {per_board[1000]:.2f} (parts only, see A7).\n")
+              f"{N_PRICE[0]} boards {per_board[N_PRICE[0]]:.2f}, {n_cart} boards {per_board[n_cart]:.2f}, {N_PRICE[2]} boards {per_board[N_PRICE[2]]:.2f} (parts only, see A7).\n")
+    # README counts: the README's marked spots are filled from this run (see fill_readme)
+    n_fail = len(fails)
+    n_open = len(opens)
+    n_pass = sum(1 for r in R if r[4] == "PASS")
     open(os.path.join(out, "dry-run-checklist.md"), "w", encoding="utf8").write("\n".join(md) + "\n")
 
     cart = []
@@ -482,7 +527,7 @@ def main():
     cart.append("## Step 1: PCB (bare board)")
     cart.append("| Option | Value to select | Status |")
     cart.append("|---|---|---|")
-    cart.append(f"| Quantity | {N_CART} boards (proposal: 3 builds + 2 spare) | proposal, Arsany decides |")
+    cart.append(f"| Quantity | Panels, {PNL.N_BOARDS} boards per panel: 2 panels = {2 * PNL.N_BOARDS} boards, {N_CART_PANELS} panels = {N_CART_BOARDS} boards. The number of panels is Arsany's choice; none is chosen here. Stock (A5, A6) is checked for {N_CART_PANELS} panels = {N_CART_BOARDS} boards | Arsany decides |")
     cart.append("| Layers | 2 | from board file |")
     cart.append("| Dimensions | the panel file, NOT the single outline (F5) | BLOCKED |")
     cart.append("| Thickness | 1.6 mm | from board file |")
@@ -490,14 +535,14 @@ def main():
     cart.append("| Surface finish | HASL (lead-free) | CHOICE (F16) |")
     cart.append("| Solder mask / silkscreen colour | JLC default (green / white) | CHOICE, not read |")
     cart.append("| Via process | Standard, no filling: no vias in pads since slice 2 (F12); filled and capped only if Arsany chooses the alternative | CHOICE |")
-    cart.append(f"| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head {a.ci_head}) | BLOCKED until routed |")
+    cart.append(f"| Gerber file | `jlcpcb/gerbers/plant-monitor-gerber.zip` (CI export, head {a.ci_head}, run {a.ci_run}; {gchk['files_match']} of {gchk['zip_members']} Gerber/drill files match the artifact, content check {PACKAGE_DATE}) | BLOCKED until routed |")
     cart.append("| Flying-probe test | JLC default | CHOICE |")
     cart.append("")
     cart.append("## Step 2: PCBA (assembly)")
     cart.append("| Option | Value to select | Status |")
     cart.append("|---|---|---|")
     cart.append(f"| Assembly side | Top | from CPL (A1) |")
-    cart.append(f"| Assembly quantity | {N_CART} | proposal, same as step 1 |")
+    cart.append("| Assembly quantity | Same panel count as step 1 (boards = 2 x panels). Arsany's choice | Arsany decides |")
     cart.append("| BOM file | `jlcpcb/bom-jlc.csv` | generated, LCSC numbers on every line |")
     cart.append("| CPL file | `jlcpcb/cpl-jlc.csv` | generated; rotation and origin UNVERIFIED (A10, F23) |")
     cart.append(f"| PCBA type | Economic or Standard | decision after the Extended-part fee is read ({len(set(ext_parts))} Extended unique parts, A8) |")
@@ -508,7 +553,7 @@ def main():
     cart.append("- LiPo cell EEMB LP603449-PCM, Amazon.de ASIN B08FD39Y5R: price, stock and delivery UNVERIFIED (A-034).")
     cart.append("- Check the JST plug polarity and pitch with a meter before the first connection (A12).\n")
     cart.append("## Price (for the decision, not a quote)")
-    cart.append(f"- Parts only (LCSC catalogue): {per_board[5]:.2f} USD per board at 5 boards, {N_CART}-board total {tot[5]:.2f} USD (no JLC fab, PCBA labour or fees: UNVERIFIED).")
+    cart.append(f"- Parts only (LCSC catalogue): {per_board[n_cart]:.2f} USD per board at {n_cart} boards ({N_CART_PANELS} panels); {per_board[N_PRICE[0]]:.2f} at {N_PRICE[0]} boards; {per_board[N_PRICE[2]]:.2f} at {N_PRICE[2]} boards. Total for the chosen quantity = per-board figure x boards (boards = {PNL.N_BOARDS} x panels). No JLC fab, PCBA labour or fees: UNVERIFIED.")
     cart.append("- JLC PCB fab and PCBA prices: UNVERIFIED, read on the JLC order page at checkout.\n")
     open(os.path.join(out, "cart-list.md"), "w", encoding="utf8").write("\n".join(cart) + "\n")
 
@@ -520,9 +565,32 @@ def main():
         lines.append(f"{h}  {f}")
     open(os.path.join(out, "MANIFEST.sha256"), "w", encoding="utf8").write("\n".join(lines) + "\n")
 
+    # README: the same numbers as the files above
+    n_markers = fill_readme(out, {
+        "result": f"**{n_fail} FAIL, {n_open} OPEN or UNVERIFIED, {n_pass} PASS** (of {len(R)} items)",
+        "items": str(len(R)),
+        "footprints": str(len(placeholders)),
+        "footprint_names": "; ".join(placeholders),
+        "gerber_files": str(gchk["zip_members"]),
+        "gerber_match": f"{gchk['files_match']} of {gchk['zip_members']}",
+        "layout_pass": str(sum(1 for ln in lay_lines if ln.startswith("PASS"))),
+        "package_date": PACKAGE_DATE,
+        "bom_lines": str(len(bom_jlc)),
+        "bom_parts": str(sum(b["qty"] for b in bom)),
+        "cpl_parts": str(len(cpl)),
+        "drill_tools": ", ".join(f"{float(d):.2f}" for d in gchk["drill_tools"]) + " mm",
+        "drill_round": str(gchk["drill_holes"]),
+        "drill_slots": str(gchk["drill_slots"]),
+        "vias": str(len(board["vias"])),
+        "price_flags_n": str(len(set(price_flags))),
+        "lcsc_short": ", ".join(lcsc_short) or "none",
+        "stock_panels": str(N_CART_PANELS),
+        "stock_boards": str(n_cart),
+    })
+    print(f"README markers filled: {n_markers}")
     print(overall)
-    print(f"gerbers: {gchk['gerber_files']} files; drill tools {gchk['drill_tools']}; cpl convention: {cpl_convention}")
-    print(f"per board USD parts: 3={per_board[3]:.2f} 5={per_board[5]:.2f} 1000={per_board[1000]:.2f}")
+    print(f"gerbers: {gchk['gerber_files']} files; {gchk['files_match']} of {gchk['zip_members']} match the CI artifact; drill tools {gchk['drill_tools']}; cpl convention: {cpl_convention}")
+    print(f"per board USD parts: {N_PRICE[0]}={per_board[N_PRICE[0]]:.2f} {n_cart}={per_board[n_cart]:.2f} {N_PRICE[2]}={per_board[N_PRICE[2]]:.2f}")
     print("fails:", [r[0] for r in fails])
     return 0
 

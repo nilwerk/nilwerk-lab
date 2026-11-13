@@ -93,7 +93,7 @@ test("FR-D03, FR-A03, NFR-06: claim token -> device token, hash only stored, sin
   assert.equal(q(`select encode(token_hash,'hex') from public.device_credentials where device_id = :'d'`, { d: devA }),
     createHash("sha256").update(tokA).digest("hex"), "stored value is SHA-256(token)");
   assert.equal(q(`select count(*) from public.device_credentials where encode(token_hash,'hex') = :'t'`, { t: tokA }), "0", "plaintext token is not stored");
-  assert.equal(q(`select count(*) from public.claim_tokens where encode(token_hash,'hex') = :'t' or convert_from(token_hash,'LATIN1') = :'t'`, { t: a.claim_token }), "0", "plaintext claim token is not stored");
+  assert.equal(q(`select count(*) from public.claim_tokens where encode(token_hash,'hex') = :'t' or token_hash = convert_to(:'t','UTF8')`, { t: a.claim_token }), "0", "plaintext claim token is not stored");
   assert.equal(q(`select owner_id from public.devices where id = :'d'`, { d: devA }), A);
   const again = await post(handleDeviceClaim, "device-claim", { hw_id: "nw-aaaaaaaaaaaa", claim_token: a.claim_token, fw: "0.1.0" });
   assert.equal(again.status, 401, "claim token is single use");

@@ -1,13 +1,13 @@
 # ADR-011: BLE-only setup with encrypted credential provisioning; Wi-Fi-only operation; no Wi-Fi password in the cloud
 
-Status: Proposed (owner comment on PR #3) · Date: 2026-11-03 · Deciders: Theo (Arsany to decide at G2) · Amends: ADR-002
+Status: Accepted (A-080, Arsany 2026-11-12; device cut-off from the A-070 answer 2026-11-10) · Date: 2026-11-03 · Deciders: Theo (Arsany to decide at G2) · Amends: ADR-002
 
 ## Context
 Owner request: the user initialises the sensor from the app over Bluetooth, the sensor is connected to the user's profile, the Wi-Fi data is transferred encrypted (and possibly kept encrypted in the profile), and afterwards the sensor uses only Wi-Fi to send data. Relevant: FR-D03, FR-A03, FR-A08, NFR-03, NFR-06, NFR-07, UC-02. Home Wi-Fi passwords are sensitive: they unlock the user's whole LAN.
 
 ## Decision
 1. **Setup over BLE only**, using ESP-IDF `wifi_provisioning` / protocomm **security 2**: SRP6a handshake where the password is the proof-of-possession on the label/QR (device stores a per-unit salt and verifier, not the PoP), followed by AES-GCM on every payload. (From my knowledge of ESP-IDF; I could not check the 5.4 docs in this session. Fallback is security 1: X25519 + PoP, AES-CTR. Verify in week 1.)
-2. **What is encrypted:** Wi-Fi SSID and passphrase, device name, claim token, hub configuration and MQTT credential (ADR-012), all in transit over BLE. **Not encrypted:** BLE advertisement and its address. No BLE link-layer bonding is used; the application-layer channel is the security boundary. SRP6a verifier leaks nothing usable but a wrong PoP lets an attacker in range try online guesses: the device limits attempts and leaves setup mode after a timeout (proposal: 5 attempts, 5 min).
+2. **What is encrypted:** Wi-Fi SSID and passphrase, device name, claim token, hub configuration and MQTT credential (ADR-012), all in transit over BLE. **Not encrypted:** BLE advertisement and its address. No BLE link-layer bonding is used; the application-layer channel is the security boundary. SRP6a verifier leaks nothing usable but a wrong PoP lets an attacker in range try online guesses: the device limits attempts and leaves setup mode after a timeout (5 attempts, 300 s device cut-off, A-070 answer 2026-11-10; NFR-03 stays the user-time target, not enforced by the device).
 3. **Claim:** unchanged from ADR-002. A user-bound, single-use token binds the device to the profile at first `/ingest`; the sensor receives its per-device token (ADR-004) then.
 4. **After setup the BLE stack is disabled.** Normal operation is Wi-Fi only (hourly cloud POST + hub MQTT). Setup mode returns on first boot, button press or factory reset.
 5. **Storage:** Wi-Fi credentials and tokens live in the device NVS. NVS encryption (HMAC-based key in eFuse) is recommended for production, optional for the demo (irreversible eFuse step, needs Arsany; question Q-H6).

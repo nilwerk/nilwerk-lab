@@ -17,7 +17,7 @@ Prove on a real board that setup mode starts on first boot and on button hold, t
 1. Flash a board whose flash was fully erased (`idf.py erase-flash flash monitor`). Expected log line on boot: setup mode, BLE advertising (exact text comes from the glue slice).
 2. In nRF Connect: scan, find `NW-xxxxxx`, note the full name and whether service `b53672dd-...` is listed. Photo of the screen.
 3. Do NOT complete setup. Connect with a wrong code 5 times (app or `esp_prov.py`). Expected: after the 5th, the advertisement disappears. Note the time.
-4. Reset the board (not erase). Expected: setup mode again (no credentials stored). Wait 5 minutes without connecting. Expected: advertisement disappears at 5:00 (+- a few seconds). Note the measured time.
+4. Reset the board (not erase). Expected: setup mode again (no credentials stored). Wait 300 s without connecting. Expected: advertisement disappears at 300 s (+- a few seconds). Note the measured time.
 5. After a successful provisioning (needs the app or Arsany's test claim token), reset: expected NO advertisement (normal mode, FR-D09). Reset the board, wait for the log line `NWSETUP press window`, THEN press and hold BOOT 3 s: advertisement is back and the stored Wi-Fi is kept. Repeat with a 10 s hold: stored data wiped, setup mode (FR-D07). Do NOT hold BOOT while pressing reset or plugging in USB: IO9 is the boot strap and the chip then enters download mode (slice 2 finding).
 6. Report the measured hold times that felt right: the 3 s / 10 s values are proposals.
 
@@ -25,7 +25,7 @@ Prove on a real board that setup mode starts on first boot and on button hold, t
 Table: step, expected, observed, PASS/FAIL; 2-3 photos (nRF Connect screen, serial log); one 10-20 s video of step 5; OK to use publicly (TEAM.md section 13).
 
 ## Acceptance criteria
-1. Setup mode on first boot and on 3 s hold (FR-D03). 2. Advertised name matches `NW-` + last 6 hex of hw_id (contract section 1). 3. 5 wrong codes end setup (ADR-011). 4. 5 minutes ends setup (ADR-011). 5. BLE not advertising in normal mode (FR-D09). 6. Factory reset wipes the record (FR-D07).
+1. Setup mode on first boot and on 3 s hold (FR-D03). 2. Advertised name matches `NW-` + last 6 hex of hw_id (contract section 1). 3. 5 wrong codes end setup (ADR-011). 4. 300 s ends setup (ADR-011). 5. BLE not advertising in normal mode (FR-D09). 6. Factory reset wipes the record (FR-D07).
 
 ## Acceptance criteria for the BLE glue slice (draft; the glue PR must show each item in its tests or PR text)
 Status after slice 2 (merged, PR #72): items 1-3 and 6 are implemented in `nw_prov_glue.c` and proven by host tests in `test/host/test_glue.c` (names `test_item1_*`, `test_item2_*`, `test_item3_*`, `test_item6_*`); item 4 is implemented (`test_item4_behaviour_after_closed`) and its current table is in this file (below, 2026-11-12); item 5 is resolved by A-070 (300 s device cut-off, ADR-011; NFR-03 stays the user-time target). The ESP-IDF part (`nw_prov_idf.c`) is compiled by CI's `firmware` job (green on `c4da8ca`, run 42772396148; the PR head's `firmware` job is skipped, see Status), not on a board. Extra inputs the bench needs and nobody has yet: a per-unit security-2 salt + verifier written to NVS namespace `nw_sec2` (without it BLE stays off by design) and a real `PLANT_API_BASE_URL` (default `https://api.invalid`, so a claim ends as `claim_failed/network`). Source: Theo's review (PR #66, issuecomment-6734214782, C2-C4) and Ines's QA (issuecomment-6741609811). These are the conditions the glue PR must meet before it can be merged.
@@ -43,7 +43,7 @@ Status after slice 2 (merged, PR #72): items 1-3 and 6 are implemented in `nw_pr
    | Normal (duty cycle) | Wi-Fi sessions 1 per hour, sample wakes every 15 min | as built (after A-045): 252 uA average typical, 4.3 months at 1000 mAh (PASS). Baseline model: 0.244 mA, 5.9 mAh/day | estimate: `power-budget.md` as-built verdict table, line 36 (typical, 4.3 months, NFR-01 needs >= 2190 h, PASS); baseline 0.244 mA at line 15 |
 
    Effect on NFR-01: the CLOSED state adds no current beyond the as-built sleep budget (21.6 / 39.6 uA) already in the model, so the typical case still passes (4.3 months, `power-budget.md` line 36) and the worst case stays at 1.4 months (line 37; NFR-01 needs more than 1 month). The setup-mode time is short (300 s cap), but its current is unknown, so it is not in the budget. Measure it in 5.4 or on the bench.
-5. **Traceability of the 5-attempt / 5-minute limits.** The limits cite ADR-011 (Proposed). The 300 s device cut-off is accepted by A-070 (Arsany, 2026-11-10); NFR-03 stays the user-time target, and the device window is not the same number.
+5. **Traceability of the 5-attempt / 300 s limits.** The glue PR cites ADR-011 (Accepted) for them, not NFR-03. NFR-03 is the 3-minute user-time target; the device cut-off is 300 s (A-070 answer 2026-11-10, ADR-011 accepted 2026-11-12), so the window is reconciled with it.
 6. **Scope.** The glue does not change the state machine logic or the button hold times (3 s / 10 s, proposals). nw-hub (A-023) and real OTA stay out of scope. If a state-machine change is needed, it goes in a separate PR.
 
 ## Due / How to report / Glossary
