@@ -3,7 +3,8 @@
 Emil (PCB Designer). Built 2026-11-12 from the 4.P2 head `3e6370f` (PR #80 + PR #84). PR #84 is merged; PR #90 (panel tabs, AHT20 land pattern) is still open, so both zips are out of date after #90 lands.
 
 > **NOT FAB-READY. NOT ORDERED. NOT A RELEASE.** Nothing was uploaded to JLCPCB, nothing was bought, and the 4.P3 gate (Arsany) has not been passed.
-> **NOT FOR ORDER: both zips** (`plant-monitor-jlc-panel-2up.zip` and `plant-monitor-jlc-board.zip`). The panel has no breakaway tabs or mouse bites. Hold any order until PR #90 is merged and both zips are regenerated (see *Regeneration* below). **C2 is open** until then; these zips are not regenerated yet.
+> **NOT FOR ORDER: both zips** (`plant-monitor-jlc-panel-2up.zip` and `plant-monitor-jlc-board.zip`). The panel has no breakaway tabs or mouse bites. Hold any order until both zips are regenerated from the board after PR #90 (merged) (see *Regeneration* below). **C2 is open** until then; these zips are not regenerated yet.
+> **STALE (checked 2026-11-14, Emil):** PR #90 is merged and the board changed after these zips were built. `plant-monitor.kicad_pcb` Edge.Cuts is now 34.50 x 67.80 mm (tail 25.8 mm, A-071); the zips hold 34.50 x 67.00 mm (`verify-report.txt` loop 1). The zips and `SHA256SUMS` are **not regenerated**: no `kicad-cli` and no running Docker daemon in this session. Do not use them for anything but history.
 > The older set in `../jlcpcb/gerbers/` is **SUPERSEDED** by this folder; do not order from it.
 > Open before any order: signal routing is not done (117 unconnected items at all severities on the board; GND pour not filled), 3 power-section connections are open (VBUS J1 A9, CC1 R1, DW_OC Q1 pad 5; see `../layout-4P2.md`), the panel has **no breakaway tabs or mouse bites** (see below), the silkscreen layers are empty, and E1 (soil probe copper) is still a placeholder footprint.
 > The fabrication files are correct as **exports of this board state**; they say nothing about whether the board works.
@@ -96,7 +97,7 @@ The 117 unconnected items are the open routing (not a reading error): the board 
 9. **Parsers.** Gerbonara 1.5.0 and pcb-tools 0.1.6 are not JLCPCB's own CAM. The CAM preview on JLCPCB's side has not been seen (UNVERIFIED).
 10. **Existing 4.P2 artifacts** (`../jlcpcb/gerbers/plant-monitor-gerber.zip`, `../jlcpcb/README.md`, `../jlcpcb/dry-run-checklist.md` and the other files there) are **not changed** by this package. The checklist items F5 (panel Gerber) and F6 (panel fiducials and tooling holes in the Gerber) are not re-graded here: they are Ines's items and need her re-check of this folder. The old zip has one combined PTH drill file and no drill map or report; this package replaces it for the panel and board once Arsany and Ines accept it.
 
-## Regeneration (C2: OPEN until PR #90 is merged)
+## Regeneration (C2: OPEN; PR #90 is merged, the regeneration still has to be run with KiCad 9)
 
 Status on 2026-11-13: PR #84 is merged; PR #90 (`agent/pcb/4.P2-s4`, panel tabs, AHT20 land pattern, silk refs) is **open** at head `eeb8896`. The zips in this folder are **not regenerated**: they are still built from `3e6370f`. Do not claim C2 is done until the steps below have run after #90 is merged and the new hashes are in `SHA256SUMS`.
 
@@ -110,7 +111,7 @@ G=projects/plant-monitor/pcb/gerber; RAW=$(mktemp -d) && python3 -I $G/make_pane
 - Then run the verifier in a scratch venv (`gerbonara==1.5.0`, `pcb-tools==0.1.6`; not installed in the repo): `<venv>/bin/python -I $G/verify_gerber.py $G projects/plant-monitor/pcb > $G/verify-report.txt` from the repository root. Expect 0 FAIL.
 - Update the table above (object counts, outline and drill counts) from the new run, and the "Built ... from" line at the top.
 - Check the `.gbrjob` `Revision` field (open point 6) before any release.
-- The steps are **not run** on this branch: no Docker daemon and no `kicad-cli` in the agent session, and the upstream board (PR #90) is not merged.
+- The steps are **not run** on this branch: no Docker daemon and no `kicad-cli` in the agent session, (checked again 2026-11-14: `docker info` cannot reach the daemon, `kicad-cli` not installed). PR #90 is merged, so this regeneration is now due.
 
 ## Requirement IDs and acceptance (C3, A-089)
 
