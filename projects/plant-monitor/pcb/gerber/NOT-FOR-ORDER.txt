@@ -1,0 +1,3 @@
+NOT FOR ORDER. Do not upload these zips to JLCPCB or any fab.
+plant-monitor-jlc-board.zip and plant-monitor-jlc-panel-2up.zip are STALE: built from 3e6370f (board 34.50 x 67.00 mm); the board is now 34.5 x 67.8 mm and PR #90 changes are not in them. Routing is open, the zip panel has no breakaway tabs, silkscreen is empty.
+They are not renamed so SHA256SUMS stays valid. See README.md in this folder. (Emil, PCB Designer, 2026-11-14)

@@ -1,5 +1,7 @@
 # 4.P2 Gerber package, round 2: board and 2-up panel rendered from the fab files (NOT FOR ORDER)
 
+> **STALE SIZE (2026-11-14, Emil): do not publish 67.0 mm as the board size.** The renders and every number below are drawn from the stale zips (built from `3e6370f`). The current board is 34.5 x 67.8 mm (A-071, tail 25.8 mm); the zips hold 34.50 x 67.00 mm and pre-date PR #90 (panel tabs, AHT20 pattern). The images show the old outline. Poppy: if used at all, caption them as an earlier state, not the current board.
+
 Top image: the 34.5 x 67 mm board, drawn from the Gerber files in `projects/plant-monitor/pcb/gerber/plant-monitor-jlc-board.zip` (red = top copper, blue = bottom copper, white = drill holes, grey outline = board edge). Bottom image: the 83 x 79 mm 2-up panel from `plant-monitor-jlc-panel-2up.zip`, same colours. Both were drawn by a script from the Gerber coordinates (gerbonara 1.5.0 and matplotlib), not from KiCad or JLCPCB's CAM view. Custom-shape pads are drawn as their bounding boxes. The board is not routed: signal routing is open, and the panel has no breakaway tabs or mouse bites, so the panel is NOT FOR ORDER.
 
 - Task: 4.P2 (PCB layout), EXTRA Gerber and drill package, round 2 (fix of the Architect and QA conditions C1 to C4)
