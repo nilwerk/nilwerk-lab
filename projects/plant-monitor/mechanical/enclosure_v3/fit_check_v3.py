@@ -65,7 +65,7 @@ def main(tail=None):
     tail_l = P.TAIL_L_VARIANT[tail]                       # board tail length for this variant (params_v3)
     tray, lid, plug = E.tray(), E.lid(), E.plug()
     board, cell = E.board_ghost(tail_l), E.cell_ghost()
-    # 0 tail variant (A-071 open): the electrode length beyond the outer bottom face, derived from the variant board tail
+    # 0 tail variant (A-071: 14 mm approved 2026-11-12, board change pending in input/): the electrode length beyond the outer bottom face, derived from the variant board tail
     tail_end = -(P.BODY_L + tail_l)
     cu_end = tail_end + P.TIP_MARGIN
     exposed = -cu_end - (-P.OUT_Y0)
@@ -74,7 +74,7 @@ def main(tail=None):
     dxf_tail = P.TAIL_L
     row("Board tail in DXF (input/) matches the variant", f"DXF {dxf_tail:.2f} mm vs variant {tail_l:.2f} mm (+{tail_l - dxf_tail:.2f})", "= variant tail",
         abs(tail_l - dxf_tail) < 1e-6, "board DXF = #73; a longer tail for the 20 mm variant is a board outline change for Emil (not in repo)",
-        "OPEN: board outline change needed for this variant, Arsany A-071 decides", open_=abs(tail_l - dxf_tail) >= 1e-6)
+        "OPEN: A-071 approved 14 mm (Arsany 2026-11-12) = board tail 25.8; the board copy in input/ is still the 25.0 mm DXF of #73 (pcb/gen_pcb.py on main already has 25.8). 20 mm is reference only", open_=abs(tail_l - dxf_tail) >= 1e-6)
     # tail solid vs housing: the tail runs through the tunnel in the plug; must not hit tray or plug
     tail_solid = E._box(P.TAIL_X0, tail_end, P.BOARD_Z0, P.TAIL_X0 + P.TAIL_W, -P.BODY_L, P.BOARD_Z1)
     row(f"Interference tail ({tail} variant) vs tray and seal plug", f"{max(vol_overlap(tail_solid, tray), vol_overlap(tail_solid, plug)):.3f} mm3", "0 (contact allowed)",
@@ -129,10 +129,10 @@ def main(tail=None):
     row("Antenna corner (33.5, 4.5) air to the rounded cavity corner", f"{air_c:.2f} mm", ">= 1.0 (same air as the top wall)", air_c >= 1.0 - 1e-9, "params_v3 rr_dist, FILLET_INNER 1.5 (slice 4)")
     dm = min(B.gap(ant, (x - P.INSERT_HOLE / 2, y - P.INSERT_HOLE / 2, x + P.INSERT_HOLE / 2, y + P.INSERT_HOLE / 2)) for x, y in P.BOSS_XY)
     row("Nearest brass insert to antenna (Q9)", f"{dm:.1f} mm", ">= 15", dm >= 15, "BOSS_XY, insert hole 3.2")
-    # standards s.7: no thick walls over the antenna. The 2.4 mm PETG top wall sits over the module; no RF measurement exists, so this is OPEN, not PASS.
+    # standards s.7: no thick walls over the antenna. The compact shell has a 1.6 mm PETG top wall (WALL_LOW) over the module; A-084: RF risk accepted for the demo. No RF measurement exists, so this stays OPEN, not PASS.
     row("PETG top wall over the antenna", f"{P.WALL_LOW:.2f} mm wall, {P.INNER_Y1 - P.OVERHANG:.1f} mm air to antenna tip (ASSUMED)", "no thick wall over the antenna (standards s.7): RF effect checked",
         False, "params_v3 WALL, INNER_Y1; standards s.7; P1S/PETG review (Arsany answer 2026-11-10)",
-        "OPEN: effect on the antenna not measured. Options: RF check on a Prototype 1 print, or a thinner wall over the antenna. Decide before the lid is locked", open_=True)
+        "OPEN: RF effect not measured. A-084: risk accepted for the demo with the 1.6 mm compact shell; RF check on a Prototype 1 print before any pilot batch", open_=True)
     # 6 walls
     cw = P.min_wall_corners()
     for n, v in [("Rim land left/top/bottom", P.WALL_LOW), ("Rim land right (USB side)", P.WALL), ("Tray floor", P.FLOOR), ("Corner wall, min (cavity to skin)", cw), ("Lid under counterbore", P.LID_T - P.WIN_CB_DEPTH), ("USB pocket remaining wall", P.WALL - P.USB_POCKET[2]),
@@ -190,14 +190,13 @@ def main(tail=None):
     row(f"Model heights equal their cited source ({len(P.H_CITED)} parts)", f"{len(P.H_CITED) - len(mism)} of {len(P.H_CITED)} equal" + (f"; MISMATCH {mism}" if mism else ""),
         "model value = cited value for every part", not mism, "params_v3 H_CITED vs H_BY_REF; standards s.7 (never invent a component dimension)",
         "OPEN: U5, U6, SW1-3 cite distributor listings (SECONDARY), the PDFs were not read", unsure=any(P.H_SRC[k][0] != "DATASHEET" for k in P.H_CITED))
-    # 10 J1 USB-C height: the model uses the flat 3.3 (ASSUMED); the upright male version is 11.94 +-0.25 (datasheet brief value, OPEN, A-087).
-    # The upright value is tested against the same inner box; it does not fit, so the row stays OPEN until the orientation is decided. No value is chosen here.
+    # 10 J1 USB-C height: FLAT / edge-mount (A-087, Arsany 2026-11-13). Model value 3.3 is ASSUMED (C165948 is already the flat part; 3.26 read once in PR #95, second read by Ines pending),
+    # so the row is OPEN even though the gap passes. The rejected upright 11.94 is not tested any more (record only in params_v3).
     gap_flat = P.INNER_H - (P.BOARD_Z1 + P.H_BY_REF["J1"])
-    gap_up = P.INNER_H - (P.BOARD_Z1 + P.J1_UPRIGHT_H)
-    row("J1 USB-C height, flat vs upright", f"flat {P.H_BY_REF['J1']:.2f} (ASSUMED): {gap_flat:.2f} mm to lid; upright {P.J1_UPRIGHT_H:.2f} +-{P.J1_UPRIGHT_TOL} (OPEN): {gap_up:.2f} mm",
-        f">= {P.LID_CLEAR} (orientation not decided)", gap_up >= P.LID_CLEAR - 1e-9,
-        "TYPE-C-31-M-12 datasheet, upright male (brief value, PDF not read here); params_v3 H_SRC J1_UPRIGHT",
-        "OPEN: A-087 approved flat (2026-11-13); the upright value is kept only as a record and does not fit the 8.6 mm or 7.6 mm inner box", open_=True)
+    row("J1 USB-C height (flat / edge-mount, A-087)", f"flat {P.H_BY_REF['J1']:.2f} (ASSUMED): {gap_flat:.2f} mm to lid underside (inner {P.INNER_H:.1f})",
+        f">= {P.LID_CLEAR} mm to lid; height of C165948 confirmed by a second reader", gap_flat >= P.LID_CLEAR - 1e-9,
+        "params_v3 H_BY_REF['J1'], H_SRC J1; A-087 (flat approved 2026-11-13)",
+        "OPEN: height ASSUMED 3.30. C165948 is already the flat part (no pick needed); 3.26 mm read once by Emil in PR #95 docs/j1-usbc-flat.md (branch agent/pcb/gerber-pkg), second read by Ines pending; never PASS before that", unsure=P.H_SRC["J1"][0] != "DATASHEET")
     return list(ROWS)
 
 
@@ -219,5 +218,5 @@ if __name__ == "__main__":
     summary = f"{npass} PASS, {nfail} FAIL, {nopen} OPEN (tail {tail} mm variant)"
     print(summary)
     if "--md" in sys.argv:
-        open(sys.argv[sys.argv.index("--md") + 1], "w").write(f"Tail variant: {tail} mm (A-071 open)\n\n" + md + f"\n{summary}\n")
+        open(sys.argv[sys.argv.index("--md") + 1], "w").write(f"Tail variant: {tail} mm (A-071: 14 mm approved by Arsany 2026-11-12)\n\n" + md + f"\n{summary}\n")
     sys.exit(1 if nfail else 0)

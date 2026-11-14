@@ -61,7 +61,7 @@ Slice-3 record (not current): full tables [fit_check_v3_tail14.md](fit_check_v3_
 2. **Cell cavity position** relative to the board: 53.0 x 35.1, gap 5.0, cavity y -42.0..-6.9 (DXF). If he changes beside/under, the enclosure is redone.
 3. **Antenna module** x 20.3..33.5, overhang now **+4.5** above the top edge (derived by Emil in #73). I keep 1.0 mm air above it.
 4. **Positions I built features on:** U6 (11.5, -4.5), U5 (4.5, -4.5), SW3 (5.0, -23.5) (DXF coordinates, mm, read from #73), J1 centre y -33.0 rotated 90 deg, shell reaching x 35.0 (0.5 past the board edge). Lock these or tell me the new ones.
-5. **Heights** of J2 (JST S2B-PH-SM4-TB; model 5.5 from the LCSC C295747 Z-height listing, A-076, SECONDARY), J1 (3.3 flat ASSUMED; A-087 flat approved 2026-11-13; the upright male version 11.94 +-0.25 is not used), U1 (2.4, the only DATASHEET value), SW1-3 (1.5, SECONDARY), since they set the 8.6 mm inner height. **Still to confirm:** the JST drawing for the exact part (element14 lists 8.0 mm for a likely B2B variant), and the flat USB-C part, which Emil still picks. The other heights are also unread. Do not fill them with unsourced values.
+5. **Heights** of J2 (JST S2B-PH-SM4-TB; model 5.5 from the LCSC C295747 Z-height listing, A-076, SECONDARY), J1 (3.3 flat ASSUMED; A-087 flat approved 2026-11-13 (sheet Needs Arsany: Done); the 11.94 +-0.25 upright figure is an unsourced brief value, not in the HRO TYPE-C-31-M-12 drawing (see PR #95); REJECTED by A-087, record only), U1 (2.4, the only DATASHEET value), SW1-3 (1.5, SECONDARY), since they set the 8.6 mm inner height. **Still to confirm:** the JST drawing for the exact part (element14 lists 8.0 mm for a likely B2B variant), and the flat USB-C part, which Emil still picks. The other heights are also unread. Do not fill them with unsourced values.
 6. **Board retention:** the board has no mounting holes. I clamp with 4 standoff pads below (bottom is bare GND, fine) and lid clamp pads above, but only **one** component-free 2 x 2 mm spot exists on the top face (about (1.3, -8.0)). Please give **two more keep-clear 2 x 2 mm pads** (e.g. near the bottom corners) **or** two M2 holes (d 2.2, no metal within 15 mm of the antenna). The lid pad modelled today is that one spot only.
 7. **Decision (Arsany/Emil):** tail length. The seal plug and boss strip put the outer bottom wall at y -49.8 (`params_v3.py` OUT_Y0), so only about 13 mm of the 20 mm electrode copper (y -43..-63) is outside. If 20 mm must be in soil, the tail needs about +6 mm (to 31 mm). My stake size (Q5) is still an assumption.
 
@@ -90,12 +90,12 @@ Run from `projects/plant-monitor/mechanical/enclosure_v3/` (Python 3.11, `pip in
 
 Stacked on slice 2 (sections above unchanged; their height values are superseded by section 9 where they differ). Nothing printed, ordered or uploaded.
 
-**Tail length (A-071, Arsany decides, NOT decided here).** Read as the **soil electrode copper beyond the outer bottom face** of the enclosure (the number used in section 1b item 7). Today 13.2 mm of the 20 mm copper is outside (copper tip y -63.0, outer face y -49.8). The enclosure does not move between variants, so the printed housing is identical (same STL vertices and volumes as slice 2, checked). Only the **board tail** changes:
+**Tail length (A-071, DECIDED: 14 mm, Arsany 2026-11-12; sheet Done).** Read as the **soil electrode copper beyond the outer bottom face** of the enclosure (the number used in section 1b item 7). Today 13.2 mm of the 20 mm copper is outside (copper tip y -63.0, outer face y -49.8). The enclosure does not move between variants, so the printed housing is identical (same STL vertices and volumes as slice 2, checked). Only the **board tail** changes:
 
 | Variant | Electrode beyond the outer face | Board tail (body edge to tip) | vs the 25.0 mm DXF | Status |
 |---|---|---|---|---|
-| 14 mm | 14.0 | 25.8 | +0.8 | **OPEN**: board outline change for Emil |
-| 20 mm | 20.0 | 31.8 | +6.8 | **OPEN**: board outline change for Emil (the "+6" of the PR) |
+| 14 mm | 14.0 | 25.8 | +0.8 | **APPROVED** (A-071). `pcb/gen_pcb.py` on main has 25.8; the DXF copy in `mechanical/enclosure_v3/input/` is still 25.0, so the fit row stays OPEN until `input/` is refreshed |
+| 20 mm | 20.0 | 31.8 | +6.8 | reference only (not chosen) |
 
 Derivation: copper tip = outer face - electrode length; tail tip = copper tip - 4.0 (bare tip, DXF). Code: `params_v3.TAIL_VARIANTS`, `tail_len_for()`, `board_facts.electrode_span()`.
 
@@ -108,7 +108,7 @@ Derivation: copper tip = outer face - electrode length; tail tip = copper tip - 
 | U6 | BH1750FVI-TR (C78960) | 0.75 | Arrow and RS Online: max 0.75 (Future 0.7) | SECONDARY (PDF not read) |
 | SW1-3 | TS-1187A-B-A-B (C318884) | 1.5 | JLCPCB, LCSC, HQ Online: 1.5 | SECONDARY (XKB PDF not read) |
 | J2 | S2B-PH-SM4-TB (C295747) | **5.5** (slice 4 model, was 4.5) | sourced: LCSC C295747 Z-height listing 5.5 (A-076, answered 2026-11-13); IBS Electronics 5.5; element14 8.0 for a likely B2B variant (not confirmed as this part); JST drawing to confirm | **SECONDARY, OPEN** (fit rows 12, 14, 15: 0.5 mm air at INNER_H 8.6; the exact part and drawing are still to confirm) |
-| J1 | TYPE-C-31-M-12 (C165948) | 3.3 flat | flat: none (LCSC datasheet link gives a wrapper page). Upright male: **11.94 +-0.25** (datasheet brief value, PDF not read here) | flat ASSUMED; upright **OPEN, A-087** (orientation, Arsany; no value chosen; fit row 55) |
+| J1 | TYPE-C-31-M-12 (C165948) | 3.3 flat | flat: none read (LCSC datasheet link gives a wrapper page). Upright 11.94 +-0.25: unsourced brief value, not in the HRO TYPE-C-31-M-12 drawing (see PR #95); REJECTED by A-087, record only | flat / edge-mount approved (A-087, Arsany 2026-11-13); height **ASSUMED, never PASS** until Ines confirms Emil's 3.26 mm reading. C165948 is already the flat part (no pick needed); its 3.26 mm is read once, by Emil, in PR #95 (docs/j1-usbc-flat.md on branch agent/pcb/gerber-pkg), second read by Ines pending. Fit row 'J1 USB-C height' OPEN. J1 is not the height driver: J2 sets the 8.6 mm inner height, J1 leaves 2.7 mm air |
 | U3 | TP4056 ESOP-8 (C16581) | 1.75 | none (LCSC datasheet link gives a wrapper page) | ASSUMED |
 | others | D1, U2, U4, U7, Q1, D2, D3, R/C | 0.55-1.1 | not read | ASSUMED |
 

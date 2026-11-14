@@ -119,7 +119,7 @@ def main(tail="14"):
     # 3 side profile against the soil stake: camera on the USB side, the tail points down into the schematic soil
     soil = box(-70.0, P.OUT_Y0 - 60, -8, P.TAIL_X0 - 10, P.OUT_Y0, 20)   # behind the stake from this camera
     save(shell + stake + [(mesh_of(soil, "soil"), SOIL, 1)], "compact_side_stake.png", (1.0, 0.0, 0.0), (0, 1, 0),
-         "Side profile, tail = soil stake (14 mm variant, open decision); soil is schematic, the repo has no soil data")
+         "Side profile, tail = soil stake (14 mm tail, approved A-071); soil is schematic, the repo has no soil data")
     print("renders in", REN)
 
 
