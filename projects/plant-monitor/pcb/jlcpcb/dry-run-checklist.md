@@ -4,6 +4,8 @@
 Rows, Gerber set and CI result: CI `pcb-fab` artifact of head `8ad6122` (run 42772372983). First generated 2026-11-12 07:05Z by `make_jlcpcb_package.py` (branch `agent/pcb/4.P2-s2`).
 Edited by hand 2026-11-13 at generator head `67e8607` (branch `agent/pcb/4.P2-s4`, EXTRA fix round on PR #90): row F20 set to OPEN with its three open nets, and the result line recounted from the table. Not regenerated: `make_jlcpcb_package.py` at 67e8607 would change rows against the current board (F19 would become FAIL, the track count in R1 changes) and still prints F20 as PASS.
 
+**SUPERSEDED (2026-11-13):** the Gerber set these rows refer to (`gerbers/plant-monitor-gerber.zip`) is replaced by `../gerber/` (PR #87). Results below are the 2026-11-12 record and are not re-graded here; F5 and F6 are Ines's re-check.
+
 **Result:** NOT ORDERABLE: 4 FAIL, 14 OPEN or UNVERIFIED, 18 PASS (of 40 items). Dry run only.
 
 Legend: PASS = within the limit; FAIL = outside the limit or missing; OPEN = cannot be checked until a later slice; UNVERIFIED = needs the JLC page or a physical check; CHOICE / NOTE = a cart choice or a remark.

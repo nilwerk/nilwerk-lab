@@ -1,8 +1,11 @@
 # JLCPCB Gerber + drill package, board and 2-up panel (Plan 4.P2 EXTRA, branch `agent/pcb/gerber-pkg`)
 
-Emil (PCB Designer). Built 2026-11-12 from the 4.P2 head `3e6370f` (PR #80 + PR #84).
+Emil (PCB Designer). Built 2026-11-12 from the 4.P2 head `3e6370f` (PR #80 + PR #84). PR #84 and PR #90 (panel tabs, AHT20 land pattern) are both merged (#90 as `d3522f7`, an ancestor of this branch); the zips pre-date #90 and are STALE (see the banner).
 
 > **NOT FAB-READY. NOT ORDERED. NOT A RELEASE.** Nothing was uploaded to JLCPCB, nothing was bought, and the 4.P3 gate (Arsany) has not been passed.
+> **NOT FOR ORDER: both zips** (`plant-monitor-jlc-panel-2up.zip` and `plant-monitor-jlc-board.zip`). The panel has no breakaway tabs or mouse bites. Hold any order until both zips are regenerated from the current board (PR #90 is already merged; see *Regeneration* below). **C2 is open** until then; these zips are not regenerated yet.
+> **STALE (checked 2026-11-14, Emil):** PR #90 is merged and the board changed after these zips were built. `plant-monitor.kicad_pcb` Edge.Cuts is now 34.50 x 67.80 mm (tail 25.8 mm, A-071); the zips hold 34.50 x 67.00 mm (`verify-report.txt` loop 1). The zips and `SHA256SUMS` are **not regenerated**: no `kicad-cli` and no running Docker daemon in this session. Do not use them for anything but history.
+> The older set in `../jlcpcb/gerbers/` is **SUPERSEDED** by this folder; do not order from it.
 > Open before any order: signal routing is not done (117 unconnected items at all severities on the board; GND pour not filled), 3 power-section connections are open (VBUS J1 A9, CC1 R1, DW_OC Q1 pad 5; see `../layout-4P2.md`), the panel has **no breakaway tabs or mouse bites** (see below), the silkscreen layers are empty, and E1 (soil probe copper) is still a placeholder footprint.
 > The fabrication files are correct as **exports of this board state**; they say nothing about whether the board works.
 
@@ -10,8 +13,9 @@ Emil (PCB Designer). Built 2026-11-12 from the 4.P2 head `3e6370f` (PR #80 + PR 
 
 | File | What it is |
 |---|---|
-| `plant-monitor-jlc-board.zip` | Board, 15 files (single board, 2 layers, no inner layers: the stackup has F.Cu and B.Cu only). |
-| `plant-monitor-jlc-panel-2up.zip` | 2-up panel, 83.0 x 79.0 mm, same 15 files (`panel/plant-monitor-panel.kicad_pcb`). |
+| `plant-monitor-jlc-board.zip` | **NOT FOR ORDER** until regenerated (PR #90, merged, changed the AHT20 land pattern on this board; the zips pre-date it). Board, 15 files (single board, 2 layers, no inner layers: the stackup has F.Cu and B.Cu only). |
+| `plant-monitor-jlc-panel-2up.zip` | **NOT FOR ORDER.** 2-up panel, 83.0 x 79.0 mm, same 15 files (`panel/plant-monitor-panel.kicad_pcb`). **No breakaway tabs or mouse bites** (open point 2). Hold until the panel is regenerated: PR #90 (panel tabs) is merged, but these zips pre-date it, so the zip panel still has no tabs. |
+| `NOT-FOR-ORDER.txt` | One-line warning kept next to the zips (they are not renamed, so the hashes hold). |
 | `SHA256SUMS` | Hashes of both zips. |
 | `build_gerber.sh` | The KiCad 9 export, run in `kicad/kicad:9.0` (the image of CI job `pcb`). DRC exactly as CI, then the exports. |
 | `make_panel.py` | Builds `panel/plant-monitor-panel.kicad_pcb` from the board file and the panel geometry in `../jlcpcb/panel.py` (same numbers as the DXF). Copies the board's `.kicad_pro` so the panel uses the same DRC rules. |
@@ -44,7 +48,7 @@ Naming: JLCPCB's suggested naming page (read 2026-11-12) lists `boardname.GTL` s
 
 ## Verification output
 
-`verify-report.txt` is the real output of `verify_gerber.py` (59 PASS, 0 FAIL). Parsers: **gerbonara 1.5.0** for Gerber files and drill maps; **pcb-tools 0.1.6** for the Excellon drill files. Gerbonara 1.5.0 could not read the drill file: KiCad 9 writes slots as `X27.17Y-28.68G85X28.27Y-28.68` (no newline between the two statements), and gerbonara reports `Unknown excellon statement`. That is a gerbonara limitation, not a file error, so the drill files are read by pcb-tools (which reads all 39 PTH hits and the 4 slots). Expected values come from the `.kicad_pcb` files, read by a small S-expression reader in `verify_gerber.py` (not KiCad). Gerber and Excellon y is the negative of KiCad y; the check applies that sign.
+`verify-report.txt` is the real output of `verify_gerber.py` (59 PASS, 0 FAIL). Re-run on 2026-11-13 (round 2, same zips and `SHA256SUMS`): the PASS/FAIL lines are identical to the committed report, 59 PASS, 0 FAIL, exit 0. The zip hashes match `SHA256SUMS`. Parsers: **gerbonara 1.5.0** for Gerber files and drill maps; **pcb-tools 0.1.6** for the Excellon drill files. Gerbonara 1.5.0 could not read the drill file: KiCad 9 writes slots as `X27.17Y-28.68G85X28.27Y-28.68` (no newline between the two statements), and gerbonara reports `Unknown excellon statement`. That is a gerbonara limitation, not a file error, so the drill files are read by pcb-tools (which reads all 39 PTH hits and the 4 slots). Expected values come from the `.kicad_pcb` files, read by a small S-expression reader in `verify_gerber.py` (not KiCad). Gerber and Excellon y is the negative of KiCad y; the check applies that sign.
 
 Key lines (full output in `verify-report.txt`):
 
@@ -84,7 +88,7 @@ The 117 unconnected items are the open routing (not a reading error): the board 
 ## Open points (what a fab would stop on, and what is UNVERIFIED)
 
 1. **Routing open** (117 unconnected items). No fab order until 4.P2 routing is done (Plan 4.P2 next slice).
-2. **Panel has no breakaway tabs or mouse bites.** The two board outlines are separate closed loops and do not touch the rails. A panel built like this does not hold together for assembly. Tab/mouse-bite spec is not read from JLCPCB (UNVERIFIED) and not designed. **Blocker for the panel.**
+2. **Panel has no breakaway tabs or mouse bites.** The two board outlines are separate closed loops and do not touch the rails. A panel built like this does not hold together for assembly. Tab/mouse-bite spec is not read from JLCPCB (UNVERIFIED) and not designed. **Blocker for the panel; the panel zip is NOT FOR ORDER until it is regenerated: PR #90 (panel tabs) is merged, but this zip pre-dates it. Whether the regenerated panel has tabs is not checked here.**
 3. **Silkscreen is empty** (0 objects on both sides): no reference designators, polarity or pin-1 marks. Needed for hand checks and for JLC's assembly review. Not designed yet.
 4. **Tooling-hole and fiducial positions** (`../jlcpcb/panel.py`): 2 mm NPTH tooling holes at 3.0 mm from the panel edge, 1 mm copper fiducials at 3.85 mm, 2 mm mask opening. The centre of the tooling hole is `[mine, UNVERIFIED]` (the JLC page gives the diameter only). The mask opening is `[mine, UNVERIFIED]`.
 5. **Slot pads 0.6 x 1.7 mm (J1 shield)**: slots in the PTH file (4). JLC acceptance is UNVERIFIED (not read on their page for this geometry).
@@ -94,17 +98,33 @@ The 117 unconnected items are the open routing (not a reading error): the board 
 9. **Parsers.** Gerbonara 1.5.0 and pcb-tools 0.1.6 are not JLCPCB's own CAM. The CAM preview on JLCPCB's side has not been seen (UNVERIFIED).
 10. **Existing 4.P2 artifacts** (`../jlcpcb/gerbers/plant-monitor-gerber.zip`, `../jlcpcb/README.md`, `../jlcpcb/dry-run-checklist.md` and the other files there) are **not changed** by this package. The checklist items F5 (panel Gerber) and F6 (panel fiducials and tooling holes in the Gerber) are not re-graded here: they are Ines's items and need her re-check of this folder. The old zip has one combined PTH drill file and no drill map or report; this package replaces it for the panel and board once Arsany and Ines accept it.
 
-## How to regenerate
+## Regeneration (C2: OPEN; PR #90 is merged, the regeneration still has to be run with KiCad 9)
+
+Status 2026-11-14: PR #84 and PR #90 are merged (#90 = `d3522f7`, ancestor of this branch). The zips in this folder are **not regenerated**: they are still built from `3e6370f`. Do not claim C2 is done until the steps below have run and the new hashes are in `SHA256SUMS`.
+
+From the repository root, this is the one command (it needs Docker with the `kicad/kicad:9.0` image, which is the CI `pcb` job image, and the host Python 3):
 
 ```
-# 1. panel board from the board file and jlcpcb/panel.py (host Python, no KiCad needed)
-python3 -I gerber/make_panel.py plant-monitor.kicad_pcb jlcpcb gerber/panel/plant-monitor-panel.kicad_pcb
-# 2. KiCad 9 export (Docker, image kicad/kicad:9.0 as CI); output to a folder outside the repo
-docker run --rm --user root -v "$PWD":/work -v <raw-out>:/out -w /work/projects/plant-monitor/pcb/gerber kicad/kicad:9.0 bash build_gerber.sh
-# 3. zips (host Python)
-python3 -I gerber/package_jlc.py <raw-out> gerber
-# 4. verification (scratch venv with gerbonara 1.5.0 and pcb-tools 0.1.6; not installed in the repo)
-<venv>/bin/python -I gerber/verify_gerber.py gerber projects/plant-monitor/pcb > gerber/verify-report.txt
+G=projects/plant-monitor/pcb/gerber; RAW=$(mktemp -d) && python3 -I $G/make_panel.py projects/plant-monitor/pcb/plant-monitor.kicad_pcb projects/plant-monitor/pcb/jlcpcb $G/panel/plant-monitor-panel.kicad_pcb && docker run --rm --user root -v "$PWD":/work -v "$RAW":/out -w /work/projects/plant-monitor/pcb/gerber kicad/kicad:9.0 bash build_gerber.sh && python3 -I $G/package_jlc.py "$RAW" $G && (cd $G && sha256sum -c SHA256SUMS)
 ```
 
-The steps are not run by CI yet (see the PR body); the `pcb` job in CI runs the board export on each PR and is unchanged.
+- `make_panel.py` builds the panel board from the board file and `jlcpcb/panel.py`; `build_gerber.sh` runs the CI DRC and the KiCad 9 export into `$RAW` (outside the repo); `package_jlc.py` writes both zips **and `SHA256SUMS`** into this folder (the hashes are not edited by hand). The last `sha256sum -c` checks the new hashes.
+- Then run the verifier in a scratch venv (`gerbonara==1.5.0`, `pcb-tools==0.1.6`; not installed in the repo): `<venv>/bin/python -I $G/verify_gerber.py $G projects/plant-monitor/pcb > $G/verify-report.txt` from the repository root. Expect 0 FAIL.
+- Update the table above (object counts, outline and drill counts) from the new run, and the "Built ... from" line at the top.
+- Check the `.gbrjob` `Revision` field (open point 6) before any release.
+- The steps are **not run** on this branch: no Docker daemon and no `kicad-cli` in the agent session, (checked again 2026-11-14: `docker info` cannot reach the daemon, `kicad-cli` not installed). PR #90 is merged, so this regeneration is now due.
+
+## Requirement IDs and acceptance (C3, A-089)
+
+- **NFR-08** ("CE/RED-minded design"): acceptance in `projects/plant-monitor/tests/acceptance-matrix.md:55`: PASS if the **PCB review checklist is fully ticked** (pre-certified module, antenna keep-out, ESD on USB lines). Gate 4.P3 (G4a).
+- **NFR-09** ("Unit cost low; BOM at 1k pcs"): acceptance in `tests/acceptance-matrix.md:56`: BOM tab has 3-pc and 1k-pc prices for every line, with a written verdict against the 10 EUR target. Gate 2.5 (G2).
+- This package is an input to the PCB review checklist (NFR-08) and to the cost view (NFR-09). It does **not** prove either: the checklist is ticked at 4.P3, and the BOM is 2.5's table. The package is not a pass for NFR-08 or NFR-09.
+- Not cited here: NFR-12 (deep-sleep limit, A-027). **PENDING A-089, NOT DECIDED.** `tests/acceptance-matrix.md` still carries NFR-12 as accepted by A-027 (deep-sleep <= 50 uA), while Requirements v0.1 has no NFR-12: two sources disagree. A-089 asks Arsany which is right; the recommendation (a) is to cite NFR-08/NFR-09. If he picks (b), the NFR-12 citation goes back into `layout-4P2.md`. The sleep-sum check (`check_netlist.py`) is the NFR-01 evidence either way.
+
+## Superseded set
+
+`../jlcpcb/gerbers/plant-monitor-gerber.zip` (one combined PTH drill file, no drill map or report, 4.P2 slice 2 head `8ad6122`) is **SUPERSEDED** by this folder as of 2026-11-13. Kept for history only. Ines's dry-run items F5 (panel Gerber) and F6 (panel fiducials and tooling holes) are not re-graded here.
+
+## Showcase
+
+`showcase/items/2026-11-13_4.P2-gerber/`: two renders drawn from these zips' Gerber files (copper, drill holes, board outline), not JLCPCB's CAM view. No price and no confidential content.
