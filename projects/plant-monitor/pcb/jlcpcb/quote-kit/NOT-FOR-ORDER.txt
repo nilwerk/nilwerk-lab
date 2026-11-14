@@ -1,0 +1,3 @@
+QUOTE ONLY / NOT FOR ORDER / NOT A RELEASE.
+Every file in this folder is for a JLCPCB price estimate. The board is UNROUTED and has 3 placeholder footprints.
+Do not place an order from it. The order gate is 4.P3 (Arsany). Nothing here was uploaded, ordered or paid by an agent.
