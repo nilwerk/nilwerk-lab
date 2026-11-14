@@ -3,8 +3,9 @@
 
 Single source of truth for WIRING.md section 4 and 5 tables and for the two SVGs.
   gen_wiring.py --write   regenerate SVGs and the tables between the BEGIN/END markers in WIRING.md
-  gen_wiring.py --check   fail (exit 1) if WIRING.md tables or SVGs differ from this script, or if two
-                          different parts claim the same perfboard hole
+  gen_wiring.py --check   fail (exit 1) if WIRING.md tables or SVGs differ from this script, if two
+                          different parts claim the same perfboard hole, or if any wire route enters the
+                          antenna keep-out (geometric segment test, see KEEPOUT)
 Pins follow firmware/main/board.h and are not changed here. All dimensions are UNVERIFIED typical values
 (see WIRING.md section 6 measure list) until Arsany measured them.
 """
@@ -60,8 +61,8 @@ BUS_3V3 = (11, 24, 10)   # bare tinned wire along row 10, cols 11..24
 # from/to are either part pins (key of PARTS, shown with their hole) or free text for flying-lead ends.
 W = [
     ("W01", "SM.5V", "J1.A", "red", "perfboard", "5V_IN: SuperMini 5V pin to jumper J1 pin A (1-hole link)"),
-    ("W02", "J1.B", "R1.top", "red", "perfboard", "VBAT: jumper J1 pin B to the divider top (VBAT node, hole c2 r10)"),
-    ("W03", "TP.OUT+", "R1.top", "red", "flying lead", "VBAT: TP4056 OUT+ pad (protected side) to VBAT node c2 r10"),
+    ("W02", "J1.A", "R1.top", "red", "perfboard", "5V_SW: jumper J1 pin A (SuperMini side, switched) to the divider top R1 (insulated, solder side, 2 holes): J1 open = divider off the cell and off GPIO0"),
+    ("W03", "TP.OUT+", "J1.B", "red", "flying lead", "VBAT: TP4056 OUT+ pad (protected side) to jumper J1 pin B (cell side of J1; nothing else hangs on VBAT)"),
     ("W04", "TP.OUT-", "BUS_GND c12 r11", "black", "flying lead", "GND: TP4056 OUT- pad to the GND bus"),
     ("W05", "SM.G", "BUS_GND c11 r11", "black", "perfboard", "GND: SuperMini G pin to the GND bus"),
     ("W06", "SM.3V3", "BUS_3V3 c11 r10", "orange", "perfboard", "3V3: SuperMini 3V3 pin to the 3V3 bus"),
@@ -71,10 +72,10 @@ W = [
     ("W10", "AHT.VIN", "BUS_3V3 c23 r10", "orange", "perfboard", "3V3: AHT20 VIN to the 3V3 bus (insulated wire crosses the GND bus)"),
     ("W11", "AHT.GND", "BUS_GND c22 r11", "black", "perfboard", "GND: AHT20 GND to the GND bus"),
     ("W12", "J3.GND", "BUS_GND c13 r11", "black", "perfboard", "GND: soil sensor connector J3 GND to the GND bus"),
-    ("W13", "SM.GPIO6", "Rp1.sda", "blue", "perfboard", "I2C_SDA (board.h NW_PIN_I2C_SDA = 6): GPIO6 to SDA node c17 r9"),
+    ("W13", "SM.GPIO6", "Rp1.sda", "blue", "perfboard", "I2C_SDA (board.h NW_PIN_I2C_SDA = 6): GPIO6 to SDA node c17 r9, routed around the antenna keep-out (section 5)"),
     ("W14", "Rp1.sda", "BH.SDA", "blue", "perfboard", "I2C_SDA: SDA node to BH1750 SDA"),
     ("W15", "Rp1.sda", "AHT.SDA", "blue", "perfboard", "I2C_SDA: SDA node to AHT20 SDA"),
-    ("W16", "SM.GPIO7", "Rp2.scl", "green", "perfboard", "I2C_SCL (board.h NW_PIN_I2C_SCL = 7): GPIO7 to SCL node c19 r9"),
+    ("W16", "SM.GPIO7", "Rp2.scl", "green", "perfboard", "I2C_SCL (board.h NW_PIN_I2C_SCL = 7): GPIO7 to SCL node c19 r9, routed around the antenna keep-out; crosses W13 once (both insulated)"),
     ("W17", "Rp2.scl", "BH.SCL", "green", "perfboard", "I2C_SCL: SCL node to BH1750 SCL"),
     ("W18", "Rp2.scl", "AHT.SCL", "green", "perfboard", "I2C_SCL: SCL node to AHT20 SCL"),
     ("W19", "SM.GPIO0", "R1.mid", "grey", "perfboard", "BAT_SENS (NW_PIN_BAT_SENS = 0, ADC1_CH0): divider midpoint to GPIO0"),
@@ -85,14 +86,110 @@ W = [
 ]
 # Passive parts on the board (not wires): id, part, leads (holes), note
 PASSIVES = [
-    ("R1", "100 kOhm 1 %", "c2 r10 to c6 r10", "battery divider top (VBAT to midpoint); matches board.h dev-kit value 100000"),
+    ("R1", "100 kOhm 1 %", "c2 r10 to c6 r10", "battery divider top (5V_SW = switched side of J1, to midpoint); matches board.h dev-kit value 100000"),
     ("R2", "100 kOhm 1 %", "c6 r11 to c10 r11", "battery divider bottom (midpoint to GND bus); link c6 r10 - c6 r11 joins R1/R2 midpoint"),
-    ("Rp1", "4.7 kOhm (only if needed)", "c17 r9 to c17 r10 (bus)", "SDA pull-up to 3V3, standing; fit ONLY if neither breakout has one"),
-    ("Rp2", "4.7 kOhm (only if needed)", "c19 r9 to c19 r10 (bus)", "SCL pull-up to 3V3, standing; fit ONLY if neither breakout has one"),
+    ("Rp1", "5.1 kOhm (only if needed)", "c17 r9 to c17 r10 (bus)", "SDA pull-up to 3V3, standing; fit ONLY if neither breakout has one"),
+    ("Rp2", "5.1 kOhm (only if needed)", "c19 r9 to c19 r10 (bus)", "SCL pull-up to 3V3, standing; fit ONLY if neither breakout has one"),
     ("C1", "100 nF ceramic (optional)", "midpoint c6 r10 to GND c10 r11", "ADC filter on solder side, parallel to R2 (source impedance 50 kOhm)"),
-    ("J1", "2-pin header + jumper", "c1 r8 / c1 r9", "programming disconnect in the 5V feed: OPEN to flash over USB-C"),
+    ("J1", "2-pin header + jumper", "c1 r8 / c1 r9", "disconnect in the 5V feed (cell side = pin B, SuperMini and divider side = pin A): OPEN to flash over USB-C"),
     ("J3", "3-pin male header", "c14/c15/c16 r18", "soil sensor Dupont plug: GND, VCC (from GPIO3), AOUT"),
 ]
+
+
+# ---- solder-side routes and the antenna keep-out ------------------------------------------------------------
+# Default route of a wire = straight line between its two end holes. Explicit waypoints (hole coordinates, fractional
+# values allowed: c6.5 = the gap between column 6 and 7) only where a straight line would cross the keep-out.
+KEEPOUT = (27.0, 0.0, 40.0, 22.0)      # x0, y0, x1, y1 in mm: no wire, part, metal, battery, screw (WIRING.md section 5)
+KEEPOUT_MARGIN = 1.0                   # mm clearance demanded around it (wire + solder blob), enforced by --check
+TP_PADS = {"TP.OUT+": (26.3, 35.5), "TP.B+": (26.3, 39.0), "TP.B-": (26.3, 43.0), "TP.OUT-": (26.3, 47.0)}  # mm, UNVERIFIED (layout SVG)
+ROUTES = {
+    # SDA: down the c2 column, along row 3 under the SuperMini (x <= 19.8 mm, short of its antenna end), through the
+    # gap between the GPIO2/GPIO1 pin holes (c6|c7) to row 9, then east along row 9 (y 23.7 mm, 1.7 mm below the keep-out)
+    "W13": [(2, 1), (2, 3), (6.5, 3), (6.5, 9), (17, 9)],
+    # SCL: along row 2, through the gap c5|c6 (between the GPIO3 and GPIO2 pin holes), down to y 24.95 mm (row 9.5),
+    # east to column 19, up one half hole to the SCL node. Crosses W13 once on the solder side (both insulated).
+    "W16": [(3, 1), (3, 2), (5.5, 2), (5.5, 9.5), (19, 9.5), (19, 9)],
+}
+
+
+def hole_mm(c, r):
+    return (hx(c), hy(r))
+
+
+def endpoint_mm(name):
+    """mm position of a wire end, or None for a part that is off the board (battery cell)."""
+    if name in PARTS:
+        return hole_mm(*PARTS[name])
+    if name in TP_PADS:
+        return TP_PADS[name]
+    m = re.search(r"c(\d+) r(\d+)", name)
+    if m and name.startswith("BUS_"):
+        return hole_mm(int(m.group(1)), int(m.group(2)))
+    return None
+
+
+def route_mm(wid):
+    for w in W:
+        if w[0] == wid:
+            a, b = endpoint_mm(w[1]), endpoint_mm(w[2])
+            if wid in ROUTES:
+                return [hole_mm(c, r) for c, r in ROUTES[wid]]
+            return [a, b] if a and b else None
+    raise KeyError(wid)
+
+
+def route_text(wid):
+    if wid in ROUTES:
+        return " > ".join("c%g r%g" % cr for cr in ROUTES[wid])
+    for w in W:
+        if w[0] == wid:
+            return "direct" if route_mm(wid) else "flying lead, off board"
+
+
+def seg_hits_rect(p, q, rect, margin=0.0):
+    """True if segment p-q touches the rectangle grown by margin (Liang-Barsky clipping)."""
+    x0, y0, x1, y1 = rect[0] - margin, rect[1] - margin, rect[2] + margin, rect[3] + margin
+    dx, dy = q[0] - p[0], q[1] - p[1]
+    t0, t1 = 0.0, 1.0
+    for pp, qq in ((-dx, p[0] - x0), (dx, x1 - p[0]), (-dy, p[1] - y0), (dy, y1 - p[1])):
+        if pp == 0:
+            if qq < 0:
+                return False
+        else:
+            t = qq / pp
+            if pp < 0:
+                t0 = max(t0, t)
+            else:
+                t1 = min(t1, t)
+            if t0 > t1:
+                return False
+    return True
+
+
+def keepout_violations():
+    bad = []
+    for w in W:
+        pts = route_mm(w[0])
+        if not pts:
+            continue
+        for p, q in zip(pts, pts[1:]):
+            if seg_hits_rect(p, q, KEEPOUT, KEEPOUT_MARGIN):
+                bad.append((w[0], "(%.1f,%.1f)-(%.1f,%.1f)" % (p + q)))
+    # the three buses
+    for name, (c0, c1, r) in (("BUS_GND", BUS_GND), ("BUS_3V3", BUS_3V3)):
+        if seg_hits_rect(hole_mm(c0, r), hole_mm(c1, r), KEEPOUT, KEEPOUT_MARGIN):
+            bad.append((name, "bus"))
+    return bad
+
+
+def keepout_selftest():
+    """The check must be able to fail: the straight lines W13/W16 used before the routes were added cross the keep-out."""
+    ok = True
+    for wid in ("W13", "W16"):
+        w = next(x for x in W if x[0] == wid)
+        ok = ok and seg_hits_rect(endpoint_mm(w[1]), endpoint_mm(w[2]), KEEPOUT, 0.0)
+    return ok
+
 
 
 def pin_text(p):
@@ -103,9 +200,9 @@ def pin_text(p):
 
 
 def wire_table():
-    rows = ["| ID | From | To | Colour | Where | Net / purpose |", "|---|---|---|---|---|---|"]
+    rows = ["| ID | From | To | Colour | Where | Route (solder side) | Net / purpose |", "|---|---|---|---|---|---|---|"]
     for wid, a, b, col, where, note in W:
-        rows.append("| %s | %s | %s | %s | %s | %s |" % (wid, pin_text(a), pin_text(b), col, where, note))
+        rows.append("| %s | %s | %s | %s | %s | %s | %s |" % (wid, pin_text(a), pin_text(b), col, where, route_text(wid), note))
     return "\n".join(rows)
 
 
@@ -200,16 +297,22 @@ def wiring_svg():
     # VBAT path: OUT+ -> node -> J1 -> 5V, divider tap
     b.append(L(290, 240, 270, 240, COL["red"], 3))
     b.append(L(270, 240, 270, 360, COL["red"], 3))
-    b.append(T(120, 356, "VBAT node (c2 r10)", 10, fill=COL["red"], weight="bold"))
+    b.append(T(120, 356, "VBAT = J1 pin B (c1 r9)", 10, fill=COL["red"], weight="bold"))
     b.append(T(120, 270, "W03", 9, fill="#444"))
     b.append(L(270, 360, 590, 360, COL["red"], 3))
     b.append(L(590, 360, 590, 182, COL["red"], 3))
-    b.append(T(598, 290, "W02", 9, fill="#444"))
+    b.append(T(584, 290, "W03", 9, "end", fill="#444"))
     b.append(R(540, 140, 100, 42, "#fff3cd", rx=4))
     b.append(T(590, 158, "J1 jumper", 11, "middle", weight="bold"))
     b.append(T(590, 173, "OPEN to flash", 10, "middle", fill="#a00"))
     b.append(L(640, 160, 700, 160, COL["red"], 3))
     b.append(T(648, 150, "W01", 9, fill="#444"))
+    # divider top hangs on the switched side of J1 (pin A), not on VBAT: J1 open = divider off GPIO0
+    b.append(L(670, 160, 670, 374, COL["red"], 2.5, "6 4"))
+    b.append(L(670, 374, 335, 374, COL["red"], 2.5, "6 4"))
+    b.append(L(335, 374, 335, 385, COL["red"], 2.5))
+    b.append(T(380, 392, "W02: J1 pin A to R1 top (5V_SW, dashed, insulated)", 9, fill="#444"))
+    b.append(T(380, 404, "J1 open: R1 has no source, GPIO0 = 0 V", 9, fill="#a00"))
     # divider
     b.append(R(300, 385, 70, 28, "#ffffff", rx=2))
     b.append(T(335, 404, "R1 100k", 11, "middle"))
@@ -312,7 +415,7 @@ def wiring_svg():
         b.append(R(1060, y - 12, 44, 18, COL[c], stroke=COL[c], rx=3))
         b.append(T(1082, y + 1, n, 10, "middle", fill="#ffffff", weight="bold"))
         b.append(T(1112, y + 1, t, 10))
-    b.append(T(1060, 640, "Pull-ups Rp1/Rp2 4.7k to 3V3: fit only if the breakouts have none (4.3).", 10, fill="#555"))
+    b.append(T(1060, 640, "Pull-ups Rp1/Rp2 5.1k to 3V3: fit only if the breakouts have none (4.3).", 10, fill="#555"))
     return svg_wrap(1600, 840, "\n".join(b), "Plant Monitor v1 wiring diagram")
 
 
@@ -395,7 +498,7 @@ def layout_svg():
     pins = {k: v for k, v in PARTS.items() if not k.startswith("SM.")}
     for k, (c, r) in pins.items():
         b.append('<circle cx="%.1f" cy="%.1f" r="3.4" fill="#e8c35a" stroke="#000"/>' % (X(hx(c)), Y(hy(r))))
-    lab = {"J1.A": "J1A", "J1.B": "J1B", "R1.top": "VBAT", "R1.mid": "M", "R2.mid": "", "R2.bot": "",
+    lab = {"J1.A": "J1A", "J1.B": "J1B", "R1.top": "5V_SW", "R1.mid": "M", "R2.mid": "", "R2.bot": "",
            "Rp1.sda": "SDA", "Rp2.scl": "SCL", "J3.GND": "GND", "J3.VCC": "VCC", "J3.AOUT": "AOUT",
            "BH.VCC": "VCC", "BH.GND": "GND", "BH.SCL": "SCL", "BH.SDA": "SDA", "BH.ADDR": "ADDR",
            "AHT.SDA": "SDA", "AHT.SCL": "SCL", "AHT.GND": "GND", "AHT.VIN": "VIN"}
@@ -416,6 +519,12 @@ def layout_svg():
     b.append(T(X(hx(24)) + 6, Y(hy(10)) + 3, "3V3 bus", 9, fill="#fff"))
     b.append(R(X(hx(14)) - 4, Y(hy(18)) - 4, 2 * PITCH * S + 8, 8, "#f5f5f5", stroke="#000", rx=2))
     b.append(T(X(hx(15)), Y(hy(18)) - 8, "J3 soil sensor plug (bottom edge)", 9, "middle", fill="#fff"))
+    # solder-side routes of the wires that must avoid the keep-out (dashed = underneath)
+    for wid, colour in (("W13", COL["blue"]), ("W16", COL["green"])):
+        pts = ["%.1f,%.1f" % (X(hx(c)), Y(hy(r))) for c, r in ROUTES[wid]]
+        b.append('<polyline points="%s" fill="none" stroke="%s" stroke-width="2.2" stroke-dasharray="7 4"/>' % (" ".join(pts), colour))
+        c, r = ROUTES[wid][2]
+        b.append(T(X(hx(c)) + 4, Y(hy(r)) - 4, wid, 9, fill="#fff", weight="bold"))
     # heat note
     b.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="none" stroke="#ff8" stroke-width="1.5" stroke-dasharray="5 4"/>' % (X(0), Y(30.0), 30 * S, 20 * S))
     b.append(T(X(15), Y(31.6), "hot zone (TP4056 charging, UNVERIFIED)", 9, "middle", fill="#ff8"))
@@ -424,10 +533,11 @@ def layout_svg():
     b.append(T(OX + BOARD_W * S + 28, Y(25), "50 mm", 11, "middle"))
     # legend
     ly = Y(BOARD_H) + 52
-    b.append(T(20, ly, "Legend: yellow dot = hole used. Red hatched box = antenna keep-out: no wire, part, metal, battery or screw in it. Wires run on the solder side (not drawn, see table).", 10))
+    b.append(T(20, ly, "Legend: yellow dot = hole used. Red hatched box = antenna keep-out: no wire, part, metal, battery or screw in it.", 10))
+    b.append(T(20, ly + 48, "Wires run on the solder side; only W13 (blue) and W16 (green), routed around the keep-out, are drawn dashed; all others are straight (see the Route column).", 10))
     b.append(T(20, ly + 16, "Left short edge carries both USB-C ports (SuperMini y 11 mm, TP4056 y 41.5 mm, both UNVERIFIED). BOOT/RESET keys are behind the SuperMini USB-C end (need a pin-hole access).", 10))
     b.append(T(20, ly + 32, "Oval pads along both 50 mm edges are exposed copper: put Kapton under anything that overhangs them (TP4056, SuperMini USB-C).", 10))
-    return svg_wrap(int(OX + BOARD_W * S + 90), int(ly + 52), "\n".join(b), "Plant Monitor v1 perfboard layout")
+    return svg_wrap(int(OX + BOARD_W * S + 90), int(ly + 68), "\n".join(b), "Plant Monitor v1 perfboard layout")
 
 
 def collisions():
@@ -457,6 +567,13 @@ def main():
     if bad:
         print("hole collisions:", bad)
         return 1
+    ko = keepout_violations()
+    if ko:
+        print("antenna keep-out x %g-%g, y %g-%g (+%g mm margin) entered by: %s" % (KEEPOUT[0], KEEPOUT[2], KEEPOUT[1], KEEPOUT[3], KEEPOUT_MARGIN, ko))
+        return 1
+    if not keepout_selftest():
+        print("keep-out self-test failed: the straight W13/W16 lines must be detected as crossing")
+        return 1
     outputs = {"wiring-diagram.svg": wiring_svg(), "perfboard-layout.svg": layout_svg()}
     doc = DOC.read_text(encoding="utf-8")
     new = doc
@@ -472,7 +589,7 @@ def main():
     for fn, s in outputs.items():
         p = HERE / fn
         ok = ok and p.exists() and p.read_text(encoding="utf-8") == s
-    print("OK" if ok else "DRIFT: run gen_wiring.py --write")
+    print("OK (keep-out clear, self-test caught the straight W13/W16)" if ok else "DRIFT: run gen_wiring.py --write")
     return 0 if ok else 1
 
 

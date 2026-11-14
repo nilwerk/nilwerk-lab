@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 780" width="1000" height="780">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 796" width="1000" height="796">
 <title>Plant Monitor v1 perfboard layout</title>
-<rect width="1000" height="780" fill="#ffffff"/>
+<rect width="1000" height="796" fill="#ffffff"/>
 <text x="20.0" y="26.0" font-size="16" text-anchor="start" fill="#111" font-weight="bold" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">Plant Monitor v1 - perfboard layout 70 x 50 mm, top view (component side), to scale</text>
 <text x="20.0" y="44.0" font-size="10" text-anchor="start" fill="#444" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">Perfboard, TP4056, BH1750, AHT20 L x W measured by Arsany (A-093); SuperMini and all heights UNVERIFIED typical. Hole grid c1..c24 / r1..r18 counted from a photo.</text>
 <rect x="70.0" y="76.0" width="840.0" height="600.0" rx="6" fill="#2f8f4e" stroke="#123" stroke-width="2.0" />
@@ -604,7 +604,7 @@
 <circle cx="596.7" cy="635.1" r="3.4" fill="#e8c35a" stroke="#000"/>
 <text x="146.5" y="333.3" font-size="8" text-anchor="start" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">J1A</text>
 <text x="146.5" y="363.8" font-size="8" text-anchor="start" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">J1B</text>
-<text x="177.0" y="394.2" font-size="8" text-anchor="start" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">VBAT</text>
+<text x="177.0" y="394.2" font-size="8" text-anchor="start" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">5V_SW</text>
 <text x="298.9" y="394.2" font-size="8" text-anchor="start" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">M</text>
 <text x="634.2" y="363.8" font-size="8" text-anchor="start" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">SDA</text>
 <text x="695.1" y="363.8" font-size="8" text-anchor="start" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">SCL</text>
@@ -630,11 +630,16 @@
 <text x="846.5" y="394.2" font-size="9" text-anchor="start" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">3V3 bus</text>
 <rect x="531.7" y="631.1" width="69.0" height="8.0" rx="2" fill="#f5f5f5" stroke="#000" stroke-width="1.2" />
 <text x="566.2" y="627.1" font-size="9" text-anchor="middle" fill="#fff" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">J3 soil sensor plug (bottom edge)</text>
+<polyline points="170.0,116.9 170.0,177.9 307.1,177.9 307.1,360.8 627.2,360.8" fill="none" stroke="#1f5fbf" stroke-width="2.2" stroke-dasharray="7 4"/>
+<text x="311.1" y="173.9" font-size="9" text-anchor="start" fill="#fff" font-weight="bold" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">W13</text>
+<polyline points="200.4,116.9 200.4,147.4 276.6,147.4 276.6,376.0 688.1,376.0 688.1,360.8" fill="none" stroke="#2a9d3f" stroke-width="2.2" stroke-dasharray="7 4"/>
+<text x="280.6" y="143.4" font-size="9" text-anchor="start" fill="#fff" font-weight="bold" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">W16</text>
 <rect x="70.0" y="436.0" width="360.0" height="240.0" fill="none" stroke="#ff8" stroke-width="1.5" stroke-dasharray="5 4"/>
 <text x="250.0" y="455.2" font-size="9" text-anchor="middle" fill="#ff8" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">hot zone (TP4056 charging, UNVERIFIED)</text>
 <text x="490.0" y="700.0" font-size="11" text-anchor="middle" fill="#111" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">70 mm</text>
 <text x="938.0" y="376.0" font-size="11" text-anchor="middle" fill="#111" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">50 mm</text>
-<text x="20.0" y="728.0" font-size="10" text-anchor="start" fill="#111" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">Legend: yellow dot = hole used. Red hatched box = antenna keep-out: no wire, part, metal, battery or screw in it. Wires run on the solder side (not drawn, see table).</text>
+<text x="20.0" y="728.0" font-size="10" text-anchor="start" fill="#111" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">Legend: yellow dot = hole used. Red hatched box = antenna keep-out: no wire, part, metal, battery or screw in it.</text>
+<text x="20.0" y="776.0" font-size="10" text-anchor="start" fill="#111" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">Wires run on the solder side; only W13 (blue) and W16 (green), routed around the keep-out, are drawn dashed; all others are straight (see the Route column).</text>
 <text x="20.0" y="744.0" font-size="10" text-anchor="start" fill="#111" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">Left short edge carries both USB-C ports (SuperMini y 11 mm, TP4056 y 41.5 mm, both UNVERIFIED). BOOT/RESET keys are behind the SuperMini USB-C end (need a pin-hole access).</text>
 <text x="20.0" y="760.0" font-size="10" text-anchor="start" fill="#111" font-weight="normal" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">Oval pads along both 50 mm edges are exposed copper: put Kapton under anything that overhangs them (TP4056, SuperMini USB-C).</text>
 </svg>
