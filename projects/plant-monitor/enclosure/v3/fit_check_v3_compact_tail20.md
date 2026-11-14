@@ -1,9 +1,9 @@
-Tail variant: 20 mm (A-071 open)
+Tail variant: 20 mm (A-071: 14 mm approved by Arsany 2026-11-12)
 
 | # | Check | Value | Need | Result | Source |
 |---|---|---|---|---|---|
 | 1 | Tail variant 20 mm: electrode copper beyond outer bottom face | 20.00 mm (copper tip y -69.80) | = 20.0 mm (variant) | **PASS** | params_v3 TAIL_VARIANTS; copper from board E1 pad (board_facts.electrode_span), tip margin 4.0 from DXF |
-| 2 | Board tail in DXF (input/) matches the variant | DXF 25.00 mm vs variant 31.80 mm (+6.80) | = variant tail | **OPEN** | board DXF = #73; a longer tail for the 20 mm variant is a board outline change for Emil (not in repo) (OPEN: board outline change needed for this variant, Arsany A-071 decides) |
+| 2 | Board tail in DXF (input/) matches the variant | DXF 25.00 mm vs variant 31.80 mm (+6.80) | = variant tail | **OPEN** | board DXF = #73; a longer tail for the 20 mm variant is a board outline change for Emil (not in repo) (OPEN: A-071 approved 14 mm (Arsany 2026-11-12) = board tail 25.8; the board copy in input/ is still the 25.0 mm DXF of #73 (pcb/gen_pcb.py on main already has 25.8). 20 mm is reference only) |
 | 3 | Interference tail (20 variant) vs tray and seal plug | 0.000 mm3 | 0 (contact allowed) | **PASS** | boolean intersect: tail solid vs tray and tail_plug |
 | 4 | Right-most part (J1 shell) to right wall (X) | 0.30 mm (board edge 0.80) | >= 0.30 (FDM + PCB +-0.2) | **PASS** | params_v3 INNER_X1, DXF outline |
 | 5 | Antenna tip to top wall (Y) | 1.00 mm | >= 1.0 [ASSUMED] | **OPEN** | DXF MODULE_U1 (overhang derived by Emil); Q10 detuning open (OPEN: the 1.0 mm threshold is ASSUMED, so a pass against it is not a pass (Arsany rule)) |
@@ -26,7 +26,7 @@ Tail variant: 20 mm (A-071 open)
 | 22 | Antenna tip line to cell cavity (my 28.4 method) | 27.7 mm | >= 15 | **PASS** | jlc_prep/README s.1 item 2 |
 | 23 | Antenna corner (33.5, 4.5) air to the rounded cavity corner | 1.00 mm | >= 1.0 (same air as the top wall) | **PASS** | params_v3 rr_dist, FILLET_INNER 1.5 (slice 4) |
 | 24 | Nearest brass insert to antenna (Q9) | 22.2 mm | >= 15 | **PASS** | BOSS_XY, insert hole 3.2 |
-| 25 | PETG top wall over the antenna | 1.60 mm wall, 1.0 mm air to antenna tip (ASSUMED) | no thick wall over the antenna (standards s.7): RF effect checked | **OPEN** | params_v3 WALL, INNER_Y1; standards s.7; P1S/PETG review (Arsany answer 2026-11-10) (OPEN: effect on the antenna not measured. Options: RF check on a Prototype 1 print, or a thinner wall over the antenna. Decide before the lid is locked) |
+| 25 | PETG top wall over the antenna | 1.60 mm wall, 1.0 mm air to antenna tip (ASSUMED) | no thick wall over the antenna (standards s.7): RF effect checked | **OPEN** | params_v3 WALL, INNER_Y1; standards s.7; P1S/PETG review (Arsany answer 2026-11-10) (OPEN: RF effect not measured. A-084: risk accepted for the demo with the 1.6 mm compact shell; RF check on a Prototype 1 print before any pilot batch) |
 | 26 | Wall: Rim land left/top/bottom | 1.60 mm | >= 1.2 (role rule) | **PASS** | params_v3 |
 | 27 | Wall: Rim land right (USB side) | 2.40 mm | >= 1.2 (role rule) | **PASS** | params_v3 |
 | 28 | Wall: Tray floor | 1.20 mm | >= 1.2 (role rule) | **PASS** | params_v3 |
@@ -60,6 +60,6 @@ Tail variant: 20 mm (A-071 open)
 | 56 | STL watertight: plug | True | True | **PASS** | trimesh |
 | 57 | Max bridge/overhang span, print orientation: plug | 0.0 mm (0 faces) | <= 10 mm reach from bed contact (P1S bridges; no steep overhangs) | **PASS** | trimesh, faces with normal z < -0.7 above the bed, reach to bed-contact vertices |
 | 58 | Model heights equal their cited source (7 parts) | 7 of 7 equal | model value = cited value for every part | **OPEN** | params_v3 H_CITED vs H_BY_REF; standards s.7 (never invent a component dimension) (OPEN: U5, U6, SW1-3 cite distributor listings (SECONDARY), the PDFs were not read) |
-| 59 | J1 USB-C height, flat vs upright | flat 3.30 (ASSUMED): 2.70 mm to lid; upright 11.94 +-0.25 (OPEN): -5.94 mm | >= 0.5 (orientation not decided) | **OPEN** | TYPE-C-31-M-12 datasheet, upright male (brief value, PDF not read here); params_v3 H_SRC J1_UPRIGHT (OPEN: A-087 approved flat (2026-11-13); the upright value is kept only as a record and does not fit the 8.6 mm or 7.6 mm inner box) |
+| 59 | J1 USB-C height (flat / edge-mount, A-087) | flat 3.30 (ASSUMED): 2.70 mm to lid underside (inner 8.6) | >= 0.5 mm to lid; height from the datasheet of the picked part | **OPEN** | params_v3 H_BY_REF['J1'], H_SRC J1; A-087 (flat approved 2026-11-13) (OPEN: height ASSUMED until Emil's flat part has a datasheet height (PR #95 does not pick it yet); never PASS before that) |
 
 40 PASS, 0 FAIL, 19 OPEN (tail 20 mm variant)

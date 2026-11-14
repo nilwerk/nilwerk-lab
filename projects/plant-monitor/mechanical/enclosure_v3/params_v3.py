@@ -41,7 +41,8 @@ LID_CLEAR = 0.5                    # [ASSUMED] min air gap tallest part to lid u
 H_BY_REF = {"U1": 2.4, "J1": 3.3, "J2": 5.5, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "U3": 1.75, "U5": 1.0, "U6": 0.75,
             "D1": 1.1, "U2": 1.1, "U4": 1.1, "Q1": 1.1, "U7": 1.1, "D2": 0.8, "D3": 0.8, "E1": 0.04}
 H_DEFAULT = 0.55                   # [ASSUMED] 0603 R/C
-# J1_UPRIGHT is not a model height (the model uses the flat 3.3 for J1); it is recorded so the upright value is not lost (see fit row 55).
+# J1 (USB-C) is FLAT / edge-mount (A-087, Arsany 2026-11-13). Its model height 3.3 is ASSUMED until the datasheet height of the part Emil picks is read.
+# J1_UPRIGHT (11.94) is the rejected upright version: kept as a record only, not used by the model or any check.
 # Where each height comes from (slice 3). DATASHEET = read from the manufacturer PDF (page given). SECONDARY = distributor listing
 # values only (manufacturer PDF not readable in this session), used as a cross-check, never as the model value unless it equals it.
 # ASSUMED = no source read; kept as an assumption and listed in the PR.
@@ -53,21 +54,22 @@ H_SRC = {
     "SW2": ("SECONDARY", "same part as SW1 (LCSC C318884)"),
     "SW3": ("SECONDARY", "same part as SW1 (LCSC C318884)"),
     "J2":  ("SECONDARY", "sourced: LCSC C295747 Z-height listing 5.5 mm (A-076 budget); IBS Electronics lists 5.5 mm; element14 lists 8.0 mm for a likely B2B variant (not confirmed as this part); JST drawing to confirm"),
-    "J1":  ("ASSUMED", "TYPE-C-31-M-12 (LCSC C165948) flat part, model value 3.30: no datasheet height for the flat part read (LCSC link returns a wrapper page); kept ASSUMED. A-087 approved flat / edge-mount (Arsany 2026-11-13); the part is still to be picked by Emil"),
-    # The upright male version of the same connector is a different height. Brief value from the TYPE-C-31-M-12 datasheet (upright male): 11.94 +-0.25 mm.
-    # Recorded as OPEN, not used in the model: the orientation is decision A-087 (Arsany). No value is chosen. The datasheet PDF was not read in this session.
-    "J1_UPRIGHT": ("OPEN", "TYPE-C-31-M-12 (LCSC C165948) datasheet, upright male version: H 11.94 +-0.25 mm (value from the review brief; PDF not read here). Orientation A-087 (Arsany)"),
+    "J1":  ("ASSUMED", "USB-C, FLAT / edge-mount (A-087, Arsany 2026-11-13). Model value 3.30 is ASSUMED: no datasheet height for a flat part has been read. Emil picks the actual flat part (PR #95 does not contain it yet); until its datasheet height exists this stays ASSUMED, never PASS. Footprint in the repo is still TYPE-C-31-M-12 (LCSC C165948)"),
+    # The upright male version of TYPE-C-31-M-12 is a different height: 11.94 +-0.25 mm (value from the review brief, PDF not read here). Rejected by A-087; record only.
+    "J1_UPRIGHT": ("REJECTED", "TYPE-C-31-M-12 upright male version H 11.94 +-0.25 mm (review brief value, PDF not read). Not used: A-087 approved flat / edge-mount (Arsany 2026-11-13)"),
     "U3":  ("ASSUMED", "TP4056-42-ESOP8 (LCSC C16581): datasheet link returns a wrapper page; height not read"),
 }
 for _r in ("D1", "U2", "U4", "U7", "Q1", "D2", "D3", "E1"):
     H_SRC.setdefault(_r, ("ASSUMED", "not read in this session (package class value kept)"))
-J1_UPRIGHT_H, J1_UPRIGHT_TOL = 11.94, 0.25   # TYPE-C-31-M-12 upright male, datasheet brief value (OPEN, A-087); not used by the model
+J1_UPRIGHT_H, J1_UPRIGHT_TOL = 11.94, 0.25   # TYPE-C-31-M-12 upright male, brief value; REJECTED by A-087 (flat approved), record only, not used by the model
 # The number each cited source states, for every part whose height cites a source (DATASHEET or SECONDARY). The fit check (row 54)
 # fails if H_BY_REF differs from it, so a changed sourced height cannot slip through without a new citation.
 H_CITED = {"U1": 2.4, "U5": 1.0, "U6": 0.75, "SW1": 1.5, "SW2": 1.5, "SW3": 1.5, "J2": 5.5}
 # Inner height is a FIXED design value, not derived from H_BY_REF. The fit check row "Tallest part to lid underside" tests the
 # assumed heights against it, so changing an assumed height (e.g. J2) fails the check instead of silently moving the box.
-# Budget at 7.6: standoff 1.0 + board 1.6 + J2 4.5 + air 0.5 = 7.6.
+# Cavity basis (A-087 + A-076): the tallest part sets INNER_H, and it is J2, not J1. J1 is flat (3.3 ASSUMED) and leaves 2.7 mm of air at 8.6.
+# The rejected upright J1 (11.94) would need 1.0 + 1.6 + 11.94 + 0.5 = 15.04, which is why flat was chosen.
+# Budget at 7.6: standoff 1.0 + board 1.6 + J2 4.5 + air 0.5 = 7.6 (J2 4.5 was ASSUMED, superseded by the 5.5 listing value).
 INNER_H_OPT_A = round(STANDOFF + BOARD_T + 4.5 + LID_CLEAR, 1)      # 7.6: option A, J2 4.5 (ASSUMED, not sourced)
 INNER_H_IF_J2_5_5 = round(STANDOFF + BOARD_T + 5.5 + LID_CLEAR, 1)   # 8.6: option B, J2 5.5 (distributor value)
 # A-076 (answered 2026-11-13 from the J2 listing 5.5 mm): the model uses option B, inner 8.6. Option A (7.6) stays in INNER_H_OPT_A for reference only.
@@ -96,7 +98,7 @@ BOSS_XY += [(-55.0, -45.4), (-27.0, -45.4), (-3.5, -45.4)]   # absolute: boss to
 BOSS_BOARD_GAP_MIN = 1.0           # [ASSUMED] min plan gap boss edge to board outline (insertion slop + FDM spread); not a sourced limit
 INSERT_DEPTH = 4.0
 # ---- USB-C [ASSUMED plug 8.94 x 3.26 (USB-C spec) + 0.3 per side FDM] ----
-J1_Y, J1_Z = _F["at"]["J1"][1], BOARD_Z1 + 3.3 / 2
+J1_Y, J1_Z = _F["at"]["J1"][1], BOARD_Z1 + H_BY_REF["J1"] / 2   # J1 flat, centre at half the (ASSUMED) height
 USB_W, USB_H = 9.6, 3.9
 USB_POCKET = (14.0, 8.0, 1.2)      # overmold pocket w x h x depth from outside; wall left 1.2
 # ---- light window over U6 BH1750 at KiCad (11.5, 4.5) ----
@@ -123,7 +125,7 @@ PETG_BOSS_WALL = 1.6               # wall around a heat-set insert hole in PETG 
 PETG_SCREW_TORQUE_NM = 0.25        # [ASSUMED] max M2 tightening torque into a PETG insert; the insert datasheet governs
 PETG_SHRINK = 0.004                # [ASSUMED] 0.4 % PETG shrink; set by the test print (standards s.3 says calibrate)
 SEAL_TYPE = "silicone sheet gasket 1.0 mm (bought part, not PETG; ASSUMED)"
-# ---- tail length variants (A-071, Arsany's call, NOT decided here) ----
+# ---- tail length variants (A-071: Arsany approved 14 mm on 2026-11-12 (sheet: Done); the 20 mm variant stays as reference) ----
 # "Tail length" = length of the soil electrode copper beyond the OUTER bottom face of the enclosure (mm). Read from the board:
 # the electrode copper runs from BODY_L+1 to BODY_L+21 (pad at y 11 of the E1 footprint, size 20), the board tail ends 4.0 mm
 # further (board_facts.electrode_span). The enclosure does not move; only the board tail length changes with the variant.

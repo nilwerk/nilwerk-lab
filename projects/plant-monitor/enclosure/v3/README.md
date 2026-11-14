@@ -90,12 +90,12 @@ Run from `projects/plant-monitor/mechanical/enclosure_v3/` (Python 3.11, `pip in
 
 Stacked on slice 2 (sections above unchanged; their height values are superseded by section 9 where they differ). Nothing printed, ordered or uploaded.
 
-**Tail length (A-071, Arsany decides, NOT decided here).** Read as the **soil electrode copper beyond the outer bottom face** of the enclosure (the number used in section 1b item 7). Today 13.2 mm of the 20 mm copper is outside (copper tip y -63.0, outer face y -49.8). The enclosure does not move between variants, so the printed housing is identical (same STL vertices and volumes as slice 2, checked). Only the **board tail** changes:
+**Tail length (A-071, DECIDED: 14 mm, Arsany 2026-11-12; sheet Done).** Read as the **soil electrode copper beyond the outer bottom face** of the enclosure (the number used in section 1b item 7). Today 13.2 mm of the 20 mm copper is outside (copper tip y -63.0, outer face y -49.8). The enclosure does not move between variants, so the printed housing is identical (same STL vertices and volumes as slice 2, checked). Only the **board tail** changes:
 
 | Variant | Electrode beyond the outer face | Board tail (body edge to tip) | vs the 25.0 mm DXF | Status |
 |---|---|---|---|---|
-| 14 mm | 14.0 | 25.8 | +0.8 | **OPEN**: board outline change for Emil |
-| 20 mm | 20.0 | 31.8 | +6.8 | **OPEN**: board outline change for Emil (the "+6" of the PR) |
+| 14 mm | 14.0 | 25.8 | +0.8 | **APPROVED** (A-071). `pcb/gen_pcb.py` on main has 25.8; the DXF copy in `mechanical/enclosure_v3/input/` is still 25.0, so the fit row stays OPEN until `input/` is refreshed |
+| 20 mm | 20.0 | 31.8 | +6.8 | reference only (not chosen) |
 
 Derivation: copper tip = outer face - electrode length; tail tip = copper tip - 4.0 (bare tip, DXF). Code: `params_v3.TAIL_VARIANTS`, `tail_len_for()`, `board_facts.electrode_span()`.
 
@@ -108,7 +108,7 @@ Derivation: copper tip = outer face - electrode length; tail tip = copper tip - 
 | U6 | BH1750FVI-TR (C78960) | 0.75 | Arrow and RS Online: max 0.75 (Future 0.7) | SECONDARY (PDF not read) |
 | SW1-3 | TS-1187A-B-A-B (C318884) | 1.5 | JLCPCB, LCSC, HQ Online: 1.5 | SECONDARY (XKB PDF not read) |
 | J2 | S2B-PH-SM4-TB (C295747) | **5.5** (slice 4 model, was 4.5) | sourced: LCSC C295747 Z-height listing 5.5 (A-076, answered 2026-11-13); IBS Electronics 5.5; element14 8.0 for a likely B2B variant (not confirmed as this part); JST drawing to confirm | **SECONDARY, OPEN** (fit rows 12, 14, 15: 0.5 mm air at INNER_H 8.6; the exact part and drawing are still to confirm) |
-| J1 | TYPE-C-31-M-12 (C165948) | 3.3 flat | flat: none (LCSC datasheet link gives a wrapper page). Upright male: **11.94 +-0.25** (datasheet brief value, PDF not read here) | flat ASSUMED; upright **OPEN, A-087** (orientation, Arsany; no value chosen; fit row 55) |
+| J1 | TYPE-C-31-M-12 (C165948) | 3.3 flat | flat: none read (LCSC datasheet link gives a wrapper page). Upright male: 11.94 +-0.25 (brief value, PDF not read), **rejected** | flat / edge-mount approved (A-087, Arsany 2026-11-13); height **ASSUMED, never PASS** until the datasheet height of the part Emil picks is read (PR #95 does not contain it yet). Fit row 'J1 USB-C height' OPEN. J1 is not the height driver: J2 sets the 8.6 mm inner height, J1 leaves 2.7 mm air |
 | U3 | TP4056 ESOP-8 (C16581) | 1.75 | none (LCSC datasheet link gives a wrapper page) | ASSUMED |
 | others | D1, U2, U4, U7, Q1, D2, D3, R/C | 0.55-1.1 | not read | ASSUMED |
 

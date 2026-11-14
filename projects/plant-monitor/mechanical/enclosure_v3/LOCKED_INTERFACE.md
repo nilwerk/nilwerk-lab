@@ -10,7 +10,7 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 | Body | 34.5 x 42.0 | READ | DXF OUTLINE |
 | Tail (25 mm DXF) | 12.0 x 25.0 | READ | DXF OUTLINE; tip at y -67.0 |
 | Thickness | 1.6 | READ | KiCad general thickness (tolerance +-10 % per layout-brief) |
-| Tail length variants | 14 mm: board tail 25.8; 20 mm: board tail 31.8 | OPEN | electrode copper beyond the outer bottom face, A-071 (Arsany). Board change needed for both (DXF tail 25.0) |
+| Tail length variants | 14 mm: board tail 25.8; 20 mm: board tail 31.8 | 14 mm APPROVED (A-071, Arsany 2026-11-12); 20 mm reference only | electrode copper beyond the outer bottom face. Board change to 25.8 is in `pcb/gen_pcb.py` on main; the DXF copy in `input/` is still 25.0 |
 | Electrode copper | 20 mm, y -43 to -63 | READ | E1 pad 1 (SOIL_PROBE), tip margin 4.0 to the tail end |
 | Antenna module overhang | 4.5 above the top edge, x 20.3..33.5 | READ | DXF MODULE_U1; enclosure keeps 1.0 air (ASSUMED) |
 
@@ -26,8 +26,8 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 | Item | Value | Status | Note |
 |---|---|---|---|
 | J1 centre (x = right edge, y) | x 34.50, y -33.0, rotated 90 deg | READ | J1 footprint position |
-| J1 height, flat (model value, board top to centre) | 3.30 (centre at z 4.25) | ASSUMED | no datasheet height read for the flat part; see fit check |
-| **J1 height, upright male (TYPE-C-31-M-12 datasheet)** | **11.94 +-0.25** | **OPEN** | orientation is decision **A-087** (Arsany); no value chosen. Upright does not fit the 7.6 mm inner box (fit row 55) |
+| J1 height, flat (model value, board top to centre) | 3.30 (centre at z 4.25) | ASSUMED | flat / edge-mount approved (A-087, Arsany 2026-11-13); no datasheet height of the picked flat part yet, never PASS until then; fit check row 'J1 USB-C height' |
+| J1 height, upright male (TYPE-C-31-M-12, brief value) | 11.94 +-0.25 | REJECTED | not used: A-087 chose flat / edge-mount; upright would need an inner height of about 15.0 |
 | Window in right wall | 9.6 x 3.9 | ASSUMED | plug 8.94 x 3.26 + 0.3 per side |
 | Overmold pocket (from outside) | 14.0 x 8.0 x 1.2 deep | ASSUMED | wall left 1.2 |
 
@@ -60,14 +60,14 @@ Status: **READ** = from the board file; **ASSUMED** = enclosure assumption (not 
 ## 8. Housing envelope (for Emil's keep-out)
 | Item | Value | Status | Note |
 |---|---|---|---|
-| Inner cavity, **option A: J2 4.5 ASSUMED (not the model since slice 4)** | 93.3 x 53.7 x 7.6 | **OPEN, not locked** | holds only if the J2 datasheet is <= 4.5 (budget 1.0 + 1.6 + J2 + 0.5) |
+| Inner cavity, option A: J2 4.5 ASSUMED (reference only, not the model since slice 4) | 93.3 x 53.7 x 7.6 | OPEN, not locked | basis is J2 (not J1); holds only if the J2 datasheet is <= 4.5 (budget 1.0 + 1.6 + J2 + 0.5) |
 | Outer, lid on, option A | 97.3 x 56.9 x 11.2 | OPEN | floor 1.2 + inner + lid 2.4; +1.0 gasket (not modelled) |
-| Inner cavity, **option B (model): J2 5.5** | 93.3 x 53.7 x 8.6 | OPEN (not a datasheet value) | J2 5.5 from the LCSC C295747 listing (A-076); 0.5 mm air to the lid |
+| Inner cavity, **option B (model): J2 5.5, J1 flat 3.3 not limiting** | 93.3 x 53.7 x 8.6 | OPEN (not a datasheet value) | J2 5.5 from the LCSC C295747 listing (A-076); 0.5 mm air to the lid |
 | Outer, lid on, option B | 97.3 x 56.9 x 12.2 | OPEN | +1.0 gasket (not modelled) |
 
 ## 9. Open points (NEEDS ARSANY / Emil)
-1. **Tail length (A-071)**: choose 14 or 20 mm. Board tail becomes 25.8 or 31.8 mm; the DXF is 25.0 today.
+1. **Tail length (A-071)**: DECIDED 14 mm (Arsany 2026-11-12), board tail 25.8 mm. Open only: refresh `input/` from the board on main (the copy still has the 25.0 mm DXF tail). 20 mm (31.8) is reference only.
 2. **J2 height (A-076)**: model 5.5 from the LCSC C295747 Z-height listing (SECONDARY). The JST drawing is still to confirm, and element14 lists 8.0 mm for a likely B2B variant, so the exact part must be confirmed before the inner height is locked. Inner 8.6 (option B) is the model; option A 7.6 is for reference only.
 3. **Board retention**: two more keep-clear pads or two M2 holes (no metal within 15 mm of the antenna).
-4. **J1 orientation (A-087)**: approved flat / edge-mount by Arsany 2026-11-13. Model: flat 3.30, ASSUMED (no datasheet height for the flat part read); the part is still to be picked by Emil. The upright male version (11.94 +-0.25, datasheet) does not fit this box and is not used.
+4. **J1 (A-087)**: flat / edge-mount approved by Arsany 2026-11-13. Model: flat 3.30, ASSUMED. Open: Emil picks the actual flat part (PR #95 does not contain it yet); the height stays ASSUMED, never PASS, until its datasheet height is read. The upright version (11.94 +-0.25) is rejected and not used.
 5. **Device heights** still ASSUMED (see `params_v3.H_SRC`): U3 and the 0603/SOT parts.

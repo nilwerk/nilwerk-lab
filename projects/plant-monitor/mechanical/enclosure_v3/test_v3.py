@@ -19,8 +19,8 @@ EXPECTED_OPEN = ("Board tail in DXF", "Tallest part to lid underside", "J2 at 5.
                  "Antenna tip to top wall", "Interference lid vs board+parts", "PETG min feature: vent slot width", "PETG min feature: pinhole d",
                  "PETG min feature: light window d", "PETG min feature: lid screw clearance hole", "PETG min feature: plug wall",
                  "Seal tunnel clearance per side", "Model heights equal their cited source",
-                 # fix round 3 (Theo verdict on 689c161): seal width and PETG boss wall are passes against ASSUMED / own-target values; J1 upright is A-087 (OPEN)
-                 "Seal tunnel clearance per side", "PETG insert boss wall", "J1 USB-C height, flat vs upright",
+                 # fix round 3 (Theo verdict on 689c161): seal width and PETG boss wall are passes against ASSUMED / own-target values; J1 is flat per A-087, height ASSUMED (OPEN)
+                 "Seal tunnel clearance per side", "PETG insert boss wall", "J1 USB-C height",
                  # slice 4 (Yara, 2026-11-13): boss to board outline plan gap, threshold ASSUMED 1.0 mm
                  "Boss to board outline")
 
@@ -28,7 +28,7 @@ EXPECTED_OPEN = ("Board tail in DXF", "Tallest part to lid underside", "J2 at 5.
 @pytest.mark.parametrize("tail", ["14", "20"])
 def test_all_fit_checks_pass_for_both_tail_variants(tail):
     """No FAIL for either variant. The OPEN rows are exactly EXPECTED_OPEN (19): the board DXF tail (A-071), the J2 height (A-076, rows 'Tallest part',
-    'J2 5.5', 'Interference lid'), heights not datasheet-sourced, the PETG wall over the antenna, the unchecked torque, the J1 upright height (A-087), and every
+    'J2 5.5', 'Interference lid'), heights not datasheet-sourced, the PETG wall over the antenna, the unchecked torque, the J1 flat height (A-087, ASSUMED), and every
     pass that rests on an ASSUMED threshold or our own target (antenna air, PETG feature floor, seal clearance, PETG boss wall). Nothing OPEN is counted as PASS."""
     rows = F.main(tail)
     bad = [r for r in rows if r[3] == "FAIL"]
@@ -150,7 +150,8 @@ def test_height_sources_cover_the_model():
     assert set(P.H_BY_REF) <= set(P.H_SRC), set(P.H_BY_REF) - set(P.H_SRC)
     assert {k for k, v in P.H_SRC.items() if v[0] == "DATASHEET"} == {"U1"}
     assert "5.5" in P.H_SRC["J2"][1] and P.H_BY_REF["J2"] == 5.5 and P.H_SRC["J2"][0] == "SECONDARY"   # A-076: model value = listing value, not a datasheet
-    assert P.H_SRC["J1_UPRIGHT"][0] == "OPEN" and (P.J1_UPRIGHT_H, P.J1_UPRIGHT_TOL) == (11.94, 0.25)   # upright J1 recorded as OPEN (A-087), model keeps flat 3.3
+    assert P.H_SRC["J1_UPRIGHT"][0] == "REJECTED" and (P.J1_UPRIGHT_H, P.J1_UPRIGHT_TOL) == (11.94, 0.25)   # upright J1 rejected by A-087, record only
+    assert P.H_SRC["J1"][0] == "ASSUMED" and P.H_BY_REF["J1"] == 3.3 and P.J1_Z == pytest.approx(P.BOARD_Z1 + 3.3 / 2)   # flat J1: ASSUMED until a datasheet height exists, never DATASHEET/PASS
 
 
 def test_locked_interface_file_is_current():
