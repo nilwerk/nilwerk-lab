@@ -26,7 +26,7 @@ Everything from `v4_c6_lipo` is internal reference only (its README: the v3 sour
 | Regulator | **U1 TPS63031DSKR** buck-boost to 3.3 V, C15516, with L1 2.2 uH SRN4018 C913207 and C10 22 uF 1206 | **U2 XC6220B331MR-G** LDO, C86534 (Extended), from VBAT |
 | Charge current | PROG1 resistor R13 4.02k (C491130) and PROG3 R14 40.2k (C137723): IREG = 1000 V / R_PROG1 per datasheet, so about **249 mA** (R13 to PROG1 is my reading of a scrambled PDF, UNVERIFIED). In USB mode (SEL low) the input limit is PROG2: low = 100 mA, high = 500 mA | **R9 2.4k (C22940) = 458 mA** (0.46C of 1000 mAh), nominal USB-2.0 limit use |
 | USB current limit | SEL and PROG2 selectable; schematic note "USB limit defaults to 100 mA; populate R15 (0R, DNP) only for a verified 500 mA source" | none: fixed 458 mA, no negotiation |
-| Input sense | VPCC divider from +5 V (R16/R17/R18 100k/270k/100k, C3020-class parts C116674 / C403123, exact assignment UNVERIFIED), makes the charger back off a weak source | none |
+| Input sense | VPCC divider from +5 V (R16/R17/R18 100k/270k/100k, C116674 / C403123, exact assignment UNVERIFIED), makes the charger back off a weak source | none |
 | Battery temperature | THERM biased by **R19 10k to GND (C98220)**. The schematic says "biases THERM only, no battery temperature measurement". Per datasheet ITHERM = 50 uA typ, so 10k = 0.5 V = about a 10k NTC at room temperature: it fakes a healthy pack, it does not disable the check | TEMP **tied to GND = sense disabled** (TP4056 datasheet p. 7, per repo). Both designs have no cold/hot charge protection; both are the same risk |
 | Status | STAT1/STAT2/PG to LED D3 + R11 0.33k and test pads; v4 LED is always-on (about 3 to 4 mA by Emil's earlier estimate, not measured) | CHRG/STDBY LEDs D2/D3, R10/R11 1k, no current when USB is unplugged |
 | Cell protection | none on the board (relies on the pack) | DW01A U4 + 8205A Q1 (redundant with the cell's own PCM; open point 4 in `pcb/README.md`) |
@@ -40,9 +40,9 @@ Everything from `v4_c6_lipo` is internal reference only (its README: the v3 sour
 
 ## 2. What it costs us in sleep current and battery life (derived, not measured)
 
-Replacing TP4056 + LDO (14 typ / 23 max) with MCP73871 + TPS63031 (55 / 75), and keeping DW01A/8205A out of the count (v4 has no protection IC; if we kept ours it is +6.05 on top):
+Replacing TP4056 + LDO (14 typ / 23 max) with MCP73871 + TPS63031 (55 / 75), with our DW01A/8205A counted as removed in the 14/23 figure (v4 has no protection IC; if we kept them the delta is about 3 uA typ larger):
 
-- Whole-board sleep: 21.6 + 41 = **62.6 typ uA** (limit 50, target 25) and 39.6 + 52 = **91.6 worst uA**. **NFR-12 fails in both cases.** (If U4/Q1 are also deleted per open point 4 the delta is +3 less typ, the conclusion is the same.)
+- Whole-board sleep: 21.6 + 41 = **62.6 typ uA** (limit 50, target 25) and 39.6 + 52 = **91.6 worst uA**. **NFR-12 fails in both cases.**
 - NFR-01 (rule: 0.8 x rated capacity / average current, 1000 mAh minimum cell, power-budget typical average 0.244 mA, stack averages from `power-budget.md` section 1): typical 4.5 months becomes about 800 / 0.285 = 2807 h = **3.8 months** (needs 3, margin 1.28x instead of 1.5x); the worst stack of about 1.4 months drops to about 1.3 months (needs more than 1). Still inside the relaxed NFR-01, but it burns most of the margin, UNVERIFIED because every current in the budget is an unmeasured assumption (5.4 decides).
 - Caveat: the MCP73871 leakage is the datasheet's "VBAT = Power Out, no load" row; whether it is that large in our wiring with USB unplugged is a bench question. Nobody has measured it.
 
@@ -53,7 +53,7 @@ Replacing TP4056 + LDO (14 typ / 23 max) with MCP73871 + TPS63031 (55 / 75), and
 Why:
 1. NFR-12 and NFR-01. The MCP73871 + TPS63031 stack alone is 55 uA typ, more than the whole-board limit of 50 uA. This is a stack-level finding from two datasheet tables, not a guess, but it is an unmeasured datasheet number. Only a bench measurement of a real board settles it (5.2 / 4.P5).
 2. A-046 Option A (no power path, board needs a cell) was answered by Arsany on 2026-11-08. v4 is the Option B family. Reversing it is his decision, not ours.
-3. Cost and risk. TP4056 + LDO is 11 Extended-class lines already in our dry-run. MCP73871 is a 4x4 mm QFN-20 with exposed pad (hand rework harder, one more footprint to draw and check: our 4.P2 slice 3 is still not routed), plus an inductor and a 22 uF 1206 for the buck-boost, so more BOM lines and more Extended loading fees: fee value UNVERIFIED (not read), same open item as `dry-run-checklist.md` A8. I did not query live prices or stock; cost delta UNVERIFIED.
+3. Cost and risk. Our TP4056 + LDO path is already in the dry-run (11 Extended unique parts on the whole board). MCP73871 is a 4x4 mm QFN-20 with exposed pad (hand rework harder, one more footprint to draw and check: our 4.P2 slice 3 is still not routed), plus an inductor and a 22 uF 1206 for the buck-boost, so more BOM lines and more Extended loading fees: fee value UNVERIFIED (not read), same open item as `dry-run-checklist.md` A8. I did not query live prices or stock; cost delta UNVERIFIED.
 4. What power path would give us: no "charge complete" delay while Wi-Fi is awake on USB (TP4056 termination is about 46 mA by repo estimate, below an awake load), operation from USB with no cell, and no LDO dropout trouble. None of these is an NFR today (FR-D06 is a firmware-visible delay only).
 5. If a power path is wanted later with less leakage, the cheaper route is A-046 Option B (P-FET ideal diode) kept on the table; I did not re-research it here.
 
