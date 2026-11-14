@@ -5,5 +5,5 @@
 - Task: 4.E3 slice 5 (branch `agent/mechanical/4.E3-s5`) · PR: #96 (https://github.com/nilwerk/nilwerk-lab/pull/96) · Persona: Yara (3D Product Designer)
 - Checks run locally (GitHub Actions is waived until billing is fixed, A-090, so CI was not run): `pytest -q` in `projects/plant-monitor/mechanical` 56 passed; fit check 40 PASS / 0 FAIL / 19 OPEN for both tail variants, same counts as before.
 - Cavity basis: J2 (5.5 mm, a distributor listing) sets the 8.6 mm inner height; J1 flat leaves 2.7 mm of air. The 7.6 mm figure is the old J2 4.5 assumption, kept as reference.
-- Agent minutes: see the Agent Log (about 25 min run clock) · Agent's own human-hour estimate: 3 h
+- Agent minutes: 7.9 min (run clock 11:27:34 to 11:35:29 CET, before this fix) · Agent's own human-hour estimate: 3 h
 - Unverified: J1 height (assumed, part not yet picked); J2 height (listing, drawing not read); RF effect of the 1.6 mm PETG wall (risk accepted for the demo, not measured); the board copy in `input/` still has the 25.0 mm tail; no slice, print, seal or splash test; the render is a rasterised view of the model, not a photo of a print.
