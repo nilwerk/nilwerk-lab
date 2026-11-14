@@ -25,3 +25,5 @@ Committed 20; Arsany/agent tasks reached In review quickly (agents: ~1–10 min 
 | Project | Workstream | Est. h (plan) | Agent minutes | Human-equiv h (÷1.25) | Measured agent min per estimated human h | Arsany's real h |
 |---|---|---|---|---|---|---|
 | _none yet — filled at project end (task 6.7)_ | | | | | | |
+- Always show every agent's run time (start, end, agent minutes, human-equivalent range) in every status line, summary and report, also for extra rounds and requests outside the daily plan. Why: the owner uses the times for customer estimates (owner, 2026-11-14).
+- Record the Claude model used for every agent run in the Agent Log (Notes), so a per-model comparison is possible. Why: owner asked for model performance; the log did not carry it (2026-11-14).
