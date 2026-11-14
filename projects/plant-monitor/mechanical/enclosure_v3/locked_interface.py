@@ -43,8 +43,8 @@ def text():
     a("| Item | Value | Status | Note |")
     a("|---|---|---|---|")
     a(f"| J1 centre (x = right edge, y) | x {P.BOARD_W:.2f}, y {P.J1_Y:.1f}, rotated 90 deg | READ | J1 footprint position |")
-    a(f"| J1 height, flat (model value, board top to centre) | {P.H_BY_REF['J1']:.2f} (centre at z {P.J1_Z:.2f}) | {sec('J1')} | flat / edge-mount approved (A-087, Arsany 2026-11-13); no datasheet height of the picked flat part yet, never PASS until then; fit check row 'J1 USB-C height' |")
-    a(f"| J1 height, upright male (TYPE-C-31-M-12, brief value) | {P.J1_UPRIGHT_H:.2f} +-{P.J1_UPRIGHT_TOL:.2f} | {sec('J1_UPRIGHT')} | not used: A-087 chose flat / edge-mount; upright would need an inner height of about 15.0 |")
+    a(f"| J1 height, flat (model value, board top to centre) | {P.H_BY_REF['J1']:.2f} (centre at z {P.J1_Z:.2f}) | {sec('J1')} | flat / edge-mount approved (A-087, Arsany 2026-11-13); C165948 is already the flat part (no pick needed); 3.26 mm read once in PR #95 (docs/j1-usbc-flat.md, branch agent/pcb/gerber-pkg), Ines's second read pending, never PASS until then; fit check row 'J1 USB-C height' |")
+    a(f"| J1 height, upright (unsourced brief value) | {P.J1_UPRIGHT_H:.2f} +-{P.J1_UPRIGHT_TOL:.2f} | {sec('J1_UPRIGHT')} | unsourced brief value, not in the HRO TYPE-C-31-M-12 drawing (see PR #95); REJECTED by A-087, record only; the 15.0 inner height it would need rests on this unsourced number |")
     a(f"| Window in right wall | {P.USB_W} x {P.USB_H} | ASSUMED | plug 8.94 x 3.26 + 0.3 per side |")
     a(f"| Overmold pocket (from outside) | {P.USB_POCKET[0]} x {P.USB_POCKET[1]} x {P.USB_POCKET[2]} deep | ASSUMED | wall left {P.WALL - P.USB_POCKET[2]:.1f} |")
     a("")
@@ -89,7 +89,7 @@ def text():
     a(f"1. **Tail length (A-071)**: DECIDED 14 mm (Arsany 2026-11-12), board tail {P.TAIL_L_VARIANT['14']:.1f} mm. Open only: refresh `input/` from the board on main (the copy still has the 25.0 mm DXF tail). 20 mm ({P.TAIL_L_VARIANT['20']:.1f}) is reference only.")
     a(f"2. **J2 height (A-076)**: model 5.5 from the LCSC C295747 Z-height listing (SECONDARY). The JST drawing is still to confirm, and element14 lists 8.0 mm for a likely B2B variant, so the exact part must be confirmed before the inner height is locked. Inner {P.INNER_H_IF_J2_5_5:.1f} (option B) is the model; option A {P.INNER_H_OPT_A:.1f} is for reference only.")
     a("3. **Board retention**: two more keep-clear pads or two M2 holes (no metal within 15 mm of the antenna).")
-    a("4. **J1 (A-087)**: flat / edge-mount approved by Arsany 2026-11-13. Model: flat 3.30, ASSUMED. Open: Emil picks the actual flat part (PR #95 does not contain it yet); the height stays ASSUMED, never PASS, until its datasheet height is read. The upright version (11.94 +-0.25) is rejected and not used.")
+    a("4. **J1 (A-087)**: flat / edge-mount approved by Arsany 2026-11-13. Model: flat 3.30, ASSUMED. Open: the part is BOM C165948 (TYPE-C-31-M-12), already the flat, right-angle, edge-mount receptacle, so no part needs picking. Its drawing height 3.26 mm is read once, by one reader (Emil), in PR #95 (docs/j1-usbc-flat.md on branch agent/pcb/gerber-pkg); a second read by Ines (QA) is pending. Model stays ASSUMED 3.30 (0.04 mm conservative) until she confirms; then a follow-up sets H_BY_REF J1 = 3.26 and DATASHEET. Merge order: PR #95 before this PR (or state it in the description). The 11.94 +-0.25 upright figure is an unsourced brief value, not in the HRO TYPE-C-31-M-12 drawing (see PR #95); REJECTED by A-087, record only.")
     a("5. **Device heights** still ASSUMED (see `params_v3.H_SRC`): U3 and the 0603/SOT parts.")
     return "\n".join(L) + "\n"
 

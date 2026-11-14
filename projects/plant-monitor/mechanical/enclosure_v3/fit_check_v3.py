@@ -190,13 +190,13 @@ def main(tail=None):
     row(f"Model heights equal their cited source ({len(P.H_CITED)} parts)", f"{len(P.H_CITED) - len(mism)} of {len(P.H_CITED)} equal" + (f"; MISMATCH {mism}" if mism else ""),
         "model value = cited value for every part", not mism, "params_v3 H_CITED vs H_BY_REF; standards s.7 (never invent a component dimension)",
         "OPEN: U5, U6, SW1-3 cite distributor listings (SECONDARY), the PDFs were not read", unsure=any(P.H_SRC[k][0] != "DATASHEET" for k in P.H_CITED))
-    # 10 J1 USB-C height: FLAT / edge-mount (A-087, Arsany 2026-11-13). Model value 3.3 is ASSUMED (no datasheet height of the picked flat part yet),
+    # 10 J1 USB-C height: FLAT / edge-mount (A-087, Arsany 2026-11-13). Model value 3.3 is ASSUMED (C165948 is already the flat part; 3.26 read once in PR #95, second read by Ines pending),
     # so the row is OPEN even though the gap passes. The rejected upright 11.94 is not tested any more (record only in params_v3).
     gap_flat = P.INNER_H - (P.BOARD_Z1 + P.H_BY_REF["J1"])
     row("J1 USB-C height (flat / edge-mount, A-087)", f"flat {P.H_BY_REF['J1']:.2f} (ASSUMED): {gap_flat:.2f} mm to lid underside (inner {P.INNER_H:.1f})",
-        f">= {P.LID_CLEAR} mm to lid; height from the datasheet of the picked part", gap_flat >= P.LID_CLEAR - 1e-9,
+        f">= {P.LID_CLEAR} mm to lid; height of C165948 confirmed by a second reader", gap_flat >= P.LID_CLEAR - 1e-9,
         "params_v3 H_BY_REF['J1'], H_SRC J1; A-087 (flat approved 2026-11-13)",
-        "OPEN: height ASSUMED until Emil's flat part has a datasheet height (PR #95 does not pick it yet); never PASS before that", unsure=P.H_SRC["J1"][0] != "DATASHEET")
+        "OPEN: height ASSUMED 3.30. C165948 is already the flat part (no pick needed); 3.26 mm read once by Emil in PR #95 docs/j1-usbc-flat.md (branch agent/pcb/gerber-pkg), second read by Ines pending; never PASS before that", unsure=P.H_SRC["J1"][0] != "DATASHEET")
     return list(ROWS)
 
 

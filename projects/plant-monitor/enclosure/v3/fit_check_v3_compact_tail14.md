@@ -60,6 +60,6 @@ Tail variant: 14 mm (A-071: 14 mm approved by Arsany 2026-11-12)
 | 56 | STL watertight: plug | True | True | **PASS** | trimesh |
 | 57 | Max bridge/overhang span, print orientation: plug | 0.0 mm (0 faces) | <= 10 mm reach from bed contact (P1S bridges; no steep overhangs) | **PASS** | trimesh, faces with normal z < -0.7 above the bed, reach to bed-contact vertices |
 | 58 | Model heights equal their cited source (7 parts) | 7 of 7 equal | model value = cited value for every part | **OPEN** | params_v3 H_CITED vs H_BY_REF; standards s.7 (never invent a component dimension) (OPEN: U5, U6, SW1-3 cite distributor listings (SECONDARY), the PDFs were not read) |
-| 59 | J1 USB-C height (flat / edge-mount, A-087) | flat 3.30 (ASSUMED): 2.70 mm to lid underside (inner 8.6) | >= 0.5 mm to lid; height from the datasheet of the picked part | **OPEN** | params_v3 H_BY_REF['J1'], H_SRC J1; A-087 (flat approved 2026-11-13) (OPEN: height ASSUMED until Emil's flat part has a datasheet height (PR #95 does not pick it yet); never PASS before that) |
+| 59 | J1 USB-C height (flat / edge-mount, A-087) | flat 3.30 (ASSUMED): 2.70 mm to lid underside (inner 8.6) | >= 0.5 mm to lid; height of C165948 confirmed by a second reader | **OPEN** | params_v3 H_BY_REF['J1'], H_SRC J1; A-087 (flat approved 2026-11-13) (OPEN: height ASSUMED 3.30. C165948 is already the flat part (no pick needed); 3.26 mm read once by Emil in PR #95 docs/j1-usbc-flat.md (branch agent/pcb/gerber-pkg), second read by Ines pending; never PASS before that) |
 
 40 PASS, 0 FAIL, 19 OPEN (tail 14 mm variant)
