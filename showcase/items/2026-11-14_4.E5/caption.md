@@ -4,5 +4,5 @@
 
 - Task: 4.E5 (branch `agent/mechanical/4.E5-v1-housing`, stacked on PR #101: merge #101 first) · PR: #102 (https://github.com/nilwerk/nilwerk-lab/pull/102) · Persona: Yara (3D Product Designer)
 - Checks run locally: `pytest -q` in `projects/plant-monitor/mechanical` 76 passed (20 new); fit check 15 PASS / 0 FAIL / 35 OPEN. PASS only on measured inputs and team rules; everything resting on a part height, a position from the wiring plan, the SuperMini size or the cell brief value is OPEN.
-- Agent minutes: about 22 min (run clock 18:35 to 18:57 CET) · Agent's own human-hour estimate: 9 h (parametric model, fit check, tests, 4 renders, README)
+- Agent minutes: about 18 min (run clock 18:35 to 18:53 CET) · Agent's own human-hour estimate: 9 h (parametric model, fit check, tests, 4 renders, README)
 - Unverified: all component heights (WIRING typical values), SuperMini 22.5 x 18 mm, USB-C plug opening 14 x 8 mm, LED positions, hole positions from Emil's layout (grid count unverified), LiPo size (A-020 brief, no datasheet read), insert and screw choice, RF effect of the PETG lid. Not sliced, not printed, no fit test; the first print is Prototype 1 and Arsany measures the list in the README.
