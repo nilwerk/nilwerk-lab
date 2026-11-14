@@ -1,5 +1,9 @@
 # Plant Monitor v1 demo housing (4.E5)
 
+> **Indoor demo only. Not splash-proof, not IP-rated:** open light window and vents. Keep away from watering, no outdoor, no bathroom.
+> **First print = FIT-CHECK part only** until Arsany has measured at least the tallest point above the board and the under-board height (README list items 3 and 4; still open in A-094). All part heights are ASSUMED; the 2 mm figures in A-093 are bare board thickness, not part heights.
+> **Never charge unattended inside the closed box.** The TP4056 and the LiPo sit in 1.6 mm PETG, which softens far below cell-fire temperatures; the only vents are over the AHT20.
+
 Yara (3D Product Designer) · 2026-11-14 · branch `agent/mechanical/4.E5-v1-housing`, stacked on `agent/pcb/v1-wiring` (PR #101): **merge #101 first**.
 Scope: a simple printable 2-part housing (base + lid) for the **v1 function demo on the 70 x 50 mm perfboard**, Bambu Lab P1S, PETG, 0.4 mm nozzle, no supports.
 Enclosure v3 / compact shell (4.E3, v2 custom PCB) is **STOPPED** by the owner on 2026-11-14 and was not touched. Nothing here was printed, sliced or measured on hardware.
@@ -47,6 +51,8 @@ Outer **118.5 x 72.6 x 24.2 mm** (assembled), inner height 21.0 mm. Left: the pe
 - 0.20 mm layers, 4 wall loops (1.68 mm), infill 20 %, first layer as in the Bambu PETG profile; black, grey or white PETG. Solid-volume upper bound 24.7 cm3 base + 22.2 cm3 lid = 46.9 cm3, about 60 g at 1.27 g/cm3 (an estimate; the real figure comes from the slice).
 - Fasteners: 5 x M2 x 14 pan head, 5 x M2 heat-set inserts (hole 3.2 mm, 6 mm deep) in the base bosses; the lid screws down from the top into the base. Parting plane z 13.2. The lid is 24.2 mm high, the base 13.2 mm.
 - Assembly: insert the inserts, lay the perfboard (component side up) on the pads against the fins, feed the LiPo lead through the notch, check J1 is open, fit the lid, 5 screws. Programming and charging follow WIRING.md 2.3/2.4 (J1 open, never both USB ports with J1 closed).
+- **Charging rule:** charge only supervised, on a non-flammable surface, preferably with the lid off, or at least with the J1 hatch and vents unobstructed; stop if the module or cell is hot or swells. No unattended charging in the closed box until Arsany decides otherwise.
+- **Lid off vs lid on** (to be aligned with Emil's flash-procedure fix in #101, branch `agent/pcb/v1-wiring`, once it lands; it had not landed at the time of this round): flashing with J1 open through the jumper hatch, lid on, is the intended path; unplugging the JST pair (J_BAT) needs the lid off, because the mated pair is parked in a channel under the lid. Through the openings with the lid on: J1 hatch, BOOT/RESET pin guides (paperclip), both USB-C ports, light window, vents. Lid off: unplugging or re-seating the JST pair, any wiring change, inserting the cell, checking the lead and strain relief.
 - Files: `enclosure/v1_demo/` STEP (assembled position, for Fusion 360), STL + 3MF (print orientation), STEP with reference perfboard, parts and cell; renders in `enclosure/v1_demo/renders/`. Fusion strategy: parameters above = `params_v1.py`; two bodies (base, lid); Arsany would edit opening sizes, `STANDOFF_H`, `LID_MARGIN` and the boss positions; any exported STEP from him becomes the reference.
 - Cost (estimate, not for sale): about 60 g PETG at an assumed 20 EUR/kg = about 1.2 EUR, plus 5 screws and inserts (price not checked).
 
@@ -61,6 +67,11 @@ Outer **118.5 x 72.6 x 24.2 mm** (assembled), inner height 21.0 mm. Left: the pe
 8. LiPo: datasheet dimensions (cell and pack) against the bay 53.0 x 35.1 x 7.2; JST-PH plug size; the lead reaches the board through the notch; the S-bend relieves the plug.
 9. Insert and screw: hole 3.2 mm fits your insert; M2 x 14 length is right.
 10. Antenna end stays clear: no wire, metal or cell in the keep-out; check Wi-Fi range with the lid on against without (no RF measurement exists).
+11. TP4056 USB-C protrusion beyond the PCB edge against the 0.4 mm wall gap (module at x 0, wall at x -0.4): a shell that overhangs even 0.5 mm collides with the wall (WIRING section 6 lists "protrusion").
+12. The real LiPo pack as delivered: size incl. protection circuit and plug against the bay, and whether it has solder tabs or a JST plug (A-091 answered: JST-PH 2.0 mm, red +; datasheet vs listing still to compare, see #101 C1).
+13. Lead length from the cell to the TP4056 B+/B- pads through notch and lane (doc y 30 to 34): reaches without tension.
+14. The soil sensor (95 x 22 x 2 bare board, A-093) sits OUTSIDE the box; only its cable exits through the slot. Confirm it is not meant to sit inside.
+15. Screws and M2 heat-set inserts are bought by Arsany; nothing is ordered by the team.
 
 ## UNVERIFIED / not done
 Nothing printed, sliced or measured; all heights WIRING typical; SuperMini size and all positions from Emil's layout plan; cell dimensions from the A-020 brief, not the datasheet; plug size, insert, screws assumed; open light window and vents are not splash-proof (indoor demo); a closed box warms the AHT20, so v1 temperature is not an ambient reading; no RF effect of the 1.6 mm PETG lid measured; no CE/EMC claim. Prototype 1 to 3 and the pilot path (standard section 10) apply before any batch.

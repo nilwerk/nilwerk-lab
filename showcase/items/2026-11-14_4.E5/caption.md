@@ -1,5 +1,7 @@
 # 4.E5: printable housing for the v1 function demo (70 x 50 mm perfboard)
 
+**Indoor use only. Not IP-rated: open light window and vents; keep away from watering, no outdoor, no bathroom. Do not charge unattended in the closed box. First print is a fit-check part only until the tallest-point and under-board heights are measured (A-094).**
+
 **What it shows:** an exploded render of the parametric CadQuery model of a 2-part PETG housing (base + lid, 118.5 x 72.6 x 24.2 mm) for the v1 demo: the perfboard on standoffs (green boxes = parts, heights ASSUMED), a separate LiPo bay (amber), and a lid with two USB-C openings, BOOT/RESET pin guides, a light window, AHT20 vents and a jumper hatch. Real render of the exported model, not a photo of a print.
 
 - Task: 4.E5 (branch `agent/mechanical/4.E5-v1-housing`, stacked on PR #101: merge #101 first) · PR: #102 (https://github.com/nilwerk/nilwerk-lab/pull/102) · Persona: Yara (3D Product Designer)
