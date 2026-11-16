@@ -93,7 +93,7 @@ def main():
     row("PETG min feature: vent slot width", f"{P.VENT_W} mm", ">= 1.0 (ASSUMED PETG floor, as in v3)", P.VENT_W >= 1.0, "ASSUMED floor", unsure=True)
     row("PETG min feature: BOOT/RESET pin hole", f"d {P.BTN_HOLE_D} mm", ">= 1.8 for a paperclip (ASSUMED)", P.BTN_HOLE_D >= 1.8, "ASSUMED", "holes print smaller than drawn: prototype check", unsure=True)
     # ---------- perfboard pocket and support (MEASURED 70 x 50 x 2) ----------
-    row("Perfboard pocket clearance, left and bottom/top sides", f"left {-P.IX0:.2f}, bottom {P.FIT:.2f}, top {P.FIT:.2f}", f"= FIT {P.FIT} (standard 0.2-0.4)", abs(-P.IX0 - P.FIT) < 1e-9, "perfboard MEASURED; FIT per standard s3", "the real fit of the printed pocket is OPEN until Prototype 1")
+    row("Perfboard pocket clearance, left and bottom/top sides", f"left {-P.IX0:.2f}, bottom {P.FIT:.2f}, top {P.FIT:.2f}", f"= FIT {P.FIT} (standard 0.2-0.4)", abs(-P.IX0 - P.FIT) < 1e-9, "perfboard MEASURED; FIT per standard s3 (value chosen, not measured)", "vacuous as a fit check (IX0 is defined as -FIT): OPEN until the printed pocket is measured at Prototype 1", unsure=True)
     ov = vol(pb, tray)
     row("Model-internal (self-consistency): perfboard ghost vs base", f"{ov:.3f} mm3", "0", ov < 1e-6, "perfboard MEASURED; z position from STANDOFF_H (4.0 mm pin tips ASSUMED)", "checks only that the model is self-consistent; not a fit proof and not a height check", unsure=True)
     pad_end = P.PAD_XS[-1][1]
