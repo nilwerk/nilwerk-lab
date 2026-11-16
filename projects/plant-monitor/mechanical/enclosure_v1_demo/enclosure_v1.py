@@ -1,5 +1,6 @@
-"""CadQuery model of the v1 demo housing (4.E5): tray + lid. Assembled position (STEP): tray z 0..Z_SPLIT, lid Z_SPLIT-1..Z_TOP+LID_T.
-Print orientation (STL/3MF): tray as is (floor on the bed), lid flipped (top face on the bed, skirt and posts grow upward): no supports."""
+"""CadQuery model of the v1 demo housing (4.E5), COMPACT round 2: tray + lid. Assembled position (STEP): tray z 0..Z_SPLIT, lid Z_SPLIT..Z_LID_TOP
+(its guide tubes and collar hang below Z_SPLIT, inside the base). Print orientation (STL/3MF): tray as is (floor on the bed), lid flipped
+(top face on the bed, skirt and posts grow upward): no supports. The LiPo cell lies under the perfboard in a floor cradle (no bay)."""
 import cadquery as cq
 import params_v1 as P
 
@@ -25,13 +26,14 @@ def btn_xy():
 
 
 def _openings():
-    """Cuts through the wall (apply to both parts): two USB-C openings in the left wall, soil cable exit in the bottom wall."""
+    """Cuts through the wall (apply to both parts): two USB-C openings in the left wall, soil cable exit in the bottom wall.
+    Round 2: the parting plane is above both USB-C openings, so only the base carries them."""
     cuts = []
     for ydoc, zc in ((P.USB_SM_YDOC, P.USB_SM_Z), (P.USB_TP_YDOC, P.USB_TP_Z)):
         yc = P.cy(ydoc)
         cuts.append(_box(P.OX0 - 1.0, yc - P.PLUG_W / 2, zc - P.PLUG_H / 2, P.IX0 + 0.5, yc + P.PLUG_W / 2, zc + P.PLUG_H / 2))
     xc = P.J3_XYDOC[0]
-    cuts.append(_box(xc - P.CABLE_W / 2, P.OY0 - 1.0, P.Z_SPLIT - P.CABLE_H / 2, xc + P.CABLE_W / 2, P.IY0 + 0.5, P.Z_SPLIT + P.CABLE_H / 2))
+    cuts.append(_box(xc - P.CABLE_W / 2, P.OY0 - 1.0, P.CABLE_Z - P.CABLE_H / 2, xc + P.CABLE_W / 2, P.IY0 + 0.5, P.CABLE_Z + P.CABLE_H / 2))
     return cuts
 
 
@@ -39,25 +41,20 @@ def tray():
     t = _rbox(P.OX0, P.OY0, 0, P.OX1, P.OY1, P.Z_SPLIT, P.R_OUT)
     t = t.cut(_rbox(P.IX0, P.IY0, P.Z_FLOOR, P.IX1, P.IY1, P.Z_SPLIT + 1, P.R_IN))
     # board support pads (under the long edges) and locator fins beside them
-    for xs in P.PAD_X:
+    for xa, xb in P.PAD_XS:
         for y0 in (0.0, P.PB_W - P.PAD_W):
-            t = t.union(_box(xs, y0, P.Z_FLOOR - 0.01, xs + P.PAD_L, y0 + P.PAD_W, P.Z_PB_BOT))
-        t = t.union(_box(xs, -P.FIT - P.FIN_T, P.Z_FLOOR - 0.01, xs + P.FIN_L, -P.FIT, P.Z_PB_TOP + P.FIN_H))
-        t = t.union(_box(xs, P.PB_W + P.FIT, P.Z_FLOOR - 0.01, xs + P.FIN_L, P.PB_W + P.FIT + P.FIN_T, P.Z_PB_TOP + P.FIN_H))
-    # divider between board cavity and cell region, with the lead U-notch (open to the top)
-    div = _box(P.DIV_X0, P.IY0 - 0.01, P.Z_FLOOR - 0.01, P.DIV_X1, P.IY1 + 0.01, P.DIV_H)
-    div = div.cut(_box(P.DIV_X0 - 1, P.NOTCH_Y[0], P.NOTCH_Z0, P.DIV_X1 + 1, P.NOTCH_Y[1], P.DIV_H + 1))
-    t = t.union(div)
-    # cell cradle: low wall along the channel (gap at the lead end), top end wall with finger notch, two stops at the lead end
-    t = t.union(_box(P.CELL_WALL_X0, P.CELL_Y0 + 6.0, P.Z_FLOOR - 0.01, P.CELL_WALL_X0 + P.LOW_T, P.CELL_Y1 + 0.2, P.Z_FLOOR + P.LOW_H))
-    mid = (P.CELL_X0 + P.CELL_X1) / 2
-    for xa, xb in ((P.CELL_X0, mid - 6), (mid + 6, P.CELL_X1 + 0.2)):
-        t = t.union(_box(xa, P.CELL_Y1, P.Z_FLOOR - 0.01, xb, P.CELL_Y1 + P.LOW_T, P.Z_FLOOR + P.LOW_H))
-    for xa, xb in ((P.CELL_X0, P.CELL_X0 + 6.0), (P.CELL_X1 - 6.0, P.CELL_X1 + 0.2)):
-        t = t.union(_box(xa, P.CELL_Y0 - P.STOP_Y, P.Z_FLOOR - 0.01, xb, P.CELL_Y0, P.Z_FLOOR + P.LOW_H))
-    # strain relief S-bend posts
+            t = t.union(_box(xa, y0, P.Z_FLOOR - 0.01, xb, y0 + P.PAD_W, P.Z_PB_BOT))
+        t = t.union(_box(xa, -P.FIT - P.FIN_T, P.Z_FLOOR - 0.01, xa + P.FIN_L, -P.FIT, P.Z_PB_TOP + P.FIN_H))
+        t = t.union(_box(xa, P.PB_W + P.FIT, P.Z_FLOOR - 0.01, xa + P.FIN_L, P.PB_W + P.FIT + P.FIN_T, P.Z_PB_TOP + P.FIN_H))
+    # LiPo cradle under the board: keep-out-side wall, two stops at the cell ends (bottom stop notched for the lead)
+    z1 = P.Z_FLOOR + P.LOW_H
+    t = t.union(_box(P.CAV_X0 - P.STOP_T, P.CAV_Y0 - P.STOP_T, P.Z_FLOOR - 0.01, P.CAV_X0, P.CAV_Y1 + P.STOP_T, z1))
+    t = t.union(_box(P.CAV_X0, P.CAV_Y0 - P.STOP_T, P.Z_FLOOR - 0.01, P.CAV_X1, P.CAV_Y0, z1))
+    t = t.union(_box(P.CAV_X0, P.CAV_Y1, P.Z_FLOOR - 0.01, P.CAV_X1, P.CAV_Y1 + P.STOP_T, z1))
+    t = t.cut(_box(P.LEAD_NOTCH_X[0], P.CAV_Y0 - P.STOP_T - 0.1, P.Z_FLOOR, P.LEAD_NOTCH_X[1], P.CAV_Y0 + 0.01, z1 + 0.01))
+    # strain relief S-bend posts in the bottom strip
     for x, y in P.SR_POSTS:
-        t = t.union(_cyl(x, y, P.Z_FLOOR - 0.01, P.Z_FLOOR + P.CELL_CAV[2], P.POST_D))
+        t = t.union(_cyl(x, y, P.Z_FLOOR - 0.01, z1, P.POST_D))
     # screw bosses with insert hole and spigot counterbore at the top
     for x, y in P.boss_xy():
         t = t.union(_cyl(x, y, P.Z_FLOOR - 0.01, P.Z_SPLIT, P.BOSS_D))
@@ -105,10 +102,6 @@ def lid():
     # J1 jumper hatch
     jx, jy = P.J1_XYDOC[0], P.cy(P.J1_XYDOC[1])
     L = L.cut(_box(jx - P.HATCH[0] / 2, jy - P.HATCH[1] / 2, zt - 1, jx + P.HATCH[0] / 2, jy + P.HATCH[1] / 2, zt + P.LID_T + 1))
-    # ribs over the cell (bottom at the cavity top: limits swelling, keeps the cell down)
-    cx = (P.CELL_X0 + P.CELL_X1) / 2
-    for y in (P.CELL_Y0 + 8.0, P.CELL_Y1 - 8.0):
-        L = L.union(_box(cx - P.RIB_L / 2, y - P.RIB_T / 2, P.CELL_RIB_Z, cx + P.RIB_L / 2, y + P.RIB_T / 2, zt + 0.01))
     for c in _openings():
         L = L.cut(c)
     return L
@@ -116,7 +109,7 @@ def lid():
 
 def lid_print():
     """Lid flipped for printing: top face on the bed."""
-    return lid().rotate((0, 0, 0), (1, 0, 0), 180).translate((0, 0, P.Z_TOP + P.LID_T))
+    return lid().rotate((0, 0, 0), (1, 0, 0), 180).translate((0, 0, P.Z_LID_TOP))
 
 
 def perfboard_ghost():
@@ -133,4 +126,5 @@ def parts_ghost():
 
 
 def cell_ghost():
-    return _box(P.CELL_X0 + 0.3, P.CELL_Y0 + 1.0, P.Z_FLOOR, P.CELL_X0 + 0.3 + P.CELL_CELL[1], P.CELL_Y0 + 1.0 + P.CELL_CELL[0], P.Z_FLOOR + P.CELL_CELL[2])
+    """LiPo cell (BRIEF size) lying on the cradle floor under the perfboard, 51 along Y, lead end at the bottom stop."""
+    return _box(P.CELL_X0, P.CELL_Y0, P.Z_FLOOR, P.CELL_X1, P.CELL_Y1, P.Z_FLOOR + P.CELL_CELL[2])

@@ -1,4 +1,6 @@
 # Plant Monitor v1 demo housing (4.E5)
+> **Round 2 (compact, 2026-11-16):** the parameters in this folder are now round 2 (LiPo under the perfboard, lid shell 5.4 mm). The round 1 text below describes round 1 (`enclosure/v1_demo/`, unchanged). Round 2 numbers and checks: `enclosure/v1_demo_compact/README.md`.
+
 
 > **Indoor demo only. Not splash-proof, not IP-rated:** open light window and vents. Keep away from watering, no outdoor, no bathroom.
 > **First print = FIT-CHECK part only** until Arsany has measured at least the tallest point above the board and the under-board height (README list items 3 and 4; still open in A-094). All part heights are ASSUMED; the 2 mm figures in A-093 are bare board thickness, not part heights.

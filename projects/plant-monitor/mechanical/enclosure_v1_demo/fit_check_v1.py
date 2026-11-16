@@ -1,6 +1,6 @@
-"""Fit check for the v1 demo housing (4.E5). Run: python fit_check_v1.py [--md out.md]. Exit 1 on any FAIL.
+"""Fit check for the v1 demo housing (4.E5), compact round 2. Run: python fit_check_v1.py [--md out.md]. Exit 1 on any FAIL.
 PASS = geometry check against MEASURED / RULE inputs only. Anything resting on an ASSUMED, WIRING-typical (UNVERIFIED) or BRIEF value is OPEN, never PASS.
-OPEN rows are reported, never counted as PASS, never fail the run."""
+OPEN rows are reported, never counted as PASS, never fail the run. A row marked 'NOT MET' is a requirement the design cannot meet as briefed: OPEN, with the reason."""
 import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
@@ -20,15 +20,26 @@ def row(name, value, need, ok, src, note="", unsure=False):
 
 def mesh_of(wp):
     import tempfile
-    f = os.path.join(tempfile.gettempdir(), f"v1_{os.getpid()}.stl")
+    f = os.path.join(tempfile.gettempdir(), f"v1c_{os.getpid()}.stl")
     cq.exporters.export(wp, f, tolerance=0.02, angularTolerance=0.15)
     return trimesh.load(f)
 
 
+BRIDGE_Z = [P.USB_SM_Z + P.PLUG_H / 2, P.USB_TP_Z + P.PLUG_H / 2, P.CABLE_Z + P.CABLE_H / 2]   # closed openings: ceilings are bridges
+
+
+def is_bridge(c):
+    """Ceiling of a closed opening in the base wall (left USB-C wall or bottom cable wall), not an overhang."""
+    z_hit = any(abs(c[2] - zb) < 0.05 for zb in BRIDGE_Z)
+    in_wall = c[0] < P.IX0 + 0.1 or c[1] < P.IY0 + 0.1
+    return z_hit and in_wall
+
+
 def overhang_reach(mesh, bed_z=0.0):
-    """Largest horizontal distance from an overhanging face (normal steeper than 45 deg down, above the bed) to the nearest bed-contact boundary edge."""
+    """Largest horizontal distance from an overhanging face (normal steeper than 45 deg down, above the bed) to the nearest bed-contact boundary edge.
+    Ceilings of the closed openings are bridges (see bridge_spans) and are not counted here."""
     n = mesh.face_normals; c = mesh.triangles_center
-    res = [i for i in np.where(n[:, 2] < -0.72)[0] if c[i, 2] > bed_z + 0.05]
+    res = [i for i in np.where(n[:, 2] < -0.72)[0] if c[i, 2] > bed_z + 0.05 and not is_bridge(c[i])]
     if not res:
         return 0.0, 0
     on_bed = np.abs(mesh.vertices[:, 2] - bed_z) < 0.01
@@ -51,6 +62,11 @@ def vol(a, b):
         return 0.0
 
 
+def rect_dist(x0, y0, x1, y1, px, py):
+    dx = max(x0 - px, 0, px - x1); dy = max(y0 - py, 0, py - y1)
+    return math.hypot(dx, dy)
+
+
 def main():
     ROWS.clear()
     tray, lid = E.tray(), E.lid()
@@ -63,10 +79,12 @@ def main():
         row(f"Watertight STL: {nm}", f"watertight={m.is_watertight}, volume {m.volume / 1000:.1f} cm3", "watertight, positive volume", bool(m.is_watertight) and m.volume > 0, "mesh check")
         row(f"On the bed: {nm}", f"z min {m.bounds[0][2]:.3f}", "z min = 0", abs(m.bounds[0][2]) < 1e-6, "print orientation")
         reach, nf = overhang_reach(m)
-        row(f"No supports: {nm}", f"overhang reach {reach:.2f} mm ({nf} faces)", "<= 0.8 mm (bed-edge chamfer lip only)", reach <= 0.8, "RULE: minimise supports; 0.6 mm top-edge chamfer on the bed is the only overhang")
-    walls = dict(wall=P.WALL, floor=P.FLOOR, lid=P.LID_T, divider=P.DIV_T, cradle=P.LOW_T, fin=P.FIN_T)
+        row(f"No supports: {nm}", f"overhang reach {reach:.2f} mm ({nf} faces, bridges excluded)", "<= 0.8 mm (bed-edge chamfer lip only)", reach <= 0.8, "RULE: minimise supports; 0.6 mm top-edge chamfer on the bed is the only overhang")
+    bridges = [(round(float(x), 1), round(float(y), 1), round(float(z), 2)) for x, y, z in (mt.triangles_center[i] for i in np.where(mt.face_normals[:, 2] < -0.72)[0]) if is_bridge(np.array([x, y, z]))]
+    row("Bridges (closed openings, base): spans without support", f"{len(bridges)} ceiling faces; USB-C ceilings {P.PLUG_W:.0f} mm span x 1.6 mm deep, cable slot {P.CABLE_W:.0f} mm span", "<= 15 mm PETG bridge (ASSUMED)", max(P.PLUG_W, P.CABLE_W) <= 15.0, "ASSUMED PETG bridging on 0.4 mm nozzle; round 2 closes the openings (parting plane above them)", "print test on the first base: check the USB-C ceilings and the cable slot", unsure=True)
+    walls = dict(wall=P.WALL, floor=P.FLOOR, lid=P.LID_T, cradle_stop=P.STOP_T, fin=P.FIN_T)
     wmin = min(walls.values())
-    row("Wall / floor / lid / divider >= 1.2 mm", f"min {wmin:.1f} mm (walls {P.WALL}, floor {P.FLOOR}, lid {P.LID_T}; divider/cradle/fins {P.DIV_T})", f">= {P.MIN_WALL}", wmin >= P.MIN_WALL, "RULE mechanical.md")
+    row("Wall / floor / lid / cradle >= 1.2 mm", f"min {wmin:.1f} mm (walls {P.WALL}, floor {P.FLOOR}, lid {P.LID_T}, cradle/fins {P.STOP_T})", f">= {P.MIN_WALL}", wmin >= P.MIN_WALL, "RULE mechanical.md")
     row("Wall >= 1.6 mm (task requirement)", f"outer wall {P.WALL}, floor {P.FLOOR}, lid {P.LID_T}", ">= 1.6", min(P.WALL, P.FLOOR, P.LID_T) >= 1.6, "task 4.E5")
     bw = (P.BOSS_D - P.INSERT_HOLE) / 2
     row("Boss wall around the insert hole", f"{bw:.2f} mm (boss {P.BOSS_D}, hole {P.INSERT_HOLE})", f">= {P.MIN_WALL}", bw >= P.MIN_WALL, "RULE; hole d is ASSUMED (insert not chosen)", "hole diameter OPEN: check with the insert actually bought", unsure=True)
@@ -74,17 +92,20 @@ def main():
     row("Boss rim around the spigot counterbore", f"{rim:.2f} mm", f">= {P.MIN_WALL}", rim >= P.MIN_WALL, "RULE")
     row("PETG min feature: vent slot width", f"{P.VENT_W} mm", ">= 1.0 (ASSUMED PETG floor, as in v3)", P.VENT_W >= 1.0, "ASSUMED floor", unsure=True)
     row("PETG min feature: BOOT/RESET pin hole", f"d {P.BTN_HOLE_D} mm", ">= 1.8 for a paperclip (ASSUMED)", P.BTN_HOLE_D >= 1.8, "ASSUMED", "holes print smaller than drawn: prototype check", unsure=True)
-    # ---------- perfboard pocket (MEASURED 70 x 50 x 2) ----------
-    row("Perfboard pocket clearance, left/top/bottom sides", f"left {-P.IX0:.2f}, board vs divider {P.DIV_X0 - P.PB_L:.2f}", f"= FIT {P.FIT} (standard 0.2-0.4)", abs(-P.IX0 - P.FIT) < 1e-9 and abs(P.DIV_X0 - P.PB_L - P.FIT) < 1e-9, "perfboard MEASURED; FIT per standard s3", "the real fit of the printed pocket is OPEN until Prototype 1")
+    # ---------- perfboard pocket and support (MEASURED 70 x 50 x 2) ----------
+    row("Perfboard pocket clearance, left and bottom/top sides", f"left {-P.IX0:.2f}, bottom {P.FIT:.2f}, top {P.FIT:.2f}", f"= FIT {P.FIT} (standard 0.2-0.4)", abs(-P.IX0 - P.FIT) < 1e-9, "perfboard MEASURED; FIT per standard s3", "the real fit of the printed pocket is OPEN until Prototype 1")
     ov = vol(pb, tray)
     row("Interference perfboard vs base", f"{ov:.3f} mm3", "0", ov < 1e-6, "perfboard MEASURED")
-    pad_ok = P.PAD_X[0] + P.PAD_L < P.PAD_X[1] and P.PAD_X[1] + P.PAD_L <= P.PB_L
-    row("Support pads inside the board outline", f"pads {P.PAD_L} x {P.PAD_W} mm at x {P.PAD_X}", "inside 70 x 50", pad_ok, "perfboard MEASURED")
-    row("Solder-side clearance under the board", f"{P.STANDOFF_H:.1f} mm standoff", ">= 4 mm (WIRING typical) ", P.STANDOFF_H >= 4.0, "WIRING.md: about 4 mm UNVERIFIED", "needs Arsany's under-board height with trimmed pins and wires", unsure=True)
-    def dist_rect(x, y):
-        dx = max(0 - x, 0, x - P.PB_L); dy = max(0 - y, 0, y - P.PB_W)
-        return math.hypot(dx, dy)
-    bgap = min(dist_rect(x, y) - P.BOSS_D / 2 for x, y in P.boss_xy())
+    pad_end = P.PAD_XS[-1][1]
+    pad_ok = all(0 <= a < b <= P.PB_L for a, b in P.PAD_XS)
+    row("Support pads inside the board outline", f"pads {P.PAD_W} wide at x {P.PAD_XS}", "inside 70 x 50", pad_ok, "perfboard MEASURED")
+    pad_clear = pad_end < P.CAV_X0 - P.STOP_T
+    row("Support pads clear of the cell cradle", f"pad end x {pad_end:.1f} vs cradle wall x {P.CAV_X0 - P.STOP_T:.1f}", "pad end < cradle wall", pad_clear, "geometry (cell BRIEF)", unsure=True)
+    row("Support pad 2 outside the antenna keep-out box", f"pad 2 x {P.PAD_XS[1][0]}-{P.PAD_XS[1][1]} vs keep-out x {P.KO_CAD[0]:.0f}-{P.KO_CAD[2]:.0f}", "no overlap", not (P.PAD_XS[1][0] < P.KO_CAD[2] and P.PAD_XS[1][1] > P.KO_CAD[0]), "geometry; keep-out WIRING", unsure=True)
+    overhang_span = P.PB_L - pad_end
+    row("Board support span (NOT MET: no support under the cell)", f"board supported on x {P.PAD_XS[0][0]:.0f}-{pad_end:.0f}; x {pad_end:.0f}-{P.PB_L:.0f} ({overhang_span:.0f} mm) unsupported", "support under the full board", True, "geometry; the cell occupies the board's right side for all y", "NOT MET by design (OPEN until Arsany decides): no pad can stand under x 50-70 without hitting the cell. The 2 mm board sags only under the lid pins; Arsany checks on the printed box", unsure=True)
+    row("Solder-side clearance under the board (cell region)", f"{P.STANDOFF_H:.1f} mm floor-to-board = cell cavity {P.CELL_CAV[2]} + pin tips {P.PIN_TIP} + margin {P.PIN_MARGIN}", f">= {P.CELL_CAV[2] + P.PIN_TIP} (cavity + WIRING pin tips)", P.Z_PB_BOT - P.Z_FLOOR >= P.CELL_CAV[2] + P.PIN_TIP, "WIRING.md about 4 mm pin tips UNVERIFIED; cell BRIEF", "needs Arsany's under-board height with trimmed pins and wires (round 2 raised the gap from 5.0 to 12.2)", unsure=True)
+    bgap = min(rect_dist(0, 0, P.PB_L, P.PB_W, x, y) - P.BOSS_D / 2 for x, y in P.boss_xy())
     row("Boss edge to perfboard outline", f"{bgap:.2f} mm", f">= {P.BOSS_GAP_MIN} (ASSUMED threshold)", bgap >= P.BOSS_GAP_MIN, "ASSUMED threshold", unsure=True)
     # lid hold-down pins stand on free spots of the board (plan positions from WIRING layout, UNVERIFIED)
     bad = []
@@ -96,7 +117,7 @@ def main():
     # ---------- heights (all unmeasured) ----------
     tall = max(P.PARTS.items(), key=lambda kv: kv[1][4])
     gap = P.Z_TOP - (P.Z_PB_TOP + tall[1][4])
-    row("Tallest part to lid underside", f"{gap:.1f} mm ({tall[0]} {tall[1][4]} mm assumed)", f">= {P.LID_MARGIN} margin", gap >= P.LID_MARGIN - 1e-9, "WIRING heights, UNVERIFIED", "J1 with jumper and J3 with Dupont plug are the tallest; heights to be measured", unsure=True)
+    row("Tallest part to lid underside (lid limit)", f"{gap:.1f} mm ({tall[0]} {tall[1][4]} mm assumed; lid underside z {P.Z_TOP:.1f})", f">= {P.LID_MARGIN} margin", gap >= P.LID_MARGIN - 1e-9, "WIRING heights, UNVERIFIED", "J1 with jumper and J3 with Dupont plug are the tallest; heights to be measured", unsure=True)
     for n in ("SuperMini", "TP4056", "BH1750", "AHT20"):
         g = P.Z_TOP - (P.Z_PB_TOP + P.PARTS[n][4])
         row(f"Part top to lid underside: {n}", f"{g:.1f} mm (height {P.PARTS[n][4]} assumed)", ">= 2.0", g >= 2.0, "WIRING height UNVERIFIED", unsure=True)
@@ -107,60 +128,71 @@ def main():
     ov = vol(parts, lid.cut(tubes))
     row("Interference lid vs part boxes (assumed heights)", f"{ov:.3f} mm3 (BOOT/RESET guide tubes excluded)", "0", ov < 1e-6, "ASSUMED heights", "the guide tubes enter the SuperMini envelope by design: the box height 6.8 is the USB-C top, the keys are lower (assumed 5.1)", unsure=True)
     row("BOOT/RESET guide tubes vs SuperMini keys", f"tube end z {P.Z_PB_TOP + P.BTN_PRESS_H + P.BTN_GAP:.1f} vs key top z {P.Z_PB_TOP + P.BTN_PRESS_H:.1f} (assumed)", "gap >= 0.5", P.BTN_GAP >= 0.5, "key height ASSUMED", unsure=True)
+    # ---------- lid height (round 2 target: about half the round-1 shell) ----------
+    row("Lid shell above the parting plane", f"{P.LID_SHELL_H:.1f} mm (round 1: {P.LID_SHELL_H_R1:.1f}; {P.LID_SHELL_H / P.LID_SHELL_H_R1 * 100:.0f} %)", f"about half: <= {P.LID_SHELL_H_R1 / 2 + 0.5:.1f}", P.LID_SHELL_H <= P.LID_SHELL_H_R1 / 2 + 0.5, "round 2 target (Arsany 2026-11-16)", "limited by: parting plane above the SuperMini USB-C top (+ rim) and the lid underside set by the tallest part", unsure=True)
+    guide_bottom = P.Z_PB_TOP + P.BTN_PRESS_H + P.BTN_GAP
+    lid_low = min(guide_bottom, P.Z_SPLIT, P.Z_PB_TOP + P.BTN_PRESS_H + P.BTN_GAP, P.Z_PB_TOP + P.HOLD_GAP)
+    row("Lid part depth incl. hanging pins/guides (print height)", f"{P.Z_LID_TOP - lid_low:.1f} mm (round 1: 15.3; hold-down pins at z {P.Z_PB_TOP + P.HOLD_GAP:.1f} set the lowest point)", "report only", True, "geometry", "the part shell above the seam halves (5.4 vs 11.0); the lid part keeps the same depth because its hold-down pins reach down to the board", unsure=True)
     # ---------- openings ----------
     for nm, ydoc, zc, src in (("SuperMini USB-C (flash/serial)", P.USB_SM_YDOC, P.USB_SM_Z, "centre z from WIRING stack, UNVERIFIED"), ("TP4056 USB-C (charge)", P.USB_TP_YDOC, P.USB_TP_Z, "centre z from WIRING stack, UNVERIFIED")):
         yc = P.cy(ydoc)
         probe = cq.Vector(P.OX0 + 0.8, yc, zc)
         free = not tray.val().isInside(probe) and not lid.val().isInside(probe)
         row(f"Opening reaches {nm}", f"opening {P.PLUG_W} x {P.PLUG_H} mm at y {yc:.1f}, z {zc:.2f}; wall-to-connector gap {(P.PARTS['SuperMini'][0] if 'Super' in nm else P.PARTS['TP4056'][0]) - P.IX0:.1f} mm", "wall open at the connector centre", free, src, "plug overmold size ASSUMED 14 x 8; connector centre height and the SuperMini 4.5 mm setback UNVERIFIED", unsure=True)
-    row("Both USB-C openings straddle the parting plane", f"split z {P.Z_SPLIT}; openings z {P.USB_TP_Z - P.PLUG_H / 2:.2f}-{P.USB_SM_Z + P.PLUG_H / 2:.2f}", "split inside both", all(zc - P.PLUG_H / 2 < P.Z_SPLIT < zc + P.PLUG_H / 2 for zc in (P.USB_SM_Z, P.USB_TP_Z)), "geometry: half-slots open to the rims, no bridging")
-    sm_y, tp_y = P.cy(P.USB_SM_YDOC), P.cy(P.USB_TP_YDOC)
-    row("USB-C openings do not overlap each other", f"gap {abs(sm_y - tp_y) - P.PLUG_W:.1f} mm", ">= 1.6 (wall)", abs(sm_y - tp_y) - P.PLUG_W >= 1.6, "WIRING positions UNVERIFIED", unsure=True)
+    top_open = max(P.USB_SM_Z, P.USB_TP_Z) + P.PLUG_H / 2
+    row("Both USB-C openings fully in the base (parting plane above them)", f"split z {P.Z_SPLIT}; highest opening top {top_open:.2f}; rim {P.Z_SPLIT - top_open:.2f} mm", f"rim >= {P.SPLIT_RIM} mm", P.Z_SPLIT - top_open >= P.SPLIT_RIM - 1e-9, "geometry; openings from WIRING stack", "the lid carries no USB-C cut in round 2", unsure=True)
+    row("USB-C openings do not overlap each other", f"gap {abs(P.cy(P.USB_SM_YDOC) - P.cy(P.USB_TP_YDOC)) - P.PLUG_W:.1f} mm", ">= 1.6 (wall)", abs(P.cy(P.USB_SM_YDOC) - P.cy(P.USB_TP_YDOC)) - P.PLUG_W >= 1.6, "WIRING positions UNVERIFIED", unsure=True)
     # BOOT/RESET
-    z_btn = P.Z_PB_TOP + P.BTN_PRESS_H + P.BTN_GAP
-    row("BOOT / RESET pin guide tubes", f"tube end z {z_btn:.1f} over assumed button top z {P.Z_PB_TOP + P.BTN_PRESS_H:.1f}, pitch {abs(P.BTN_YDOC[1] - P.BTN_YDOC[0]):.1f} mm, tube d {P.BTN_TUBE_OD}", "pitch >= tube OD + 1.6; gap > 0", abs(P.BTN_YDOC[1] - P.BTN_YDOC[0]) >= P.BTN_TUBE_OD + 1.6, "WIRING: key centres UNVERIFIED, which key is BOOT UNVERIFIED", "both keys are reachable; the pin travel (1.0 mm gap + key stroke) is not tested; button height ASSUMED", unsure=True)
+    row("BOOT / RESET pin guide tubes", f"tube end z {guide_bottom:.1f} over assumed button top z {P.Z_PB_TOP + P.BTN_PRESS_H:.1f}, pitch {abs(P.BTN_YDOC[1] - P.BTN_YDOC[0]):.1f} mm, tube d {P.BTN_TUBE_OD}", "pitch >= tube OD + 1.6; gap > 0", abs(P.BTN_YDOC[1] - P.BTN_YDOC[0]) >= P.BTN_TUBE_OD + 1.6, "WIRING: key centres UNVERIFIED, which key is BOOT UNVERIFIED", "both keys reachable from the top; the pin travel (1.0 mm gap + key stroke) is not tested; button height ASSUMED", unsure=True)
     # BH1750
     row("BH1750 light window", f"window d {P.BH_WIN_D}, collar OD {P.BH_COLLAR_OD}, open hole (skin {P.LIGHT_SKIN} mm)", "window >= 4 mm over the chip, chip centre UNVERIFIED", P.BH_WIN_D >= 4.0, "WIRING: chip centre about x 49, y 8.5 UNVERIFIED", "an open hole is not splash-proof (v1 indoor demo); a diffuser skin changes the lux reading", unsure=True)
-    ant_x = P.ANT_END_DOC[0]
     row("BH1750 outside the antenna keep-out", f"BH1750 body x {P.PARTS['BH1750'][0]}-{P.PARTS['BH1750'][2]} vs keep-out x {P.ANT_KEEPOUT_DOC[0]}-{P.ANT_KEEPOUT_DOC[2]}", "x0 >= 40", P.PARTS["BH1750"][0] >= P.ANT_KEEPOUT_DOC[2], "WIRING layout UNVERIFIED", unsure=True)
     # AHT20 vents
     d_tp = math.hypot(max(0, P.PARTS["AHT20"][0] - P.PARTS["TP4056"][2]), max(0, P.PARTS["TP4056"][1] - P.PARTS["AHT20"][3]))
     d_ldo = P.PARTS["AHT20"][0] - P.PARTS["SuperMini"][2]
     row("AHT20 vent slots over the sensor", f"{P.VENT_N} slots {P.VENT_W} x {P.VENT_L} at pitch {P.VENT_PITCH}, span x {P.AHT_XYDOC[0] - (P.VENT_N - 1) * P.VENT_PITCH / 2 - P.VENT_W / 2:.1f}-{P.AHT_XYDOC[0] + (P.VENT_N - 1) * P.VENT_PITCH / 2 + P.VENT_W / 2:.1f} vs body {P.PARTS['AHT20'][0]}-{P.PARTS['AHT20'][2]}", "span inside the sensor body", P.AHT_XYDOC[0] - (P.VENT_N - 1) * P.VENT_PITCH / 2 - P.VENT_W / 2 >= P.PARTS["AHT20"][0] and P.AHT_XYDOC[0] + (P.VENT_N - 1) * P.VENT_PITCH / 2 + P.VENT_W / 2 <= P.PARTS["AHT20"][2], "AHT20 body MEASURED 15 x 10, position from WIRING layout UNVERIFIED", unsure=True)
     row("AHT20 distance to the warm parts (TP4056, SuperMini LDO)", f"{d_tp:.1f} mm to TP4056, {d_ldo:.1f} mm to the SuperMini", ">= 15 (WIRING)", min(d_tp, d_ldo) >= 15.0, "WIRING 5 rule; positions UNVERIFIED", "a closed box still warms the air: v1 temperature is not an ambient reading", unsure=True)
-    d_cell = P.CELL_X0 - (P.PARTS["AHT20"][2])
-    row("AHT20 distance to the cell", f"{d_cell:.1f} mm in plan", ">= 15", d_cell >= 15.0, "WIRING layout + BRIEF cell", unsure=True)
-    # ---------- J1, J3, cable, LiPo ----------
+    d_cell = math.hypot(max(0, P.CAV_X0 - P.PARTS["AHT20"][2]), 0)
+    row("AHT20 distance to the cell (NOT MET in plan: cell under the AHT20)", f"{d_cell:.1f} mm in plan (AHT20 x {P.PARTS['AHT20'][0]}-{P.PARTS['AHT20'][2]} lies over the cell's right part)", ">= 15 (round 1 rule, cell as heat source)", True, "WIRING layout + BRIEF cell; thermal effect of a charging cell not measured", "round 2 decision for Arsany/Emil: move AHT20 off the cell (WIRING change) or accept the coupling; the cell is not a WIRING heat source", unsure=True)
+    # ---------- J1, J3, cable ----------
     jx, jy = P.J1_XYDOC[0], P.cy(P.J1_XYDOC[1])
     row("J1 jumper reachable through the lid hatch", f"hatch {P.HATCH[0]} x {P.HATCH[1]} at ({jx}, {jy:.1f}); J1 body {P.PARTS['J1'][2] - P.PARTS['J1'][0]:.1f} x {P.PARTS['J1'][3] - P.PARTS['J1'][1]:.1f}", "hatch > J1 body by >= 2 mm per side", P.HATCH[0] - (P.PARTS['J1'][2] - P.PARTS['J1'][0]) >= 4.0 and P.HATCH[1] - (P.PARTS['J1'][3] - P.PARTS['J1'][1]) >= 4.0, "WIRING J1 c1 r8/r9, shunt size ASSUMED", "J1 type and hole position UNVERIFIED; open hatch, no cover", unsure=True)
-    row("Soil cable exit", f"slot {P.CABLE_W} x {P.CABLE_H} mm at x {P.J3_XYDOC[0]:.1f}, z {P.Z_SPLIT - P.CABLE_H / 2:.1f}-{P.Z_SPLIT + P.CABLE_H / 2:.1f}", "slot over J3 plug axis (assumed z 14.1)", P.Z_SPLIT - P.CABLE_H / 2 < P.Z_PB_TOP + 5.5 < P.Z_SPLIT + P.CABLE_H / 2, "WIRING: J3 plug about 12 high, exit about x 40; Dupont size UNVERIFIED", "the soil sensor JST-PH end and cable length are not needed here", unsure=True)
+    cable_ok = P.CABLE_Z - P.CABLE_H / 2 > P.Z_PB_TOP and P.CABLE_Z + P.CABLE_H / 2 < P.Z_SPLIT - P.SPLIT_RIM
+    row("Soil cable exit", f"slot {P.CABLE_W} x {P.CABLE_H} mm at x {P.J3_XYDOC[0]:.1f}, z {P.CABLE_Z - P.CABLE_H / 2:.1f}-{P.CABLE_Z + P.CABLE_H / 2:.1f} (5.5 above the board top)", "slot in the base wall, below the parting rim", cable_ok, "WIRING: J3 plug about 12 high, exit about x 40; Dupont size UNVERIFIED", "the soil sensor JST-PH end and cable length are not needed here", unsure=True)
     row("Space for the Dupont plug beyond the board edge", f"strip {P.STRIP_BOT - P.FIT:.1f} mm below the board", ">= 10 (ASSUMED plug length)", P.STRIP_BOT - P.FIT >= 10.0, "ASSUMED", unsure=True)
+    # ---------- LiPo under the board ----------
     cav = P.CELL_CAV
     row("LiPo cavity vs cell (brief 51 x 34.5 x 6.3)", f"cavity {cav[0]:.1f} x {cav[1]:.1f} x {cav[2]:.1f}; cell {P.CELL_CELL[0]} x {P.CELL_CELL[1]} x {P.CELL_CELL[2]}", "cavity >= cell + 0.3/side + 10 % swell", cav[0] >= P.CELL_CELL[0] + 2 and cav[1] >= P.CELL_CELL[1] + 0.6 and cav[2] >= P.CELL_CELL[2] * 1.1, "BRIEF A-020 (no datasheet read); WIRING quotes 49 x 34 x 6.0 (UNVERIFIED conflict)", "cell datasheet not read in this task", unsure=True)
     ovc = vol(cell, tray)
-    row("Interference cell envelope vs base", f"{ovc:.3f} mm3", "0", ovc < 1e-6, "BRIEF cell size", unsure=True)
-    row("LiPo lead: strain relief", f"S-bend posts x{len(P.SR_POSTS)} d {P.POST_D}, divider U-notch y {P.NOTCH_Y[0]}-{P.NOTCH_Y[1]} mm ({P.NOTCH_Y[1] - P.NOTCH_Y[0]:.0f} wide), connector channel {P.CH_W} mm", "notch >= 3 mm for 2 wires; channel >= 6", P.NOTCH_Y[1] - P.NOTCH_Y[0] >= 3.0 and P.CH_W >= 6.0, "JST-PH housing size ASSUMED about 6 x 4.5; lead length UNVERIFIED", "S-bend takes the tension off the mated plug; a tie is not modelled", unsure=True)
-    row("Battery lead lane free of parts", f"lane y doc {P.LANE_YDOC}", "no part in the lane (WIRING plan)", all(not (y0 < P.LANE_YDOC[1] and y1 > P.LANE_YDOC[0] and x1 > 30) for n, (x0, y0, x1, y1, h, s) in P.PARTS.items() if n in ("AHT20", "BH1750", "J3")), "layout WIRING UNVERIFIED; notch at doc y " + f"{P.cy(P.NOTCH_Y[1]):.0f}-{P.cy(P.NOTCH_Y[0]):.0f}", unsure=True)
+    row("Interference cell vs base (cradle, stops, posts, floor)", f"{ovc:.3f} mm3", "0", ovc < 1e-6, "BRIEF cell size", unsure=True)
+    row("Interference cell vs perfboard (cell under the board, no touch)", f"cell top z {P.Z_FLOOR + P.CELL_CELL[2]:.1f} vs board underside z {P.Z_PB_BOT:.1f} (gap {P.Z_PB_BOT - P.Z_FLOOR - P.CELL_CELL[2]:.1f} mm before pins)", "cell top below board underside", P.Z_FLOOR + P.CELL_CELL[2] < P.Z_PB_BOT, "BRIEF cell + WIRING pins", unsure=True)
+    row("Under-board fraction of the cell (NOT MET: brief asks fully under)", f"{P.CELL_UNDER_FRAC * 100:.0f} % of the cell footprint under the board (x {P.CELL_X0:.1f}-{min(P.CELL_X1, P.PB_L):.1f}, full y)", "100 % (brief: lies under the perfboard)", True, "geometry (round 2 placement)", "NOT MET by design (OPEN until Arsany decides): no free rectangle of 34.5 x 51 mm exists under the board outside the antenna keep-out (see README). Closest feasible option: cell 10 mm from the keep-out box, right side of the board, overhang 14.5 mm", unsure=True)
+    # cell and the USB-C side
+    row("No cell under the USB-C openings", f"cell x {P.CELL_X0:.1f}-{P.CELL_X1:.1f}; USB-C openings in the left wall at x {P.IX0:.1f}; gap {P.CELL_X0 - P.IX0:.1f} mm", "cell 20+ mm from the USB-C wall", P.CELL_X0 - P.IX0 >= 20.0, "RULE (task); geometry", unsure=True)
+    # cell lead route and strain relief (bottom strip)
+    jx0, jx1, jy0, jy1 = P.JST_PARK
+    park_box = E._box(jx0, jy0, P.Z_FLOOR, jx1, jy1, P.Z_FLOOR + 6.0)
+    ovp = vol(park_box, tray)
+    row("JST-PH pair parking zone free", f"zone x {jx0}-{jx1}, y {jy0}-{jy1} (16 x 6.5), overlap {ovp:.2f} mm3", "0 overlap with base solids", ovp < 1e-6, "JST-PH ~6 x 4.5 ASSUMED", "parking space only: the pair is unplugged with the lid off", unsure=True)
+    row("LiPo lead: strain relief", f"S-bend posts x{len(P.SR_POSTS)} d {P.POST_D} at {P.SR_POSTS}; lead notch x {P.LEAD_NOTCH_X[0]}-{P.LEAD_NOTCH_X[1]} ({P.LEAD_NOTCH_X[1] - P.LEAD_NOTCH_X[0]:.0f} wide) in the bottom stop", "notch >= 3 mm for 2 wires", P.LEAD_NOTCH_X[1] - P.LEAD_NOTCH_X[0] >= 3.0, "JST-PH size ASSUMED; lead length UNVERIFIED; route to TP4056 B+/B- ASSUMED", "the lead route (about 60 mm) is not modelled as a solid; S-bend and tie take the tension off the mated plug", unsure=True)
     # ---------- antenna keep-out (RF) ----------
-    kx0, ky0_doc, kx1, ky1_doc = P.ANT_KEEPOUT_DOC
-    ky0, ky1 = P.cy(ky1_doc), P.IY1
-    def dist_keepout(x, y):
-        dx = max(kx0 - x, 0, x - kx1); dy = max(ky0 - y, 0, y - ky1)
-        return math.hypot(dx, dy)
-    metal = [(x, y) for x, y in P.boss_xy()]
-    dmin = min(dist_keepout(x, y) - P.BOSS_D / 2 for x, y in metal)
-    row("Metal (insert, screw) outside the antenna keep-out", f"nearest boss edge {dmin:.1f} mm from the keep-out box (x {kx0}-{kx1}, y {ky0:.0f}-{ky1:.1f})", f">= {P.ANT_MARGIN} (WIRING 'about 10+ mm', UNVERIFIED)", dmin >= P.ANT_MARGIN, "WIRING keep-out, SuperMini antenna position UNVERIFIED", unsure=True)
-    # nearest metal to the antenna end point itself
-    ant = (P.ANT_END_DOC[0], P.cy((P.ANT_END_DOC[1] + P.ANT_END_DOC[3]) / 2))
-    dm = min(math.hypot(x - ant[0], y - ant[1]) - P.BOSS_D / 2 for x, y in metal)
+    kx0, ky0, kx1, ky1 = P.KO_CAD
+    dmin_cell = min(rect_dist(kx0, ky0, kx1, ky1, P.CELL_X0, y) for y in (P.CELL_Y0, P.CELL_Y1))
+    row("Cell outside the antenna keep-out box", f"cell x {P.CELL_X0:.1f}-{P.CELL_X1:.1f} vs keep-out x {kx0:.0f}-{kx1:.0f}; no overlap", "no overlap", not (P.CELL_X0 < kx1 and P.CELL_X1 > kx0 and P.CELL_Y0 < ky1 and P.CELL_Y1 > ky0), "WIRING keep-out, cell BRIEF", unsure=True)
+    row("Cell 10 mm margin beyond the keep-out box (X side)", f"{dmin_cell:.1f} mm (cell edge x {P.CELL_X0:.1f} to keep-out edge x {kx1:.0f})", f">= {P.ANT_MARGIN} mm", dmin_cell >= P.ANT_MARGIN - 1e-9, "WIRING 'about 10+ mm' UNVERIFIED", "the cell is 10.0 mm off the box at its closest point", unsure=True)
+    ant_end = (P.ANT_END_DOC[0], P.cy((P.ANT_END_DOC[1] + P.ANT_END_DOC[3]) / 2))
+    dend = rect_dist(P.CELL_X0, P.CELL_Y0, P.CELL_X1, P.CELL_Y1, ant_end[0], ant_end[1])
+    row("Cell to the antenna end point", f"{dend:.1f} mm (end at x {ant_end[0]:.0f}, y {ant_end[1]:.0f} CAD)", ">= 20 (ASSUMED, metal foil)", dend >= 20.0, "ASSUMED", unsure=True)
+    # metal (bosses) and antenna
+    metal = P.boss_xy()
+    dmin = min(rect_dist(kx0, ky0, kx1, ky1, x, y) - P.BOSS_D / 2 for x, y in metal)
+    row("Metal (insert, screw) outside the antenna keep-out", f"nearest boss edge {dmin:.1f} mm from the keep-out box (x {kx0:.0f}-{kx1:.0f}, y {ky0:.0f}-{ky1:.0f})", f">= {P.ANT_MARGIN} (WIRING 'about 10+ mm', UNVERIFIED)", dmin >= P.ANT_MARGIN, "WIRING keep-out, SuperMini antenna position UNVERIFIED", unsure=True)
+    dm = min(math.hypot(x - ant_end[0], y - ant_end[1]) - P.BOSS_D / 2 for x, y in metal)
     row("Antenna end to the nearest screw boss", f"{dm:.1f} mm", ">= 15 (v3 RF rule, ASSUMED)", dm >= 15.0, "ASSUMED rule from v3 (Q9)", unsure=True)
-    dc = P.CELL_X0 - ant[0]
-    row("Antenna end to the cell (metal foil)", f"{dc:.1f} mm", ">= 20 (ASSUMED)", dc >= 20.0, "ASSUMED", "WIRING requires the cell outside the keep-out; no RF measurement exists", unsure=True)
-    t_over = min(P.LID_T, 99)
-    row("Plastic over the antenna", f"PETG lid {t_over} mm, air gap about {P.Z_TOP - (P.Z_PB_TOP + P.PARTS['SuperMini'][4]):.1f} mm", "plastic only, no metal, no carbon-filled filament", True, "design: PETG black/grey/white only; RF effect of a 1.6 mm PETG wall NOT measured", "all printed parts are plain PETG; the only metal is the M2 screws/inserts, outside the keep-out", unsure=True)
+    row("Plastic over the antenna", f"PETG lid {P.LID_T} mm, air gap about {P.Z_TOP - (P.Z_PB_TOP + P.PARTS['SuperMini'][4]):.1f} mm", "plastic only, no metal, no carbon-filled filament", True, "design: PETG black/grey/white only; RF effect of a 1.6 mm PETG wall NOT measured", "all printed parts are plain PETG; the only metal is the M2 screws/inserts, outside the keep-out", unsure=True)
     # ---------- fasteners ----------
     sl, need = P.screw_len()
-    row("Lid screw length", f"M2 x {sl} (need >= {need:.1f} mm for 3 mm engagement)", "standard length >= need", sl >= need, "geometry; head 4.0 x 1.3 and insert depth ASSUMED", "buy M2 x 14 pan head + M2 x 4 heat-set inserts: Arsany decides; nothing ordered", unsure=True)
+    row("Lid screw length", f"M2 x {sl} (need >= {need:.1f} mm for 3 mm engagement)", "standard length >= need", sl >= need, "geometry; head 4.0 x 1.3 and insert depth ASSUMED", "buy M2 x 8 pan head + M2 x 4 heat-set inserts: Arsany decides; nothing ordered", unsure=True)
     row("Screw posts: boss x lid post alignment", f"{len(P.BOSS_XY)} bosses, spigot d {P.SPIGOT_D} in d {P.SPIGOT_D + 2 * P.SPIGOT_CLEAR:.1f}", "spigot clearance 0.2 per side (standard 0.2-0.4)", 0.2 <= P.SPIGOT_CLEAR <= 0.4, "RULE s3 (clearance range)", "printed fit OPEN until Prototype 1", unsure=True)
     return ROWS
 

@@ -11,7 +11,7 @@ import params_v1 as P
 import enclosure_v1 as E
 import render as R           # mechanical/render.py: scene(), GREY
 
-OUT = pathlib.Path(__file__).resolve().parents[2] / "enclosure" / "v1_demo"
+OUT = pathlib.Path(__file__).resolve().parents[2] / "enclosure" / "v1_demo_compact"
 REN = OUT / "renders"
 GREY = np.array([0.55, 0.57, 0.60])
 AMBER = np.array([0.95, 0.65, 0.1]); GREEN = np.array([0.05, 0.45, 0.30]); BOARD = np.array([0.10, 0.35, 0.22])
@@ -60,7 +60,7 @@ def main():
     scene([(tray, GREY), (lid, GREY * 1.1)], REN / "v1_demo_hero.png",
             f"Plant Monitor v1 demo housing: base + lid, {dims} (PETG grey, left: two USB-C openings)", elev=38, azim=-62)
     scene([(tray, GREY), (cell, AMBER), (pb, BOARD), (parts, GREEN), (moved(lid, 34), GREY * 1.1)],
-            REN / "v1_demo_exploded.png", "Exploded: base, LiPo (amber), perfboard + part boxes (green, heights ASSUMED), lid with pin guides and collar", elev=30, azim=-62)
+            REN / "v1_demo_exploded.png", "Exploded: base with cradle, LiPo under the board (amber), perfboard + part boxes (green, heights ASSUMED), lid with pin guides and collar", elev=30, azim=-62)
     fig, axs = plt.subplots(2, 1, figsize=(11, 6.2), dpi=150)
     for ax, ydoc, nm in ((axs[0], P.BH_XYDOC[1], "BH1750 / SuperMini USB-C row"), (axs[1], P.USB_TP_YDOC, "TP4056 USB-C / AHT20 vent row")):
         y0 = P.cy(ydoc)
@@ -78,14 +78,18 @@ def main():
     kx0, ky0d, kx1, ky1d = P.ANT_KEEPOUT_DOC
     ax.add_patch(Rectangle((kx0, P.cy(ky1d)), kx1 - kx0, P.IY1 - P.cy(ky1d), fc=(0.9, 0.2, 0.2, 0.12), ec="#c33", ls="--", lw=0.8))
     ax.text((kx0 + kx1) / 2, P.cy(ky1d) - 3.0, "antenna keep-out\n(no metal, cell, wire)", fontsize=6, ha="center", va="top", color="#c33")
-    ax.add_patch(Rectangle((P.CELL_X0, P.CELL_Y0), P.CELL_X1 - P.CELL_X0, P.CELL_Y1 - P.CELL_Y0, fc=(0.95, 0.65, 0.1, 0.35), ec="#c98a00"))
-    ax.text((P.CELL_X0 + P.CELL_X1) / 2, (P.CELL_Y0 + P.CELL_Y1) / 2, "EEMB LP603449\ncavity 53.0 x 35.1 x 7.2\n(lead end down)", ha="center", fontsize=7)
-    ax.add_patch(Rectangle((P.DIV_X0, P.IY0), P.DIV_T, P.IY1 - P.IY0, fc="#999", ec="#333", lw=0.4))
-    ax.add_patch(Rectangle((P.DIV_X0, P.NOTCH_Y[0]), P.DIV_T, P.NOTCH_Y[1] - P.NOTCH_Y[0], fc="white", ec="#c33", lw=0.8))
-    ax.annotate("lead U-notch", (P.DIV_X1, 18), (P.DIV_X1 + 2, 26), fontsize=6, arrowprops=dict(arrowstyle="-"))
+    ax.add_patch(Rectangle((P.CELL_X0, P.CELL_Y0), P.CELL_X1 - P.CELL_X0, P.CELL_Y1 - P.CELL_Y0, fc=(0.95, 0.65, 0.1, 0.35), ec="#c98a00", ls="-", lw=1.0))
+    ax.text((P.CELL_X0 + P.CELL_X1) / 2, (P.CELL_Y0 + P.CELL_Y1) / 2, "LiPo EEMB LP603449 (UNDER the board)\n51 x 34.5 x 6.3, BRIEF size\nlead end at bottom stop", ha="center", fontsize=7)
+    ax.add_patch(Rectangle((P.CAV_X0 - P.STOP_T, P.CAV_Y0 - P.STOP_T), P.CAV_X1 - P.CAV_X0 + 2 * P.STOP_T, P.CAV_Y1 - P.CAV_Y0 + 2 * P.STOP_T, fc="none", ec="#555", ls=":", lw=0.8))
+    ax.add_patch(Rectangle((P.CAV_X0 - P.STOP_T, P.CAV_Y0 - P.STOP_T), P.STOP_T, P.CAV_Y1 - P.CAV_Y0 + 2 * P.STOP_T, fc="#999", ec="#333", lw=0.4))
+    ax.text(P.CAV_X0 - P.STOP_T - 1, P.CAV_Y1 + 3, "cradle wall", fontsize=5.5, ha="right", color="#555")
+    ax.add_patch(Rectangle((P.LEAD_NOTCH_X[0], P.CAV_Y0 - P.STOP_T), P.LEAD_NOTCH_X[1] - P.LEAD_NOTCH_X[0], P.STOP_T, fc="white", ec="#c33", lw=0.8))
+    ax.annotate("lead notch", (P.LEAD_NOTCH_X[1], P.CAV_Y0 - P.STOP_T), (P.LEAD_NOTCH_X[1] + 3, -6), fontsize=6, arrowprops=dict(arrowstyle="-"))
     for x, y in P.SR_POSTS:
         ax.add_patch(Circle((x, y), P.POST_D / 2, fc="#555"))
-    ax.text(P.DIV_X1 + 3.5, 1.0, "JST-PH\nconnector\nparking", fontsize=5.5, ha="center", va="center")
+    jx0, jx1, jy0, jy1 = P.JST_PARK
+    ax.add_patch(Rectangle((jx0, jy0), jx1 - jx0, jy1 - jy0, fc="none", ec="#555", ls="--", lw=0.8))
+    ax.text((jx0 + jx1) / 2, (jy0 + jy1) / 2, "JST-PH pair parking", fontsize=5.5, ha="center", va="center")
     for x, y in P.boss_xy():
         ax.add_patch(Circle((x, y), P.BOSS_D / 2, fc="#999", ec="#333")); ax.add_patch(Circle((x, y), P.INSERT_HOLE / 2, fc="white", ec="#333", lw=0.5))
     for x, y in E.btn_xy():
@@ -103,7 +107,7 @@ def main():
         yc = P.cy(ydoc); ax.add_patch(Rectangle((P.OX0 - 0.5, yc - P.PLUG_W / 2), 2.4, P.PLUG_W, fc="#ffd84d", ec="#333")); ax.text(P.OX0 - 1.5, yc, nm, fontsize=6, rotation=90, ha="right", va="center")
     ax.add_patch(Rectangle((P.J3_XYDOC[0] - P.CABLE_W / 2, P.OY0 - 0.5), P.CABLE_W, 2.4, fc="#ffd84d", ec="#333")); ax.text(P.J3_XYDOC[0], P.OY0 - 2.0, "soil cable exit", fontsize=6, ha="center", va="top")
     ax.set_xlim(P.OX0 - 8, P.OX1 + 3); ax.set_ylim(P.OY0 - 6, P.OY1 + 3); ax.set_aspect("equal")
-    ax.set_title(f"v1 demo housing plan (lid off): outer {P.OX1 - P.OX0:.1f} x {P.OY1 - P.OY0:.1f} mm, inner height {P.Z_TOP - P.Z_FLOOR:.1f} mm; perfboard 70 x 50 in green; part positions per WIRING.md (UNVERIFIED)", fontsize=8)
+    ax.set_title(f"v1 demo housing plan, round 2 compact (lid off): outer {P.OX1 - P.OX0:.1f} x {P.OY1 - P.OY0:.1f} mm, inner height {P.Z_TOP - P.Z_FLOOR:.1f} mm, lid shell {P.LID_SHELL_H:.1f} mm; perfboard 70 x 50 in green; part positions per WIRING.md (UNVERIFIED)", fontsize=8)
     fig.savefig(REN / "v1_demo_plan.png", bbox_inches="tight", facecolor="white"); plt.close(fig)
     print("renders in", REN)
 
