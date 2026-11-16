@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { handleClaimToken, handleDeleteAccount, handleDeviceClaim, handleIngest } from "../../supabase/functions/_shared/handlers.ts";
 import { sha256Hex, validateReport, type Deps } from "../../supabase/functions/_shared/lib.ts";
+import { envFirst, PUBLISHABLE_KEY_NAMES, SECRET_KEY_NAMES } from "../../supabase/functions/_shared/env.ts";
 import { psql, psqlDeps, setFailPhotos, storage } from "./psql_deps.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +22,17 @@ test("NFR-06: sha256Hex is the real SHA-256 (known vector) and never the identit
   assert.equal(await sha256Hex("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
   assert.notEqual(await sha256Hex("tok"), "tok");
   assert.match(await sha256Hex("tok"), /^[0-9a-f]{64}$/);
+});
+
+test("4.B2b: key names prefer the new model, fall back to the legacy names the hosted runtime injects, and fail naming both", () => {
+  const from = (m: Record<string, string>) => (n: string) => m[n];
+  assert.equal(envFirst(from({ SUPABASE_SECRET_KEY: "new", SUPABASE_SERVICE_ROLE_KEY: "old" }), SECRET_KEY_NAMES), "new");
+  assert.equal(envFirst(from({ SUPABASE_SERVICE_ROLE_KEY: "old" }), SECRET_KEY_NAMES), "old");
+  assert.equal(envFirst(from({ SUPABASE_SECRET_KEY: "" , SUPABASE_SERVICE_ROLE_KEY: "old" }), SECRET_KEY_NAMES), "old");   // empty counts as unset
+  assert.equal(envFirst(from({ SUPABASE_PUBLISHABLE_KEY: "new", SUPABASE_ANON_KEY: "old" }), PUBLISHABLE_KEY_NAMES), "new");
+  assert.equal(envFirst(from({ SUPABASE_ANON_KEY: "old" }), PUBLISHABLE_KEY_NAMES), "old");
+  assert.throws(() => envFirst(from({}), SECRET_KEY_NAMES), /SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY/);
+  assert.throws(() => envFirst(from({}), PUBLISHABLE_KEY_NAMES), /SUPABASE_PUBLISHABLE_KEY or SUPABASE_ANON_KEY/);
 });
 
 test("FR-D04: validateReport agrees with device-report.schema.json fixtures (valid accepted, invalid rejected, 193 samples -> 413)", () => {
