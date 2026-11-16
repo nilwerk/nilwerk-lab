@@ -75,9 +75,9 @@ def main():
     # ---------- manufacturing / printability (RULE) ----------
     for nm, m in (("base", mt), ("lid (print orientation)", ml)):
         ext = m.extents
-        row(f"Fits P1S build volume: {nm}", f"{ext[0]:.1f} x {ext[1]:.1f} x {ext[2]:.1f} mm", "<= 256 x 256 x 256", all(ext <= np.array(P.BUILD)), "RULE standard s1")
-        row(f"Watertight STL: {nm}", f"watertight={m.is_watertight}, volume {m.volume / 1000:.1f} cm3", "watertight, positive volume", bool(m.is_watertight) and m.volume > 0, "mesh check")
-        row(f"On the bed: {nm}", f"z min {m.bounds[0][2]:.3f}", "z min = 0", abs(m.bounds[0][2]) < 1e-6, "print orientation")
+        row(f"Fits P1S build volume: {nm}", f"{ext[0]:.1f} x {ext[1]:.1f} x {ext[2]:.1f} mm", "<= 256 x 256 x 256", all(ext <= np.array(P.BUILD)), "RULE standard s1 (P1S build volume)")
+        row(f"Watertight STL: {nm}", f"watertight={m.is_watertight}, volume {m.volume / 1000:.1f} cm3", "watertight, positive volume", bool(m.is_watertight) and m.volume > 0, "RULE standard s1 (watertight STL)")
+        row(f"On the bed: {nm}", f"z min {m.bounds[0][2]:.3f}", "z min = 0", abs(m.bounds[0][2]) < 1e-6, "RULE standard (print orientation, on the bed)")
         reach, nf = overhang_reach(m)
         row(f"No supports: {nm}", f"overhang reach {reach:.2f} mm ({nf} faces, bridges excluded)", "<= 0.8 mm (ASSUMED threshold, not a rule)", reach <= 0.8, "RULE: minimise supports (no numeric value in the standard); 0.8 mm = ASSUMED: the 0.6 mm bed-edge chamfer lip plus margin", "the 0.6 mm top-edge chamfer on the bed is the only overhang; a numeric limit must come from a print test", unsure=True)
     bridges = [(round(float(x), 1), round(float(y), 1), round(float(z), 2)) for x, y, z in (mt.triangles_center[i] for i in np.where(mt.face_normals[:, 2] < -0.72)[0]) if is_bridge(np.array([x, y, z]))]
@@ -85,11 +85,11 @@ def main():
     walls = dict(wall=P.WALL, floor=P.FLOOR, lid=P.LID_T, cradle_stop=P.STOP_T, fin=P.FIN_T)
     wmin = min(walls.values())
     row("Wall / floor / lid / cradle >= 1.2 mm", f"min {wmin:.1f} mm (walls {P.WALL}, floor {P.FLOOR}, lid {P.LID_T}, cradle/fins {P.STOP_T})", f">= {P.MIN_WALL}", wmin >= P.MIN_WALL, "RULE mechanical.md")
-    row("Wall >= 1.6 mm (task requirement)", f"outer wall {P.WALL}, floor {P.FLOOR}, lid {P.LID_T}", ">= 1.6", min(P.WALL, P.FLOOR, P.LID_T) >= 1.6, "task 4.E5")
+    row("Wall >= 1.6 mm (task requirement)", f"outer wall {P.WALL}, floor {P.FLOOR}, lid {P.LID_T}", ">= 1.6", min(P.WALL, P.FLOOR, P.LID_T) >= 1.6, "RULE (task 4.E5 requirement)")
     bw = (P.BOSS_D - P.INSERT_HOLE) / 2
     row("Boss wall around the insert hole", f"{bw:.2f} mm (boss {P.BOSS_D}, hole {P.INSERT_HOLE})", f">= {P.MIN_WALL}", bw >= P.MIN_WALL, "RULE; hole d is ASSUMED (insert not chosen)", "hole diameter OPEN: check with the insert actually bought", unsure=True)
     rim = (P.BOSS_D - (P.SPIGOT_D + 2 * P.SPIGOT_CLEAR)) / 2
-    row("Boss rim around the spigot counterbore", f"{rim:.2f} mm", f">= {P.MIN_WALL}", rim >= P.MIN_WALL, "RULE")
+    row("Boss rim around the spigot counterbore", f"{rim:.2f} mm (boss {P.BOSS_D} is ASSUMED)", f">= {P.MIN_WALL}", rim >= P.MIN_WALL, "RULE (wall) with ASSUMED boss d", "rests on the ASSUMED boss diameter", unsure=True)
     row("PETG min feature: vent slot width", f"{P.VENT_W} mm", ">= 1.0 (ASSUMED PETG floor, as in v3)", P.VENT_W >= 1.0, "ASSUMED floor", unsure=True)
     row("PETG min feature: BOOT/RESET pin hole", f"d {P.BTN_HOLE_D} mm", ">= 1.8 for a paperclip (ASSUMED)", P.BTN_HOLE_D >= 1.8, "ASSUMED", "holes print smaller than drawn: prototype check", unsure=True)
     # ---------- perfboard pocket and support (MEASURED 70 x 50 x 2) ----------

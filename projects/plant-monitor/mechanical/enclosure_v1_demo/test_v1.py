@@ -11,7 +11,7 @@ import fit_check_v1 as F
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 COMPACT_README = pathlib.Path(HERE).resolve().parents[1] / "enclosure" / "v1_demo_compact" / "README.md"
-EXPECTED_PASS = 11
+EXPECTED_PASS = 10
 EXPECTED_NOT_MET = 3
 
 
@@ -233,3 +233,13 @@ def test_compact_readme_states_what_is_unverified():
     txt = COMPACT_README.read_text()
     for key in ("UNVERIFIED", "ASSUMED", "Arsany must verify", "NOT MET", "not sliced", "RF", "88.5", "72.6", "31.4", "5.4", "STOPPED"):
         assert key in txt, key
+
+
+def test_every_pass_row_has_measured_or_rule_provenance(rows):
+    """Row-level provenance: a PASS row must cite MEASURED or RULE in its source, and must not cite ASSUMED, UNVERIFIED, WIRING or BRIEF."""
+    passes = [r for r in rows if r[3] == "PASS"]
+    assert passes
+    for name, value, need, st, src, note in passes:
+        assert "MEASURED" in src or "RULE" in src, (name, src)
+        for bad in ("ASSUMED", "UNVERIFIED", "WIRING", "BRIEF"):
+            assert bad not in src, (name, src)

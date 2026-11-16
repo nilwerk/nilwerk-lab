@@ -41,8 +41,8 @@ Yara (3D Product Designer) · 2026-11-16 · task 4.E5 round 2 (EXTRA from Arsany
 - **AHT20 sits over the cell** (0 mm in plan; round 1 rule was 15 mm). A charging cell may warm the sensor air. **Accepted as A-098 option b** (Lead's record): AHT20 stays over the cell. Not measured; re-check on the first bench build.
 
 ## Fit check and tests (exact output)
-`python fit_check_v1.py` → **11 PASS / 0 FAIL / 3 NOT MET / 47 OPEN**. Changes from the 14 / 0 / 3 / 44 the Lead expected: the two overhang rows rest on an ASSUMED 0.8 mm threshold and the 'Model-internal' perfboard-vs-base row rests on the ASSUMED 4.0 mm pin tips, so both are OPEN (ASSUMED values never PASS). Round 1 was 15 / 0 / 35.
-`python -m pytest -q` from `projects/plant-monitor/mechanical`: **80 passed** before this fix. After the fix only `enclosure_v1_demo/test_v1.py` was rerun: **24 passed**. Full suite not rerun, because it rewrites tracked `out/` exports.
+`python fit_check_v1.py` → **10 PASS / 0 FAIL / 3 NOT MET / 48 OPEN**. Tally history: 14 / 0 / 3 / 44 (the Lead's expectation, before the ASSUMED 0.8 mm overhang rows and the model-internal row went OPEN); 11 / 0 / 3 / 47 (before the boss rim row, which uses the ASSUMED boss diameter, went OPEN). Round 1 was 15 / 0 / 35. ASSUMED values never PASS, and the test suite checks that row by row.
+`python -m pytest -q enclosure_v1_demo/test_v1.py` (from `projects/plant-monitor/mechanical`): **25 passed** after round 4 (adds a row-level provenance test: every PASS row cites MEASURED or RULE and no ASSUMED, UNVERIFIED, WIRING or BRIEF tag). The full mechanical suite was last run before round 4: 80 passed; not rerun. Full suite not rerun, because it rewrites tracked `out/` exports.
 
 ## Print notes (P1S, PETG, 0.4 mm; not sliced)
 - **Overhang limit 0.8 mm is ASSUMED** (not a numeric rule in the standard): a print test sets the real limit. Bridges and the 0.6 mm chamfer lip are the only overhangs.
