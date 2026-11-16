@@ -1,5 +1,5 @@
 # Plant Monitor v1 demo housing (4.E5)
-> **Round 2 (compact, 2026-11-16):** round-1 parameters were overwritten in place in this folder (round-1 source = commit `5f195cf`). The text below describes round 1 (exports in `enclosure/v1_demo/`, unchanged). Round 2 numbers and checks: `enclosure/v1_demo_compact/README.md`.
+> **Round 2 (compact, 2026-11-16):** round-1 parameters were overwritten in place in this folder (round-1 source = commit `5f195cf`). The text below describes round 1 (exports in `enclosure/v1_demo/`, unchanged). Round 2 numbers and checks: `enclosure/v1_demo_compact/README.md`. Battery placement under the right half is accepted for the demo: A-100 option a, a known deviation from WIRING section 5 (left half). Fit-check tally 7 / 0 / 3 / 51.
 
 
 > **Indoor demo only. Not splash-proof, not IP-rated:** open light window and vents. Keep away from watering, no outdoor, no bathroom.
