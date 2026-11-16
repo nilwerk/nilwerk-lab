@@ -1,6 +1,6 @@
 // Wires Deps to Supabase. Keys come from the environment ONLY; nothing is hard-coded or logged.
 // Name order (env.ts): SUPABASE_SECRET_KEY, then SUPABASE_SERVICE_ROLE_KEY; SUPABASE_PUBLISHABLE_KEY, then SUPABASE_ANON_KEY.
-// The hosted runtime injects the legacy names (verified on the 2026-11-16 deploy, A-096), hence the fallback. See README "Production".
+// The hosted runtime injects the legacy names (reported by the Lead after the 2026-11-16 deploy), hence the fallback. See README "Production".
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import type { Deps, RpcResult } from "./lib.ts";
 import { envFirst, PUBLISHABLE_KEY_NAMES, SECRET_KEY_NAMES } from "./env.ts";
