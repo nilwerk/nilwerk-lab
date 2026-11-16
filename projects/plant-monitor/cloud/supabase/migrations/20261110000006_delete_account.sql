@@ -1,6 +1,6 @@
 -- 4.B2b DELETE /account: server-side step 1 (release devices) behind the edge function `delete-account`.
 -- Requirements: FR-A01, FR-A08, NFR-07 (GDPR erasure), NFR-06. No table changes (db-schema.sql stays the contract).
--- service_role ONLY (the edge function calls it with SUPABASE_SECRET_KEY after it verified the user JWT itself); the user id is
+-- service_role ONLY (the edge function calls it with SUPABASE_SECRET_KEY or the legacy SUPABASE_SERVICE_ROLE_KEY after it verified the user JWT itself); the user id is
 -- never taken from the request body. Idempotent: a second call for the same user finds nothing and returns zeros.
 -- Order of the whole operation (openapi /account): this function -> delete Storage objects under '<owner_id>/' in plant-photos
 -- -> delete the auth.users row (FK cascade removes profiles, plants, plant_images, readings, readings_hourly, events, alerts,

@@ -1,25 +1,23 @@
-// Wires Deps to Supabase. Keys come from the environment ONLY (A-035 names); nothing is hard-coded or logged.
-// UNVERIFIED against a live project (no secrets in the agent session): see README "Production".
+// Wires Deps to Supabase. Keys come from the environment ONLY; nothing is hard-coded or logged.
+// Name order (env.ts): SUPABASE_SECRET_KEY, then SUPABASE_SERVICE_ROLE_KEY; SUPABASE_PUBLISHABLE_KEY, then SUPABASE_ANON_KEY.
+// The hosted runtime injects the legacy names (reported by the Lead after the 2026-11-16 deploy), hence the fallback. See README "Production".
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import type { Deps, RpcResult } from "./lib.ts";
+import { envFirst, PUBLISHABLE_KEY_NAMES, SECRET_KEY_NAMES } from "./env.ts";
 
-function env(name: string): string {
-  const v = Deno.env.get(name);
-  if (!v) throw new Error(`missing environment variable ${name}`);
-  return v;
-}
+const env = (...names: readonly string[]): string => envFirst((n) => Deno.env.get(n), names);
 
 export function makeDeps(): Deps {
   const url = env("SUPABASE_URL");
   // service client: bypasses RLS, used only to call the service_role-only functions of migration 20261108000004
-  const admin = createClient(url, env("SUPABASE_SECRET_KEY"), { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createClient(url, env(...SECRET_KEY_NAMES), { auth: { persistSession: false, autoRefreshToken: false } });
   return {
     async rpc(name, args): Promise<RpcResult> {
       const { data, error } = await admin.rpc(name, args);
       return { data, error: error ? { message: error.message } : null };
     },
     async getUserId(jwt) {
-      const pub = createClient(url, env("SUPABASE_PUBLISHABLE_KEY"), { auth: { persistSession: false, autoRefreshToken: false } });
+      const pub = createClient(url, env(...PUBLISHABLE_KEY_NAMES), { auth: { persistSession: false, autoRefreshToken: false } });
       const { data, error } = await pub.auth.getUser(jwt);
       return error || !data.user ? null : data.user.id;
     },

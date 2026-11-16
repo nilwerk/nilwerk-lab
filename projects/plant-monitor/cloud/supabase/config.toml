@@ -2,7 +2,7 @@
 # Local development only: `supabase start` runs everything in Docker, no account, no cost.
 # Production = ONE free Supabase project in an EU region (A-025 zero-cost rule, NFR-07 EU data residency),
 # e.g. Frankfurt (eu-central-1). Creating it is Arsany's click, not an agent's; see ../README.md.
-# No secrets here. Secret NAMES (A-035, new Supabase key model): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY
+# No secrets here. Secret NAMES (A-035, new Supabase key model): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY (fallback: SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY, see _shared/env.ts)
 # (GitHub/Supabase secrets, read from the environment only, never committed).
 project_id = "plant-monitor"
 
