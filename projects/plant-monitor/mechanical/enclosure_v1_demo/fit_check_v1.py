@@ -75,7 +75,7 @@ def main():
     # ---------- manufacturing / printability (RULE) ----------
     for nm, m in (("base", mt), ("lid (print orientation)", ml)):
         ext = m.extents
-        row(f"Fits P1S build volume: {nm}", f"{ext[0]:.1f} x {ext[1]:.1f} x {ext[2]:.1f} mm", "<= 256 x 256 x 256", all(ext <= np.array(P.BUILD)), "RULE standard s1 (P1S build volume)")
+        row(f"Fits P1S build volume: {nm}", f"{ext[0]:.1f} x {ext[1]:.1f} x {ext[2]:.1f} mm", "<= 256 x 256 x 256", all(ext <= np.array(P.BUILD)), "RULE standard s1 (P1S build volume); extents depend on ASSUMED pin tips and WIRING USB-C heights", "derived geometry, not a measured part: OPEN until the printed parts are measured", unsure=True)
         row(f"Watertight STL: {nm}", f"watertight={m.is_watertight}, volume {m.volume / 1000:.1f} cm3", "watertight, positive volume", bool(m.is_watertight) and m.volume > 0, "RULE standard s1 (watertight STL)")
         row(f"On the bed: {nm}", f"z min {m.bounds[0][2]:.3f}", "z min = 0", abs(m.bounds[0][2]) < 1e-6, "RULE standard (print orientation, on the bed)")
         reach, nf = overhang_reach(m)
@@ -103,7 +103,7 @@ def main():
     row("Support pads clear of the cell cradle", f"pad end x {pad_end:.1f} vs cradle wall x {P.CAV_X0 - P.STOP_T:.1f}", "pad end < cradle wall", pad_clear, "geometry (cell BRIEF)", unsure=True)
     row("Support pad 2 outside the antenna keep-out box", f"pad 2 x {P.PAD_XS[1][0]}-{P.PAD_XS[1][1]} vs keep-out x {P.KO_CAD[0]:.0f}-{P.KO_CAD[2]:.0f}: gap {P.PAD_XS[1][0] - P.KO_CAD[2]:.1f} mm", "no overlap", not (P.PAD_XS[1][0] < P.KO_CAD[2] and P.PAD_XS[1][1] > P.KO_CAD[0]), "geometry; keep-out WIRING; 1.0 mm gap = ASSUMED (WIRING gen_wiring route margin, applied by me to the pad)", unsure=True)
     overhang_span = P.PB_L - pad_end
-    row("Board support span (NOT MET: no support under the cell)", f"board supported on x {P.PAD_XS[0][0]:.0f}-{pad_end:.0f}; x {pad_end:.0f}-{P.PB_L:.0f} ({overhang_span:.0f} mm) unsupported", "support under the full board", True, "geometry; the cell occupies the board's right side for all y", "NOT MET, accepted as A-099 option a (Lead's record): no pad can stand under x 50-70 without hitting the cell. Sag not measured; re-check on the first bench build", unsure=True)
+    row("Board support span (NOT MET: no support under x 48-70)", f"board supported on x {P.PAD_XS[0][0]:.0f}-{pad_end:.0f}; x {pad_end:.0f}-{P.PB_L:.0f} ({overhang_span:.0f} mm) unsupported", "support under the full board", True, "geometry; the cell occupies the board's right side for all y", "NOT MET, accepted as A-099 option a (Lead's record): no pad can stand under x 48-70 (cradle wall at x 48.5-49.7, cell from x 49.7). Sag not measured; re-check on the first bench build", unsure=True)
     row("Solder-side clearance under the board (cell region)", f"{P.STANDOFF_H:.1f} mm floor-to-board = cell cavity {P.CELL_CAV[2]} + pin tips {P.PIN_TIP} + margin {P.PIN_MARGIN}", f">= {P.CELL_CAV[2] + P.PIN_TIP} (cavity + WIRING pin tips)", P.Z_PB_BOT - P.Z_FLOOR >= P.CELL_CAV[2] + P.PIN_TIP, "WIRING.md about 4 mm pin tips UNVERIFIED; cell BRIEF", "needs Arsany's under-board height with trimmed pins and wires (round 2 raised the gap from 5.0 to 12.2)", unsure=True)
     bgap = min(rect_dist(0, 0, P.PB_L, P.PB_W, x, y) - P.BOSS_D / 2 for x, y in P.boss_xy())
     row("Boss edge to perfboard outline", f"{bgap:.2f} mm", f">= {P.BOSS_GAP_MIN} (ASSUMED threshold)", bgap >= P.BOSS_GAP_MIN, "ASSUMED threshold", unsure=True)

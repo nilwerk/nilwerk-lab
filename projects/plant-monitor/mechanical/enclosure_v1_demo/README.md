@@ -46,7 +46,7 @@ Outer **118.5 x 72.6 x 24.2 mm** (assembled), inner height 21.0 mm. Left: the pe
 | `CH_W` lead channel | 7.0 (JST-PH 2-pin about 6 x 4.5) | ASSUMED |
 
 ## Fit check and tests
-`python fit_check_v1.py [--md out.md]`: **10 PASS / 0 FAIL / 3 NOT MET / 48 OPEN** (round 2; the round-1 counts below were 15 / 0 / 35). PASS only where the input is MEASURED or a RULE (P1S volume, watertight, on the bed, walls, perfboard pocket, pads inside the board, wall requirement). Everything that depends on a part height, a hole position (grid count UNVERIFIED), the SuperMini size, the cell datasheet or an RF distance is OPEN. `python -m pytest -q enclosure_v1_demo/test_v1.py` (from `projects/plant-monitor/mechanical`) runs 25 tests (round 2, including the row-level provenance test).
+`python fit_check_v1.py [--md out.md]`: **8 PASS / 0 FAIL / 3 NOT MET / 50 OPEN** (round 2; the round-1 counts below were 15 / 0 / 35). PASS only where the input is MEASURED or a RULE (P1S volume, watertight, on the bed, walls, perfboard pocket, pads inside the board, wall requirement). Everything that depends on a part height, a hole position (grid count UNVERIFIED), the SuperMini size, the cell datasheet or an RF distance is OPEN. `python -m pytest -q enclosure_v1_demo/test_v1.py` (from `projects/plant-monitor/mechanical`) runs 25 tests (round 2, including the row-level provenance test).
 
 ## Print notes (P1S, PETG, 0.4 mm; not sliced, so no time or gram figure from Bambu Studio)
 - **Base:** floor on the bed, open side up. **Lid:** print upside down (the exported STL/3MF is already flipped), top face on the bed: smooth top, posts, collar and ribs grow upward. No supports (checked: only the 0.6 mm bed-edge chamfer is an overhang).
