@@ -158,8 +158,9 @@ do $$ declare n int; begin
   if n <> 1 then raise exception 'C10: dip inside batch missed (newest row 3600 hid vbat 3300), low_battery open = %', n; end if; end $$;
 update public.alerts set resolved_at = now() where device_id='20000000-0000-0000-0000-00000000000c' and resolved_at is null;
 
--- (b) a bad moisture value next to a low battery: the newest row (250 moisture, plausible=false, 3300 mV) must not hide
--- its battery; the plausible row before it (60 moisture, 3600 mV) keeps moisture alerts off. The batch is the rows
+-- (b) a bad moisture value next to a low battery: the newest row overall is the 250 moisture row (plausible=false,
+-- 3300 mV). The newest PLAUSIBLE reading is the 60 moisture row (ts 2 min ago, 3600 mV), which is what moisture
+-- alerts use, so no moisture alert may open. The 3300 mV row still counts for the battery. The batch is the rows
 -- received after the time captured here.
 select now() as c10_since \gset
 insert into public.readings(device_id,ts,owner_id,plant_id,moisture_pct,vbat_mv,plausible) values
@@ -172,6 +173,30 @@ do $$ declare n int; begin
   select count(*) into n from public.alerts where device_id='20000000-0000-0000-0000-00000000000c' and kind in ('too_wet','too_dry') and resolved_at is null;
   if n <> 0 then raise exception 'C10: moisture alert raised from the implausible row or from the plausible 60 row, open = %', n; end if;
 end $$;
+
+-- (c1) a corrupt ADC value must not open an alert by itself: batch = 0 mV, 6000 mV (both impossible) and 3600 mV (valid)
+-- => no low_battery. The earlier open alert from (b) is resolved first, so a new open alert would be visible.
+update public.alerts set resolved_at = now() where device_id='20000000-0000-0000-0000-00000000000c' and kind='low_battery' and resolved_at is null;
+select now() as c10c_since \gset
+insert into public.readings(device_id,ts,owner_id,plant_id,moisture_pct,vbat_mv,plausible) values
+ ('20000000-0000-0000-0000-00000000000c', now() - interval '3 minutes', '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000c', 50, 0, true),
+ ('20000000-0000-0000-0000-00000000000c', now() - interval '2 minutes', '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000c', 50, 6000, true),
+ ('20000000-0000-0000-0000-00000000000c', now() - interval '1 minute',  '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000c', 50, 3600, true);
+select public.evaluate_alerts('20000000-0000-0000-0000-00000000000c', :'c10c_since'::timestamptz);
+do $$ declare n int; begin
+  select count(*) into n from public.alerts where device_id='20000000-0000-0000-0000-00000000000c' and kind='low_battery' and resolved_at is null;
+  if n <> 0 then raise exception 'C10: impossible vbat (0 or 6000 mV) opened low_battery, open = %', n; end if; end $$;
+
+-- (c2) the real dip still counts next to a corrupt value: batch = 0 mV (ignored), 3600 mV, 3300 mV (dip) => low_battery
+select now() as c10d_since \gset
+insert into public.readings(device_id,ts,owner_id,plant_id,moisture_pct,vbat_mv,plausible) values
+ ('20000000-0000-0000-0000-00000000000c', now() - interval '3 minutes', '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000c', 50, 0, true),
+ ('20000000-0000-0000-0000-00000000000c', now() - interval '2 minutes', '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000c', 50, 3600, true),
+ ('20000000-0000-0000-0000-00000000000c', now() - interval '1 minute',  '00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000c', 50, 3300, true);
+select public.evaluate_alerts('20000000-0000-0000-0000-00000000000c', :'c10d_since'::timestamptz);
+do $$ declare n int; begin
+  select count(*) into n from public.alerts where device_id='20000000-0000-0000-0000-00000000000c' and kind='low_battery' and resolved_at is null;
+  if n <> 1 then raise exception 'C10: real dip 3300 mV next to a 0 mV row not counted, low_battery open = %', n; end if; end $$;
 
 -- clean up device C and its plant (later sections count devices and alerts of user A)
 delete from public.alerts where device_id='20000000-0000-0000-0000-00000000000c';

@@ -2,8 +2,10 @@
 -- Two misses: (1) a battery dip inside a batch was hidden when a later row in the same batch was higher;
 -- (2) a reading with a bad moisture value (plausible=false) was skipped, so its low vbat was hidden too.
 -- Fix: battery = MIN vbat_mv over the batch received since p_since, with NO plausible filter (a low battery is a
--- real-world fact the sensor reports, FR-D06). If the call has no batch rows (manual re-evaluation), fall back to the
--- newest reading's vbat, as before. Moisture keeps the plausible filter: newest plausible reading (FR-A07).
+-- real-world fact the sensor reports, FR-D06). Only physically impossible values are ignored (vbat_mv <= 0 or
+-- > 5000 mV: a corrupt ADC read, Ines QA note 1), so one bad sample cannot open a false low_battery; real low
+-- readings such as 2900 mV still count. If the call has no batch rows (manual re-evaluation), fall back to the
+-- newest reading's vbat (same ignore rule). Moisture keeps the plausible filter: newest plausible reading (FR-A07).
 -- Migration 1 stays byte-identical to docs/interfaces/db-schema.sql (drift guard); this is a new migration, as the
 -- README's migration rules require. The same body belongs into db-schema.sql in the Architect's contract PR.
 create or replace function public.evaluate_alerts(p_device uuid, p_since timestamptz) returns void
@@ -15,11 +17,13 @@ begin
   select * into pl from public.plants where id = d.plant_id;
   -- moisture: newest plausible reading
   select * into r from public.readings where device_id = p_device and plausible order by ts desc limit 1;
-  -- battery: lowest vbat in the batch (received since p_since), plausible or not
+  -- battery: lowest vbat in the batch (received since p_since), plausible or not; impossible values ignored
   if exists (select 1 from public.readings where device_id = p_device and received_at >= p_since) then
-    select min(vbat_mv) into v_min from public.readings where device_id = p_device and received_at >= p_since;
+    select min(vbat_mv) into v_min from public.readings
+     where device_id = p_device and received_at >= p_since and vbat_mv > 0 and vbat_mv <= 5000;
   else
-    select x.vbat_mv into v_min from public.readings x where x.device_id = p_device order by x.ts desc limit 1;
+    select x.vbat_mv into v_min from public.readings x
+     where x.device_id = p_device and x.vbat_mv > 0 and x.vbat_mv <= 5000 order by x.ts desc limit 1;
   end if;
   if r.ts is null and v_min is null then return; end if;
 
