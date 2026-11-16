@@ -1,13 +1,13 @@
-# Plant Monitor app (tasks 4.A2 account and profile, 4.A3 device setup UI, 4.A4 slice 1 plants)
+# Plant Monitor app (tasks 4.A2 account and profile, 4.A3 device setup UI, 4.A4 slices 1 and 2 plants)
 
-Expo (SDK 58) + TypeScript (strict). Screens: Welcome S01, Sign up / Sign in S02, Profile S03, Delete account S04, Premium sheet S40, plus (4.A4 slice 1) Plant list S20, Plant detail S21, Remove plant S24b/S24c with a Plants/Profile tab bar
-(wireframes: `wireframes/index.html`). Requirements: FR-A01 (account), FR-P04 (plan mirrors `profiles.is_premium`), NFR-06 (own rows only, RLS), NFR-07 (delete removes all data).
+Expo (SDK 58) + TypeScript (strict). Screens: Welcome S01, Sign up / Sign in S02, Profile S03, Delete account S04, Premium sheet S40, plus (4.A4 slice 1) Plant list S20, Plant detail S21 (with hourly table S22 and metadata), Photo gallery S23, Remove plant S24b/S24c with export first, a Plants/Profile tab bar
+(wireframes: `wireframes/index.html`). Requirements: FR-A01 (account), FR-P04 (plan mirrors `profiles.is_premium`), NFR-06 (own rows only, RLS), NFR-07 (delete removes all data, export first).
 Brand: the aligned set approved in A-040 (`theme.ts`, `tokens.json`, `assets/` copied from `showcase/brand/app/`; regenerate there, not here). English only, strings in `strings/en.json` (A-024).
 
 ## Run
 ```bash
 npm ci
-npm run typecheck && npm test                      # typecheck + 98 unit/screen tests (no backend needed)
+npm run typecheck && npm test                      # typecheck + 164 unit/screen tests (no backend needed)
 EXPO_PUBLIC_MOCK_AUTH=1 npx expo start --web       # whole app against an in-memory mock of Supabase (no account, no network)
 ```
 Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`): set these environment variables before `expo start` / EAS build. Names only, values are never committed:
@@ -49,3 +49,12 @@ The real `PlantsService` must not replace `unconfiguredPlants` until all three h
 Requirements: FR-A06 (list with status chips dry / wet / low battery / offline, detail with latest values and 7-day hourly chart), FR-A02 (no device cap), FR-A08 + A-022 (remove plant with warning and typed confirmation, then keep or release the sensor), NFR-06.
 `src/plants/types.ts` is the contract (mirrors `plant_status`, `readings_hourly`, `delete_plant`, `POST /device-release` in `docs/interfaces/`). `fakePlants.ts` is the in-memory mock (5 fixture plants as in wireframe S20, synthetic readings); with `EXPO_PUBLIC_MOCK_AUTH=1` the app uses it, otherwise `unconfiguredPlants.ts` answers "not connected". Status chips: `src/plants/status.ts` maps open alert kinds to the aligned colours in `theme.ts` (shape glyph + text label + colour). Chart: `src/ui/MoistureChart.tsx` (plain Views, one bar per hour, no SVG dependency).
 Not done in slice 1 (slice 2 and later): photo gallery S23 / photo hero (FR-A05, unlimited images), hourly data table S22, edit plant S24 (FR-A04), "Export first" before removal (needs GET /export + share sheet, A-022 asks to offer it), "+ Add" to S10 (4.A3), alerts tab (4.A5), 30/90-day Premium ranges (FR-P01), "dry in" forecast (FR-E01), pull-to-refresh (a Refresh button instead), a real Supabase `PlantsService` (never run against a backend or on a phone; web build + render tests only). Removing a plant in the mock does not touch a device table; real behaviour is `delete_plant` (sensor stays claimed, plant_id cleared). The mock's "latest" value is a fixture number, not derived from the synthetic chart series.
+
+## 4.A4 slice 2: gallery, export before delete, hourly table (mock only)
+Requirements: FR-A05 (unlimited dated photos, newest or oldest first), FR-A04 (location type, room, soil type shown on detail and gallery), FR-A06 (hourly table, 168 rows), FR-D02 (24 reports a day = 24 rows with a value), FR-D04 (a missing hour is a gap), FR-A08 + A-022 + NFR-07 (export before delete; photo objects removed from storage).
+- **Hourly table** (`src/ui/HourlyTable.tsx`, grid in `src/plants/hourly.ts`): columns are the readings_hourly fields of the contract (moisture_avg, temp_avg, rh_avg, lux_avg, vbat_min_mv), newest first, a missing hour is a dash. The service always returns the 168-hour grid (`hourlyGrid`). Boundary tests in `src/__tests__/hourly.test.ts` (empty, one reading, 24 readings, gap in time, window edges) and in `plantsSlice2.test.tsx`.
+- **Gallery** (`src/screens/PlantGalleryScreen.tsx`): every photo of the plant is rendered (no cap, no windowed list). Mock photos have no image bytes, so tiles show the date only.
+- **Export before delete** (`src/export/exportGate.ts`, `RemovePlantScreen`): the delete button stays disabled until `exportData` succeeded AND the exact name is typed. The export is account-wide because GET /export has no plant_id. The export result is metadata only (file name, counts); the share sheet / file download is not built.
+- **Photo objects** (C2 gate from PR #65): after `delete_plant`, the app calls `removePhotoObjects` with the returned paths; a failure keeps the paths on the Removed screen with a retry.
+- **Not in this slice:** account delete gate (DeleteAccountScreen is 4.A2), upload ("+ Add"), full-screen photo, long-press delete, real Supabase `PlantsService` (still mock only, never run against a backend).
+
