@@ -61,3 +61,18 @@ Procedure for Arsany / the Lead against `nilwerk-cloud`. Nothing below has been 
 
 ## Not here yet
 Auth UI, deployment, rate limits, OTA manifest, `/device-release` and the remaining app endpoints. No `package.json` in `cloud/` on purpose: its presence switches on the CI `cloud` job, which applies migrations to a plain Postgres without the `auth` schema and would fail; the `cloud-db` job runs `test.sh`, which now also runs the edge function tests.
+
+## Deferred security review (revisit at real-app phase)
+Decision by Arsany, 16 Nov 2026: the security review of the anonymous RPC access is **deferred**, not accepted. It is not done now. No SQL, migration or function was changed for it. Source: Supabase database advisors on `nilwerk-cloud`, as reported on 16 Nov (not re-run for this section).
+
+| # | Finding | Object |
+|---|---|---|
+| 1 | anon role can call the function through the API (most serious) | `handle_new_user` |
+| 2 | anon role can call the function through the API (most serious) | `is_premium` |
+| 3 | SECURITY DEFINER, executable by anon/authenticated | `delete_plant` and others (full list in the advisor output) |
+| 4 | mutable `search_path` | several functions |
+| 5 | RLS enabled, no policy | `claim_tokens`, `device_credentials`, `firmware_releases` |
+| 6 | unindexed foreign keys | 7 tables |
+| 7 | `auth_rls_initplan` (auth call re-evaluated per row) | 13 policies |
+
+**Revisit trigger:** the project moves from prototype to the real app. Items 1 and 2 are first. Until then the exposure stays as listed; the device functions are covered by `test/grants.sql` only, not by these advisors.
