@@ -1,6 +1,7 @@
 # Plant Monitor v1 demo housing, compact round 2 (4.E5)
 
 > **FIT-CHECK ONLY. Indoor demo, not splash-proof, not IP-rated.** All part heights are WIRING typical values and UNVERIFIED (A-094 items 2 and 4 still open). Nothing here is measured, printed, sliced or RF-tested. The fit check reports 0 FAIL, but that is not a PASS on any height.
+> **Battery placement is PROVISIONAL until A-100 is answered. The print decision waits for A-100.** Open items cited: A-097 to A-100 (Needs Arsany). A-099 (board sag) is accepted as option a and A-098 (AHT20 over the cell) as option b, both NOT measured, to be re-checked on the first bench build.
 > **Never charge unattended inside the closed box.** The LiPo now sits under the board, with the TP4056 and no vent near it.
 
 Yara (3D Product Designer) · 2026-11-16 · task 4.E5 round 2 (EXTRA from Arsany, logged as EXTRA) · branch `agent/mechanical/4.E5-compact`.
@@ -35,11 +36,9 @@ Yara (3D Product Designer) · 2026-11-16 · task 4.E5 round 2 (EXTRA from Arsany
 | USB-C openings | 14 x 8, closed at the top by the 1.05 mm rim: **bridges** 14 mm span | half-slots open to the rim | bridge printability ASSUMED |
 
 ## Where the cell does NOT fit (NOT MET, decision for Arsany)
-- **The cell cannot lie fully under the board.** Free rectangles under the 70 x 50 board outside the antenna keep-out box (x 27-40, y 0-22): the widest strips are 30 x 50 (x 40-70) and 70 x 28 (y 22-50). The cell needs 34.5 x 51. A brute-force search on a 0.5 mm grid, both orientations, found **0 placements, even with no margin**.
-- **Battery placement vs WIRING section 5 (NOT MET, A-100 open):** WIRING puts the battery beside or below the **left** half, outside x 22-40 y 0-25 (doc). Round 2 puts it under the **right** half. This is a deliberate deviation for Arsany to accept or reject.
-- **Closest option chosen:** cell turned, right side of the board, 10.0 mm clear of the keep-out box. That 10.0 mm is **my own margin from the box edge**, not the WIRING wording (10+ mm beyond the antenna end); the cell is 23.0 mm from the antenna end point. 57 % lies under the board (x 50-70); the rest overhangs the right edge by 14.5 mm (x 70-84.5). Rejected: the lower band (y 22-56) gives 81 % under the board but touches the keep-out edge and sits 2 mm from the antenna end.
-- **No board support under x 50-70** (22 mm of the 2 mm board). The cell runs the full length in Y, so no pad or post can stand there. The lid hold-down pins sit on the free corners only. Arsany checks sag on the printed box.
-- **AHT20 sits over the cell** (0 mm in plan; round 1 rule was 15 mm). A charging cell may warm the sensor air. Options: move the AHT20 (a WIRING change, Emil) or accept. Not measured.
+- **Battery placement (NOT MET, PROVISIONAL until A-100 is answered).** The brief puts the cell fully under the perfboard, and no free 34.5 x 51 mm rectangle exists under the board outside the antenna keep-out (0 placements found, even with no margin; widest free strips 30 x 50 and 70 x 28). WIRING section 5 puts the battery beside or below the **left** half, outside x 22-40 y 0-25 (doc); round 2 puts it under the **right** half. Closest option chosen: cell turned, 10.0 mm clear of the keep-out box, **10.0 mm is my own margin from the box edge**, not the WIRING wording (10+ mm beyond the antenna end); the cell is 23.0 mm from the antenna end point. 57 % lies under the board (x 50-70); the rest overhangs the right edge by 14.5 mm (x 70-84.5). Rejected: the lower band (y 22-56) gives 81 % under the board but touches the keep-out edge and sits 2 mm from the antenna end.
+- **No board support under x 50-70** (22 mm of the 2 mm board). The cell runs the full length in Y, so no pad or post can stand there. The lid hold-down pins sit on the free corners only. **Accepted as A-099 option a** (Lead's record): not measured, to be re-checked on the first bench build.
+- **AHT20 sits over the cell** (0 mm in plan; round 1 rule was 15 mm). A charging cell may warm the sensor air. **Accepted as A-098 option b** (Lead's record): AHT20 stays over the cell. Not measured; re-check on the first bench build.
 
 ## Fit check and tests (exact output)
 `python fit_check_v1.py` → **11 PASS / 0 FAIL / 3 NOT MET / 47 OPEN**. Changes from the 14 / 0 / 3 / 44 the Lead expected: the two overhang rows rest on an ASSUMED 0.8 mm threshold and the 'Model-internal' perfboard-vs-base row rests on the ASSUMED 4.0 mm pin tips, so both are OPEN (ASSUMED values never PASS). Round 1 was 15 / 0 / 35.
@@ -57,11 +56,11 @@ Yara (3D Product Designer) · 2026-11-16 · task 4.E5 round 2 (EXTRA from Arsany
 2. **Lid height vs tallest part:** real heights of J1 with jumper and J3 with the Dupont plug above the board top. The lid underside needs 2.0 mm clearance; the shell is 5.4 mm above the seam. Heights in WIRING are typical.
 3. **Under-board gap:** pin tips and trimmed wires below the board (assumed 4.0). This sets the 12.2 mm floor gap and the 31.4 mm height. Measure it first (A-094 item 4).
 4. **LiPo:** datasheet/pack size against the cradle 53.0 x 35.1 x 7.2 cavity (BRIEF 51 x 34.5 x 6.3); the JST-PH plug and pigtail length to TP4056 B+/B- via the bottom notch and the S-bend posts; the parking zone for the mated pair.
-5. **Board support** under x 48-70: does the perfboard sag under the lid pins or a press-fit?
-6. **AHT20 over the cell:** decide to move the AHT20 or accept the coupling; check the sensor reading when the cell charges (never unattended).
+5. **Board support** under x 48-70 (A-099 option a, accepted, not measured): does the perfboard sag under the lid pins or a press-fit? Re-check on the first bench build.
+6. **AHT20 over the cell** (A-098 option b, accepted, not measured): check the sensor reading when the cell charges (never unattended) on the first bench build.
 7. **BOOT/RESET** tubes (end 1 mm above assumed key tops), BH1750 window, vents and TP4056 LED window: re-check against the new lid. LED position still OPEN.
 8. **USB-C ceilings** as 14 mm bridges and the cable slot as a 9 mm bridge: print test before a batch.
-9. **RF is still unmeasured.** Antenna keep-out: no metal in x 27-40 (only 5 M2 screws and inserts, all 10 mm clear, nearest 15.1 mm); the cell is 10.0 mm clear of the box and 23 mm from the antenna end. No Wi-Fi range test exists; check range with the lid on against off.
+9. **RF is still unmeasured.** Antenna keep-out: no metal in x 27-40 (only 5 M2 screws and inserts: nearest boss 15.1 mm from the box; WIRING rule 10+ mm beyond the antenna end, UNVERIFIED); the cell is 10.0 mm clear of the box (**my own margin**) and 23.0 mm from the antenna end. No Wi-Fi range test exists; check range with the lid on against off.
 10. **Soil cable** exit slot at z 18.3-24.3 (5.5 above the board top, ASSUMED plug height).
 
 ## UNVERIFIED / not done
