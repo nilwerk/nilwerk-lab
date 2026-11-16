@@ -134,6 +134,24 @@ How this dataset is used, and what limits it:
 - **Not trained / not claimed:** sensor fault and out-of-soil (no real positives), fast drying, waterlogged (weak labels; 0 train positives; percentile constants stay frozen).
 - **Size (FR-E04):** int8 flatbuffer 3,664 B of 30 KB (measured on host); RAM estimate 334 B (activation tensors 46 B + feature ring 288 B) of 20 KB, an estimate: interpreter overhead and latency on the ESP32-C3 are not run (4.AI3).
 
+## Rework 4.AI2 (2026-11-16): label rule pad 4, retrain, FR-E02 status
+
+- **Label rule.** `IGNORE_PAD_TICKS = 4` (+-1 h around each generic onset) is the rule in `src/labels.py` and in the training path (`train.build_wetting_windows`). It was already on main from 4.AI1 (2a66365); the Lead's decision is applied, not changed. Pinned by `tests/test_event_classes_default_pad.py` (labels path and training path, FR-E02, A-032). No pad 2 numbers are reported as results; the sensitivity above is the only place pad 2 appears.
+- **Retrain.** `scripts/train_all.py` re-run on the same ZIP (SHA-256 above) on 2026-11-16: counts, metrics and the int8 `.tflite` are identical to `reports/model-b-wetting-v0.md` (byte for byte for the model and `size_report.json`). No threshold was re-chosen; TEST was not used for any choice.
+- **Thresholds (validation only).** Float p_fast = 0.987 and int8 p_fast = 0.984, each the smallest candidate with per-tick false-positive rate <= 0.0015 on VAL (`train.choose_p_fast`). Both fixed before TEST is read.
+- **Scorable counts.** VAL: 15 wetting positives scorable of 32 labelled (1,861 negatives, 1,029 ignore ticks dropped). TEST: 20 of 40 (2,592 negatives, 1,259 ignored). The other 17 VAL and 20 TEST positives are in no metric (no 12 consecutive valid samples before them).
+
+| Model | Split | Pos / Neg (scorable) | TP / FP / FN | Wetting precision | Wetting recall (95 % CI) | FA per unit-week |
+|---|---|---|---|---|---|---|
+| float (seed 0) | VAL | 15 / 1,861 | 4 / 2 / 11 | 66.7 % (4 of 6) | 26.7 % (10.9 to 52.0) | 0.72 |
+| float (seed 0) | TEST | 20 / 2,592 | 7 / 0 / 13 | 100.0 % (7 of 7) | 35.0 % (18.1 to 56.7) | 0.00 |
+| int8 | VAL | 15 / 1,861 | 4 / 2 / 11 | 66.7 % (4 of 6) | 26.7 % (10.9 to 52.0) | 0.72 |
+| int8 | TEST | 20 / 2,592 | 8 / 2 / 12 | 80.0 % (8 of 10) | 40.0 % (21.9 to 61.3) | 0.52 |
+
+- **Size (FR-E04).** int8 flatbuffer **3,664 B** of the 30,720 B budget (under 30 KB). RAM estimate 334 B of 20,480 B (estimate, not measured on the ESP32-C3).
+- **FR-E02 is NOT met.** Target: wetting recall >= 95 % at <= 1 false alert per unit-week. Measured: int8 recall 27 % (VAL) and 40 % (TEST); float 27 % and 35 %. The int8-vs-float difference (5 points on TEST) is one event.
+- **Next option (for the Lead and Arsany, no change made here).** Three choices, none is a silent fix: (a) keep FR-E02 as written and collect bench-labelled watering events (valve and probe logged on a pot, a 4.AI3 work order for Peter), because the Mendeley label is circular and cannot show detection of watering; (b) raise a question on FR-E02 scope (requirement wins; the team cannot meet 95 % on this label); (c) widen the window to allow gaps, which would add scorable positives but changes the input and needs its own data card and tests. Option (a) is the only one that tests the claim itself.
+
 ## Credits (CC BY 4.0 attribution, review C5)
 The int8 model `ml/models/` (4.AI2) is trained on this dataset. Any app, documentation or release credits list that ships it must carry: "Soil Moisture, Irrigation Actuator and Weather Dataset" by Adamo, Colizzi, Dimauro, Guerriero, Lomonte et al. (2026), Mendeley Data V2, doi:10.17632/c837v6p8ph.2, licensed CC BY 4.0 (http://creativecommons.org/licenses/by/4.0). Models trained on it were changed from the original (windowed, labelled, quantised): state that. Open for the Lead: put this line into the app/docs credits list. The legal review of commercial use is still not done (unverified).
 
