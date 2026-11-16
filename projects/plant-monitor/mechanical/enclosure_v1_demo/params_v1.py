@@ -114,7 +114,7 @@ HOLD_D, HOLD_GAP = 3.6, 0.3       # lid hold-down pins on free corner spots (doc
 
 # ---- cell cradle under the board (round 2) ----
 STOP_T = 1.2                      # cradle wall / stop thickness (plastic; no metal in the keep-out)
-LOW_H = 6.8                       # cradle height above the floor: cell 6.3 + 0.5 (the board is 7 mm above this top)
+LOW_H = 6.8                       # cradle wall top above the floor: cell 6.3 + 0.5. Below the 7.2 cavity top (the cavity allows swell, the walls do not contain it); 5.4 mm below the board underside
 LEAD_NOTCH_X = (53.0, 59.0)       # notch in the bottom stop for the cell lead (lead leaves the cell end at y -0.5 toward the strip)
 # Strain relief for the cell lead: S-bend posts in the bottom strip (round 1: in the bay channel)
 POST_D = 2.4

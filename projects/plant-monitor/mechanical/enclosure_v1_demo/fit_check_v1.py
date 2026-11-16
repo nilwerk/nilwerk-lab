@@ -79,7 +79,7 @@ def main():
         row(f"Watertight STL: {nm}", f"watertight={m.is_watertight}, volume {m.volume / 1000:.1f} cm3", "watertight, positive volume", bool(m.is_watertight) and m.volume > 0, "mesh check")
         row(f"On the bed: {nm}", f"z min {m.bounds[0][2]:.3f}", "z min = 0", abs(m.bounds[0][2]) < 1e-6, "print orientation")
         reach, nf = overhang_reach(m)
-        row(f"No supports: {nm}", f"overhang reach {reach:.2f} mm ({nf} faces, bridges excluded)", "<= 0.8 mm (bed-edge chamfer lip only)", reach <= 0.8, "RULE: minimise supports; 0.6 mm top-edge chamfer on the bed is the only overhang")
+        row(f"No supports: {nm}", f"overhang reach {reach:.2f} mm ({nf} faces, bridges excluded)", "<= 0.8 mm (ASSUMED threshold, not a rule)", reach <= 0.8, "RULE: minimise supports (no numeric value in the standard); 0.8 mm = ASSUMED: the 0.6 mm bed-edge chamfer lip plus margin", "the 0.6 mm top-edge chamfer on the bed is the only overhang; a numeric limit must come from a print test", unsure=True)
     bridges = [(round(float(x), 1), round(float(y), 1), round(float(z), 2)) for x, y, z in (mt.triangles_center[i] for i in np.where(mt.face_normals[:, 2] < -0.72)[0]) if is_bridge(np.array([x, y, z]))]
     row("Bridges (closed openings, base): spans without support", f"{len(bridges)} ceiling faces; USB-C ceilings {P.PLUG_W:.0f} mm span x 1.6 mm deep, cable slot {P.CABLE_W:.0f} mm span", "<= 15 mm PETG bridge (ASSUMED)", max(P.PLUG_W, P.CABLE_W) <= 15.0, "ASSUMED PETG bridging on 0.4 mm nozzle; round 2 closes the openings (parting plane above them)", "print test on the first base: check the USB-C ceilings and the cable slot", unsure=True)
     walls = dict(wall=P.WALL, floor=P.FLOOR, lid=P.LID_T, cradle_stop=P.STOP_T, fin=P.FIN_T)
@@ -95,13 +95,13 @@ def main():
     # ---------- perfboard pocket and support (MEASURED 70 x 50 x 2) ----------
     row("Perfboard pocket clearance, left and bottom/top sides", f"left {-P.IX0:.2f}, bottom {P.FIT:.2f}, top {P.FIT:.2f}", f"= FIT {P.FIT} (standard 0.2-0.4)", abs(-P.IX0 - P.FIT) < 1e-9, "perfboard MEASURED; FIT per standard s3", "the real fit of the printed pocket is OPEN until Prototype 1")
     ov = vol(pb, tray)
-    row("Interference perfboard vs base", f"{ov:.3f} mm3", "0", ov < 1e-6, "perfboard MEASURED")
+    row("Model-internal (self-consistency): perfboard ghost vs base", f"{ov:.3f} mm3", "0", ov < 1e-6, "perfboard MEASURED; z position from STANDOFF_H (4.0 mm pin tips ASSUMED)", "checks only that the model is self-consistent; not a fit proof and not a height check", unsure=True)
     pad_end = P.PAD_XS[-1][1]
     pad_ok = all(0 <= a < b <= P.PB_L for a, b in P.PAD_XS)
     row("Support pads inside the board outline", f"pads {P.PAD_W} wide at x {P.PAD_XS}", "inside 70 x 50", pad_ok, "perfboard MEASURED")
     pad_clear = pad_end < P.CAV_X0 - P.STOP_T
     row("Support pads clear of the cell cradle", f"pad end x {pad_end:.1f} vs cradle wall x {P.CAV_X0 - P.STOP_T:.1f}", "pad end < cradle wall", pad_clear, "geometry (cell BRIEF)", unsure=True)
-    row("Support pad 2 outside the antenna keep-out box", f"pad 2 x {P.PAD_XS[1][0]}-{P.PAD_XS[1][1]} vs keep-out x {P.KO_CAD[0]:.0f}-{P.KO_CAD[2]:.0f}", "no overlap", not (P.PAD_XS[1][0] < P.KO_CAD[2] and P.PAD_XS[1][1] > P.KO_CAD[0]), "geometry; keep-out WIRING", unsure=True)
+    row("Support pad 2 outside the antenna keep-out box", f"pad 2 x {P.PAD_XS[1][0]}-{P.PAD_XS[1][1]} vs keep-out x {P.KO_CAD[0]:.0f}-{P.KO_CAD[2]:.0f}: gap {P.PAD_XS[1][0] - P.KO_CAD[2]:.1f} mm", "no overlap", not (P.PAD_XS[1][0] < P.KO_CAD[2] and P.PAD_XS[1][1] > P.KO_CAD[0]), "geometry; keep-out WIRING; 1.0 mm gap = ASSUMED (WIRING gen_wiring route margin, applied by me to the pad)", unsure=True)
     overhang_span = P.PB_L - pad_end
     row("Board support span (NOT MET: no support under the cell)", f"board supported on x {P.PAD_XS[0][0]:.0f}-{pad_end:.0f}; x {pad_end:.0f}-{P.PB_L:.0f} ({overhang_span:.0f} mm) unsupported", "support under the full board", True, "geometry; the cell occupies the board's right side for all y", "NOT MET by design (OPEN until Arsany decides): no pad can stand under x 50-70 without hitting the cell. The 2 mm board sags only under the lid pins; Arsany checks on the printed box", unsure=True)
     row("Solder-side clearance under the board (cell region)", f"{P.STANDOFF_H:.1f} mm floor-to-board = cell cavity {P.CELL_CAV[2]} + pin tips {P.PIN_TIP} + margin {P.PIN_MARGIN}", f">= {P.CELL_CAV[2] + P.PIN_TIP} (cavity + WIRING pin tips)", P.Z_PB_BOT - P.Z_FLOOR >= P.CELL_CAV[2] + P.PIN_TIP, "WIRING.md about 4 mm pin tips UNVERIFIED; cell BRIEF", "needs Arsany's under-board height with trimmed pins and wires (round 2 raised the gap from 5.0 to 12.2)", unsure=True)
@@ -166,7 +166,7 @@ def main():
     ovc = vol(cell, tray)
     row("Interference cell vs base (cradle, stops, posts, floor)", f"{ovc:.3f} mm3", "0", ovc < 1e-6, "BRIEF cell size", unsure=True)
     row("Interference cell vs perfboard (cell under the board, no touch)", f"cell top z {P.Z_FLOOR + P.CELL_CELL[2]:.1f} vs board underside z {P.Z_PB_BOT:.1f} (gap {P.Z_PB_BOT - P.Z_FLOOR - P.CELL_CELL[2]:.1f} mm before pins)", "cell top below board underside", P.Z_FLOOR + P.CELL_CELL[2] < P.Z_PB_BOT, "BRIEF cell + WIRING pins", unsure=True)
-    row("Under-board fraction of the cell (NOT MET: brief asks fully under)", f"{P.CELL_UNDER_FRAC * 100:.0f} % of the cell footprint under the board (x {P.CELL_X0:.1f}-{min(P.CELL_X1, P.PB_L):.1f}, full y)", "100 % (brief: lies under the perfboard)", True, "geometry (round 2 placement)", "NOT MET by design (OPEN until Arsany decides): no free rectangle of 34.5 x 51 mm exists under the board outside the antenna keep-out (see README). Closest feasible option: cell 10 mm from the keep-out box, right side of the board, overhang 14.5 mm", unsure=True)
+    row("Battery placement vs brief and WIRING sec. 5 (NOT MET: cell not fully under the board; A-100 open)", f"{P.CELL_UNDER_FRAC * 100:.0f} % of the cell footprint under the board (x {P.CELL_X0:.1f}-{min(P.CELL_X1, P.PB_L):.1f}, full y)", "100 % (brief: lies under the perfboard)", True, "geometry (round 2 placement)", "NOT MET by design (OPEN until Arsany decides). Brief: under the perfboard. No free 34.5 x 51 mm rectangle exists under the board outside the keep-out (0 placements found). WIRING sec. 5 puts the battery beside or below the LEFT half, outside x 22-40 y 0-25 (doc); round 2 puts it under the RIGHT half (x 50-84.5 CAD, 57 % under). Closest option chosen: 10 mm own margin from the keep-out box, 23 mm from the antenna end point. Decision A-100.", unsure=True)
     # cell and the USB-C side
     row("No cell under the USB-C openings", f"cell x {P.CELL_X0:.1f}-{P.CELL_X1:.1f}; USB-C openings in the left wall at x {P.IX0:.1f}; gap {P.CELL_X0 - P.IX0:.1f} mm", "cell 20+ mm from the USB-C wall", P.CELL_X0 - P.IX0 >= 20.0, "RULE (task); geometry", unsure=True)
     # cell lead route and strain relief (bottom strip)
@@ -179,10 +179,10 @@ def main():
     kx0, ky0, kx1, ky1 = P.KO_CAD
     dmin_cell = min(rect_dist(kx0, ky0, kx1, ky1, P.CELL_X0, y) for y in (P.CELL_Y0, P.CELL_Y1))
     row("Cell outside the antenna keep-out box", f"cell x {P.CELL_X0:.1f}-{P.CELL_X1:.1f} vs keep-out x {kx0:.0f}-{kx1:.0f}; no overlap", "no overlap", not (P.CELL_X0 < kx1 and P.CELL_X1 > kx0 and P.CELL_Y0 < ky1 and P.CELL_Y1 > ky0), "WIRING keep-out, cell BRIEF", unsure=True)
-    row("Cell 10 mm margin beyond the keep-out box (X side)", f"{dmin_cell:.1f} mm (cell edge x {P.CELL_X0:.1f} to keep-out edge x {kx1:.0f})", f">= {P.ANT_MARGIN} mm", dmin_cell >= P.ANT_MARGIN - 1e-9, "WIRING 'about 10+ mm' UNVERIFIED", "the cell is 10.0 mm off the box at its closest point", unsure=True)
+    row("Cell 10 mm OWN margin from the keep-out box edge (X side)", f"{dmin_cell:.1f} mm (cell edge x {P.CELL_X0:.1f} to keep-out edge x {kx1:.0f})", f">= {P.ANT_MARGIN} mm (own margin, ASSUMED)", dmin_cell >= P.ANT_MARGIN - 1e-9, "own margin; WIRING asks 10+ mm beyond the ANTENNA END (UNVERIFIED), not from the box edge", "the 10 mm is my own margin from the box edge; WIRING's wording is the antenna end, where the cell is 23.0 mm away (next row)", unsure=True)
     ant_end = (P.ANT_END_DOC[0], P.cy((P.ANT_END_DOC[1] + P.ANT_END_DOC[3]) / 2))
     dend = rect_dist(P.CELL_X0, P.CELL_Y0, P.CELL_X1, P.CELL_Y1, ant_end[0], ant_end[1])
-    row("Cell to the antenna end point", f"{dend:.1f} mm (end at x {ant_end[0]:.0f}, y {ant_end[1]:.0f} CAD)", ">= 20 (ASSUMED, metal foil)", dend >= 20.0, "ASSUMED", unsure=True)
+    row("Cell to the antenna end point", f"{dend:.1f} mm (end at x {ant_end[0]:.0f}, y {ant_end[1]:.0f} CAD)", ">= 10 (WIRING 'about 10+ mm beyond the antenna end', UNVERIFIED)", dend >= 10.0, "WIRING sec. 5 / keep-out note; the earlier 20 mm figure was my own ASSUMED stricter value, not a WIRING number", "23.0 mm meets the WIRING 10+ mm wording; no metal-foil threshold exists in the sources", unsure=True)
     # metal (bosses) and antenna
     metal = P.boss_xy()
     dmin = min(rect_dist(kx0, ky0, kx1, ky1, x, y) - P.BOSS_D / 2 for x, y in metal)
@@ -208,8 +208,9 @@ if __name__ == "__main__":
     rows = main()
     for r in rows:
         print(f"{r[3]:5} {r[0]}: {r[1]}  [need {r[2]}] ({r[4]}) {r[5]}")
-    npass = sum(r[3] == "PASS" for r in rows); nopen = sum(r[3] == "OPEN" for r in rows); nfail = sum(r[3] == "FAIL" for r in rows)
-    print(f"\n{npass} PASS / {nfail} FAIL / {nopen} OPEN")
+    npass = sum(r[3] == "PASS" for r in rows); nfail = sum(r[3] == "FAIL" for r in rows)
+    nnotmet = sum(r[3] == "OPEN" and "NOT MET" in r[0] for r in rows); nopen = sum(r[3] == "OPEN" for r in rows) - nnotmet
+    print(f"\n{npass} PASS / {nfail} FAIL / {nnotmet} NOT MET / {nopen} OPEN")
     if "--md" in sys.argv:
         open(sys.argv[sys.argv.index("--md") + 1], "w").write(to_md(rows) + "\n")
     sys.exit(1 if nfail else 0)

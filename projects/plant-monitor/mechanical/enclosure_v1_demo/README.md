@@ -1,5 +1,5 @@
 # Plant Monitor v1 demo housing (4.E5)
-> **Round 2 (compact, 2026-11-16):** the parameters in this folder are now round 2 (LiPo under the perfboard, lid shell 5.4 mm). The round 1 text below describes round 1 (`enclosure/v1_demo/`, unchanged). Round 2 numbers and checks: `enclosure/v1_demo_compact/README.md`.
+> **Round 2 (compact, 2026-11-16):** round-1 parameters were overwritten in place in this folder (round-1 source = commit `5f195cf`). The text below describes round 1 (exports in `enclosure/v1_demo/`, unchanged). Round 2 numbers and checks: `enclosure/v1_demo_compact/README.md`.
 
 
 > **Indoor demo only. Not splash-proof, not IP-rated:** open light window and vents. Keep away from watering, no outdoor, no bathroom.
