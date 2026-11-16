@@ -1,4 +1,6 @@
 # Plant Monitor v1 demo housing (4.E5)
+> **Round 2 (compact, 2026-11-16):** round-1 parameters were overwritten in place in this folder (round-1 source = commit `5f195cf`). The text below describes round 1 (exports in `enclosure/v1_demo/`, unchanged). Round 2 numbers and checks: `enclosure/v1_demo_compact/README.md`. Battery placement under the right half is accepted for the demo: A-100 option a, a known deviation from WIRING section 5 (left half). Fit-check tally 7 / 0 / 3 / 51.
+
 
 > **Indoor demo only. Not splash-proof, not IP-rated:** open light window and vents. Keep away from watering, no outdoor, no bathroom.
 > **First print = FIT-CHECK part only** until Arsany has measured at least the tallest point above the board and the under-board height (README list items 3 and 4; still open in A-094). All part heights are ASSUMED; the 2 mm figures in A-093 are bare board thickness, not part heights.
@@ -44,7 +46,7 @@ Outer **118.5 x 72.6 x 24.2 mm** (assembled), inner height 21.0 mm. Left: the pe
 | `CH_W` lead channel | 7.0 (JST-PH 2-pin about 6 x 4.5) | ASSUMED |
 
 ## Fit check and tests
-`python fit_check_v1.py [--md out.md]`: **15 PASS / 0 FAIL / 35 OPEN**. PASS only where the input is MEASURED or a RULE (P1S volume, watertight, on the bed, no supports, walls >= 1.6, perfboard pocket and no interference, parting plane inside both openings, pads inside the board, rim of the spigot counterbore). Everything that depends on a part height, a hole position (grid count UNVERIFIED), the SuperMini size, the cell datasheet or an RF distance is OPEN. `python -m pytest -q` in `projects/plant-monitor/mechanical` runs `test_v1.py` (20 tests) with the existing suites.
+`python fit_check_v1.py [--md out.md]`: **7 PASS / 0 FAIL / 3 NOT MET / 51 OPEN** (round 2; the round-1 counts below were 15 / 0 / 35). PASS only where the input is MEASURED or a RULE (watertight, on the bed, walls, pads inside the board, wall requirement). Everything that depends on a part height, a hole position (grid count UNVERIFIED), the SuperMini size, the cell datasheet or an RF distance is OPEN. `python -m pytest -q enclosure_v1_demo/test_v1.py` (from `projects/plant-monitor/mechanical`) runs 25 tests (round 2, including the row-level provenance test).
 
 ## Print notes (P1S, PETG, 0.4 mm; not sliced, so no time or gram figure from Bambu Studio)
 - **Base:** floor on the bed, open side up. **Lid:** print upside down (the exported STL/3MF is already flipped), top face on the bed: smooth top, posts, collar and ribs grow upward. No supports (checked: only the 0.6 mm bed-edge chamfer is an overhang).
