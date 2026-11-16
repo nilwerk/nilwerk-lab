@@ -60,9 +60,9 @@ describe('device setup flow', () => {
     expect(await header('All set!')).toBeTruthy();
     expect(fake.plants.created).toEqual([{ deviceId: 'device-1', photoUri: 'file:///fake/basil.jpg', details: { name: 'Basil', location: 'balcony', area: 'Kitchen window', soil: 'garden', species: '', city: 'Berlin' } }]);
     expect(await screen.findByText(/Basil is connected/)).toBeTruthy();
-    expect(screen.getByText('Setup time 2:41 (target: 3 minutes or less)')).toBeTruthy();
+    expect(await screen.findByText('Setup time 2:41 (target: 3 minutes or less)')).toBeTruthy();
     expect(screen.queryByText(/hub/i)).toBeNull();
-  });
+  }, 15000); // Full 5-step flow with many async UI steps; under parallel CI load it exceeded Jest's 5000 ms default (flaky, seen on main). Only this test gets the longer budget.
 
   test('photo can be skipped; plant is saved without it', async () => {
     const { fake } = await mount();
