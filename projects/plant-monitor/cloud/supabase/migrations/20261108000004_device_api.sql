@@ -1,6 +1,6 @@
 -- 4.B2 device claim + ingest API: server-side logic behind the edge functions (docs/interfaces/openapi.yaml).
 -- No table changes (db-schema.sql stays the contract). Functions are callable by service_role ONLY (the edge functions
--- use SUPABASE_SECRET_KEY); anon/authenticated cannot call them (NFR-06). Plain tokens never reach the database:
+-- use SUPABASE_SECRET_KEY, or the legacy SUPABASE_SERVICE_ROLE_KEY the hosted runtime injects); anon/authenticated cannot call them (NFR-06). Plain tokens never reach the database:
 -- the edge function sends SHA-256 hex digests (ADR-004). Requirements: FR-D01, FR-D02, FR-D03, FR-D04, FR-A02, FR-A03,
 -- FR-A07, FR-E03, NFR-04, NFR-06.
 
