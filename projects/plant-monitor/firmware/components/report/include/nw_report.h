@@ -31,7 +31,7 @@
 #define NW_REPORT_V 1                    /* schema const v */
 #define NW_REPORT_MAX_SAMPLES 192        /* schema samples.maxItems; openapi 413 above this */
 #define NW_REPORT_MAX_EVENTS 32          /* schema events.maxItems */
-#define NW_REPORT_TS_MIN 1700000000u     /* schema minimum for sent_at, ts, events[].ts (unix s, Nov 2023) */
+#define NW_REPORT_TS_MIN NW_TS_MIN       /* schema minimum for sent_at, ts, events[].ts; single source in nw_sample_ring.h */
 #define NW_REPORT_VERSION_MAX 32         /* schema fw/model/maxLength */
 #define NW_REPORT_FORECAST_MAX_X10 720   /* schema forecast_h maximum 72.0 h */
 #define NW_REPORT_FORECAST_NULL INT32_MIN /* meta.forecast_x10 value meaning "null, no forecast yet" */
@@ -74,10 +74,17 @@ typedef struct {
 } nw_report_meta_t;
 
 /* Writes the JSON body into out (NUL-terminated, cap bytes incl. NUL). Takes the buffered samples oldest first,
- * at most NW_REPORT_MAX_SAMPLES. *n_samples receives how many were written (0 on error): the caller must call
- * nw_ring_consume(r, *n_samples) only after a 2xx, so samples that arrive during the upload are kept.
+ * at most NW_REPORT_MAX_SAMPLES. On success *n_samples = number of samples in the batch and *last_seq = seq of the
+ * batch's LAST sample (both 0 on error). After a 2xx the caller calls nw_ring_consume_upto(r, *last_seq) and nothing
+ * else: samples pushed during the upload have larger seq and survive, even when the ring wrapped (review C1).
  * Returns the length without the NUL, or 0 on error: buffer too small, empty buffer, a value outside the schema
- * (fw/model/forecast/event/cal range, sent_at or any sample ts before NW_REPORT_TS_MIN, e.g. RTC never synced). */
-size_t nw_report_build(char *out, size_t cap, const nw_ring_t *r, const nw_report_meta_t *m, size_t *n_samples);
+ * (fw/model/forecast/event/cal range, sent_at or any sample ts before NW_TS_MIN, e.g. RTC never synced).
+ * n_samples and last_seq may be NULL.
+ *
+ * trigger: the caller maps NW_REPORT_SCHEDULED / CRITICAL / RECONNECT (nw_sleep.h) to NW_TRIG_* here (review C4).
+ * Events (review C9, team question): there is NO offline buffer for events. meta.events holds only what the caller still
+ * has for this report. An event that was raised during an outage and not passed in here is not sent. */
+size_t nw_report_build(char *out, size_t cap, const nw_ring_t *r, const nw_report_meta_t *m,
+                       size_t *n_samples, uint32_t *last_seq);
 
 #endif

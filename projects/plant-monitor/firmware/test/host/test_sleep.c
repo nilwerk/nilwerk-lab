@@ -164,13 +164,53 @@ static void test_wifi_cutoff(void)
     in.critical_pending = true;                             /* critical also blocked: Wi-Fi would brown out */
     o = nw_sleep_decide(&in);
     CHECK(o.report == NW_REPORT_NONE && o.wifi_blocked_low_vbat);
-    in.vbat_mv = NW_VBAT_WIFI_CUTOFF_MV;                    /* at the cutoff: allowed */
+    in.vbat_mv = NW_VBAT_WIFI_CUTOFF_MV;                    /* at the cutoff: BLOCKED (review C3: '<=', 3300 mV itself) */
+    o = nw_sleep_decide(&in);
+    CHECK(o.report == NW_REPORT_NONE && o.wifi_blocked_low_vbat);
+    in.vbat_mv = NW_VBAT_WIFI_CUTOFF_MV + 1;                /* one mV above: allowed */
     o = nw_sleep_decide(&in);
     CHECK(o.report == NW_REPORT_CRITICAL && !o.wifi_blocked_low_vbat);
     in.critical_pending = false;
     in.vbat_mv = -1;                                        /* unknown voltage: cannot prove low, not blocked */
     o = nw_sleep_decide(&in);
     CHECK(o.report == NW_REPORT_SCHEDULED);
+}
+
+/* C4 (FR-D04): a due report blocked by the cutoff sets outage_pending. The first report after recovery is RECONNECT
+ * (trigger=reconnect), it stays pending until the caller clears it on a 2xx, then SCHEDULED again. Critical beats reconnect. */
+static void test_outage_reconnect(void)
+{
+    nw_sleep_in_t in = base();
+    nw_sleep_out_t o;
+    in.last_report_unix = ALIGNED_NOW - 3600;               /* due */
+    in.vbat_mv = NW_VBAT_WIFI_CUTOFF_MV - 100;              /* cell low: blocked */
+    o = nw_sleep_decide(&in);
+    CHECK(o.report == NW_REPORT_NONE && o.wifi_blocked_low_vbat && o.outage_pending);
+    in.outage_pending = o.outage_pending;                   /* caller retains the flag */
+
+    in.vbat_mv = 3900;                                      /* recovered */
+    o = nw_sleep_decide(&in);
+    CHECK(o.report == NW_REPORT_RECONNECT);
+    CHECK(o.outage_pending);                                /* still pending: upload not yet confirmed */
+
+    in.outage_pending = o.outage_pending;                   /* upload failed: caller keeps the flag */
+    o = nw_sleep_decide(&in);
+    CHECK(o.report == NW_REPORT_RECONNECT);
+
+    in.outage_pending = false;                              /* 2xx: caller clears it and stores last_report */
+    in.last_report_unix = ALIGNED_NOW;
+    in.now_unix = ALIGNED_NOW + 900;
+    o = nw_sleep_decide(&in);
+    CHECK(o.report == NW_REPORT_NONE && !o.outage_pending);  /* not due yet */
+    in.now_unix = ALIGNED_NOW + 3600;
+    o = nw_sleep_decide(&in);
+    CHECK(o.report == NW_REPORT_SCHEDULED);
+
+    in.outage_pending = true;                               /* critical beats reconnect: trigger=critical */
+    in.now_unix = ALIGNED_NOW + 900;
+    in.critical_pending = true;
+    o = nw_sleep_decide(&in);
+    CHECK(o.report == NW_REPORT_CRITICAL);
 }
 
 static void test_threshold_values(void)
@@ -180,6 +220,7 @@ static void test_threshold_values(void)
     CHECK_EQ(NW_VBAT_LOW_CLEAR_MV, 3500);
     CHECK(NW_VBAT_WIFI_CUTOFF_MV < NW_VBAT_LOW_MV);
     CHECK(NW_VBAT_WIFI_CUTOFF_MV > 3000);                   /* above the schema plausibility floor 3000 mV */
+    CHECK_EQ(NW_VBAT_WIFI_CUTOFF_MV, 3300);                 /* review C3 value; a change needs the layout brief updated too */
 }
 
 int main(void)
@@ -193,6 +234,7 @@ int main(void)
     test_low_battery_unknown_voltage_keeps_state();
     test_low_battery_keeps_hourly_report();
     test_wifi_cutoff();
+    test_outage_reconnect();
     test_threshold_values();
     printf("%d checks, %d failed\n", nwtest_checked, nwtest_failed);
     return nwtest_failed ? 1 : 0;

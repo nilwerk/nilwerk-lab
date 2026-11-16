@@ -6,7 +6,7 @@ _Static_assert(NW_SAMPLE_PERIOD_S == NW_SLEEP_SAMPLE_PERIOD_S, "sample period mu
 
 nw_sleep_out_t nw_sleep_decide(const nw_sleep_in_t *in)
 {
-    nw_sleep_out_t out = { NW_SLEEP_SAMPLE_PERIOD_S, NW_REPORT_NONE, in->low_battery_prev, false, false };
+    nw_sleep_out_t out = { NW_SLEEP_SAMPLE_PERIOD_S, NW_REPORT_NONE, in->low_battery_prev, false, false, in->outage_pending };
 
     /* 1. Wake time: next 15-min boundary of the RTC (FR-D01). Unsynced clock: plain 15 min, never a 0 s sleep. */
     if (in->time_synced && in->now_unix != 0) {
@@ -32,12 +32,16 @@ nw_sleep_out_t nw_sleep_decide(const nw_sleep_in_t *in)
                (in->now_unix - in->last_report_unix >= NW_REPORT_PERIOD_S - NW_REPORT_DUE_TOLERANCE_S);
     if (!critical && !due) return out;
 
-    /* Battery below the Wi-Fi cutoff: the rail would sag under TX. Keep buffering, do not start Wi-Fi. */
-    if (in->vbat_mv >= 0 && in->vbat_mv < NW_VBAT_WIFI_CUTOFF_MV) {
+    /* At or below the Wi-Fi cutoff the rail would sag under TX (review C3: '<=', so 3300 mV itself is blocked).
+     * Keep buffering; the report that did not go out makes the next one a reconnect (FR-D04). */
+    if (in->vbat_mv >= 0 && in->vbat_mv <= NW_VBAT_WIFI_CUTOFF_MV) {
         out.wifi_blocked_low_vbat = true;
+        out.outage_pending = true;
         return out;
     }
 
-    out.report = critical ? NW_REPORT_CRITICAL : NW_REPORT_SCHEDULED;
+    if (critical) out.report = NW_REPORT_CRITICAL;
+    else if (in->outage_pending) out.report = NW_REPORT_RECONNECT;
+    else out.report = NW_REPORT_SCHEDULED;
     return out;
 }

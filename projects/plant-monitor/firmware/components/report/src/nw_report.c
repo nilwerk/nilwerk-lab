@@ -98,9 +98,11 @@ static void put_sample(nw_w_t *w, const nw_sample_t *s)
     put(w, "}");
 }
 
-size_t nw_report_build(char *out, size_t cap, const nw_ring_t *r, const nw_report_meta_t *m, size_t *n_samples)
+size_t nw_report_build(char *out, size_t cap, const nw_ring_t *r, const nw_report_meta_t *m,
+                       size_t *n_samples, uint32_t *last_seq)
 {
     if (n_samples) *n_samples = 0;
+    if (last_seq) *last_seq = 0;
     if (!out || cap == 0 || !r || !m) return 0;
     if (!meta_ok(m)) return 0;
 
@@ -144,5 +146,6 @@ size_t nw_report_build(char *out, size_t cap, const nw_ring_t *r, const nw_repor
 
     if (w.err) return 0;
     if (n_samples) *n_samples = n;
+    if (last_seq) *last_seq = nw_ring_at(r, n - 1)->seq;
     return w.len;
 }
