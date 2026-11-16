@@ -32,7 +32,7 @@ Outer **118.5 x 72.6 x 24.2 mm** (assembled), inner height 21.0 mm. Left: the pe
 | perfboard `PB_L x PB_W x PB_T` | 70 x 50 x 2 | MEASURED |
 | TP4056 / BH1750 / AHT20 footprint | 28 x 17 / 17 x 14 / 15 x 10 | MEASURED |
 | SuperMini | 22.5 x 18 | UNVERIFIED (not measured) |
-| LiPo cell / bay cavity | 51 x 34.5 x 6.3 / 53.0 x 35.1 x 7.2 | BRIEF (A-020 bay input, no datasheet read); WIRING quotes 49 x 34 x 6.0 (conflict, the bay covers both) |
+| LiPo cell / bay cavity | 51 x 34.5 x 6.3 / 53.0 x 35.1 x 7.2 | EEMB LP603449-PCM, 51 x 34.5 x 6.3 mm (A-034; WIRING 2.6 now quotes the same figures; cell datasheet not re-read, tolerance and swelling UNVERIFIED, the bay is unchanged) |
 | `WALL`, `FLOOR`, `LID_T` | 1.6, 1.6, 1.6 | RULE (>= 1.2, task >= 1.6) |
 | `FIT` perfboard pocket per side | 0.4 | RULE (0.2-0.4), printer not calibrated |
 | `STANDOFF_H` | 5.0 | ASSUMED (4 mm WIRING + 1.0 margin) |
@@ -52,12 +52,12 @@ Outer **118.5 x 72.6 x 24.2 mm** (assembled), inner height 21.0 mm. Left: the pe
 - Fasteners: 5 x M2 x 14 pan head, 5 x M2 heat-set inserts (hole 3.2 mm, 6 mm deep) in the base bosses; the lid screws down from the top into the base. Parting plane z 13.2. The lid is 24.2 mm high, the base 13.2 mm.
 - Assembly: insert the inserts, lay the perfboard (component side up) on the pads against the fins, feed the LiPo lead through the notch, check J1 is open, fit the lid, 5 screws. Programming and charging follow WIRING.md 2.3/2.4 (J1 open, never both USB ports with J1 closed).
 - **Charging rule:** charge only supervised, on a non-flammable surface, preferably with the lid off, or at least with the J1 hatch and vents unobstructed; stop if the module or cell is hot or swells. No unattended charging in the closed box until Arsany decides otherwise.
-- **Lid off vs lid on** (to be aligned with Emil's flash-procedure fix in #101, branch `agent/pcb/v1-wiring`, once it lands; it had not landed at the time of this round): flashing with J1 open through the jumper hatch, lid on, is the intended path; unplugging the JST pair (J_BAT) needs the lid off, because the mated pair is parked in a channel under the lid. Through the openings with the lid on: J1 hatch, BOOT/RESET pin guides (paperclip), both USB-C ports, light window, vents. Lid off: unplugging or re-seating the JST pair, any wiring change, inserting the cell, checking the lead and strain relief.
+- **Lid off vs lid on** (aligned with WIRING.md 2.3, #101): flashing needs only J1 open (jumper or slide switch off) through the hatch, lid on, battery stays plugged: it is the intended path; unplugging the JST pair (J_BAT) needs the lid off, because the mated pair is parked in a channel under the lid. Through the openings with the lid on: J1 hatch, BOOT/RESET pin guides (paperclip), both USB-C ports, light window, vents. Lid off: unplugging or re-seating the JST pair, any wiring change, inserting the cell, checking the lead and strain relief.
 - Files: `enclosure/v1_demo/` STEP (assembled position, for Fusion 360), STL + 3MF (print orientation), STEP with reference perfboard, parts and cell; renders in `enclosure/v1_demo/renders/`. Fusion strategy: parameters above = `params_v1.py`; two bodies (base, lid); Arsany would edit opening sizes, `STANDOFF_H`, `LID_MARGIN` and the boss positions; any exported STEP from him becomes the reference.
 - Cost (estimate, not for sale): about 60 g PETG at an assumed 20 EUR/kg = about 1.2 EUR, plus 5 screws and inserts (price not checked).
 
 ## Arsany must verify (with the printed box and a caliper; fill in the table, send back)
-1. Perfboard drops into the pocket without force and without rattle (0.4 mm per side); the hole grid really is 24 x 18 (WIRING open item 4).
+1. Perfboard drops into the pocket without force and without rattle (0.4 mm per side); the hole grid really is 24 x 18 (WIRING open item 5).
 2. Both USB-C plugs you use (flash and charge) go in all the way through the 14 x 8 openings; if not, note the plug overmold W x H.
 3. Real heights above the perfboard top: SuperMini incl. USB-C, TP4056 incl. USB-C, BH1750, AHT20, J1 with jumper, J3 with Dupont plug; lid must clear all of them (margin 2.0).
 4. Under-board height with trimmed pins and wires (standoff 5.0 mm).

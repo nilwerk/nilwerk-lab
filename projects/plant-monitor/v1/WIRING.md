@@ -109,20 +109,20 @@ Arsany's answer is not a measurement of this cell: still prove it with the meter
 built-in protection (PCM), plug "JST" with the pitch unverified (A-091: PH 2.0). Sources: `hardware/power-budget/power-budget.md` section 8 and `hardware/bom/cell-decision-A034.md` section A.
 That file also records that the EEMB LP603449 datasheet (read 2026-11-07) gives 1C max charge for a bare cell with solder tabs; the listing sells it with PCM and a plug: the meter check (2.5) stays.
 
-**Why the default is not acceptable:** a TP4056 at its default is about 1 A (I = 1200 / R_PROG[kOhm]; 1.2 kOhm = 1 A). On a 1000 mAh minimum cell that is 1.0C against a 1.0C limit: no margin,
-and the TP4056 current tolerance (the repo file quotes +-15 % for R_PROG) puts it over. Target is 0.5C or less = about 500 mA, the same idea as v2 R9 = 2.4 kOhm (the v2 file gives 458 mA = 0.46C;
-with I = 1200 / R the same resistor gives 500 mA = 0.5C of 1000 mAh; I did not re-read the TP4056 datasheet today, so the exact current is UNVERIFIED either way).
+**Why the default is not acceptable:** a TP4056 module at its default (1.2 kOhm) charges at about 0.92 A (I = 1100 / R_PROG[kOhm]; datasheet figure, QA-confirmed, re-check on the module). On a 1000 mAh minimum cell that is 0.92C against a 1.0C limit: almost no margin,
+and the TP4056 current tolerance (the repo file quotes +-15 % for R_PROG) puts it at about 1.05 A, over the limit. Target is 0.5C or less = about 500 mA, the same idea as v2 R9 = 2.4 kOhm (the v2 file gives 458 mA = 0.46C;
+the formula is the same I = 1100 / R, and 2.4 kOhm gives 458 mA). **Formula source:** 1100/R is the figure in the repo (`pcb/design.py`, TP4056 datasheet REV_2.4 p. 9) and in QA's note on PR #101, and one maker sheet in PartsPlan (TPOWER, p. 5: RPROG = 1100 V / IBAT) agrees. Other maker sheets of the same part name print 1200/R (NanJing Top Power p. 7-8, UMW p. 12), so a given module chip may charge up to about 9 % higher: the module marking and the meter reading in step 5 decide, not the formula (datasheet figure, QA-confirmed, re-check on the module).
 
 **Instruction (do before the first charge):**
 1. Everything unpowered (USB out, cell unplugged from J_BAT). Loupe on the TP4056 module. The charge-current resistor (R_PROG) is a small SMD resistor next to the TP4056 chip (8-pin chip marked
    TP4056, metal pad underneath). It sits between chip pin 2 (PROG) and GND (pin number from memory, UNVERIFIED): with the meter in beep mode one end of it must beep to the B- / OUT- pad (GND).
-2. Read the 3-digit marking and write it down: 122 = 1.2 kOhm (about 1000 mA), 152 = 1.5 k (800 mA), 202 = 2 k (600 mA), 242 = 2.4 k (500 mA), 302 = 3 k (400 mA), 472 = 4.7 k, 103 = 10 k
-   (current in brackets = 1200 / R, UNVERIFIED). Cross-check with the meter across the part (in circuit it can read slightly low). **Which marking your module carries is UNVERIFIED until you read it.**
-3. Decide: marking 2.2 kOhm or higher (about 545 mA or less, about 0.5C): keep it. Anything lower (typically 122): swap it. Marking unreadable or the part cannot be changed: charge only while you
+2. Read the 3-digit marking and write it down: 122 = 1.2 kOhm (about 920 mA), 152 = 1.5 k (730 mA), 202 = 2 k (550 mA), 242 = 2.4 k (460 mA), 302 = 3 k (370 mA), 472 = 4.7 k, 103 = 10 k
+   (current in brackets = 1100 / R, datasheet figure, QA-confirmed, re-check on the module; maker sheets with 1200 / R give up to about 9 % more). Cross-check with the meter across the part (in circuit it can read slightly low). **Which marking your module carries is UNVERIFIED until you read it.**
+3. Decide: marking 2.2 kOhm or higher (about 500 mA or less, about 0.5C): keep it. Anything lower (typically 122): swap it. Marking unreadable or the part cannot be changed: charge only while you
    watch it and never leave it charging unattended.
 4. Swap with a fine iron and flux: remove the SMD resistor, solder the new one across the same two pads. **2.4 k is not in Arsany's list; use 2 kOhm + 330 Ohm in series = 2.33 kOhm**
-   (about 515 mA = 0.52C of 1000 mAh; at +15 % 592 mA = 0.59C, below 1C), or 2 kOhm alone (about 600 mA = 0.6C, +15 % = 0.69C) if the series pair is too fiddly. Not 5.1 k or 10 k (too slow, no need).
-5. First charge after the swap: meter on its 10 A (or mA) range in series with the B+ lead, J1 open, supervised: expect about 500-600 mA at the start. Above 700 mA or a hot chip: stop.
+   (1100 / 2.33 = about 472 mA = 0.47C of 1000 mAh; at +15 % 543 mA = 0.54C, below 1C; with the 1200 / R variant 515 mA), or 2 kOhm alone (about 550 mA = 0.55C, +15 % = 632 mA = 0.63C) if the series pair is too fiddly. Not 5.1 k or 10 k (too slow, no need).
+5. First charge after the swap: meter on its 10 A (or mA) range in series with the B+ lead, J1 open, supervised: expect about 450-550 mA at the start (472 mA nominal). Above 700 mA or a hot chip: stop.
 
 ### 2.7 Known v1 limits
 The SuperMini LDO/LEDs and the divider (4.2 V / 200 kOhm = 21 uA while J1 is closed, none from the cell while J1 is open) add drain; do not use v1 for the NFR-01 / NFR-12 numbers.
@@ -315,13 +315,14 @@ Order of assembly: solder everything except the SuperMini first (steps 1-3), the
    (wording as relayed to me; I did not find A-092 in the repo). **J2 here** = the JST PH 2-pin cell connector of the v2 PCB (`pcb/README.md`); the v1 perfboard has no J2, its cell plug is **J_BAT** (the JST-PH pigtail in the parts list, row 4).
 2. **R_PROG (C1):** read the marking on the TP4056 module resistor (2.6 step 2) and tell Nora/Emil; do the 2.33 kOhm swap (2 k + 330 Ohm) unless the marking is already 2.2 kOhm or higher. The cell facts themselves are settled (A-034, repo).
    Also confirm the cell plug: the datasheet describes a bare cell with solder tabs, the listing a JST plug; A-091 says PH 2.0; the meter check stays.
-3. Remaining caliper items: part heights and the SuperMini (section 6), plus back-side photos, for Yara.
-4. Count and confirm the perfboard grid (24 x 18 assumed) and the edge margins.
-5. TP4056 module identity: pad silk, DW01 + 8205A present (protected variant), R_PROG value.
-6. Multimeter checks 4.3 (pull-ups present?), BH1750 pin order, AHT20 sensor face.
-7. Is the red/black JST-PH lead separate from the AA holder (photos 1-2 show it attached)? Do not cut the holder lead without asking.
-8. Small parts: on hand per Arsany: 100 nF, resistors 10 / 330 / 2 k / 5.1 k / 10 k / 100 k / 1 M, slide switches, female headers, tactile buttons. Not seen: jumper shunt (use a slide switch as J1, 2.3), 4.7 k (use 5.1 k), Kapton, hookup wire. Is the 100 kOhm 1 % pair (R1/R2) among the 100 k parts, and are they 1 %?
-9. Soil AOUT in air/water voltage (4.5), before the firmware calibration.
+3. **J1 slide switch vs the 7 x 11 mm hatch (open, no redesign here):** with no jumper shunt on hand (parts row 11, 2.3), J1 would be a slide switch (on hand), but the lid hatch in PR #102 is sized for a jumper shunt (7 x 11 mm, tweezers or fingernail). Whether the switch body and its actuator fit and are reachable through that hatch, or the hatch/lid changes, is not checked: Yara/Nora to decide after the switch is measured; alternative is to buy a jumper shunt.
+4. Remaining caliper items: part heights and the SuperMini (section 6), plus back-side photos, for Yara.
+5. Count and confirm the perfboard grid (24 x 18 assumed) and the edge margins.
+6. TP4056 module identity: pad silk, DW01 + 8205A present (protected variant), R_PROG value.
+7. Multimeter checks 4.3 (pull-ups present?), BH1750 pin order, AHT20 sensor face.
+8. Is the red/black JST-PH lead separate from the AA holder (photos 1-2 show it attached)? Do not cut the holder lead without asking.
+9. Small parts: on hand per Arsany: 100 nF, resistors 10 / 330 / 2 k / 5.1 k / 10 k / 100 k / 1 M, slide switches, female headers, tactile buttons. Not seen: jumper shunt (use a slide switch as J1, 2.3), 4.7 k (use 5.1 k), Kapton, hookup wire. Is the 100 kOhm 1 % pair (R1/R2) among the 100 k parts, and are they 1 %?
+10. Soil AOUT in air/water voltage (4.5), before the firmware calibration.
 
 ## 9. Evidence
 - Photos 1.jpg-3.jpg read directly (TP4056 pads, BH1750 5 pins, AHT20 4 pins, soil sensor cable colours black/red/yellow and JST + Dupont ends, perfboard hole count).
