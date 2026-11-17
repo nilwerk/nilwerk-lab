@@ -73,8 +73,8 @@ static nw_upload_result_t attempt(nw_upload_state_t *s, fake_t *f, nw_ring_t *r,
 static void test_url_and_auth(void)
 {
     char u[NW_UPLOAD_URL_MAX], a[NW_UPLOAD_AUTH_MAX];
-    CHECK_EQ(nw_upload_build_url(u, sizeof u, "https://x.supabase.co/functions/v1"), 34 + 7);
-    CHECK(strcmp(u, "https://x.supabase.co/functions/v1/ingest") == 0);
+    CHECK_EQ(nw_upload_build_url(u, sizeof u, "https://x.example/functions/v1"), 30 + 7);
+    CHECK(strcmp(u, "https://x.example/functions/v1/ingest") == 0);
     CHECK_EQ(nw_upload_build_url(u, sizeof u, "http://x.example"), -1);          /* NFR-06: TLS only */
     CHECK_EQ(nw_upload_build_url(u, sizeof u, "https://"), -1);
     CHECK_EQ(nw_upload_build_url(u, sizeof u, "https://x.example/"), -1);        /* no trailing slash */
@@ -215,10 +215,10 @@ static void test_200_without_time_is_not_an_ack(void)
     nw_upload_state_t s; nw_upload_state_init(&s);
     nw_ring_t r; nw_ring_init(&r); push_n(&r, 2, NOW - 5000);
     nw_upload_http_resp_t resp = { 200, -1, "{\"server_time\":1800000005}garbage", 26 };
-    CHECK_EQ(nw_upload_on_response(&s, &r, 2, 2, &resp, NOW, false).outcome, NW_UP_ACK);
+    CHECK_EQ(nw_upload_on_response(&s, &r, 1, 2, 2, &resp, NOW, false).outcome, NW_UP_ACK);
     nw_upload_http_resp_t cut = { 200, -1, "{\"server_time\":1800000005}", 24 };   /* cut inside the number: 18000000 < NW_TS_MIN */
     nw_ring_init(&r); push_n(&r, 2, NOW - 5000);
-    CHECK_EQ(nw_upload_on_response(&s, &r, 2, 2, &cut, NOW, false).outcome, NW_UP_RETRY);
+    CHECK_EQ(nw_upload_on_response(&s, &r, 1, 2, 2, &cut, NOW, false).outcome, NW_UP_RETRY);
 }
 
 static void test_401(void)
@@ -256,16 +256,43 @@ static void test_reject_poison_guard(void)
     CHECK(!x.batch_dropped); CHECK_EQ(nw_ring_count(&r), 6);
     x = attempt(&s, &f, &r, NOW + 7200, 3900, false);                            /* third reject of the same batch */
     CHECK(x.batch_dropped); CHECK_EQ(x.drained, 6); CHECK_EQ(nw_ring_count(&r), 0); CHECK_EQ(s.rejects, 0);
-    /* a different batch resets the counter */
+    /* review C1 (Theo): real cadence, a new sample is pushed (new last_seq) between the rejects; the batch is still the same
+     * (same first seq), so the third reject must still drop it. Keyed on last_seq this never reached 3. */
     nw_upload_state_init(&s); push_n(&r, 2, NOW - 9000);
-    f = mk(413, "{\"error\":\"payload_too_large\"}");
-    attempt(&s, &f, &r, NOW, 3900, false); attempt(&s, &f, &r, NOW + 3600, 3900, false);
-    push_n(&r, 1, NOW - 100);                                                    /* new last_seq: not the same batch */
+    f = mk(400, "{\"error\":\"bad_request\"}");
+    x = attempt(&s, &f, &r, NOW, 3900, false); CHECK(!x.batch_dropped);
+    push_n(&r, 1, NOW - 100);
+    x = attempt(&s, &f, &r, NOW + 3600, 3900, false); CHECK(!x.batch_dropped); CHECK_EQ(s.rejects, 2);
+    push_n(&r, 1, NOW - 100);
+    CHECK_EQ(nw_ring_count(&r), 4);
     x = attempt(&s, &f, &r, NOW + 7200, 3900, false);
-    CHECK(!x.batch_dropped); CHECK_EQ(s.rejects, 1); CHECK_EQ(nw_ring_count(&r), 3);
+    CHECK(x.batch_dropped); CHECK_EQ(x.drained, 4); CHECK_EQ(nw_ring_count(&r), 0);
+    /* a different batch (oldest sample gone by other means) resets the counter */
+    nw_upload_state_init(&s); push_n(&r, 3, NOW - 9000);
+    attempt(&s, &f, &r, NOW, 3900, false); attempt(&s, &f, &r, NOW + 3600, 3900, false);
+    CHECK_EQ(nw_ring_consume_upto(&r, nw_ring_at(&r, 0)->seq), 1);               /* new first seq */
+    x = attempt(&s, &f, &r, NOW + 7200, 3900, false);
+    CHECK(!x.batch_dropped); CHECK_EQ(s.rejects, 1); CHECK_EQ(nw_ring_count(&r), 2);
     /* an ack in between resets too */
     f = mk(200, OKBODY); attempt(&s, &f, &r, NOW + 20000, 3900, false);
     CHECK_EQ(s.rejects, 0); CHECK_EQ(s.reject_seq, 0);
+}
+
+static void test_persistent_413_flagged(void)      /* review C3 */
+{
+    nw_upload_state_t s; nw_upload_state_init(&s);
+    nw_ring_t r; nw_ring_init(&r); push_n(&r, 4, NOW - 9000);
+    fake_t f = mk(413, "{\"error\":\"payload_too_large\"}");
+    nw_upload_result_t x = attempt(&s, &f, &r, NOW, 3900, false);
+    CHECK_EQ(x.outcome, NW_UP_REJECTED); CHECK(x.payload_too_large);
+    f = mk(400, "{\"error\":\"bad_request\"}");
+    x = attempt(&s, &f, &r, NOW + 3600, 3900, false);
+    CHECK_EQ(x.outcome, NW_UP_REJECTED); CHECK(!x.payload_too_large);            /* a plain 400 is not flagged */
+    f = mk(413, "{\"error\":\"payload_too_large\"}");
+    x = attempt(&s, &f, &r, NOW + 7200, 3900, false);
+    CHECK(x.payload_too_large); CHECK(x.batch_dropped);                           /* flag also on the drop that ends it */
+    f = mk(200, OKBODY); push_n(&r, 2, NOW - 100);
+    x = attempt(&s, &f, &r, NOW + 20000, 3900, false); CHECK(!x.payload_too_large);
 }
 
 static void test_backoff_and_retry_after(void)
@@ -333,7 +360,7 @@ static void test_transport_error_and_rate_cap(void)
     nw_upload_state_init(&s); f = mk(500, ""); int sent = 0;
     for (uint32_t t = NOW; t < NOW + 3600; t += 10) { s.next_attempt_unix = 0; f.calls = 0; attempt(&s, &f, &r, t, 3900, false); sent += f.calls; }
     CHECK_EQ(sent, 6);
-    CHECK_EQ(nw_upload_on_response(&s, &r, 1, 1, NULL, NOW, false).outcome, NW_UP_RETRY);   /* NULL response = transport error */
+    CHECK_EQ(nw_upload_on_response(&s, &r, 1, 1, 1, NULL, NOW, false).outcome, NW_UP_RETRY);   /* NULL response = transport error */
 }
 
 static void test_outage_then_recovery(void)
@@ -359,6 +386,7 @@ int main(void)
     test_200_without_time_is_not_an_ack();
     test_401();
     test_reject_poison_guard();
+    test_persistent_413_flagged();
     test_backoff_and_retry_after();
     test_low_battery_behaviour();
     test_transport_error_and_rate_cap();

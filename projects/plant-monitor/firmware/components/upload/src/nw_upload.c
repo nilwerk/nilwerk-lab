@@ -129,7 +129,7 @@ nw_upload_result_t nw_upload_on_transport_error(nw_upload_state_t *s, uint32_t n
     return result(s, NW_UP_RETRY);
 }
 
-nw_upload_result_t nw_upload_on_response(nw_upload_state_t *s, nw_ring_t *rg, uint32_t last_seq, size_t n_samples,
+nw_upload_result_t nw_upload_on_response(nw_upload_state_t *s, nw_ring_t *rg, uint32_t first_seq, uint32_t last_seq, size_t n_samples,
                                          const nw_upload_http_resp_t *resp, uint32_t now, bool low_battery)
 {
     nw_upload_result_t r;
@@ -150,11 +150,14 @@ nw_upload_result_t nw_upload_on_response(nw_upload_state_t *s, nw_ring_t *rg, ui
         return result(s, NW_UP_RETRY);
     }
     if (st == 400 || st == 413) {
-        if (s->rejects > 0 && s->reject_seq == last_seq) { if (s->rejects < 255) s->rejects++; }
-        else { s->rejects = 1; s->reject_seq = last_seq; }
+        /* Keyed on the batch's FIRST seq (review C1, Theo): a new sample arrives every 900 s so last_seq changes on almost every
+         * retry, while the oldest sample stays until the batch is drained. */
+        if (s->rejects > 0 && s->reject_seq == first_seq) { if (s->rejects < 255) s->rejects++; }
+        else { s->rejects = 1; s->reject_seq = first_seq; }
         fail(s, now, 0, low_battery);
         r = result(s, NW_UP_REJECTED);
         r.n_samples = n_samples;
+        r.payload_too_large = (st == 413);   /* review C3: max NW_REPORT_MAX_SAMPLES (96) vs server limit 192 samples: a 413 is a firmware bug */
         if (s->rejects >= NW_UPLOAD_POISON_MAX) {
             r.drained = nw_ring_consume_upto(rg, last_seq);
             r.batch_dropped = true;
@@ -194,6 +197,8 @@ nw_upload_result_t nw_upload_attempt(nw_upload_state_t *s, const nw_upload_io_t 
     nw_upload_gate_t g = nw_upload_gate(s, now, vbat_mv);
     if (g != NW_UP_GATE_OK) { r.why = NW_UP_WHY_GATE; r.gate = g; memset(auth, 0, sizeof auth); return r; }
     size_t n = 0; uint32_t last_seq = 0;
+    const nw_sample_t *oldest = nw_ring_at(rg, 0);          /* nw_report_build takes the oldest samples first */
+    uint32_t first_seq = oldest ? oldest->seq : 0;
     size_t len = nw_report_build(buf, cap, rg, meta, &n, &last_seq);
     if (len == 0) { r.why = NW_UP_WHY_NO_PAYLOAD; memset(auth, 0, sizeof auth); return r; }
     record_attempt(s, now);                                  /* counted before the call: a crash or timeout still used the slot */
@@ -202,6 +207,6 @@ nw_upload_result_t nw_upload_attempt(nw_upload_state_t *s, const nw_upload_io_t 
     int rc = io->post(io->ctx, url, auth, buf, len, &resp);
     memset(auth, 0, sizeof auth);
     if (rc < 0) { r = nw_upload_on_transport_error(s, now, low_battery); r.n_samples = n; return r; }
-    r = nw_upload_on_response(s, rg, last_seq, n, &resp, now, low_battery);
+    r = nw_upload_on_response(s, rg, first_seq, last_seq, n, &resp, now, low_battery);
     return r;
 }
