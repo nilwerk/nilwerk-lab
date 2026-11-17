@@ -78,7 +78,7 @@
   "profile.error.save": "Could not save your name.",
   "deleteAccount.title": "Delete account?",
   "deleteAccount.warning": "This permanently removes your plants, readings, photos, alerts and API keys. Your sensors are released and can be set up again.",
-  "deleteAccount.exportHint": "Data export (JSON / CSV) is added in a later version. Nothing can be recovered after deleting.",
+  "deleteAccount.exportHint": "Export your data before you delete. Deleting is blocked until the export has run. Nothing can be recovered after deleting.",
   "deleteAccount.confirmLabel": "Type DELETE to confirm",
   "deleteAccount.confirmWord": "DELETE",
   "deleteAccount.confirm": "Delete everything",
@@ -273,5 +273,12 @@
   "plant.remove.exportRequired": "Export first. The delete button unlocks after the export.",
   "plant.removed.photosLeft": "{n} photo(s) could not be deleted from storage yet.",
   "plant.removed.retryPhotos": "Retry photo cleanup",
-  "plant.removed.photosError": "Photo cleanup failed again. Try later."
+  "plant.removed.photosError": "Photo cleanup failed again. Try later.",
+  "deleteAccount.exportJson": "Export as JSON",
+  "deleteAccount.exportCsv": "Export as CSV",
+  "deleteAccount.exported": "Export ready: {fileName} ({photoCount} photos). You can delete now.",
+  "deleteAccount.exportError": "The export did not work. Nothing was removed. Check your connection and try again.",
+  "deleteAccount.exportRequired": "Export first. The delete button unlocks after the export.",
+  "deleteAccount.error.network": "No connection. Nothing was removed. Check your internet and try again.",
+  "deleteAccount.error.unauthorized": "Your session has expired. Nothing was removed. Sign out, sign in again and retry."
 }

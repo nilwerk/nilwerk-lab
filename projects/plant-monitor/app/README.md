@@ -35,7 +35,7 @@ Profile -> "Add a sensor" -> S10 find sensor, S11 connect (type the label code),
 
 ## Not done / known gaps (4.A2)
 - Never run against a real Supabase project or on a phone. Web build + jsdom-free render tests only.
-- `DELETE /account` is in the OpenAPI contract but no edge function exists on `main` yet; delete will fail against a real backend until it is built (the app then shows "Nothing was removed").
+- `DELETE /account` is the edge function `delete-account` (deployed on project nilwerk-cloud, 4.B2b; route `/functions/v1/delete-account`, client `src/account/accountApi.ts`). Never run against the live project from the app (fakes and a fake fetch only). Base URL and publishable key come from the build env `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`, not from code.
 - No forgot-password, no data export, no plant list (the setup flow exists in 4.A3 but only against a fake). Export warning for plant removal is A-022 (separate).
 - `handle_new_user()` stores only the id, so the sign-up display name is kept in auth user metadata and copied into `profiles.display_name` on the first profile load.
 - Apple/Google sign-in, store assets and the Expo dev build for BLE are later tasks.
@@ -58,3 +58,7 @@ Requirements: FR-A05 (unlimited dated photos, newest or oldest first), FR-A04 (l
 - **Photo objects** (C2 gate from PR #65): after `delete_plant`, the app calls `removePhotoObjects` with the returned paths; a failure keeps the paths on the Removed screen with a retry.
 - **Not in this slice:** account delete gate (DeleteAccountScreen is 4.A2), upload ("+ Add"), full-screen photo, long-press delete, real Supabase `PlantsService` (still mock only, never run against a backend).
 
+
+## 4.A2 follow-up: delete account wired, export gate (stacked on PR #114)
+Requirements: FR-A01, NFR-07 (export first, deletion removes all data), NFR-06. `DeleteAccountScreen` calls `AuthService.deleteAccount` -> `deleteAccountApi` (204 ok, 401 unauthorized, 400/405/413 bad_request, 5xx server, fetch failure network); the screen shows a message for 401, network and other errors, and nothing is removed on any of them. The delete runs only through `deleteAccountGated` (export done via the plants service AND the word DELETE typed); the button is also disabled, but the guard does not depend on it. **No skip option:** the requirements name none (decision pending, see PR). In a non-mock build `unconfiguredPlants.exportData` still throws (real `GET /export` client not built), so the delete stays blocked there until it exists.
+Tests: `npx tsc --noEmit`; `npx jest` (accountApi, exportGate, deleteAccount, deleteAccountBypass, screens).

@@ -12,7 +12,7 @@ const msg = (r: FieldResult) => (r ? t(r.key, r.params) : null);
 
 export function errorKey(e: unknown): string {
   const code = e instanceof AuthError ? e.code : 'unknown';
-  return { invalid_credentials: 'auth.error.invalidCredentials', email_taken: 'auth.error.emailTaken', network: 'auth.error.network', not_configured: 'auth.error.notConfigured', unknown: 'auth.error.unknown' }[code];
+  return { invalid_credentials: 'auth.error.invalidCredentials', email_taken: 'auth.error.emailTaken', network: 'auth.error.network', not_configured: 'auth.error.notConfigured', unauthorized: 'auth.error.unknown', server: 'auth.error.unknown', unknown: 'auth.error.unknown' }[code];
 }
 
 export function AuthFormScreen({ mode, onSwitch, onBack }: { mode: AuthMode; onSwitch: () => void; onBack: () => void }) {

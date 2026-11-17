@@ -111,6 +111,8 @@ describe('signed-in flow', () => {
     expect(await screen.findByRole('header', { name: 'Delete account?' })).toBeTruthy();
     const del = screen.getByRole('button', { name: 'Delete everything' });
     expect(del.props.accessibilityState?.disabled ?? del.props['aria-disabled']).toBeTruthy();
+    await tap('Export as JSON'); // NFR-07: export first
+    await screen.findByText(/You can delete now/);
     await type('Type DELETE to confirm', 'delete');
     expect(screen.getByRole('button', { name: 'Delete everything' }).props.accessibilityState?.disabled).toBe(true);
     await type('Type DELETE to confirm', 'DELETE');
@@ -123,9 +125,11 @@ describe('signed-in flow', () => {
     const svc = await signedIn();
     svc.options.deleteFails = true;
     await tap('Delete account');
+    await tap('Export as JSON');
+    await screen.findByText(/You can delete now/);
     await type('Type DELETE to confirm', 'DELETE');
     await tap('Delete everything');
-    expect(await screen.findByText(/Nothing was removed/)).toBeTruthy();
+    expect(await screen.findByText(/No connection\. Nothing was removed/)).toBeTruthy();
     expect(svc.accounts).toHaveLength(1);
   });
 });

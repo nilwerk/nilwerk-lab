@@ -1,25 +1,45 @@
-// S04 Delete account. Requirements: FR-A01 (delete account, 0 rows remain), NFR-07 (all personal data removed).
-// Calls DELETE /account {confirm:"DELETE"} (docs/interfaces/openapi.yaml). Plant removal with export warning is A-022 and is NOT here.
+// S04 Delete account. Requirements: FR-A01 (delete account, 0 rows remain), NFR-07 (all personal data removed; export first, A-022).
+// Calls DELETE /account {confirm:"DELETE"} through AuthService.deleteAccount (src/account/accountApi.ts -> edge function delete-account, docs/interfaces/openapi.yaml).
+// Gate: the delete runs only after a successful export (JSON or CSV) AND the typed word DELETE (src/export/exportGate.ts). There is no skip (see exportGate.ts).
+// User-visible states: idle, exporting, export failed, export ready, deleting, success (session ends -> welcome screen), 401 (session expired), network, server/other error.
 import React, { useState } from 'react';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
-import { validateDeleteConfirm } from '../validation';
+import { usePlants } from '../plants/PlantsContext';
+import type { ExportResult } from '../plants/types';
+import { AuthError } from '../auth/types';
+import { canDelete, deleteAccountGated } from '../export/exportGate';
+
+export const deleteErrorKey = (e: unknown): string => {
+  const code = e instanceof AuthError ? e.code : 'unknown';
+  return code === 'network' ? 'deleteAccount.error.network' : code === 'unauthorized' ? 'deleteAccount.error.unauthorized' : 'deleteAccount.error';
+};
 
 export function DeleteAccountScreen({ onCancel }: { onCancel: () => void }) {
   const { service } = useAuth();
+  const plants = usePlants();
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState<'json' | 'csv' | null>(null);
+  const [exported, setExported] = useState<ExportResult | null>(null);
+  const [exportError, setExportError] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const ok = validateDeleteConfirm(typed) === null;
+  const gate = { exported: exported !== null, typed, expected: t('deleteAccount.confirmWord') };
+  const allowed = canDelete(gate);
 
+  const runExport = async (format: 'json' | 'csv') => {
+    setExporting(format); setExportError(false);
+    try { setExported(await plants.exportData(format)); }
+    catch { setExported(null); setExportError(true); }
+    finally { setExporting(null); }
+  };
   const run = async () => {
-    if (!ok) return;
     setBusy(true); setError(null);
     try {
-      await service.deleteAccount(); // session ends -> AuthProvider shows the welcome screen
-    } catch {
-      setError(t('deleteAccount.error'));
+      await deleteAccountGated(gate, () => service.deleteAccount()); // success ends the session -> AuthProvider shows the welcome screen
+    } catch (e) {
+      setError(t(deleteErrorKey(e)));
       setBusy(false);
     }
   };
@@ -28,9 +48,14 @@ export function DeleteAccountScreen({ onCancel }: { onCancel: () => void }) {
     <Screen title={t('deleteAccount.title')} onBack={onCancel}>
       <Body>{t('deleteAccount.warning')}</Body>
       <Body muted>{t('deleteAccount.exportHint')}</Body>
+      <Button label={t('deleteAccount.exportJson')} variant="secondary" disabled={exporting !== null || busy} busy={exporting === 'json'} onPress={() => runExport('json')} />
+      <Button label={t('deleteAccount.exportCsv')} variant="secondary" disabled={exporting !== null || busy} busy={exporting === 'csv'} onPress={() => runExport('csv')} />
+      {exported ? <Notice kind="info" text={t('deleteAccount.exported', { fileName: exported.fileName, photoCount: exported.photoCount })} /> : null}
+      {exportError ? <Notice kind="error" text={t('deleteAccount.exportError')} /> : null}
+      {!exported ? <Body muted>{t('deleteAccount.exportRequired')}</Body> : null}
       {error ? <Notice kind="error" text={error} /> : null}
       <Field label={t('deleteAccount.confirmLabel')} value={typed} onChangeText={setTyped} autoCapitalize="characters" autoCorrect={false} />
-      <Button label={t('deleteAccount.confirm')} variant="danger" onPress={run} disabled={!ok} busy={busy} />
+      <Button label={t('deleteAccount.confirm')} variant="danger" onPress={run} disabled={!allowed} busy={busy} />
       <Button label={t('common.cancel')} variant="secondary" onPress={onCancel} />
     </Screen>
   );
