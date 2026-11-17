@@ -1,5 +1,6 @@
 // Real ProvisioningService logic against a scripted fake adapter + fake cloud (no Bluetooth, no network). Contract: docs/interfaces/ble-provisioning.md.
 // Requirements: FR-A03, FR-D03, FR-D07, NFR-06. NOT a hardware test: test 5.5 on a real phone is still open.
+import { claimedSince } from '../provisioning/claimApi';
 import { createBleProvisioning, classifyBleError, NW_PROV_SERVICE_UUID, NW_SRP_USERNAME } from '../provisioning/bleProvisioning';
 import type { BleAdapter, BleDevice, BleWifi } from '../provisioning/bleAdapter';
 import { ClaimApiError, type ClaimApi } from '../provisioning/claimApi';
@@ -38,7 +39,7 @@ function makeAdapter(sc: Script) {
 function makeClaim(over: Partial<ClaimApi> = {}) {
   const calls: string[] = [];
   const claim: ClaimApi = {
-    async issueClaimToken() { calls.push('token'); return TOKEN; },
+    async issueClaimToken() { calls.push('token'); return { token: TOKEN, issuedAtMs: 1000 }; },
     async findClaimedDevice(n) { calls.push(`find:${n}`); return { deviceId: 'dev-1', hwId: 'nw-a1b2c3d4e5f6' }; },
     ...over,
   };
@@ -148,7 +149,7 @@ describe('provision: claim token handoff and nw-status', () => {
   });
   test('the Wi-Fi passphrase and PoP are never passed to the cloud API', async () => {
     const seenArgs: unknown[] = [];
-    const { svc } = await setup({ statuses: [{ state: 'claimed' }] }, { issueClaimToken: async () => { seenArgs.push('t'); return TOKEN; }, findClaimedDevice: async (...x) => { seenArgs.push(...x); return { deviceId: 'd', hwId: 'nw-a1b2c3d4e5f6' }; } });
+    const { svc } = await setup({ statuses: [{ state: 'claimed' }] }, { issueClaimToken: async () => { seenArgs.push('t'); return { token: TOKEN, issuedAtMs: 1000 }; }, findClaimedDevice: async (...x) => { seenArgs.push(...x); return { deviceId: 'd', hwId: 'nw-a1b2c3d4e5f6' }; } });
     await svc.provision(REQ, () => undefined);
     expect(JSON.stringify(seenArgs)).not.toContain(SECRET_WIFI);
     expect(JSON.stringify(seenArgs)).not.toContain(POP);
@@ -174,7 +175,7 @@ describe('provision: claim token handoff and nw-status', () => {
     }
   });
   test('a malformed token from the cloud is not sent to the sensor', async () => {
-    const { svc, a } = await setup({ statuses: [] }, { issueClaimToken: async () => 'short' });
+    const { svc, a } = await setup({ statuses: [] }, { issueClaimToken: async () => ({ token: 'short', issuedAtMs: 1000 }) });
     expect(await code(svc.provision(REQ, () => undefined))).toBe('claim_server');
     expect(a.sent).toEqual([]);
   });
@@ -190,6 +191,27 @@ describe('provision: claim token handoff and nw-status', () => {
     const seen: LinkState[] = [];
     expect(await code(svc.provision(REQ, (s) => seen.push(s)))).toBe('claim_network');
     expect(seen).not.toContain('claimed');
+  });
+  test('C3 re-setup: BLE drops, the cloud only has the OLD row (claimed before this token) -> claim_network, never "claimed"', async () => {
+    const drop = Object.assign(new Error('Device disconnected'), { code: 'E_DEVICE_DISCONNECTED' });
+    const ISSUED = Date.parse('2026-11-17T10:00:00Z');
+    const rows = [{ deviceId: 'old', hwId: 'nw-a1b2c3d4e5f6', claimedAt: '2026-11-01T08:00:00Z' }];
+    // same filter the real ClaimApi applies, over a fixed table, so the service wiring (sinceMs from the token) is what is tested
+    const find = async (_n: string, since: number) => { const r = rows.find((x) => claimedSince(x.claimedAt, since)); return r ? { deviceId: r.deviceId, hwId: r.hwId } : null; };
+    const stale = await setup({ statuses: [drop] }, { issueClaimToken: async () => ({ token: TOKEN, issuedAtMs: ISSUED }), findClaimedDevice: find }, { confirmTries: 3 });
+    const seen: LinkState[] = [];
+    expect(await code(stale.svc.provision(REQ, (s) => seen.push(s)))).toBe('claim_network');
+    expect(seen).not.toContain('claimed');
+    // the device then really re-claims: claimed_at moves past the token issue time -> now it is confirmed
+    rows[0].claimedAt = '2026-11-17T10:00:07Z';
+    const fresh = await setup({ statuses: [drop] }, { issueClaimToken: async () => ({ token: TOKEN, issuedAtMs: ISSUED }), findClaimedDevice: find });
+    expect(await code(fresh.svc.provision(REQ, () => undefined))).toBe('resolved');
+  });
+  test('the issue time of the token is what the cloud check receives', async () => {
+    let got = -1;
+    const { svc } = await setup({ statuses: [{ state: 'claimed' }] }, { issueClaimToken: async () => ({ token: TOKEN, issuedAtMs: 4242 }), findClaimedDevice: async (_n, since) => { got = since; return { deviceId: 'd', hwId: 'nw-a1b2c3d4e5f6' }; } });
+    await svc.provision(REQ, () => undefined);
+    expect(got).toBe(4242);
   });
   test('BLE drops after the device turned BLE off: the cloud decides', async () => {
     const drop = Object.assign(new Error('Device disconnected'), { code: 'E_DEVICE_DISCONNECTED' });

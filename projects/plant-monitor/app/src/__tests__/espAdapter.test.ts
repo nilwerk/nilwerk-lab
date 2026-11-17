@@ -75,7 +75,7 @@ describe('createFetchClaimApi', () => {
 
   test('POST /claim-token with the user JWT and publishable key, returns the token', async () => {
     const f = jest.fn().mockResolvedValue(res(201, { claim_token: TOKEN, expires_at: 'x' }));
-    expect(await mk(f).issueClaimToken()).toBe(TOKEN);
+    expect((await mk(f).issueClaimToken()).token).toBe(TOKEN);
     expect(f.mock.calls[0][0]).toBe('https://x.supabase.co/functions/v1/claim-token');
     expect(f.mock.calls[0][1]).toMatchObject({ method: 'POST', headers: { apikey: 'sb_publishable_x', Authorization: 'Bearer jwt-1' } });
   });
@@ -87,11 +87,33 @@ describe('createFetchClaimApi', () => {
     await expect(bad.issueClaimToken()).rejects.toBeInstanceOf(ClaimApiError);
     await expect(bad.issueClaimToken()).rejects.not.toThrow(/too-short/);
   });
+  test('issue time comes from the server: expires_at minus 15 min; unusable expires_at falls back to the phone clock minus 2 min', async () => {
+    const now = Date.now();
+    const exp = new Date(now + 15 * 60_000 - 3000).toISOString(); // server clock 3 s "behind" the phone: the server value wins
+    const a = await mk(jest.fn().mockResolvedValue(res(201, { claim_token: TOKEN, expires_at: exp }))).issueClaimToken();
+    expect(a.issuedAtMs).toBe(Date.parse(exp) - 15 * 60_000);
+    for (const bad of ['x', undefined, '1999-01-01T00:00:00Z']) {
+      const b = await mk(jest.fn().mockResolvedValue(res(201, { claim_token: TOKEN, expires_at: bad }))).issueClaimToken();
+      expect(Math.abs(b.issuedAtMs - (Date.now() - 2 * 60_000))).toBeLessThan(2000);
+    }
+  });
+  test('findClaimedDevice accepts only a row claimed at or after sinceMs (stale / null / garbage claimed_at never confirm)', async () => {
+    const since = Date.parse('2026-11-17T10:00:00Z');
+    const row = (claimed_at: unknown) => [{ id: 'dev-9', hw_id: 'nw-a1b2c3d4e5f6', claimed_at }];
+    const find = (rows: unknown[]) => mk(jest.fn().mockResolvedValue(res(200, rows))).findClaimedDevice('NW-d4e5f6', since);
+    expect(await find(row('2026-11-01T08:00:00Z'))).toBeNull(); // mutation check: dropping the claimed_at filter makes this return the old row
+    expect(await find(row('2026-11-17T09:59:59Z'))).toBeNull();
+    expect(await find(row(null))).toBeNull();
+    expect(await find(row('not a date'))).toBeNull();
+    expect(await find(row(undefined))).toBeNull();
+    expect(await find(row('2026-11-17T10:00:00Z'))).toEqual({ deviceId: 'dev-9', hwId: 'nw-a1b2c3d4e5f6' });
+    expect(await find([{ id: 'dev-9', hw_id: 'nw-a1b2c3d4e5f6', claimed_at: '2026-11-01T08:00:00Z' }, { id: 'dev-10', hw_id: 'nw-a1b2c3d4e5f6', claimed_at: '2026-11-17T10:05:00Z' }])).toMatchObject({ deviceId: 'dev-10' });
+  });
   test('findClaimedDevice queries the user\'s own rows by the 6-hex suffix and checks the suffix again client side', async () => {
-    const f = jest.fn().mockResolvedValue(res(200, [{ id: 'other', hw_id: 'nw-a1b2c3999999' }, { id: 'dev-9', hw_id: 'nw-a1b2c3d4e5f6' }]));
-    expect(await mk(f).findClaimedDevice('NW-d4e5f6')).toEqual({ deviceId: 'dev-9', hwId: 'nw-a1b2c3d4e5f6' });
+    const f = jest.fn().mockResolvedValue(res(200, [{ id: 'other', hw_id: 'nw-a1b2c3999999', claimed_at: '2026-11-17T10:00:00Z' }, { id: 'dev-9', hw_id: 'nw-a1b2c3d4e5f6', claimed_at: '2026-11-17T10:00:00Z' }]));
+    expect(await mk(f).findClaimedDevice('NW-d4e5f6', 0)).toEqual({ deviceId: 'dev-9', hwId: 'nw-a1b2c3d4e5f6' });
     expect(String(f.mock.calls[0][0])).toContain('/rest/v1/devices?select=id,hw_id,claimed_at&hw_id=like.*d4e5f6');
-    expect(await mk(jest.fn().mockResolvedValue(res(200, []))).findClaimedDevice('NW-d4e5f6')).toBeNull();
-    expect(await mk(jest.fn()).findClaimedDevice('NW-zzzzzz')).toBeNull();
+    expect(await mk(jest.fn().mockResolvedValue(res(200, []))).findClaimedDevice('NW-d4e5f6', 0)).toBeNull();
+    expect(await mk(jest.fn()).findClaimedDevice('NW-zzzzzz', 0)).toBeNull();
   });
 });

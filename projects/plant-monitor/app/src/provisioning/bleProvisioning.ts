@@ -73,9 +73,9 @@ export function createBleProvisioning(d: BleProvisioningDeps): ProvisioningServi
     const raw = await d.adapter.sendData(endpoint, JSON.stringify(body));
     try { return JSON.parse(raw); } catch { return null; }
   };
-  const confirmInCloud = async (name: string): Promise<{ deviceId: string; hwId: string } | null> => {
+  const confirmInCloud = async (name: string, sinceMs: number): Promise<{ deviceId: string; hwId: string } | null> => {
     for (let i = 0; i < confirmTries; i++) {
-      const hit = await d.claim.findClaimedDevice(name).catch(() => null);
+      const hit = await d.claim.findClaimedDevice(name, sinceMs).catch(() => null);
       if (hit) return hit;
       await sleep(pollMs);
     }
@@ -136,8 +136,8 @@ export function createBleProvisioning(d: BleProvisioningDeps): ProvisioningServi
       onState('wifi_connecting');
 
       // 1. claim token from the cloud (user JWT). Never logged.
-      let token: string;
-      try { token = await d.claim.issueClaimToken(); } catch (e) {
+      let token: string; let issuedAtMs: number;
+      try { ({ token, issuedAtMs } = await d.claim.issueClaimToken()); } catch (e) {
         const c = e instanceof ClaimApiError ? e.code : 'network';
         throw new ProvisioningError(c === 'network' ? 'claim_network' : c === 'unauthorized' ? 'unknown' : 'claim_server');
       }
@@ -178,8 +178,8 @@ export function createBleProvisioning(d: BleProvisioningDeps): ProvisioningServi
       }
       if (waited > maxLinkMs) throw new ProvisioningError(sawClaiming ? 'claim_network' : 'wifi_timeout');
 
-      // 5. the devices row must be visible under RLS before we say "claimed" (contract section 3 step 5)
-      const hit = await confirmInCloud(name);
+      // 5. a devices row claimed AFTER the token was issued (a row of an earlier setup of the same sensor does not count) must be visible under RLS before we say "claimed" (contract section 3 step 5)
+      const hit = await confirmInCloud(name, issuedAtMs);
       if (!hit) throw new ProvisioningError('claim_network');
       onState('claimed');
       return hit;
