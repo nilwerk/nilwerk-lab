@@ -41,7 +41,7 @@ Everything marked *(repo)* was read from a file in this repository and the file 
 
 ## 1. What the firmware does and where things are
 
-**What it does today.** `main/main.c` is a *sensor bench application* (task 4.F1, FR-D01). After boot it prints one `NWBENCH ...` line every 2 s with the five readings (soil moisture, air temperature, air humidity, light, battery voltage). After 5 lines it switches the soil probe supply (GPIO3) off, prints `NWBENCH sleep s=60 ...`, goes into deep sleep for 60 s, wakes up and repeats. *(repo: `main/main.c`)*
+**What it does today.** `main/main.c` is a *sensor bench application* (task 4.F1, FR-D01). After boot it prints one `NWBENCH ...` line about every 4 to 5 s (about 2.4 s of sensor time from the driver constants plus a 2 s pause in `main.c`; UNVERIFIED on the board) with the five readings (soil moisture, air temperature, air humidity, light, battery voltage). After 5 lines it switches the soil probe supply (GPIO3) off, prints `NWBENCH sleep s=60 ...`, goes into deep sleep for 60 s, wakes up and repeats. *(repo: `main/main.c`)*
 
 **Repository layout** (everything below `projects/plant-monitor/`):
 
@@ -144,7 +144,7 @@ PASS: the output ends with `Project build complete`.
 
 **Why switch the setup flow off (read this, it matters).** The default for that option is ON. With it on, a never-provisioned unit starts the BLE setup, finds no per-unit security keys, closes setup, prints `NWSETUP closed, never provisioned: deep sleep with no timer; reset to try again` and sleeps without ever reading a sensor (`main/main.c`, `components/provisioning/src/nw_prov_idf.c`). So with the plain default build you would see **no `NWBENCH` lines**. This is read from the source, UNVERIFIED on hardware. The v1 defaults file already switches it off; the DevKit has no such file, so you do it by hand. Note: issue #68 step 1.3 lists only `idf.py set-target esp32c3` and `idf.py build`; do the extra `menuconfig` step from this guide as well.
 
-Alternative without the menu (bash only; on Windows use a text editor, because PowerShell `echo` writes UTF-16 which ESP-IDF cannot read):
+Alternative without the menu (bash only; on Windows use a text editor, because PowerShell `echo` writes UTF-16 which ESP-IDF cannot read; this is general PowerShell behaviour, noted by the author, not tested with ESP-IDF here):
 ```bash
 printf 'CONFIG_PLANT_SETUP_FLOW=n\n' > sdkconfig.defaults.local     # git-ignored file, see section 7
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.local" set-target esp32c3
@@ -292,11 +292,11 @@ About 60 s later the board restarts and prints `NWBENCH start ... wake=2 ...` an
 | 1 | Build | `Project build complete` | send the last 30 lines of the output; nothing was flashed, so this is a software finding |
 | 2 | Boot line | `NWBENCH start` with the expected `board=` | no output at all: troubleshooting table; wrong `board=`: section 3 |
 | 3 | `err=` in 5 consecutive lines | `soil:0,aht:0,bh:0,bat:0` in all 5 | note which one is non-zero; `aht:-1` or `bh:-1` = wiring |
-| 4 | Sensors react | humidity up on breath, lux down when covered, soil raw differs air vs water by 500 counts or more (issue #68; `v1/FIRMWARE-BENCH.md` uses a looser 50 counts) | write the numbers down anyway; never change a number to make it fit |
+| 4 | Sensors react | humidity up on breath, lux down when covered, soil raw differs air vs water by 500 counts or more (issue #68 A4; `v1/FIRMWARE-BENCH.md` S5 uses the same limit) | write the numbers down anyway; never change a number to make it fit |
 | 5 | Sleep and wake | `NWBENCH sleep` then `wake=2` after about 60 s | no wake: restart the monitor first, then report |
-| 6 | GPIO3 in sleep (multimeter) | 0.00 V (at most 0.05 V, issue #68 step 9; the v1 doc uses 0.3 V as its stop limit) | write the voltage down |
+| 6 | GPIO3 in sleep (multimeter) | 0.00 V (at most 0.05 V, issue #68 A5; `v1/FIRMWARE-BENCH.md` S7 uses the same limit) | write the voltage down |
 
-The authoritative step lists and limits are in **issue #68** (DevKit, steps 1 to 11, with the result table you must fill) and in [`v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) section 4 (SuperMini, steps S1 to S9). Use those for the actual result; this table is only for a quick first look. Where two numbers differ, the document that matches your board wins.
+The authoritative step lists and limits are in **issue #68** (DevKit, steps 1 to 11, with the result table you must fill) and in [`v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) section 4 (SuperMini, steps S1 to S9). Use those for the actual result; this table is only for a quick first look. The limits are the same for both boards: soil raw air vs water differs by **500 counts or more** (issue #68 A4, [`v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) S5); GPIO3 in sleep **at most 0.05 V** (issue #68 A5, S7). The 50 counts in the firmware (`NW_SOIL_MIN_SPAN_COUNTS`) is only an internal sanity constant, not a pass limit.
 
 ---
 
