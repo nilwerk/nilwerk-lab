@@ -10,6 +10,7 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 - `learning/pr-skills-plan.md` — PR and social skills: ranked free/paid resources, tools, Claude skills check, 30-day schedule
 - `content/series.md` — **Nilwerk Logbook**: series format, episode types, daily routine and the 14-day calendar (replaces `content/calendar.md`); drafts for days 2-5 in `content/2026-11-10`, `-11`, `-12`, `-13`
 - `content/DAILY.md` — Poppy's daily checklist (read, recount commands, posting-day checklist); `content/about-nilwerk.md` — profile boilerplate EN/DE (50 and 100 words, two layers, claim-checked); episodes: day 5 = PR #48 (`content/2026-11-13`), day 6 sprint-2 template `content/2026-11-14`, day 7 `content/2026-11-15`; **10 Nov: draft pack "A test that could not fail" (5-slide carousel EN/DE, LinkedIn EN/DE, claim-check) in `content/2026-11-10/catches/`**
+- **`content/2026-11-17/` — "The crew has a life" (fun series, owner direction 17 Nov): 5 episodes from one real Tuesday, 10 images (`images/`), 25 s Reel rough cut with synthesised sound (`video/`), LinkedIn EN/DE + Instagram copy (`posts.md`), scripts and character voices (`episodes.md`, `video-script.md`), claim sources + fiction-vs-fact (`claim-check.md`); build scripts `build_pack.py`, `build_video.py`; voice guide: `brand/brand-kit.md` section 5c**
 - `stories/origin/` — origin story canon and first carousel (pre-brand look, to be re-rendered if the brand is approved)
 
 ## Items
@@ -32,6 +33,14 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 | 2026-11-10 | 4.B2b | DELETE /account (GDPR erasure): tests and 41 of 41 mutants killed (QA full run on head 9984d24), local database only (`items/2026-11-10_4.B2b`) | see Agent Log | #75 (merged) |
 | 2026-11-10 | 4.A3 on main | Device setup flow in the app re-based on main: typecheck clean, 135 tests; QA mutation testing found a trim bug, fixed (`items/2026-11-10_4.A3-main`) | see Agent Log | #71 (merged) |
 | 2026-11-10 | PR-2026-11-10 | Draft pack "A test that could not fail" built from the five items above (`content/2026-11-10/catches`) | see Agent Log | link added by Lead |
+| 2026-11-17 | 4.A2 delete gate | Delete-account screen wired to the API, locked until the data export ran; test output only (`items/2026-11-17_4.A2-delete-gate`) | see Agent Log | #117 (merged into the 4.A4 branch; reached main via #123) |
+| 2026-11-17 | 4.A4 slice 2 | Photo gallery, hourly table, export-before-delete, mock backend, test output (`items/2026-11-17_4.A4`) | 7 + 6 review round | #114 (merged) |
+| 2026-11-17 | 4.A9 | Real export client + file hand-off before delete unlocks; test output, no phone (`items/2026-11-17_4.A9-export-client`) | see Agent Log | #123 (merged) |
+| 2026-11-17 | 4.B3 slices 1, 1b | Care-tips guardrails: test and mutation output (`items/2026-11-17_4.B3`, `..._4.B3-slice1b`) | see Agent Log | #118, #121 (merged) |
+| 2026-11-17 | 4.F1 v1 bench | v1 board option host tests, 15 of 15, not built for the target (`items/2026-11-17_4.F1-v1-bench`) | see Agent Log | #116 (merged) |
+| 2026-11-17 | 4.F3 slice 2 | Upload logic host tests, 622 checks, 49 of 49 mutants (`items/2026-11-17_4.F3-slice2`) | see Agent Log | #122 (merged) |
+| 2026-11-17 | CI v1 + tips | Second firmware build with v1 defaults, Deno checks for care tips (`items/2026-11-17_ci-v1-and-tips`) | see Agent Log | #120 (merged) |
+| 2026-11-17 | PR-2026-11-17 | Content pack "The crew has a life": fictional crew life on top of five real events of 17 Nov (poison-batch guard that could never fire, PR in the wrong branch, prototype that sleeps, 8 of 23 filter tricks, honest ledger); 10 images + rough-cut video (`content/2026-11-17`, `items/2026-11-17_PR-2026-11-17`) | see Agent Log | link added by Lead |
 
 The 2026-11-08 item folders live on the PR branches until the PRs are merged (status as of 8 Nov 2026; recheck after merges).
 
