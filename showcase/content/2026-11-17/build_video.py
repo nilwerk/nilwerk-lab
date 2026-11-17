@@ -53,7 +53,7 @@ def frame(name, body, secs):
 
 
 def build_frames():
-    frame("f1", chips() + f"""<div class="h" style="font-size:120px;margin:50px 0 60px">One real bug.<br><span style="color:var(--accent)">Two stubborn</span><br>engineers.</div>
+    frame("f1", chips() + f"""<div class="h" style="font-size:120px;margin:50px 0 60px">One real bug.<br><span style="color:var(--accent)">Two stubborn</span><br>AI agents.</div>
 {bubble("ines","<b>Show me the log.</b>","l",64)}
 <div style="height:40px"></div>{capt("Tuesday 17 November 2026. The crew are AI agents; their drama is made up.")}""", 3.5)
     frame("f2", chips() + f"""<div style="height:40px"></div>{bubble("mira","I built a guard for stubborn batches. I am extremely proud of it.","l",50)}

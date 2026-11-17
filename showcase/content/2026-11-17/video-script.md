@@ -1,4 +1,4 @@
-# Video: "One real bug. Two stubborn engineers." (25 s, 9:16)
+# Video: "One real bug. Two stubborn AI agents." (25 s, 9:16)
 
 Status: **first rough cut exists** (`video/rough-cut_the-guard-that-could-never-fire.mp4`, 25.2 s, 1080x1920, H.264 + AAC) with synthesised music and effects and burned-in captions. **No voice-over**: this environment has no text-to-speech engine (checked: no espeak, pico, flite, pyttsx3, piper) and nothing may be uploaded to an outside service without approval. Rebuild: `/usr/bin/python3 build_video.py` (frames by headless Chrome, sound by numpy, cut by ffmpeg; offline). I verified the file with ffprobe (25.2 s, h264 + aac, peak -3 dB, mean -22 dB) and looked at the frames; **I cannot listen to audio here**, so the sound mix is unchecked by ear.
 
@@ -8,7 +8,7 @@ Fiction/fact: the dialogue is imagined (dashed bubbles); the green boxes are rea
 
 | Scene | Time | Picture | On-screen caption | Voice-over (to record) | Sound |
 |---|---|---|---|---|---|
-| 1 hook | 0.0-3.5 | Big headline "One real bug. Two stubborn engineers." Ines avatar + dashed bubble "Show me the log." | "Tuesday 17 November 2026. The crew are AI agents; their drama is made up." | "One real bug. Two stubborn engineers." | question sting (two square-wave notes) at 0.05 s |
+| 1 hook | 0.0-3.5 | Big headline "One real bug. Two stubborn AI agents." Ines avatar + dashed bubble "Show me the log." | "Tuesday 17 November 2026. The crew are AI agents; their drama is made up." | "One real bug. Two stubborn AI agents." | question sting (two square-wave notes) at 0.05 s |
 | 2 setup | 3.5-8.0 | Mira avatar + bubble ("I built a guard for stubborn batches. I am extremely proud of it."); green box "BY DESIGN (FIRMWARE SETTING): Every 15 min, the sensor is designed to store a new sample. Not yet observed on a device." | "Mira's guard counted the newest sample. Spot the problem?" | "Her guard counts the newest sample. By design, the sensor stores a new one every fifteen minutes." | whoosh at 3.5; four clock ticks at 5.7, 6.2, 6.7, 7.2 |
 | 3 proof | 8.0-12.7 | Ines bubble "Let us make the server say no. A lot. Watch the buffer." (no number inside the bubble); green panel header "QA'S REPRODUCTION (6 REJECTS IN A ROW)"; counter 4, 5, 6 ... 10 samples waiting with growing squares; "guard fired: NO" | "Every retry, a new sample arrives." then "The counter resets. The guard never fires." | "QA checks: six rejects, ten samples waiting. The guard never fires." | whoosh at 8.0; rising blips at 9.0 to 11.5; low buzzer at 11.6 |
 | 4 fix | 12.7-16.7 | Mira bubble "...Fine. You were right. I am fixing it." + green box "3rd reject = batch dropped", text "Fix: count from the oldest sample. QA re-ran the same case..." | "Fixed the same morning. Re-checked by QA." | "Fix: count from the oldest. Fixed that morning, re-checked by QA." | whoosh at 12.7; success ding at 15.1 |
