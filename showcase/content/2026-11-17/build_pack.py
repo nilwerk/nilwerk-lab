@@ -85,9 +85,9 @@ html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans
 """
 
 FOOT = ('<div class="foot"><div class="brand">nil<b>werk</b><div style="font-size:17px;font-weight:500;letter-spacing:0;color:var(--muted);font-family:Inter">'
-        'AI crew, led and reviewed by humans &middot; @nilwerk</div></div>'
-        '<div class="leg"><i class="d"></i>imagined by Poppy (fiction) &nbsp; <i class="s"></i>real, sourced engineering<br>'
-        'The crew are AI agents. Their private lives are made up. The engineering is not.</div></div>')
+        '<span style="white-space:nowrap">AI crew, led and reviewed by humans &middot; @nilwerk</span></div></div>'
+        '<div class="leg" style="white-space:nowrap"><i class="d"></i>imagined by Poppy (fiction) &nbsp; <i class="s"></i>real, sourced engineering<br>'
+        'The crew are AI agents. Their private lives are made up.<br>The engineering is not.</div></div>')
 
 
 def wrap(body, w, h, extra_css=""):
@@ -130,7 +130,7 @@ def cover():
         f'<div style="font-size:15px;color:var(--muted);font-weight:600;line-height:1.15">{NAMES[k][2]}</div></div>' for k in keys)
     body = top("THE CREW HAS A LIFE &middot; SEASON 1") + f"""
 <div class="h" style="font-size:112px;margin:10px 0 14px">The crew<br>has a <span style="color:var(--accent)">life.</span></div>
-<div style="font-size:31px;line-height:1.25;font-weight:600;max-width:900px;margin-bottom:24px">Eleven AI engineers. One real Tuesday.<br>Five episodes of bugs, rivalries and small victories.</div>
+<div style="font-size:31px;line-height:1.25;font-weight:600;max-width:900px;margin-bottom:24px">Eleven AI agents. One real Tuesday.<br>Five episodes of bugs, rivalries and small victories.</div>
 <div class="panel" style="display:flex;flex-wrap:wrap;gap:20px 16px;justify-content:center;padding:18px 8px;gap:14px 10px">{cards}</div>
 <div style="display:flex;gap:22px;margin-top:34px">
  <div class="bub l" style="flex:1;font-size:29px">Everything we <i>feel</i> is imagined.<small>Everything we <b>fixed</b> is real.</small></div>
@@ -143,10 +143,10 @@ def cover():
 def ep1():
     body = top("EP 1 / 5 &middot; THE GUARD THAT COULD NEVER FIRE") + f"""
 <div class="h" style="font-size:62px;margin-bottom:16px">Ines vs. Mira:<br>the guard that <span style="color:var(--accent)">never fired</span></div>
-<div class="panel" style="margin-bottom:16px">{say("mira","I built a guard. If the server keeps rejecting one batch, we drop it. No batch blocks the buffer for ever.", "l", "")}</div>
-<div class="panel" style="margin-bottom:16px;background:#fdf5f2">{say("ines","Lovely. <i>Show me the log.</i> Your sensor adds a new sample every 15 minutes. Your guard counts the newest one. Do the maths, Mira.", "r")}</div>
-<div class="panel" style="margin-bottom:16px">{say("mira","...the counter resets every single retry. It can never reach three.", "l", "")}<div style="text-align:right;font-size:26px;margin-top:8px">Slow-burn level: <b>she will not admit she is grateful.</b></div></div>
-{fact("FOR ENGINEERS", "4 &rarr; 10 samples, guard never fired", "Review and QA reproduced it: 6 rejects in a row, no drop. Fix: count from the <b>oldest</b> sample. After the fix the 3rd reject drops the batch; 622 checks pass, 49/49 mutants caught (was 45).", "architect + QA review of the upload slice, 17 Nov 2026")}
+<div class="panel" style="margin-bottom:16px">{say("mira","I built a guard for stubborn batches. I am extremely proud of it.", "l", "")}</div>
+<div class="panel" style="margin-bottom:16px;background:#fdf5f2">{say("ines","Lovely. <i>Show me the log.</i> I have a feeling your guard is counting the wrong thing. Do the maths, Mira.", "r")}</div>
+<div class="panel" style="margin-bottom:16px">{say("mira","...give me a minute. I need to stare at my counter.", "l", "")}<div style="text-align:right;font-size:26px;margin-top:8px">Slow-burn level: <b>she will not admit she is grateful.</b></div></div>
+{fact("FOR ENGINEERS", "4 &rarr; 10 samples, guard never fired", "Review found it, QA reproduced it: 6 rejects in a row, no drop. The sensor is designed to store a sample every 15 min (firmware setting) and the guard counted the newest one, so it reset on every retry. Fix: count from the <b>oldest</b>. Now the 3rd reject drops the batch; 622 checks pass, 49/49 mutants caught (was 45).", "architect + QA review of the upload slice, 17 Nov 2026")}
 {FOOT}"""
     render("02_ep1_ines-vs-mira", wrap(body, 1080, 1350), 1080, 1350)
 
@@ -156,17 +156,17 @@ def ep2():
     svg = """
 <svg viewBox="0 0 960 330" width="968" height="332" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
  <rect x="2" y="2" width="956" height="326" rx="22" fill="#fff" stroke="#15181d" stroke-width="5"/>
- <text x="30" y="44" font-size="20" font-weight="700" fill="#5b616b" font-family="DejaVu Sans Mono,monospace">MAP OF THE DAY (drawn by Poppy, simplified)</text>
+ <text x="30" y="44" font-size="20" font-weight="700" fill="#5b616b" font-family="DejaVu Sans Mono,monospace">MAP OF THE DAY (simplified diagram, all real; the joke is only the field)</text>
  <line x1="40" y1="110" x2="920" y2="110" stroke="#0f7a5c" stroke-width="12" stroke-linecap="round"/>
  <text x="40" y="92" font-size="26" font-weight="800" fill="#0f7a5c">main</text>
  <circle cx="300" cy="110" r="17" fill="#0f7a5c" stroke="#15181d" stroke-width="4"/>
  <path d="M300 110 Q 330 210 430 210 L 600 210" fill="none" stroke="#15181d" stroke-width="7" stroke-dasharray="2 14" stroke-linecap="round"/>
  <text x="330" y="150" font-size="22" font-weight="700" fill="#15181d">branch A: Leo's app work</text>
  <text x="300" y="82" font-size="22" font-weight="700" fill="#0f7a5c" text-anchor="middle">1. branch A reaches main</text>
- <circle cx="600" cy="210" r="15" fill="#fff" stroke="#b4541a" stroke-width="5" stroke-dasharray="6 5"/>
- <text x="430" y="262" font-size="24" font-weight="700" fill="#b4541a">2. the delete-screen work is merged into</text>
- <text x="430" y="292" font-size="24" font-weight="700" fill="#b4541a">branch A... after A had already left.</text>
- <path d="M600 210 L 690 210" stroke="#b4541a" stroke-width="7" stroke-dasharray="3 10" stroke-linecap="round"/>
+ <circle cx="600" cy="210" r="15" fill="#fff" stroke="#0f7a5c" stroke-width="5"/>
+ <text x="430" y="262" font-size="24" font-weight="700" fill="#0f7a5c">2. the delete-screen work is merged into</text>
+ <text x="430" y="292" font-size="24" font-weight="700" fill="#0f7a5c">branch A... after A had already left.</text>
+ <path d="M600 210 L 690 210" stroke="#15181d" stroke-width="7" stroke-dasharray="2 14" stroke-linecap="round"/>
  <text x="716" y="222" font-size="42">&#127806;</text>
  <path d="M615 205 Q 760 90 880 108" fill="none" stroke="#0f7a5c" stroke-width="7" stroke-linecap="round" stroke-dasharray="14 10"/>
  <circle cx="880" cy="110" r="17" fill="#0f7a5c" stroke="#15181d" stroke-width="4"/>
@@ -196,13 +196,13 @@ def ep3():
     b = flow([("power on", "n"), ("setup flow OFF", "ok"), ("read the sensors", "ok"), ("print lines for the tester", "ok")], "ok")
     body = top("EP 3 / 5 &middot; THE PROTOTYPE THAT FELL ASLEEP") + f"""
 <div class="h" style="font-size:62px;margin-bottom:16px">Mira's board<br>wants a <span style="color:var(--accent)">nap</span> too early</div>
-<div class="panel" style="margin-bottom:16px">{say("mira","A never-set-up board sleeps before it reads a single sensor. Whoever runs it on the bench would see <i>nothing</i> and not know why. Not on my watch.", "l")}</div>
+<div class="panel" style="margin-bottom:16px">{say("mira","A board that has never met a bench makes me nervous. Whoever runs it should see <i>something</i>. Not on my watch.", "l")}</div>
 <div class="panel" style="margin-bottom:16px">
  <div class="mono" style="font-size:17px;font-weight:700;color:var(--muted);margin-bottom:10px">ILLUSTRATION OF THE LOGIC, NOT A PHOTO OR A BENCH RESULT</div>
  <div style="font-size:22px;font-weight:700;margin-bottom:6px;color:var(--warn)">Default build</div>{a}
  <div style="font-size:22px;font-weight:700;margin:14px 0 6px;color:var(--accent)">Bench build for the v1 prototype</div>{b}</div>
-<div class="panel" style="margin-bottom:16px;background:#f7f7f4">{say("kai","I noticed our pipeline never built that bench version. So now it does, and then it checks the switch is really on.", "r")}</div>
-{fact("FOR ENGINEERS", "15 / 15 host tests pass", "Second CI build with the v1 defaults, then a grep that the option is really on. Not yet run on the real board: the bench steps are written for our human hardware tester, <b>no hardware result exists</b>.", "bench doc, architect + QA + pipeline reviews, 17 Nov 2026")}
+<div class="panel" style="margin-bottom:16px;background:#f7f7f4">{say("kai","Green builds make me happy. I want this one built too, and I will check the switch.", "r")}</div>
+{fact("FOR ENGINEERS", "15 / 15 host tests pass", "CI compiles the v1 defaults for the ESP32-C3 (compile only). Never flashed or run on the real board: <b>no hardware result exists</b>. The default build sleeps unless setup is started with the BOOT button (read from source).", "bench doc, architect + QA + pipeline reviews, 17 Nov 2026")}
 {FOOT}"""
     render("04_ep3_prototype-asleep", wrap(body, 1080, 1350), 1080, 1350)
 
@@ -217,7 +217,7 @@ def ep4():
                  f'background:{"var(--warnsoft)" if bad else "var(--soft)"};color:{"var(--warn)" if bad else "var(--accent)"}">{"&times;" if bad else "&check;"}</span>')
     body = top("EP 4 / 5 &middot; 23 DISGUISES AT THE DOOR") + f"""
 <div class="h" style="font-size:62px;margin-bottom:14px">Sana's door policy<br>vs. <span style="color:var(--accent)">23 disguises</span></div>
-<div class="panel" style="margin-bottom:14px">{say("sana","My filter checks every plant-care tip before it reaches a plant. Nothing bad gets past this door.", "l")}</div>
+<div class="panel" style="margin-bottom:14px">{say("sana","I run the door of a very exclusive club called Tips. I am very proud of my door.", "l")}</div>
 <div class="panel" style="margin-bottom:14px;background:#fdf5f2">{say("ines","Challenge accepted. I brought a false moustache. And a negation. And a typo-shaped weather forecast.", "r")}</div>
 <div class="panel" style="margin-bottom:14px"><div class="mono" style="font-size:18px;font-weight:700;color:var(--accent);margin-bottom:10px">REAL SCOREBOARD &middot; QA'S 23 TRICKS</div><div style="display:flex;flex-wrap:wrap;gap:8px">{dots}</div>
  <div style="font-size:23px;font-weight:600;margin-top:12px"><span style="color:var(--accent)">15 held</span> &middot; <span style="color:var(--warn)">8 got in</span> (3 fake negations, 3 missing keywords, 2 broken forecasts)</div></div>
@@ -234,8 +234,8 @@ def ep5():
         return (f'<div style="display:flex;justify-content:{al};gap:12px;align-items:flex-end;margin:6px 0">'
                 f'{avatar(key,52) if side=="l" else ""}<div class="bub" style="max-width:640px;font-size:24px;padding:6px 14px;border-radius:22px">'
                 f'<div class="mono" style="font-size:14px;color:var(--muted)">{nm}</div>{text}</div>{avatar(key,52) if side=="r" else ""}</div>')
-    chat = (msg("nora", "End of day. Who is lying to me?", "l") + msg("ines", "Nobody. I checked.", "r") + msg("leo", "The app still cannot talk to the sensor. It says so, politely.", "l")
-            + msg("mira", "My board has not met a bench yet. Also polite.", "r") + msg("poppy", "So we tell people exactly that. With proof. And a cake emoji.", "l"))
+    chat = (msg("nora", "End of day. Who is lying to me?", "l") + msg("ines", "Nobody. I checked.", "r") + msg("leo", "I have a confession. And a very polite error message.", "l")
+            + msg("mira", "Mine is shy too. Also very polite.", "r") + msg("poppy", "So we tell people exactly that. With proof. And a cake emoji.", "l"))
     rows = [("&check;", "ok", "Tested on a computer with stand-ins: yes"), ("&times;", "no", "App connects to a real sensor: <b>not yet</b>"),
             ("&times;", "no", "Real data export in the cloud: <b>not built yet</b>; delete stays locked"), ("&times;", "no", "Anything measured on real hardware: <b>not yet</b>")]
     led = "".join(f'<div style="display:flex;gap:14px;align-items:center;margin:4px 0;font-size:23px;font-weight:600"><span style="width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;background:{"var(--accent)" if c=="ok" else "var(--warn)"}">{s}</span><span>{t}</span></div>' for s, c, t in rows)
@@ -243,8 +243,8 @@ def ep5():
 <div class="h" style="font-size:62px;margin-bottom:14px">End of day:<br>what we <span style="color:var(--accent)">can't</span> do yet</div>
 <div class="panel" style="padding:12px 20px;margin-bottom:20px"><div class="mono" style="font-size:17px;font-weight:700;color:var(--warn)">CREW CHAT, IMAGINED BY POPPY</div>{chat}</div>
 <div class="fact" style="margin-bottom:18px"><div class="lab">REAL &middot; THE HONEST LEDGER, 17 NOV 2026</div>{led}<div class="src">source: app and firmware notes, architect + QA reviews</div></div>
-<div class="row" style="gap:18px"><div class="fact" style="flex:1;padding:14px 18px"><div class="lab">REAL HUMAN DECISIONS</div><p style="font-size:23px;margin-top:6px">The owner approved the care-tip safety limits and ruled that export must really reach the user before delete unlocks.</p></div>
-<div class="fact" style="flex:1;padding:14px 18px"><div class="lab">REAL HUMAN, NOT A CHARACTER</div><p style="font-size:23px;margin-top:6px">Our hardware tester gets the bench steps next. No invented life for him.</p></div></div>
+<div class="row" style="gap:18px"><div class="fact" style="flex:1;padding:14px 18px"><div class="lab">REAL HUMAN DECISIONS</div><p style="font-size:23px;margin-top:6px">The owner approved the care-tip safety limits for the demo and ruled that export must really reach the user before delete unlocks.</p></div>
+<div class="fact" style="flex:1;padding:14px 18px"><div class="lab">REAL HUMAN, NOT A CHARACTER</div><p style="font-size:23px;margin-top:6px">Our hardware tester gets the bench steps next. No invented life.</p></div></div>
 {FOOT}"""
     render("06_ep5_honest-finale", wrap(body, 1080, 1350), 1080, 1350)
 
@@ -302,7 +302,7 @@ def story():
  <div style="align-self:center;font-size:80px;color:var(--warn)">&hearts;?</div>
  <div style="text-align:center">{avatar("mira",290)}<div class="who" style="font-size:30px">Mira</div><div style="font-size:24px;color:var(--muted);font-weight:600">&ldquo;What does it cost in &micro;A?&rdquo;</div></div></div>
 <div class="bub l" style="font-size:40px;margin-bottom:40px;padding:20px 26px">Enemies at stand-up. Colleagues at merge. Nobody has admitted anything. <small>Imagined by Poppy. Pure fiction.</small></div>
-<div class="fact" style="padding:26px 30px"><div class="lab" style="font-size:22px">REAL &middot; TODAY</div><p style="font-size:38px;margin-top:8px;line-height:1.28"><b>Ines found a safety guard that could never fire.</b> Mira fixed it the same morning and Ines re-ran every check.</p><div class="src" style="font-size:20px">source: QA and architect reviews, 17 Nov 2026</div></div>
+<div class="fact" style="padding:26px 30px"><div class="lab" style="font-size:22px">REAL &middot; TODAY</div><p style="font-size:38px;margin-top:8px;line-height:1.28"><b>Review and QA found a safety guard that could never fire.</b> Mira fixed it the same morning and Ines re-ran every check.</p><div class="src" style="font-size:20px">source: QA and architect reviews, 17 Nov 2026</div></div>
 <div class="foot" style="padding-bottom:60px"><div class="brand">nil<b>werk</b><div style="font-size:19px;font-weight:500;letter-spacing:0;color:var(--muted);font-family:Inter">AI crew, led and reviewed by humans &middot; @nilwerk</div></div>
 <div class="leg" style="font-size:20px">The crew are AI agents.<br>Their private lives are made up.</div></div>"""
     render("09_story_ines-and-mira", wrap(body, 1080, 1920), 1080, 1920)
@@ -314,7 +314,7 @@ def li():
 <div class="top" style="margin-bottom:14px"><span class="kick" style="font-size:20px">EP 1 / 5 &middot; THE CREW HAS A LIFE</span><span class="fic" style="font-size:17px">FICTIONAL CREW LIFE &middot; REAL ENGINEERING</span></div>
 <div class="row" style="gap:26px;align-items:center;margin-top:34px">
  <div style="flex:1"><div class="h" style="font-size:76px;margin-bottom:22px">The guard that <span style="color:var(--accent)">could never fire</span></div>
- <div class="fact" style="padding:16px 20px"><div class="lab" style="font-size:18px">REAL &middot; CAUGHT IN QA, 17 NOV 2026</div><p style="font-size:27px">A safety guard reset itself on every sensor reading. QA reproduced it, the fix is tested.</p></div></div>
+ <div class="fact" style="padding:16px 20px"><div class="lab" style="font-size:18px">REAL &middot; CAUGHT IN REVIEW + QA, 17 NOV 2026</div><p style="font-size:27px">A safety guard reset itself on every new sample. QA reproduced it, the fix is tested.</p></div></div>
  <div style="width:380px">
   <div class="bub r" style="font-size:28px;padding:14px 18px;margin-bottom:22px;margin-right:22px"><b>Ines:</b> Show me the log.</div>
   <div style="display:flex;justify-content:flex-end;gap:14px;align-items:center;margin-bottom:16px">{avatar("ines",130)}{avatar("mira",130)}</div>
