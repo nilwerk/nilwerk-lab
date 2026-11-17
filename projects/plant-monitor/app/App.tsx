@@ -1,7 +1,7 @@
 // App shell. Requirements: FR-A01 (signed-out: welcome -> sign up / sign in; signed-in: profile -> delete account / premium), FR-A06 (plants tab: list -> detail),
-// FR-A05 (detail -> photo gallery), FR-A08 + A-022 (detail -> export -> remove plant -> keep/release sensor), 4.A3 device setup (profile -> setup, fake service; real BLE is a later slice). Alerts (4.A5) are not part of this shell yet.
+// FR-A05 (detail -> photo gallery), FR-A08 + A-022 (detail -> export -> remove plant -> keep/release sensor), 4.A3 device setup (profile -> setup; fake service in the mock build, real BLE in a dev build, 4.A3b). Alerts (4.A5) are not part of this shell yet.
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
@@ -35,6 +35,9 @@ import type { PlantDetail, PlantSummary, PlantsService } from './src/plants/type
 import { TabBar, type Tab } from './src/ui/TabBar';
 import { SetupFlow } from './src/screens/setup/SetupFlow';
 import { createFakeSetup, unavailableProvisioning } from './src/provisioning/fakeProvisioning';
+import { createBleProvisioning } from './src/provisioning/bleProvisioning';
+import { createEspAdapter } from './src/provisioning/espAdapter';
+import { createFetchClaimApi } from './src/provisioning/claimApi';
 import type { SetupServices } from './src/provisioning/types';
 
 type Route = 'welcome' | AuthMode | 'plants' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium';
@@ -107,8 +110,15 @@ export default function App() {
   const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : isConfigured(cfg)
     ? createRealPlants({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken(), handOff: createFileHandOff(platformHandOffDeps) })
     : unconfiguredPlants()), [cfg, mock, service]);
-  // Real BLE provisioning (dev build, @orbital-systems/react-native-esp-idf-provisioning) is a later slice: until then only the mock build can run setup.
-  const setup = useMemo<SetupServices>(() => (mock ? createFakeSetup().services : { ...createFakeSetup().services, provisioning: unavailableProvisioning() }), [mock]);
+  // Mock build: fake sensor. Real build on a phone (iOS/Android, Supabase configured): real BLE (4.A3b slice 1, needs the dev build; in Expo Go the native
+  // library is missing and the first step says so). Web or unconfigured: "not available". Plant details and photo are still the fake services (later slice).
+  const setup = useMemo<SetupServices>(() => {
+    const fake = createFakeSetup().services;
+    if (mock) return fake;
+    if (Platform.OS === 'web' || !isConfigured(cfg)) return { ...fake, provisioning: unavailableProvisioning() };
+    const claim = createFetchClaimApi({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() });
+    return { ...fake, provisioning: createBleProvisioning({ adapter: createEspAdapter(), claim }) };
+  }, [mock, cfg, service]);
   const [fonts] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, Inter_400Regular, Inter_600SemiBold, JetBrainsMono_400Regular, JetBrainsMono_600SemiBold });
   if (!fonts) return null;
   return (

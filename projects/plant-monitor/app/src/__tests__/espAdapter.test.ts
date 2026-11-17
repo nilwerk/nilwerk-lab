@@ -1,0 +1,97 @@
+// espAdapter + claimApi glue against a mocked library / fake fetch (no native module, no network). 4.A3b slice 1.
+import { PermissionsAndroid, Platform } from 'react-native';
+import { createEspAdapter } from '../provisioning/espAdapter';
+import { createFetchClaimApi, ClaimApiError } from '../provisioning/claimApi';
+import { ProvisioningError } from '../provisioning/types';
+
+type Lib = Parameters<typeof createEspAdapter>[0] extends (() => infer L) | undefined ? L : never;
+
+function mockLib() {
+  const calls: unknown[][] = [];
+  class ESPDevice {
+    name: string; transport: string; security: number;
+    constructor(o: { name: string; transport: string; security: number }) { this.name = o.name; this.transport = o.transport; this.security = o.security; }
+    async connect(...a: unknown[]) { calls.push(['connect', this.name, ...a]); }
+    async getPrimaryServiceUuid() { return 'B53672DD-5227-40A0-8B6F-6F836F8A584C'.toLowerCase(); }
+    async scanWifiList() { return [{ ssid: 'A', rssi: -50, auth: 0 }, { ssid: 'B', rssi: -60, auth: 3 }]; }
+    async sendData(p: string, d: string) { calls.push(['sendData', p, d]); return '{"v":1}'; }
+    async provision(s: string, p: string) { calls.push(['provision', s, p]); return { status: 'ok' }; }
+    disconnect() { calls.push(['disconnect', this.name]); }
+  }
+  const lib = {
+    ESPDevice, ESPTransport: { ble: 'ble', softap: 'softap' }, ESPSecurity: { unsecure: 0, secure: 1, secure2: 2 },
+    ESPProvisionManager: { searchESPDevices: async (...a: unknown[]) => { calls.push(['search', ...a]); return [new ESPDevice({ name: 'NW-d4e5f6', transport: 'ble', security: 2 })]; } },
+  } as unknown as Lib;
+  return { lib, calls };
+}
+
+describe('espAdapter', () => {
+  const origOS = Platform.OS;
+  afterEach(() => { Object.defineProperty(Platform, 'OS', { get: () => origOS, configurable: true }); jest.restoreAllMocks(); });
+
+  test('search uses BLE + security 2 + the name prefix and reports the primary service UUID', async () => {
+    const m = mockLib();
+    const a = createEspAdapter(() => m.lib);
+    expect(await a.search('NW-')).toEqual([{ name: 'NW-d4e5f6', serviceUuid: 'b53672dd-5227-40a0-8b6f-6f836f8a584c' }]);
+    expect(m.calls[0]).toEqual(['search', 'NW-', 'ble', 2]);
+  });
+  test('connect passes PoP and SRP user name (security 2 needs both); wifi, sendData, provision, disconnect delegate', async () => {
+    const m = mockLib();
+    const a = createEspAdapter(() => m.lib);
+    await a.search('NW-');
+    await a.connect('NW-d4e5f6', '7KQ2M9XD', 'wifiprov');
+    expect(m.calls).toContainEqual(['connect', 'NW-d4e5f6', '7KQ2M9XD', null, 'wifiprov']);
+    expect(await a.scanWifi()).toEqual([{ ssid: 'A', rssi: -50, secure: false }, { ssid: 'B', rssi: -60, secure: true }]);
+    await a.sendData('nw-claim', '{}'); await a.provision('HomeNet', 'pw-12345678'); await a.disconnect();
+    expect(m.calls).toContainEqual(['sendData', 'nw-claim', '{}']);
+    expect(m.calls).toContainEqual(['provision', 'HomeNet', 'pw-12345678']);
+    expect(m.calls).toContainEqual(['disconnect', 'NW-d4e5f6']);
+  });
+  test('calls before connect fail with not_found; a missing native module (Expo Go / web) is not_available', async () => {
+    const a = createEspAdapter(() => mockLib().lib);
+    await expect(a.scanWifi()).rejects.toMatchObject({ code: 'not_found' });
+    const b = createEspAdapter(() => { throw new Error('native module missing'); });
+    await expect(b.ensureReady()).rejects.toBeInstanceOf(ProvisioningError);
+    await expect(b.ensureReady()).rejects.toMatchObject({ code: 'not_available' });
+  });
+  test('Android 12+ asks BLUETOOTH_SCAN + CONNECT, denial is permission_denied; Android 11 asks location', async () => {
+    Object.defineProperty(Platform, 'OS', { get: () => 'android', configurable: true });
+    const spy = jest.spyOn(PermissionsAndroid, 'requestMultiple').mockResolvedValue({ 'android.permission.BLUETOOTH_SCAN': 'granted', 'android.permission.BLUETOOTH_CONNECT': 'denied' } as never);
+    const ver = jest.spyOn(Platform, 'Version', 'get').mockReturnValue(34);
+    const a = createEspAdapter(() => mockLib().lib);
+    await expect(a.ensureReady()).rejects.toMatchObject({ code: 'permission_denied' });
+    expect(spy.mock.calls[0][0]).toEqual(['android.permission.BLUETOOTH_SCAN', 'android.permission.BLUETOOTH_CONNECT']);
+    ver.mockReturnValue(30);
+    spy.mockResolvedValue({ 'android.permission.ACCESS_FINE_LOCATION': 'granted' } as never);
+    await expect(a.ensureReady()).resolves.toBeUndefined();
+    expect(spy.mock.calls[1][0]).toEqual(['android.permission.ACCESS_FINE_LOCATION']);
+  });
+});
+
+describe('createFetchClaimApi', () => {
+  const TOKEN = 'k3J9aBcDeFgHiJkLmNoPqr';
+  const res = (status: number, body?: unknown) => ({ status, ok: status >= 200 && status < 300, json: async () => body }) as Response;
+  const mk = (f: jest.Mock, token: string | null = 'jwt-1') => createFetchClaimApi({ baseUrl: 'https://x.supabase.co/', publishableKey: 'sb_publishable_x', getAccessToken: async () => token, fetchImpl: f as never });
+
+  test('POST /claim-token with the user JWT and publishable key, returns the token', async () => {
+    const f = jest.fn().mockResolvedValue(res(201, { claim_token: TOKEN, expires_at: 'x' }));
+    expect(await mk(f).issueClaimToken()).toBe(TOKEN);
+    expect(f.mock.calls[0][0]).toBe('https://x.supabase.co/functions/v1/claim-token');
+    expect(f.mock.calls[0][1]).toMatchObject({ method: 'POST', headers: { apikey: 'sb_publishable_x', Authorization: 'Bearer jwt-1' } });
+  });
+  test('errors: signed out, 401, 429, 500, network, malformed token; the token never appears in an error', async () => {
+    await expect(mk(jest.fn(), null).issueClaimToken()).rejects.toMatchObject({ code: 'unauthorized' });
+    for (const [status, c] of [[401, 'unauthorized'], [429, 'rate_limited'], [500, 'server']] as const) await expect(mk(jest.fn().mockResolvedValue(res(status))).issueClaimToken()).rejects.toMatchObject({ code: c });
+    await expect(mk(jest.fn().mockRejectedValue(new TypeError('Network request failed'))).issueClaimToken()).rejects.toMatchObject({ code: 'network' });
+    const bad = mk(jest.fn().mockResolvedValue(res(201, { claim_token: 'too-short' })));
+    await expect(bad.issueClaimToken()).rejects.toBeInstanceOf(ClaimApiError);
+    await expect(bad.issueClaimToken()).rejects.not.toThrow(/too-short/);
+  });
+  test('findClaimedDevice queries the user\'s own rows by the 6-hex suffix and checks the suffix again client side', async () => {
+    const f = jest.fn().mockResolvedValue(res(200, [{ id: 'other', hw_id: 'nw-a1b2c3999999' }, { id: 'dev-9', hw_id: 'nw-a1b2c3d4e5f6' }]));
+    expect(await mk(f).findClaimedDevice('NW-d4e5f6')).toEqual({ deviceId: 'dev-9', hwId: 'nw-a1b2c3d4e5f6' });
+    expect(String(f.mock.calls[0][0])).toContain('/rest/v1/devices?select=id,hw_id,claimed_at&hw_id=like.*d4e5f6');
+    expect(await mk(jest.fn().mockResolvedValue(res(200, []))).findClaimedDevice('NW-d4e5f6')).toBeNull();
+    expect(await mk(jest.fn()).findClaimedDevice('NW-zzzzzz')).toBeNull();
+  });
+});

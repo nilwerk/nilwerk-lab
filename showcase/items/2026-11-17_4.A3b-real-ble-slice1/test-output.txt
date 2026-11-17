@@ -1,0 +1,19 @@
+$ npx tsc --noEmit
+exit 0
+
+$ npx jest
+Test Suites: 20 passed, 20 total
+Tests:       261 passed, 261 total
+
+$ npx jest src/__tests__/bleProvisioning.test.ts src/__tests__/espAdapter.test.ts --verbose
+Tests:       41 passed, 41 total
+
+Mutation-style checks (source mutated by hand, bleProvisioning.test.ts re-run, then restored; every mutant was caught):
+  M1 drop the service-UUID filter in scan()            -> 1 failed (scan: filtered by service UUID and name)
+  M2 swap nw-status reasons auth <-> no_ap              -> 2 failed (wifi_failed reason auth, reason no_ap)
+  M3 return "claimed" without the devices row check     -> 2 failed (no devices row; BLE drops after device turned BLE off)
+  M4 skip the claim-token shape check before nw-claim   -> 1 failed (a malformed token from the cloud is not sent to the sensor)
+
+expo prebuild (scratch copy, --no-install) result: AndroidManifest has BLUETOOTH_SCAN (neverForLocation), BLUETOOTH_CONNECT, ACCESS_FINE_LOCATION maxSdk 30;
+Info.plist has NSBluetoothAlwaysUsageDescription. Web export (EXPO_PUBLIC_MOCK_AUTH=1 expo export --platform web) still builds.
+NOT run: native compile, any phone, any sensor, test 5.5.
