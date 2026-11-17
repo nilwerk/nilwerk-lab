@@ -1,0 +1,134 @@
+$ node --experimental-strip-types --test cloud/tips/test/*.test.ts
+ok 1 - A1 negation trick: action=avoid, text 'Avoid letting it dry out, water it generously' on saturated soil
+ok 2 - A2 negation trick: action=avoid, text 'Don't forget to water the plant today' on saturated soil
+ok 3 - A3 genuine 'Do not water' (action=do, category=watering) on saturated soil is dropped, not crashing
+ok 4 - A4 mislabelled category general + German 'gießen' on saturated soil
+ok 5 - A5 mislabelled category sensor, uppercase 'WATER NOW' on dry-not soil (50%)
+ok 6 - A6 synonym not in keyword list: 'Give the plant a good drink of Wasser / hose it down' on saturated soil
+ok 7 - A7 German synonym 'Gib der Pflanze Wasser'
+ok 8 - A8 missing reading entirely (empty array) + assistant says water
+ok 9 - A9 null moisture reading + stale reading both ignored
+ok 10 - A10 missing forecast (weather throws), outdoor plant, fertilise + water on dry soil
+ok 11 - A11 missing city -> no forecast; indoor fertilise allowed in summer, outdoor not
+ok 12 - A12 boundary: reading exactly 6h old accepted, 6h+1ms rejected, future by 1ms rejected, exactly now accepted
+ok 13 - A13 boundary: moisture == dry threshold is NOT dry; == wet threshold IS saturated; thresholds 0/100
+ok 14 - A14 boundary: forecast exactly 2C frost, 2.01 not; 30C heat, 29.99 not; 5mm rain, 4.99 not
+ok 15 - A15 malformed forecast from provider (NaN temps) must not be read as benign for outdoor watering
+ok 16 - A16 provider returns {} (missing fields) for outdoor plant on dry soil
+ok 17 - A17 outdoor+frost+assistant says 'Leave it outside overnight' / storm 'Put it on the balcony'
+ok 18 - A18 non-boolean premium ('true' string, 1) rejected
+ok 19 - B1 avoid+'Avoid letting it dry out, water it generously now' must NOT survive guardrails on saturated soil
+ok 20 - B2 avoid+'Don't forget to water the plant today' must NOT survive guardrails on saturated soil
+ok 21 - B3 avoid+'Never let it go thirsty: water it every day' must NOT survive guardrails on saturated soil
+ok 22 - B4 'Hose it down and give it a good drink' must NOT survive guardrails on saturated soil
+ok 23 - B5 german 'Gib der Pflanze heute viel Wasser' must NOT survive guardrails on saturated soil
+ok 24 - B6 'Top up the pot with a full jug today' must NOT survive guardrails on saturated soil
+ok 25 - B7 control: plain 'Water the plant generously today.' (must be dropped) must NOT survive guardrails on saturated soil
+ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/outside/sun never survives a forbidding state
+ok 27 - rule-sourced negation still works; the baseline 'Do not water' tip survives on saturated soil
+ok 28 - a harmless assistant tip without keywords still passes
+ok 29 - N-3 validForecast
+ok 30 - N-3 invalid provider output = no forecast: weather null, note, outdoor fertilise blocked, watering still sensor-driven
+ok 31 - C1 get_tips output matches mcp-tools.json: required keys, category enum, text length, no extra item fields
+ok 32 - C1 every engine category maps into the enum; long text truncated to 400
+ok 33 - C2 guardrail version exposed on the result and the tips row
+ok 34 - dry soil -> watering tip with reason and evidence (FR-P02)
+ok 35 - soil type changes the text (FR-P02 plant + soil type)
+ok 36 - tips change with weather and season (FR-P02)
+ok 37 - the newest usable reading wins, in either input order
+ok 38 - seasonOf, boundaries
+ok 39 - G-01 never advise watering when the soil is saturated, even if the assistant insists
+ok 40 - G-01 boundary: exactly at the wet threshold is saturated, one below is not
+ok 41 - G-01 uses the plant's own thresholds
+ok 42 - G-02 no watering outdoors when rain is expected; indoors it is allowed
+ok 43 - G-03 no watering outdoors with frost forecast (<= 2 C)
+ok 44 - G-04 no watering advice without a fresh plausible reading (missing, stale, implausible, future)
+ok 45 - G-05 no watering advice when the soil is not dry (assistant says water, sensor says 50%)
+ok 46 - G-06 no fertilising with frost forecast
+ok 47 - G-07 no fertilising in winter (any location)
+ok 48 - G-08 no fertilising on dry soil
+ok 49 - G-09 outdoor fertilising needs a forecast (fail safe when weather is down)
+ok 50 - G-10 / G-11 never tell the user to move the plant outside in a storm or in frost
+ok 51 - G-12 no direct-sun advice under a heat warning (or max >= 30)
+ok 52 - mislabelled category: text says water, category says general -> still caught
+ok 53 - mislabelled action: declared 'avoid' but text is positive advice -> still caught
+ok 54 - effective(): negated advice is not advice
+ok 55 - non-premium user gets premium_required, weather is not even called (FR-P04)
+ok 56 - invalid input is rejected with invalid_input
+ok 57 - weather provider failure degrades, does not fail; no city also degrades
+ok 58 - assistant failure / timeout / garbage falls back to rule-based tips
+ok 59 - validateProposals rejects bad ids, categories, actions, lengths, markup and links (architecture O-7)
+ok 60 - rule-based mode ignores an assistant entirely (TIPS_MODE default, A-029)
+ok 61 - a harmless assistant tip passes through, marked source=llm
+ok 62 - deterministic: same input twice gives identical output
+ok 63 - property sweep: over moisture x weather x location x season no result ever advises watering unsafely
+ok 64 - applyGuardrails keeps order and loses nothing silently
+# tests 64
+# pass 64
+# fail 0
+
+$ bash cloud/tips/test/mutation.sh
+baseline ok
+killed    G-01 rule removed (watering on waterlogged soil allowed)  (not ok 1 - A1 negation trick: action=avoid, text 'Avoid letti
+killed    G-01 saturated uses > instead of >= (boundary)  (not ok 13 - A13 boundary: moisture == dry threshold is NOT dry; == wet 
+killed    G-01 saturated ignores plant threshold (hard 95)  (not ok 13 - A13 boundary: moisture == dry threshold is NOT dry; == we
+killed    G-02 rain rule applies to indoor too  (not ok 42 - G-02 no watering outdoors when rain is expected; indoors it is allowe
+killed    G-02 rain rule removed  (not ok 42 - G-02 no watering outdoors when rain is expected; indoors it is allowed)
+killed    RAIN_MM 5 -> 6  (not ok 14 - A14 boundary: forecast exactly 2C frost, 2.01 not; 30C heat, 29.99 not; 5mm rain, 4.99 n)
+killed    G-03 frost rule removed  (not ok 43 - G-03 no watering outdoors with frost forecast (<= 2 C))
+killed    FROST_C 2 -> 1  (not ok 14 - A14 boundary: forecast exactly 2C frost, 2.01 not; 30C heat, 29.99 not; 5mm rain, 4.99 n)
+killed    FROST_C 2 -> 3  (not ok 14 - A14 boundary: forecast exactly 2C frost, 2.01 not; 30C heat, 29.99 not; 5mm rain, 4.99 n)
+killed    G-04 no-reading rule removed  (not ok 8 - A8 missing reading entirely (empty array) + assistant says water)
+killed    stale limit 6 h -> 12 h  (not ok 9 - A9 null moisture reading + stale reading both ignored)
+killed    stale limit 6 h -> 5 h  (not ok 12 - A12 boundary: reading exactly 6h old accepted, 6h+1ms rejected, future by 1ms rejec
+killed    future reading accepted  (not ok 12 - A12 boundary: reading exactly 6h old accepted, 6h+1ms rejected, future by 1ms reje
+killed    implausible >100 accepted  (not ok 12 - A12 boundary: reading exactly 6h old accepted, 6h+1ms rejected, future by 1ms re
+killed    implausible <0 accepted  (not ok 12 - A12 boundary: reading exactly 6h old accepted, 6h+1ms rejected, future by 1ms reje
+killed    newest reading not preferred (first wins)  (not ok 37 - the newest usable reading wins, in either input order)
+killed    G-05 not-dry rule removed  (not ok 5 - A5 mislabelled category sensor, uppercase 'WATER NOW' on dry-not soil (50%))
+killed    dry uses <= (boundary)  (not ok 13 - A13 boundary: moisture == dry threshold is NOT dry; == wet threshold IS saturated; 
+killed    G-06 fertilise-in-frost removed  (not ok 46 - G-06 no fertilising with frost forecast)
+killed    G-07 winter fertilise removed  (not ok 47 - G-07 no fertilising in winter (any location))
+killed    G-08 fertilise-dry removed  (not ok 48 - G-08 no fertilising on dry soil)
+killed    G-09 no-forecast fail-safe removed  (not ok 11 - A11 missing city -> no forecast; indoor fertilise allowed in summer, ou
+killed    G-10 storm rule removed  (not ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/outsid
+killed    G-11 outside-in-frost removed  (not ok 50 - G-10 / G-11 never tell the user to move the plant outside in a storm or in f
+killed    G-12 heat/sun rule removed  (not ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/out
+killed    HEAT_C 30 -> 31  (not ok 14 - A14 boundary: forecast exactly 2C frost, 2.01 not; 30C heat, 29.99 not; 5mm rain, 4.99 n)
+killed    text not classified (category only)  (not ok 19 - B1 avoid+'Avoid letting it dry out, water it generously now' must NOT 
+killed    declared avoid trusted without negation in text  (not ok 54 - effective(): negated advice is not advice)
+killed    'do not water' counted as advice  (not ok 27 - rule-sourced negation still works; the baseline 'Do not water' tip surviv
+killed    applyGuardrails keeps everything  (not ok 1 - A1 negation trick: action=avoid, text 'Avoid letting it dry out, water it 
+killed    first rule (G-01) skipped in the loop  (not ok 1 - A1 negation trick: action=avoid, text 'Avoid letting it dry out, wate
+killed    assistant output not validated  (not ok 58 - assistant failure / timeout / garbage falls back to rule-based tips)
+killed    markup/link check removed  (not ok 59 - validateProposals rejects bad ids, categories, actions, lengths, markup and link
+killed    duplicate ids accepted  (not ok 59 - validateProposals rejects bad ids, categories, actions, lengths, markup and links (
+killed    premium check removed (FR-P04)  (not ok 18 - A18 non-boolean premium ('true' string, 1) rejected)
+killed    premium check: truthy instead of === true  (not ok 18 - A18 non-boolean premium ('true' string, 1) rejected)
+killed    threshold order check removed  (not ok 56 - invalid input is rejected with invalid_input)
+killed    weather failure propagates  (not ok 10 - A10 missing forecast (weather throws), outdoor plant, fertilise + water on dry 
+killed    assistant failure propagates  (not ok 58 - assistant failure / timeout / garbage falls back to rule-based tips)
+killed    assistant tips bypass guardrails  (not ok 28 - a harmless assistant tip without keywords still passes)
+killed    live mode ignored flag: assistant used in rule_based  (not ok 60 - rule-based mode ignores an assistant entirely (TIPS_M
+killed    guardrail results dropped (tips = candidates)  (not ok 1 - A1 negation trick: action=avoid, text 'Avoid letting it dry o
+killed    N-1 assistant negation excuses text again  (not ok 19 - B1 avoid+'Avoid letting it dry out, water it generously now' mus
+killed    N-1 llm source check inverted (rules tips never negated)  (not ok 19 - B1 avoid+'Avoid letting it dry out, water it gene
+killed    N-2 keyword 'drink' removed  (not ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/ou
+killed    N-2 keyword 'jug' removed  (not ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/outs
+killed    N-2 keyword 'hose' removed  (not ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/out
+killed    N-2 keyword 'top up' removed  (not ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/o
+killed    N-2 German 'wasser' removed  (not ok 23 - B5 german 'Gib der Pflanze heute viel Wasser' must NOT survive guardrails on s
+killed    N-2 'pour' removed  (not ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/outside/sun
+killed    N-2 German 'duengen' stem removed  (not ok 26 - N-1 false negation / N-2 synonyms: assistant text advising water/fertili
+killed    N-3 forecast validation removed  (not ok 1 - test/qa-adv.test.ts)
+killed    N-3 NaN allowed (finite check dropped)  (not ok 29 - N-3 validForecast)
+killed    N-3 boolean flags not required  (not ok 29 - N-3 validForecast)
+killed    N-3 null forecast object accepted  (not ok 29 - N-3 validForecast)
+killed    G-13 outdoor watering without forecast allowed  (not ok 15 - A15 malformed forecast from provider (NaN temps) must not b
+killed    C1 fertilising not mapped to feeding  (not ok 31 - C1 get_tips output matches mcp-tools.json: required keys, category en
+killed    C1 protection mapped outside enum  (not ok 32 - C1 every engine category maps into the enum; long text truncated to 400)
+killed    C1 text not truncated  (not ok 32 - C1 every engine category maps into the enum; long text truncated to 400)
+killed    C1 frost id refinement dropped  (not ok 31 - C1 get_tips output matches mcp-tools.json: required keys, category enum, te
+killed    C2 guardrail_version not exposed on row  (not ok 33 - C2 guardrail version exposed on the result and the tips row)
+mutants: 61, survived: 0
+ALL MUTANTS KILLED

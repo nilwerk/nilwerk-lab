@@ -33,7 +33,7 @@ Premium feature (FR-P02, FR-P04, ADR-006). Pure TypeScript in `tips/`, no depend
 | File | What |
 |---|---|
 | `tips/types.ts` | input/output contract; injected interfaces `WeatherProvider` (Q-13 open) and `TextAssistant` (LLM seam) |
-| `tips/guardrails.ts` | rule layer `g1.0`: rules G-01..G-12, text classifier, validation of untrusted assistant output (architecture O-7) |
+| `tips/guardrails.ts` | rule layer `g1.1`: rules G-01..G-13, text classifier, validation of untrusted assistant output (architecture O-7) |
 | `tips/engine.ts` | `generateTips(request, deps)`: rule-based baseline tips -> optional assistant (`mode: "live"`, 5 s timeout) -> guardrails; `TIPS_MODE` default `rule_based` (A-029) |
 | `tips/test/tips.test.ts`, `tips/test/mutation.sh` | 31 tests (one per rule, adversarial assistant output, error paths, property sweep of 400 combinations); 42 mutants that must all be killed |
 

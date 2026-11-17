@@ -1,8 +1,8 @@
 // Care-tips engine, slice 1 (4.B3): rule-based candidates -> optional injected text assistant -> deterministic guardrails.
 // Requirements: FR-P02, FR-P04, ADR-006 (TIPS_MODE rule_based | live), A-029. No I/O of its own: weather and the text
 // assistant are injected, the clock is a parameter. No LLM, no keys, no network in this slice.
-import { applyGuardrails, deriveState, GUARDRAIL_VERSION, validateProposals } from "./guardrails.ts";
-import type { AssistantContext, Evidence, Forecast, GuardrailState, PlantInput, ReadingInput, TextAssistant, Tip, TipCategory, TipsResult, WeatherProvider } from "./types.ts";
+import { applyGuardrails, deriveState, GUARDRAIL_VERSION, validateProposals, validForecast } from "./guardrails.ts";
+import type { AssistantContext, Evidence, Forecast, GuardrailState, PlantInput, ReadingInput, TextAssistant, Tip, Removed, TipCategory, TipsResult, WeatherProvider } from "./types.ts";
 import { TipsError } from "./types.ts";
 
 export interface TipsRequest { plant: PlantInput; readings: ReadingInput[]; now: string; premium: boolean }
@@ -56,6 +56,17 @@ export function baselineTips(s: GuardrailState): Tip[] {
   return t;
 }
 
+/** Neutral fallback when G-13 withholds watering advice (no valid forecast, outdoor plant). Text must never read as watering advice. */
+export const NO_FORECAST_TIP: Tip = { id: "no-forecast-check-soil", category: "general", action: "do", text: "No forecast available: check the soil by finger.",
+  reason: "Weather data is missing, so rain and frost cannot be ruled out.", evidence: [ev("weather", "forecast", "none")], source: "rules" };
+
+/** Adds `tip` (default: the neutral one) when G-13 fired. It goes through the guardrails like every tip: a bad one lands in `removed`. */
+export function addNoForecastTip(kept: Tip[], removed: Removed[], s: GuardrailState, tip: Tip = NO_FORECAST_TIP): void {
+  if (!removed.some((x) => x.ruleId === "G-13")) return;
+  const chk = applyGuardrails([tip], s);
+  kept.push(...chk.kept); removed.push(...chk.removed);
+}
+
 /** Calls the injected assistant under a timeout. Any failure or nonsense degrades to rule-based tips, never to unchecked output. */
 async function assist(a: TextAssistant, ctx: AssistantContext, ms: number, notes: string[]): Promise<Tip[]> {
   const ac = new AbortController(); let timer: ReturnType<typeof setTimeout> | undefined;
@@ -78,7 +89,10 @@ export async function generateTips(req: TipsRequest, deps: TipsDeps): Promise<Ti
   const notes: string[] = [];
   let weather: Forecast | null = null;
   if (req.plant.city) {
-    try { weather = await deps.weather.forecast(req.plant.city); } catch (e) { notes.push(`weather_unavailable:${(e as Error).message}`); }
+    try {
+      const f: unknown = await deps.weather.forecast(req.plant.city);
+      if (validForecast(f)) weather = f; else notes.push("weather_unavailable:invalid forecast from provider");
+    } catch (e) { notes.push(`weather_unavailable:${(e as Error).message}`); }
   } else notes.push("weather_unavailable:no city");
   const s = deriveState(req.plant, req.readings, weather, req.now);
   if (s.moisturePct === null) notes.push("no_fresh_reading");
@@ -93,5 +107,8 @@ export async function generateTips(req: TipsRequest, deps: TipsDeps): Promise<Ti
     candidates = [...base, ...extra.filter((x) => !ids.has(x.id))];
   }
   const { kept, removed } = applyGuardrails(candidates, s);
+  // G-13 removed watering advice because there is no valid forecast: do not leave the user with nothing. Add a neutral,
+  // rules-sourced tip that is NOT a watering instruction and passes the guardrails itself (re-checked, never trusted).
+  addNoForecastTip(kept, removed, s);
   return { plantId: req.plant.id, generatedAt: req.now, guardrailVersion: GUARDRAIL_VERSION, mode, tips: kept, removed, weather, notes };
 }
