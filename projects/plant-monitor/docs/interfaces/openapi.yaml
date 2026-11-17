@@ -99,7 +99,8 @@ paths:
       description: |
         Hourly (FR-D02: 24 +/- 1 reports per day), immediately on a critical event (FR-E03), and on
         reconnect after an offline period (FR-D04). The device deletes a sample from its buffer only after
-        a 2xx for the batch containing it. Idempotent on (device, ts): replays are counted as duplicates.
+        a 2xx for the batch containing it. [Device-side behaviour, not enforced by the server: the device deliberately drops a
+        batch that was rejected 3 times with 400/413, so one bad batch cannot block its buffer for good.] Idempotent on (device, ts): replays are counted as duplicates.
         Processing order (so data is visible in the app within 2 min, NFR-04): authenticate -> validate
         schema -> insert samples (plausible flag by G1 ranges: temp -10..60 degC, RH 0..100 %, lux 0..100000,
         battery 3000..4250 mV, moisture 0..100 %) -> insert events -> update device (last_seen_at, fw,
