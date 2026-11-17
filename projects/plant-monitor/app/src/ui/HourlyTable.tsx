@@ -1,5 +1,5 @@
 // Hourly data table (S22 content, shown on the plant detail). Requirements: FR-A06 (7-day hourly readings, 168 rows), FR-D02 (one report per hour, so 24 rows per day with a report),
-// FR-D04 (a missing hour is shown as a gap, not as zero). Columns are the readings_hourly fields of the contract (db-schema.sql L214): moisture_avg, temp_avg, rh_avg, lux_avg, vbat_min_mv.
+// FR-A06 and the readings_hourly design (a missing hour is shown as a gap, not as zero). Columns are the readings_hourly fields of the contract (db-schema.sql L214): moisture_avg, temp_avg, rh_avg, lux_avg, vbat_min_mv.
 // Newest first. Gap = em dash. Empty series (no report in 7 days) shows the empty text instead of 168 gaps. Plain Views in a horizontal ScrollView, so it fits 390 px.
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';

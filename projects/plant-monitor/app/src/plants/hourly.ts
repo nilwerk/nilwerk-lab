@@ -1,4 +1,4 @@
-// 7-day hourly grid (FR-A06: 168 hourly points; FR-D02: one report per hour, so 24 readings per day; FR-D04: late rows fill gaps).
+// 7-day hourly grid (FR-A06: 168 hourly points; FR-D02: one report per hour, so 24 readings per day; a missing hour has no row in readings_hourly, so it is a gap).
 // Pure functions, no React Native import, so the boundary tests run in Jest without a device.
 import type { HourlyPoint } from './types';
 

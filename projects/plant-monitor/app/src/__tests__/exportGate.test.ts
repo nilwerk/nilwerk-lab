@@ -14,3 +14,9 @@ describe('canDelete (export before delete)', () => {
     expect(canDelete({ exported: true, typed: '  Basil ', expected: 'Basil' })).toBe(true);
   });
 });
+
+// Gate from Theo's review of PR #114 (N2): exportData returns metadata only, no file reaches the user yet.
+describe('real client gate (not built)', () => {
+  test.todo('real PlantsService must not replace unconfiguredPlants until the export file hand-off (share sheet or download) exists');
+  test.todo('exported is set only after the file hand-off succeeded, not when exportData resolves');
+});

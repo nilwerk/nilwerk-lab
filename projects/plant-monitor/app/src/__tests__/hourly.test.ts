@@ -1,5 +1,5 @@
 // Hourly grid boundaries (4.A4 slice 2, acceptance 3): empty, one reading, 24 readings, a gap in time. Plus window edges.
-// Requirements: FR-A06 (168 hourly points on the detail), FR-D02 (one report per hour = 24 per day), FR-D04 (a missing hour is a gap, not zero).
+// Requirements: FR-A06 (168 hourly points on the detail), FR-D02 (one report per hour = 24 per day), FR-A06 and the readings_hourly design (a missing hour is a gap, not zero).
 import { HOURS, hasAnyReading, hourlyGrid } from '../plants/hourly';
 import type { HourlyPoint } from '../plants/types';
 
@@ -15,7 +15,7 @@ const isGap = (p: HourlyPoint) => p.n === null && p.moistureAvg === null && p.te
 /** indexes of the grid (0 = oldest, 167 = current hour) that hold a value */
 const filledIdx = (pts: HourlyPoint[]) => pts.flatMap((p, i) => (isGap(p) ? [] : [i]));
 
-describe('hourly grid (FR-A06, FR-D02, FR-D04)', () => {
+describe('hourly grid (FR-A06, FR-D02)', () => {
   test('always 168 points, oldest first, the last one is the current UTC hour', () => {
     const g = hourlyGrid([], NOW);
     expect(g).toHaveLength(HOURS);
