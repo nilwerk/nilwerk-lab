@@ -33,6 +33,8 @@ static RTC_DATA_ATTR nw_cycle_state_t s_st;   /* retained across deep sleep; pow
 static EventGroupHandle_t s_ev;
 static bool s_wifi_up;
 static int s_retries;
+static volatile bool s_stopping;                /* set before any intentional disconnect/stop: on_event must not reconnect then */
+static esp_event_handler_instance_t s_h_wifi, s_h_ip;
 
 static uint32_t now_unix(void)
 {
@@ -44,6 +46,7 @@ static uint32_t now_unix(void)
 static void on_event(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
     (void)arg; (void)data;
+    if (s_stopping || !s_ev) return;                 /* teardown in progress: a disconnect we caused ourselves is not a reason to reconnect */
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -54,42 +57,66 @@ static void on_event(void *arg, esp_event_base_t base, int32_t id, void *data)
     }
 }
 
+/* Frees what wifi_up() created: handlers first (so none can touch the group), then the event group. Safe to call twice. Runs on EVERY exit path. */
+static void wifi_release(void)
+{
+    s_stopping = true;
+    s_retries = WIFI_RETRIES;
+    if (s_h_wifi) { esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, s_h_wifi); s_h_wifi = NULL; }
+    if (s_h_ip) { esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, s_h_ip); s_h_ip = NULL; }
+    if (s_ev) { vEventGroupDelete(s_ev); s_ev = NULL; }
+}
+
 static bool wifi_up(const nw_prov_record_t *rec)
 {
     if (s_wifi_up) return true;
+    wifi_release();                                                  /* belt and braces: nothing left over from an earlier failed try */
     s_ev = xEventGroupCreate();
     if (!s_ev) return false;
     s_retries = 0;
+    s_stopping = false;
     esp_netif_init();
     esp_err_t e = esp_event_loop_create_default();
-    if (e != ESP_OK && e != ESP_ERR_INVALID_STATE) return false;     /* INVALID_STATE = the setup flow already created it */
+    if (e != ESP_OK && e != ESP_ERR_INVALID_STATE) { wifi_release(); return false; }     /* INVALID_STATE = the setup flow already created it */
     if (!esp_netif_get_handle_from_ifkey("WIFI_STA_DEF")) esp_netif_create_default_wifi_sta();   /* [verify] the ifkey and a clean hand-over from nw_prov_idf.c */
     wifi_init_config_t wc = WIFI_INIT_CONFIG_DEFAULT();
     e = esp_wifi_init(&wc);
-    if (e != ESP_OK && e != ESP_ERR_INVALID_STATE) return false;     /* [verify] what a second init returns */
-    esp_event_handler_instance_t h1, h2;
-    esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, on_event, NULL, &h1);
-    esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, on_event, NULL, &h2);
+    if (e != ESP_OK && e != ESP_ERR_INVALID_STATE) { wifi_release(); return false; }     /* [verify] what a second init returns */
+    esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, on_event, NULL, &s_h_wifi);
+    esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, on_event, NULL, &s_h_ip);
     esp_wifi_set_storage(WIFI_STORAGE_RAM);                          /* credentials stay in NVS under nw_prov only, not a second copy in the Wi-Fi NVS */
     esp_wifi_set_mode(WIFI_MODE_STA);
     wifi_config_t cfg;
     memset(&cfg, 0, sizeof cfg);
     strncpy((char *)cfg.sta.ssid, rec->ssid, sizeof cfg.sta.ssid);   /* SSID is 1-32 bytes (nw_cycle_creds_check), no NUL needed at 32 */
     strncpy((char *)cfg.sta.password, rec->passphrase, sizeof cfg.sta.password - 1);
-    cfg.sta.threshold.authmode = rec->passphrase[0] ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
+    cfg.sta.threshold.authmode = rec->passphrase[0] ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;   /* WPA2 threshold, no SAE settings: WPA3-only APs are unsupported, see DEV_GUIDE 7.4 */
     cfg.sta.pmf_cfg.capable = true;
     e = esp_wifi_set_config(WIFI_IF_STA, &cfg);
     memset(&cfg, 0, sizeof cfg);
-    if (e != ESP_OK || esp_wifi_start() != ESP_OK) return false;
+    if (e != ESP_OK || esp_wifi_start() != ESP_OK) { wifi_release(); return false; }
     EventBits_t b = xEventGroupWaitBits(s_ev, EV_GOT_IP | EV_FAILED, pdFALSE, pdFALSE, pdMS_TO_TICKS(CONFIG_PLANT_UPLOAD_NET_TIMEOUT_S * 1000));
     s_wifi_up = (b & EV_GOT_IP) != 0;
-    if (!s_wifi_up) { esp_wifi_stop(); ESP_LOGW(TAG, "wifi: no connection (%s)", (b & EV_FAILED) ? "join failed" : "timeout"); }
+    if (!s_wifi_up) {
+        s_stopping = true;                                           /* before stop: a late disconnect event must not reconnect */
+        s_retries = WIFI_RETRIES;
+        esp_wifi_stop();
+        wifi_release();
+        ESP_LOGW(TAG, "wifi: no connection (%s)", (b & EV_FAILED) ? "join failed" : "timeout");
+    }
     return s_wifi_up;
 }
 
 static void wifi_down(void)
 {
-    if (s_wifi_up) { esp_wifi_disconnect(); esp_wifi_stop(); s_wifi_up = false; }
+    if (s_wifi_up) {
+        s_stopping = true;                                           /* BEFORE the disconnect: on_event would otherwise see s_retries==0 after a good join and call esp_wifi_connect() */
+        s_retries = WIFI_RETRIES;
+        esp_wifi_disconnect();
+        esp_wifi_stop();
+        s_wifi_up = false;
+    }
+    wifi_release();
 }
 
 /* ---- SNTP ---- */
@@ -120,7 +147,7 @@ static int io_post(void *ctx, const char *url, const char *auth, const char *bod
     if (!c) return -1;
     int rc = -1;
     esp_http_client_set_header(c, "Content-Type", "application/json");
-    esp_http_client_set_header(c, "Authorization", auth);
+    esp_http_client_set_header(c, "Authorization", auth);   /* the client keeps its own heap copy of the header value */
     if (esp_http_client_open(c, (int)len) == ESP_OK && esp_http_client_write(c, body, (int)len) == (int)len) {
         esp_http_client_fetch_headers(c);              /* [verify] return value is ambiguous for chunked answers: the status code decides */
         int st = esp_http_client_get_status_code(c);
@@ -136,6 +163,9 @@ static int io_post(void *ctx, const char *url, const char *auth, const char *bod
             rc = 0;
         }
     }
+    /* Token wipe, honestly: the caller's buffer (rec.device_token) is zeroed by nw_upload_idf_wake. The client's heap copy of the header is released by
+     * esp_http_client_cleanup() but NOT zeroed (free() does not wipe), and the TLS/mbedTLS buffers that carried it are not wiped by us either. The public
+     * API has no "set header from a buffer I own" or "wipe header" call; esp_http_client_delete_header() frees without wiping too. Not claimed wiped. */
     esp_http_client_cleanup(c);
     return rc;
 }
