@@ -5,6 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import { AuthError, type AuthService, type AuthUser, type Profile } from './types';
 import { chunked, type KeyValueStore } from './storage';
 import type { AppConfig } from '../config';
+import { AccountApiError, deleteAccountApi } from '../account/accountApi';
 
 const secureStore: KeyValueStore = {
   getItem: (k) => SecureStore.getItemAsync(k),
@@ -92,18 +93,14 @@ export function createSupabaseAuth(cfg: AppConfig): AuthService {
     },
     async deleteAccount() {
       const { data, error } = await client.auth.getSession();
-      if (error || !data.session) throw mapError(error ?? new Error('no session'));
-      let res: Response;
+      if (error) throw mapError(error);
+      if (!data.session) throw new AuthError('unauthorized');
       try {
-        res = await fetch(`${cfg.supabaseUrl.replace(/\/$/, '')}/functions/v1/account`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${data.session.access_token}`, apikey: cfg.supabasePublishableKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ confirm: 'DELETE' }),
-        });
+        await deleteAccountApi({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, accessToken: data.session.access_token });
       } catch (e) {
+        if (e instanceof AccountApiError) throw new AuthError(e.code === 'bad_request' ? 'unknown' : e.code, e.message);
         throw mapError(e);
       }
-      if (res.status !== 204) throw new AuthError('unknown', `DELETE /account returned ${res.status}`);
       await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
     },
   };

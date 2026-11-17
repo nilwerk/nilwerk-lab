@@ -7,6 +7,8 @@ export interface FakeAuthOptions {
   needsConfirmation?: boolean;
   failNext?: AuthError;
   deleteFails?: boolean;
+  /** delete rejects with this error instead (e.g. unauthorized, server) */
+  deleteError?: AuthError;
 }
 
 export function createFakeAuth(opts: FakeAuthOptions = {}): AuthService & { accounts: Account[]; options: FakeAuthOptions } {
@@ -45,6 +47,7 @@ export function createFakeAuth(opts: FakeAuthOptions = {}): AuthService & { acco
     async getProfile() { maybeFail(); return { ...me().profile }; },
     async updateDisplayName(name) { maybeFail(); me().profile.displayName = name.trim() || null; },
     async deleteAccount() {
+      if (opts.deleteError) throw opts.deleteError;
       if (opts.deleteFails) throw new AuthError('network');
       const a = me();
       accounts.splice(accounts.indexOf(a), 1);
