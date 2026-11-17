@@ -78,7 +78,45 @@ test("C1 every engine category maps into the enum; long text truncated to 400", 
 });
 test("C2 guardrail version exposed on the result and the tips row", async () => {
   const r = await go(plant(), 95, mild);
-  assert.equal(GUARDRAIL_VERSION, "g1.0"); assert.equal(r.guardrailVersion, GUARDRAIL_VERSION);
+  assert.equal(GUARDRAIL_VERSION, "g1.1"); assert.equal(r.guardrailVersion, GUARDRAIL_VERSION);
   const row = toTipsRow(r);
   assert.equal(row.guardrail_version, GUARDRAIL_VERSION); assert.deepEqual(Object.keys(row.content), ["items"]); assert.deepEqual(row.weather, r.weather);
+});
+
+test("C-a/C-b: G-13 removes outdoor watering without forecast and a neutral rules tip replaces it; it is not watering advice", async () => {
+  const dryOut = plant({ locationType: "garden" });
+  const r = await go(dryOut, 10, null);
+  assert.ok(r.removed.some((x) => x.ruleId === "G-13" && x.tip.id === "water-now"));
+  assert.ok(!r.tips.some((t) => t.category === "watering"));
+  const n = r.tips.find((t) => t.id === "no-forecast-check-soil");
+  assert.ok(n, "neutral tip present"); assert.equal(n!.source, "rules"); assert.equal(n!.text, "No forecast available: check the soil by finger.");
+  const e = effective(n!); assert.equal(e.watering, false); assert.equal(e.fertilising, false); assert.equal(e.goOutside, false); assert.equal(e.directSun, false);
+  assert.ok(!r.removed.some((x) => x.tip.id === n!.id), "passes the guardrails itself");
+  assert.equal(r.guardrailVersion, "g1.1");
+  assert.equal(mcpCategory(n!), "other");
+});
+test("C-b: neutral tip appears only when G-13 fired, exactly once, also for an assistant watering tip and for invalid forecast", async () => {
+  assert.ok(!(await go(plant({ locationType: "garden" }), 10, mild)).tips.some((t) => t.id === "no-forecast-check-soil"), "forecast ok: no neutral tip");
+  assert.ok(!(await go(plant(), 10, null)).tips.some((t) => t.id === "no-forecast-check-soil"), "indoor: G-13 does not apply");
+  assert.ok(!(await go(plant({ locationType: "garden" }), 50, null)).tips.some((t) => t.id === "no-forecast-check-soil"), "no watering tip removed");
+  const bad = await go(plant({ locationType: "balcony" }), 10, { minTempC: NaN });
+  assert.equal(bad.tips.filter((t) => t.id === "no-forecast-check-soil").length, 1);
+  const llm = await go(plant({ locationType: "garden" }), 10, null, one("general", "Give it a good drink today."));
+  assert.equal(llm.tips.filter((t) => t.id === "no-forecast-check-soil").length, 1);
+});
+test("C-b: the neutral tip text is never a watering instruction (classifier on the exported text)", async () => {
+  const { NO_FORECAST_TIP } = await import("../engine.ts");
+  const e = effective(NO_FORECAST_TIP);
+  assert.deepEqual(e, { watering: false, fertilising: false, goOutside: false, directSun: false });
+});
+test("C-b: the neutral tip goes through the guardrails; a watering-worded one is removed, never kept", async () => {
+  const { addNoForecastTip, NO_FORECAST_TIP } = await import("../engine.ts");
+  const { deriveState } = await import("../guardrails.ts");
+  const s = deriveState(plant({ locationType: "garden" }), rd(10), null, NOW);
+  const g13 = { tip: { ...NO_FORECAST_TIP, id: "x" }, ruleId: "G-13", why: "w" };
+  const k: Tip[] = [], rm = [g13];
+  addNoForecastTip(k, rm, s, { ...NO_FORECAST_TIP, text: "Water the soil by finger." });
+  assert.equal(k.length, 0); assert.equal(rm.length, 2); assert.equal(rm[1].ruleId, "G-13");
+  const k2: Tip[] = [], rm2: typeof rm = [];
+  addNoForecastTip(k2, rm2, s); assert.equal(k2.length + rm2.length, 0, "no G-13, no tip");
 });

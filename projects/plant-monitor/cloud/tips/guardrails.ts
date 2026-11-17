@@ -2,7 +2,7 @@
 // No I/O, no clock, no randomness. Each rule has an ID that tests, audit trail and the tips.guardrail_version column refer to.
 import type { Forecast, GuardrailState, PlantInput, ProposedTip, ReadingInput, Removed, Season, Tip, TipCategory } from "./types.ts";
 
-export const GUARDRAIL_VERSION = "g1.0";
+export const GUARDRAIL_VERSION = "g1.1";
 export const FROST_C = 2;          // forecast min at or below: frost risk (outdoor)
 export const HEAT_C = 30;          // forecast max at or above (or heatWarning): heat
 export const RAIN_MM = 5;          // rain expected over 24 h that makes outdoor watering pointless

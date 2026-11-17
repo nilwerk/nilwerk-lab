@@ -82,5 +82,10 @@ mutant "C1 protection mapped outside enum" $M 'protection: "safety"' 'protection
 mutant "C1 text not truncated" $M 't.text.slice(0, MCP_TEXT_MAX)' 't.text'
 mutant "C1 frost id refinement dropped" $M '"frost-protect": "temperature", ' ''
 mutant "C2 guardrail_version not exposed on row" $M 'guardrail_version: r.guardrailVersion || GUARDRAIL_VERSION' 'guardrail_version: ""'
+mutant "C-a guardrail version not bumped" $G 'GUARDRAIL_VERSION = "g1.1"' 'GUARDRAIL_VERSION = "g1.0"'
+mutant "C-b neutral tip not added when G-13 fires" $E 'if (!removed.some((x) => x.ruleId === "G-13")) return;' 'return;'
+mutant "C-b neutral tip added without G-13 (always)" $E 'if (!removed.some((x) => x.ruleId === "G-13")) return;' ''
+mutant "C-b neutral tip bypasses guardrail re-check" $E 'applyGuardrails([tip], s)' '{ kept: [tip], removed: [] as typeof removed }'
+mutant "C-b neutral tip becomes a watering instruction" $E 'text: "No forecast available: check the soil by finger."' 'text: "No forecast available: water the soil by finger."'
 echo "mutants: $total, survived: $survived"
 [ "$survived" -eq 0 ] && echo "ALL MUTANTS KILLED" || exit 1

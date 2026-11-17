@@ -19,3 +19,9 @@ Assistant text is untrusted: schema-validated, then classified by keywords (EN/D
 `avoid` never excuses assistant text; a matching tip is judged as advice. Provider forecasts must be complete and finite, else
 "no forecast". Residual risk: keyword lists are a deny-list; an allow-list (assistant may only rephrase baseline tips) is the
 stricter option if QA finds more bypasses.
+
+## Guardrail version g1.1
+`g1.1` (was `g1.0`): G-13 (no outdoor watering advice without a valid forecast) and the rewritten text classifier change which tips are
+removed. When G-13 removes a watering tip, the engine adds a rules-sourced neutral tip `no-forecast-check-soil`
+("No forecast available: check the soil by finger."). It is re-checked by the guardrails like every tip and must never read as a
+watering instruction (tests + mutants C-b).
