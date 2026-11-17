@@ -8,6 +8,8 @@ menu "Plant Monitor"
 
         config PLANT_BOARD_DEVKIT
             bool "ESP32-C3-DevKitM-1 + AHT20 + BH1750 + analog capacitive probe"
+        config PLANT_BOARD_V1_SUPERMINI
+            bool "v1 perfboard: ESP32-C3 SuperMini + AHT20 + BH1750 + analog probe (v1/WIRING.md)"
         config PLANT_BOARD_CUSTOM
             bool "Custom PCB (soil probe via PCNT: not implemented yet)"
     endchoice
@@ -42,7 +44,10 @@ menu "Plant Monitor"
         string "Cloud API base URL for POST /device-claim (https, no trailing slash)"
         default "https://api.invalid"
         help
-            PLACEHOLDER: the real Supabase edge-function URL is Leo's (4.B2). ".invalid" never resolves, so a claim ends as claim_failed/network.
+            BUILD SETTING, NOT COMMITTED (A-082): the real nilwerk-cloud project API URL is given later by Arsany and must never be
+            written into a tracked file. Set it locally: put the PLANT_API_BASE_URL line (the option name with a CONFIG_ prefix) in the git-ignored file
+            sdkconfig.defaults.local, or use idf.py menuconfig (stored in the git-ignored sdkconfig). See v1/FIRMWARE-BENCH.md section 2.
+            The default ".invalid" never resolves, so a claim ends as claim_failed/network. test/host/check_api_url_not_committed.py guards this.
 
     config PLANT_FW_VERSION
         string "Firmware version string sent as fw in /device-claim (max 32 chars)"

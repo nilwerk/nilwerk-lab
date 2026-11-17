@@ -1,0 +1,22 @@
+$ cd projects/plant-monitor/firmware && cmake -S test/host -B build-host && cmake --build build-host && ctest --test-dir build-host --output-on-failure
+Internal ctest changing into directory: /tmp/claude-0/-home-user-nilwerk-lab/6102de5c-06fa-5c7b-b439-cde7888f33e1/scratchpad/bh
+Test project /tmp/claude-0/-home-user-nilwerk-lab/6102de5c-06fa-5c7b-b439-cde7888f33e1/scratchpad/bh
+ 1/15 Test  #1: board_v1_unit ....................   Passed    0.00 sec
+ 2/15 Test  #2: glue_unit ........................   Passed    0.01 sec
+ 3/15 Test  #3: sensors_unit .....................   Passed    0.02 sec
+ 4/15 Test  #4: provisioning_unit ................   Passed    0.01 sec
+ 5/15 Test  #5: report_buffer_unit ...............   Passed    0.02 sec
+ 6/15 Test  #6: sleep_decision_unit ..............   Passed    0.01 sec
+ 7/15 Test  #7: report_contract_drift ............   Passed    0.05 sec
+ 8/15 Test  #8: board_pins_cite_pinmap ...........   Passed    0.03 sec
+ 9/15 Test  #9: provisioning_contract ............   Passed    0.02 sec
+10/15 Test #10: provisioning_mutation_checks .....   Passed   12.05 sec
+11/15 Test #11: mutation_checks ..................   Passed    9.32 sec
+12/15 Test #12: board_v1_matches_wiring ..........   Passed    0.02 sec
+13/15 Test #13: board_v1_check_selftest ..........   Passed    0.02 sec
+14/15 Test #14: api_url_not_committed ............   Passed    0.03 sec
+15/15 Test #15: api_url_check_selftest ...........   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 15
+
+Total Test time (real) =  21.65 sec
