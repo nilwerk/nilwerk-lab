@@ -1,5 +1,4 @@
-set(req sensors provisioning)
-if(CONFIG_PLANT_UPLOAD)
-    list(APPEND req upload)    # hourly upload adapter (4.F3 slice 3), off by default
-endif()
-idf_component_register(SRCS "main.c" INCLUDE_DIRS "." REQUIRES ${req} PRIV_REQUIRES driver esp_system)
+# upload is required unconditionally: CONFIG_* values are NOT available while ESP-IDF evaluates component requirements (early expansion), so a
+# conditional `list(APPEND req upload)` silently dropped it and main.c could not find nw_upload_idf.h (CI run 392, upload build step). With the option
+# off the component only compiles its pure-C files and nothing in main.c references it.
+idf_component_register(SRCS "main.c" INCLUDE_DIRS "." REQUIRES sensors provisioning upload PRIV_REQUIRES driver esp_system)
