@@ -37,7 +37,7 @@ export interface PlantSummary {
 /**
  * One hourly point, field names from readings_hourly (db-schema.sql L214, camelCase here).
  * readings_hourly has NO row for an offline hour, so the service returns the full 168-hour grid
- * (hourlyGrid in hourly.ts): a missing hour is a point with every field null (a gap, FR-D04 / FR-A06).
+ * (hourlyGrid in hourly.ts): a missing hour is a point with every field null (a gap, FR-A06).
  */
 export interface HourlyPoint {
   /** start of the UTC hour, ISO */

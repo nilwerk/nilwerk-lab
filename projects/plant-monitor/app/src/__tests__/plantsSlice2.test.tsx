@@ -1,5 +1,5 @@
 // Plants slice 2 (4.A4): metadata on detail, hourly table with boundary cases, photo gallery (unlimited, dated), export before delete, photo objects removed from storage.
-// Requirements: FR-A04 (location type, room, soil type), FR-A05 (unlimited dated photos), FR-A06 (hourly table), FR-D02 (24 reports a day), FR-D04 (gaps), FR-A08 + A-022 (remove after export), NFR-06, NFR-07.
+// Requirements: FR-A04 (location type, room, soil type), FR-A05 (unlimited dated photos), FR-A06 (hourly table), FR-D02 (24 reports a day), FR-A06 (gaps), FR-A08 + A-022 (remove after export), NFR-06, NFR-07.
 // Against the in-memory PlantsService mock (no network, no Supabase). Pure boundary logic is in hourly.test.ts.
 import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react-native';
@@ -48,7 +48,7 @@ describe('plant detail metadata (FR-A04)', () => {
   });
 });
 
-describe('hourly data table on the plant detail (FR-A06, FR-D02, FR-D04)', () => {
+describe('hourly data table on the plant detail (FR-A06, FR-D02)', () => {
   test('full series: 168 rows, newest first, exact column headers, values from the last hour', async () => {
     const svc = createFakePlants({ now: () => NOW });
     await mount(svc);
