@@ -4,8 +4,9 @@ Author: Mira (Firmware + Edge AI), 2026-11-17, branch `agent/firmware/4.F1-v1-be
 Hardware: the v1 perfboard from [`WIRING.md`](WIRING.md) (ESP32-C3 SuperMini, AHT20, BH1750, capacitive soil probe v1.2, 2 x 100 kOhm divider).
 Requirements: FR-D01 (five readings), NFR-12 (soil supply low in sleep: function check only). v1 numbers are never product figures (WIRING.md section 2.7).
 
-**Status: nothing in this file has run on hardware. The firmware was not built for the target by its author (no ESP-IDF toolchain in the authoring session);
-CI builds it. Every "expected" line below is read from `firmware/main/main.c`, every expected value is a typical value or UNVERIFIED. A FAIL with a good log is a useful result.**
+**Status: nothing in this file has run on hardware. The firmware was not built for the target by its author (no ESP-IDF toolchain in the authoring session).
+**CI does NOT compile the v1 option either: `ci.yml` runs a plain `idf.py build` (devkit default only). A second CI build with the v1 defaults is a separate DevOps task, not done here.
+So step 0 below (build with the v1 defaults) is the first time this option is compiled at all.** Every "expected" line below is read from `firmware/main/main.c`, every expected value is a typical value or UNVERIFIED. A FAIL with a good log is a useful result.**
 Peter: do not decide anything the checklist says to report. Report with the log and stop.
 
 ## 1. What the v1 build is (cites)
@@ -22,7 +23,7 @@ Peter: do not decide anything the checklist says to report. Report with the log 
 `test/host/check_board_v1.py` fails CI if board.h and the WIRING.md section 3 table disagree. CI does not run on `v1/` changes alone: if WIRING.md changes, run the host tests.
 
 ## 2. Build settings (nothing secret is committed)
-Needs ESP-IDF v5.4 (same as CI). From `projects/plant-monitor/firmware`:
+Needs ESP-IDF v5.4 (the version CI uses for its devkit build). From `projects/plant-monitor/firmware`:
 ```
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1" set-target esp32c3
 idf.py build
@@ -41,12 +42,17 @@ Bring-up steps 1-5 of WIRING.md section 7 are done (continuity, polarity, pull-u
 If the port does not appear or it boot-loops: hold BOOT, tap RESET, release BOOT.
 
 ## 4. Steps, expected serial lines, pass/fail
+**Step 0 (do this first, before anything else in this table): the build with the v1 defaults (section 2) succeeds ("Project build complete") and then the S1 line appears on the serial port.**
+Nothing else in this document is meaningful until both hold. If the build fails, stop and send the full build log to Mira; nothing was flashed, so it is a software finding, not a hardware fault.
+Because no CI job compiles the v1 option, a build failure here is plausible and expected to be reported, not worked around.
+**If S1 shows no output, report it as a USB console finding to Mira (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG` on the SuperMini is UNVERIFIED), not as a hardware fault.** Send the `idf.py monitor` header and the `lsusb`/Device Manager entry.
+
 Flash and watch: `idf.py -p <PORT> flash monitor | tee v1-run1.log` (Ctrl+] exits). Keep the whole log; attach it with the readings table.
 All sample lines below are **format examples with invented numbers, not measurements.**
 
 | # | Step | Expected serial line / reading | PASS | FAIL (what to send) |
 |---|---|---|---|---|
-| S1 | Boot | one line `I (<ms>) plant_monitor: NWBENCH start board=v1_supermini wake=1 cal_dry=2800 cal_wet=1200 divider=100000/100000 (CALIBRATION IS A PLACEHOLDER ...)`. **No** `NWSETUP` line. | line present with `board=v1_supermini` and `divider=100000/100000` | no output at all: port/cable/BOOT-RESET, then report the `idf.py monitor` header and `lsusb`/Device Manager entry. `board=devkit`: wrong build, redo section 2 from a clean `sdkconfig` |
+| S1 | Boot | one line `I (<ms>) plant_monitor: NWBENCH start board=v1_supermini wake=1 cal_dry=2800 cal_wet=1200 divider=100000/100000 (CALIBRATION IS A PLACEHOLDER ...)`. **No** `NWSETUP` line. | line present with `board=v1_supermini` and `divider=100000/100000` | no output at all: **USB console finding for Mira, not a hardware fault** (see step 0); check port/cable/BOOT-RESET, then report the `idf.py monitor` header and `lsusb`/Device Manager entry. `board=devkit`: wrong build, redo section 2 from a clean `sdkconfig` |
 | S2 | Five reading lines | `NWBENCH wake=1 i=0 soil_raw=2000 soil_pct=50.0 soil_flags=0x00 temp_c=23.45 rh_pct=41.25 lux=250.0 lux_raw=300 vbat_mv=5000 vbat_adc_mv=2500 vbat_plausible=0 divider_na=50000 err=soil:0,aht:0,bh:0,bat:0` for i=0..4. One line takes about 4-5 s (sensor time plus a 2 s pause; derived from the driver constants, UNVERIFIED on the board) | 5 lines, `err=soil:0,aht:0,bh:0,bat:0` in all | any non-zero `err=`: `-1` chip/ADC call failed, `-2` AHT20 CRC, `-3` AHT20 busy, `-5` no ADC calibration (soil/battery), `-6` not supported. `aht:-1` = no ACK from 0x38; `bh:-1` = no ACK from 0x23. These two lines are the I2C scan: a missing address shows as -1 (WIRING.md 7 step 7: only 0x23 missing = check ADDR W09 and pin order; both missing = W13-W18 and the pull-ups, 4.3). Send the log |
 | S3 | USB battery value | on USB with J1 open the divider sees USB 5 V (WIRING.md 2.7): expect `vbat_adc_mv` about 2500 (2630 at 5.25 V), `vbat_mv` about 5000 and `vbat_plausible=0` | record only: this is **not** a battery reading. `vbat_plausible=0` here is correct | the bench loop only prints this value (`main.c`; no sleep, report or Wi-Fi decision runs in the bench app). If `err=...bat:-5`: ADC has no eFuse calibration, send the `nw_hal` warning line from the log |
 | S4 | Soil, AOUT in air (multimeter first, WIRING.md 4.5 and 7 step 8) | multimeter on J3 AOUT to GND, probe in dry air, GPIO3 high (during a reading line) | AOUT **at or below about 2.4 V**: continue | **AOUT above about 2.4 V in air: STOP the soil steps and report to Emil/Mira with the voltage (A-094 item 7: the ADC may clip the dry end).** Do not add a divider or change attenuation at the bench. Also report `soil_flags` containing `0x04` (raw 0 or 4095 = rail) |
