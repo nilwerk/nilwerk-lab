@@ -6,7 +6,15 @@ ESP-IDF v5.4 firmware (C) for the ESP32-C3. Today it is a sensor bench app: it p
 
 | | |
 |---|---|
-| PC tests (no hardware) | `cmake -S test/host -B build-host && cmake --build build-host && ctest --test-dir build-host --output-on-failure` |
+| PC tests (no hardware) | from this folder, one command per line (no `&&`, so Windows PowerShell 5.1 works too; on Windows use the "ESP-IDF 5.4 PowerShell"): see below |
 | v1 perfboard docs | [`../v1/WIRING.md`](../v1/WIRING.md), [`../v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) |
 | Pin map (the truth) | [`main/board.h`](main/board.h) |
 | Never commit | secrets, tokens, the real `PLANT_API_BASE_URL` (guide section 7) |
+
+PC tests, run from this folder, one line at a time:
+
+```
+cmake -S test/host -B build-host
+cmake --build build-host
+ctest --test-dir build-host --output-on-failure
+```

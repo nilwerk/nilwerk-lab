@@ -11,23 +11,27 @@ Everything marked *(repo)* was read from a file in this repository and the file 
 
 ---
 
-## Quick start (10 steps)
+## Quick start (12 steps)
 
-1. Install **git**, **Python 3** and **ESP-IDF v5.4** for the ESP32-C3 (section 2).
-2. Open the ESP-IDF terminal (Windows: "ESP-IDF 5.4 PowerShell"; Linux/macOS: run `. ./export.sh` in the esp-idf folder).
-3. `git clone https://github.com/nilwerk/nilwerk-lab.git` and `cd nilwerk-lab/projects/plant-monitor/firmware`.
-4. **No hardware yet?** Run the PC tests first (section 5): `cmake -S test/host -B build-host && cmake --build build-host && ctest --test-dir build-host --output-on-failure`.
-5. Decide your board: **DevKitM-1** (section 3.1) or **v1 SuperMini perfboard** (section 3.2).
-6. DevKit: `idf.py set-target esp32c3`, then `idf.py menuconfig` and **switch off "Run the BLE setup flow at boot"** (otherwise you see no sensor lines, see 3.1), then `idf.py build`.
-   SuperMini: use the one-line v1 build command from 3.2.
-7. Plug in USB, find the port (section 4.3), then `idf.py -p <PORT> flash monitor` (SuperMini: with the v1 options from 3.2).
-8. Look for `NWBENCH start board=...` and then five `NWBENCH wake=1 i=0 ...` lines (section 6).
-9. Check the `err=` field is all zeros and the sensors react (breath, hand over the light sensor).
-10. Leave with `Ctrl+]`, save the log, report in the issue (section 9).
+**Which shell?** Linux/macOS: any normal terminal, after you load ESP-IDF (step 3). **Windows: use the "ESP-IDF 5.4 PowerShell" (or "ESP-IDF 5.4 CMD") shortcut from the Start menu for everything in this guide.** Do not chain commands with `&&` in Windows PowerShell 5.1: it does not know `&&` (PowerShell 7 does). This guide therefore gives one command per line wherever it matters. *(PowerShell 5.1 behaviour: general knowledge, UNVERIFIED with ESP-IDF here.)*
+
+1. **Get access to the repo.** The repository is private. Your GitHub account must be added as a collaborator: ask Nora (section 10) if `git clone` says "not found" or asks for a password you do not have. Sign in with git when it asks (browser sign-in or a personal access token; never put a token into a tracked file).
+2. Install **git**, **Python 3** and **ESP-IDF v5.4** for the ESP32-C3 (section 2; on Linux first the package list in 2.2).
+3. Open the ESP-IDF terminal **every time you work** (section 2.5): Windows "ESP-IDF 5.4 PowerShell"; Linux/macOS `. ~/esp/esp-idf/export.sh`. Check: `idf.py --version`.
+4. Clone the repo **once** and go into the firmware folder (section 2.6). From here on "**the firmware folder**" means `nilwerk-lab/projects/plant-monitor/firmware`; every command below starts there, so do not `cd` into it again.
+5. **No hardware yet?** From the firmware folder run the PC tests (section 5.1: three commands, one per line). They show 19 of 19 passed.
+6. Decide your board: **DevKitM-1** (section 3.1) or **v1 SuperMini perfboard** (section 3.2).
+7. **Wire the board first, before you flash.** DevKit: issue #68 steps 2 and 3 and [`hardware/devkit-order-list.md`](../hardware/devkit-order-list.md). SuperMini: [`v1/WIRING.md`](../v1/WIRING.md) section 7. Do not skip it: **on a bare board (nothing wired) the firmware still boots and prints lines, but with `err=...aht:-1,bh:-1` (sensors do not answer), `soil` and `bat` readings are meaningless noise.** That output means "not wired", not "firmware broken".
+8. **Build.** DevKit: `idf.py set-target esp32c3`, then `idf.py menuconfig` and **switch off "Run the BLE setup flow at boot"** (otherwise you see no sensor lines, see 3.1), then `idf.py build`. SuperMini: the v1 build command from 3.2.
+9. **Flash and monitor** (plug in USB first, find the port with 4.3). DevKit: `idf.py -p PORT flash monitor`. SuperMini: the full command per OS is in 3.2 (it needs `-B build-v1`, `-DSDKCONFIG=sdkconfig.v1` and `-p PORT`).
+10. Look for `NWBENCH start board=...` and then five `NWBENCH wake=1 i=0 ...` lines (section 6).
+11. Check the `err=` field is all zeros and the sensors react (breath, hand over the light sensor).
+12. Leave with `Ctrl+]`, save the log, report in the issue (section 9).
 
 ### First-day checklist
 - [ ] git, Python 3 and ESP-IDF v5.4 installed; `idf.py --version` prints a v5.4 version
-- [ ] repo cloned; you know which folder you are in (`projects/plant-monitor/firmware`)
+- [ ] repo access works (you are a collaborator), repo cloned; you know which folder you are in (the firmware folder, `projects/plant-monitor/firmware`)
+- [ ] the board is wired (step 7) before the first flash
 - [ ] host tests: 19 of 19 passed (section 5), log saved
 - [ ] board chosen and the matching config built: "Project build complete", last 30 lines saved
 - [ ] USB cable is a **data** cable; port found; flash finished without error
@@ -86,34 +90,53 @@ Both bench boards use the same GPIOs: SDA = GPIO6, SCL = GPIO7, soil power = GPI
 | cmake, ninja, C compiler | build; the PC tests need `cmake` + `gcc`/`clang` | installed by the ESP-IDF installer *(for the firmware build)*. PC tests: see 5.3 | `brew install cmake ninja` | `sudo apt install cmake ninja-build gcc` |
 | USB driver | to see the board as a serial port | see 2.4 | usually none needed | usually none needed; permissions, see 4.3 |
 
+**Linux: full prerequisite list.** Espressif's official list for ESP-IDF v5.4 on Debian/Ubuntu *(from Espressif docs, UNVERIFIED here: not run by the author; the exact list can differ per release, the Espressif guide linked in 2.3 is the reference)*:
+```bash
+sudo apt-get install git wget flex bison gperf python3 python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+```
+For the PC tests (section 5) you additionally need a C compiler: `sudo apt install gcc`.
+
 Exact Python minimum for ESP-IDF 5.4: UNVERIFIED; the install script tells you if yours is too old.
 
 ### 2.3 Install ESP-IDF step by step
 Official guide (the same link as in issue #68): <https://docs.espressif.com/projects/esp-idf/en/v5.4/esp32c3/get-started/index.html>. The steps below follow it *(Espressif docs; not run by the author)*.
 
-**Linux and macOS**
+**Where ESP-IDF lives.** Linux/macOS: the steps below clone it to `~/esp/esp-idf` (your home folder). Windows: the installer asks for a location; the default is under `C:\Espressif` *(Espressif docs, UNVERIFIED; read the path on the installer page and write it down)*. This is separate from the `nilwerk-lab` repo, which you clone in 2.6.
+
+**Linux and macOS** (macOS also needs the prerequisites from Espressif's guide: UNVERIFIED here)
 ```bash
-mkdir -p ~/esp && cd ~/esp
+mkdir -p ~/esp
+cd ~/esp
 git clone -b v5.4 --recursive https://github.com/espressif/esp-idf.git
 cd esp-idf
 ./install.sh esp32c3          # downloads the RISC-V compiler and Python packages, takes a while
-. ./export.sh                 # run this in EVERY new terminal before using idf.py
+. ./export.sh                 # loads ESP-IDF into THIS terminal (see 2.5)
 idf.py --version              # should print ESP-IDF v5.4...
 ```
 
 **Windows**
 1. Download the **ESP-IDF Tools Installer** from the Espressif guide above (online or offline installer), choose **v5.4**, accept the defaults, select target ESP32-C3 if asked.
-2. Start the shortcut **"ESP-IDF 5.4 PowerShell"** (or "ESP-IDF 5.4 CMD"). Use this terminal for every `idf.py` command: a normal terminal does not know `idf.py`.
+2. Start the shortcut **"ESP-IDF 5.4 PowerShell"** (or "ESP-IDF 5.4 CMD") from the Start menu. Use this terminal for every `idf.py` command: a normal terminal does not know `idf.py`.
 3. Check: `idf.py --version`.
 4. Keep paths short and without spaces (for example `C:\work\nilwerk-lab`): very long paths are a known Windows build problem *(Espressif docs, UNVERIFIED here)*.
 
-**Then, on every OS**
+### 2.5 Open the ESP-IDF shell, every time
+`idf.py` only exists in a terminal where ESP-IDF was loaded. A new terminal window does **not** have it.
+- **Linux/macOS:** in each new terminal run `. ~/esp/esp-idf/export.sh` (note the leading dot and space). Then `idf.py --version`.
+- **Windows:** start "ESP-IDF 5.4 PowerShell" or "ESP-IDF 5.4 CMD" from the Start menu. Then `idf.py --version`.
+- If `idf.py` is "not found" or "not recognised": you are in the wrong terminal (section 8).
+
+### 2.6 Clone the repo (once) and set the target
+The repo is private: your GitHub account must be a collaborator (ask Nora). Then, once, in any folder you like (Windows: a short path, see above):
 ```bash
 git clone https://github.com/nilwerk/nilwerk-lab.git
 cd nilwerk-lab/projects/plant-monitor/firmware
+```
+(Two lines, not chained with `&&`, so they also work in Windows PowerShell 5.1. Windows can also use backslashes; forward slashes work in PowerShell and CMD for `cd`.) If you already did this in Quick start step 4, do not repeat it. From the firmware folder:
+```bash
 idf.py set-target esp32c3
 ```
-`set-target` tells ESP-IDF which chip to build for. It **deletes and recreates** `sdkconfig` and `build/`, so run it before you change any setting, not after.
+`set-target` tells ESP-IDF which chip to build for. It **deletes and recreates** `sdkconfig` and `build/`, so run it before you change any setting, not after. (SuperMini: skip it; 3.2 sets the target in its own command.)
 
 ### 2.4 USB and drivers
 - **DevKitM-1:** has a USB-to-serial chip (UART port). The repo only says "USB-UART" (`hardware/devkit-order-list.md`). Which chip it is and which driver Windows needs: UNVERIFIED; Espressif's guide for the board lists it. If Windows shows an unknown device, install the driver named there.
@@ -128,8 +151,8 @@ Settings come in layers: `sdkconfig.defaults` (all boards), then optional extra 
 
 ### 3.1 DevKitM-1 (default)
 
+From the firmware folder:
 ```bash
-cd projects/plant-monitor/firmware
 idf.py set-target esp32c3
 idf.py menuconfig
 ```
@@ -153,12 +176,26 @@ idf.py build
 
 ### 3.2 v1 SuperMini perfboard
 
-This is exactly what CI runs for v1 (`ci.yml`, second build step of job `firmware`), plus nothing else. Separate build folder `build-v1/` and separate settings file `sdkconfig.v1` (both git-ignored):
+This is exactly what CI runs for v1 (`ci.yml`, second build step of job `firmware`), plus nothing else. Separate build folder `build-v1/` and separate settings file `sdkconfig.v1` (both git-ignored). From the firmware folder:
 
+**Build** (Linux/macOS/CMD/bash; one line):
 ```bash
-cd projects/plant-monitor/firmware
 idf.py -B build-v1 -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.v1 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1" build size
 ```
+**Windows PowerShell 5.1:** quote the whole option so the `;` is not read as a command separator *(UNVERIFIED in PowerShell 5.1; this is the CI line, adapted)*:
+```powershell
+idf.py -B build-v1 -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.v1 "-DSDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.v1" build size
+```
+**Flash and monitor**, the full command (replace the port, section 4.3). The **build part** is what CI runs (built in CI, never on a board). **UNVERIFIED (not run by anybody):** passing the `-DSDKCONFIG=...` and `-B build-v1` options together with `flash monitor`, the port names, and the whole flash step on the SuperMini.
+
+| OS | Full command (one line, from the firmware folder) |
+|---|---|
+| Linux | `idf.py -B build-v1 -DSDKCONFIG=sdkconfig.v1 -p /dev/ttyACM0 flash monitor` |
+| macOS | `idf.py -B build-v1 -DSDKCONFIG=sdkconfig.v1 -p /dev/cu.usbmodem101 flash monitor` |
+| Windows (ESP-IDF PowerShell or CMD) | `idf.py -B build-v1 -DSDKCONFIG=sdkconfig.v1 -p COM5 flash monitor` |
+
+The port names (`/dev/ttyACM0`, `/dev/cu.usbmodem101`, `COM5`) are typical examples, not facts about your machine (UNVERIFIED): use the port you found in 4.3. If `-B build-v1` flashing fails with a "not built" message, run the build line above first, then repeat.
+
 Prove that the v1 option was really selected (CI does the same):
 ```bash
 grep '^CONFIG_PLANT_BOARD_V1_SUPERMINI=y' sdkconfig.v1        # Windows PowerShell: Select-String '^CONFIG_PLANT_BOARD_V1_SUPERMINI=y' sdkconfig.v1
@@ -223,8 +260,8 @@ The typical names are general knowledge *(UNVERIFIED on these boards)*.
 These run the pure-C logic (sensor drivers, provisioning, report, sleep, upload decisions) and several Python contract checks on your PC. They are exactly the commands CI runs (`ci.yml`, step "Host unit tests"). Run them first: they prove your checkout is healthy.
 
 ### 5.1 Commands
+From the firmware folder (one command per line; no `&&`, so Windows PowerShell 5.1 can run them too):
 ```bash
-cd projects/plant-monitor/firmware
 cmake -S test/host -B build-host
 cmake --build build-host
 ctest --test-dir build-host --output-on-failure
@@ -292,11 +329,11 @@ About 60 s later the board restarts and prints `NWBENCH start ... wake=2 ...` an
 | 1 | Build | `Project build complete` | send the last 30 lines of the output; nothing was flashed, so this is a software finding |
 | 2 | Boot line | `NWBENCH start` with the expected `board=` | no output at all: troubleshooting table; wrong `board=`: section 3 |
 | 3 | `err=` in 5 consecutive lines | `soil:0,aht:0,bh:0,bat:0` in all 5 | note which one is non-zero; `aht:-1` or `bh:-1` = wiring |
-| 4 | Sensors react | humidity up on breath, lux down when covered, soil raw differs air vs water by 500 counts or more (issue #68 A4; `v1/FIRMWARE-BENCH.md` S5 uses the same limit) | write the numbers down anyway; never change a number to make it fit |
+| 4 | Sensors react | humidity up on breath, lux down when covered, soil raw differs air vs water by 500 counts or more **and** the 5 readings of each state differ by at most 30 counts (spread) (issue #68 step 8.3 and A4; `v1/FIRMWARE-BENCH.md` S5 uses the 500 limit) | write the numbers down anyway; never change a number to make it fit |
 | 5 | Sleep and wake | `NWBENCH sleep` then `wake=2` after about 60 s | no wake: restart the monitor first, then report |
-| 6 | GPIO3 in sleep (multimeter) | 0.00 V (at most 0.05 V, issue #68 A5; `v1/FIRMWARE-BENCH.md` S7 uses the same limit) | write the voltage down |
+| 6 | GPIO3 in sleep (multimeter) | 0.00 V (at most 0.05 V) in **2 different sleep cycles**, measure again after the next wake (issue #68 step 9 and A5; `v1/FIRMWARE-BENCH.md` S7 uses the same limit) | write the voltage down |
 
-The authoritative step lists and limits are in **issue #68** (DevKit, steps 1 to 11, with the result table you must fill) and in [`v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) section 4 (SuperMini, steps S1 to S9). Use those for the actual result; this table is only for a quick first look. The limits are the same for both boards: soil raw air vs water differs by **500 counts or more** (issue #68 A4, [`v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) S5); GPIO3 in sleep **at most 0.05 V** (issue #68 A5, S7). The 50 counts in the firmware (`NW_SOIL_MIN_SPAN_COUNTS`) is only an internal sanity constant, not a pass limit.
+The authoritative step lists and limits are in **issue #68** (DevKit, steps 1 to 11, with the result table you must fill) and in [`v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) section 4 (SuperMini, steps S1 to S9). Use those for the actual result; this table is only for a quick first look. The limits are the same for both boards: soil raw air vs water differs by **500 counts or more**, with the 5 readings of each state within **30 counts** of each other (issue #68 step 8.3, A4, [`v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) S5); GPIO3 in sleep **at most 0.05 V**, checked in **2 different sleep cycles** (issue #68 step 9, A5, S7). The 50 counts in the firmware (`NW_SOIL_MIN_SPAN_COUNTS`) is only an internal sanity constant, not a pass limit.
 
 ---
 

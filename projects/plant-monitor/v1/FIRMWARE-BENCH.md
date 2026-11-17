@@ -6,7 +6,7 @@ Requirements: FR-D01 (five readings), NFR-12 (soil supply low in sleep: function
 
 **Status: nothing in this file has run on hardware. The firmware was not built for the target by its author (no ESP-IDF toolchain in the authoring session).
 **CI compiles the v1 option too** (second `idf.py -B build-v1 ... build size` step in the `firmware` job of `ci.yml`, separate build dir and sdkconfig). Still NOT built on the board: the CI build only proves it compiles.
-So step 0 below (build with the v1 defaults) is the first time this option is compiled at all.** Every "expected" line below is read from `firmware/main/main.c`, every expected value is a typical value or UNVERIFIED. A FAIL with a good log is a useful result.**
+So step 0 below (build with the v1 defaults) is the first time this option is built on your machine and flashed to the board.** Every "expected" line below is read from `firmware/main/main.c`, every expected value is a typical value or UNVERIFIED. A FAIL with a good log is a useful result.**
 Peter: do not decide anything the checklist says to report. Report with the log and stop.
 
 ## 1. What the v1 build is (cites)
@@ -44,7 +44,7 @@ If the port does not appear or it boot-loops: hold BOOT, tap RESET, release BOOT
 ## 4. Steps, expected serial lines, pass/fail
 **Step 0 (do this first, before anything else in this table): the build with the v1 defaults (section 2) succeeds ("Project build complete") and then the S1 line appears on the serial port.**
 Nothing else in this document is meaningful until both hold. If the build fails, stop and send the full build log to Mira; nothing was flashed, so it is a software finding, not a hardware fault.
-Because no CI job compiles the v1 option, a build failure here is plausible and expected to be reported, not worked around.
+CI compiles the v1 option (PR #120), so a build failure here points to your setup or a difference from CI: report it, do not work around it.
 **If S1 shows no output, report it as a USB console finding to Mira (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG` on the SuperMini is UNVERIFIED), not as a hardware fault.** Send the `idf.py monitor` header and the `lsusb`/Device Manager entry.
 
 Flash and watch: `idf.py -p <PORT> flash monitor | tee v1-run1.log` (Ctrl+] exits). Keep the whole log; attach it with the readings table.
