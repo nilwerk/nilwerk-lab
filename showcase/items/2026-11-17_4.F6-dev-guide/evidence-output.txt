@@ -1,0 +1,55 @@
+# host tests (cmake/ctest, as in CI), run 2026-11-17 with the guide in place
+ 1/19 Test  #1: board_v1_unit ....................   Passed    0.00 sec
+ 2/19 Test  #2: glue_unit ........................   Passed    0.02 sec
+ 3/19 Test  #3: sensors_unit .....................   Passed    0.01 sec
+ 4/19 Test  #4: provisioning_unit ................   Passed    0.01 sec
+ 5/19 Test  #5: report_buffer_unit ...............   Passed    0.01 sec
+ 6/19 Test  #6: sleep_decision_unit ..............   Passed    0.01 sec
+ 7/19 Test  #7: upload_unit ......................   Passed    0.01 sec
+ 8/19 Test  #8: report_contract_drift ............   Passed    0.04 sec
+ 9/19 Test  #9: board_pins_cite_pinmap ...........   Passed    0.02 sec
+10/19 Test #10: provisioning_contract ............   Passed    0.03 sec
+11/19 Test #11: provisioning_mutation_checks .....   Passed    7.83 sec
+12/19 Test #12: mutation_checks ..................   Passed    5.80 sec
+13/19 Test #13: upload_contract ..................   Passed    0.02 sec
+14/19 Test #14: upload_contract_selftest .........   Passed    0.02 sec
+15/19 Test #15: upload_mutation_checks ...........   Passed    9.09 sec
+16/19 Test #16: board_v1_matches_wiring ..........   Passed    0.02 sec
+17/19 Test #17: board_v1_check_selftest ..........   Passed    0.02 sec
+18/19 Test #18: api_url_not_committed ............   Passed    0.02 sec
+19/19 Test #19: api_url_check_selftest ...........   Passed    0.03 sec
+100% tests passed, 0 tests failed out of 19
+Total Test time (real) =  23.01 sec
+
+# link check of DEV_GUIDE.md, firmware/README.md, plant-monitor/README.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> main/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> components/sensors/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> components/provisioning/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> components/report/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> components/storage/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> components/power/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> components/upload/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> test/host/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> sdkconfig.defaults
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> sdkconfig.defaults.v1
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../v1/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../v1/WIRING.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../v1/FIRMWARE-BENCH.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../tests/procedures/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../docs/work-orders/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../hardware/devkit-order-list.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../docs/interfaces/
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../docs/interfaces/ble-provisioning.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../../../.github/workflows/ci.yml
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../v1/WIRING.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../v1/WIRING.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../v1/FIRMWARE-BENCH.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../../../team/TEAM.md
+  ok  projects/plant-monitor/firmware/DEV_GUIDE.md -> ../LESSONS.md
+  ok  projects/plant-monitor/firmware/README.md -> DEV_GUIDE.md
+  ok  projects/plant-monitor/firmware/README.md -> ../v1/WIRING.md
+  ok  projects/plant-monitor/firmware/README.md -> ../v1/FIRMWARE-BENCH.md
+  ok  projects/plant-monitor/firmware/README.md -> main/board.h
+  ok  projects/plant-monitor/README.md -> firmware/README.md
+  ok  projects/plant-monitor/README.md -> firmware/DEV_GUIDE.md
+  links/paths checked: 111 missing links: 0
