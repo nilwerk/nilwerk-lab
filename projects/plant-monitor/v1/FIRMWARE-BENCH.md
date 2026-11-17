@@ -5,7 +5,7 @@ Hardware: the v1 perfboard from [`WIRING.md`](WIRING.md) (ESP32-C3 SuperMini, AH
 Requirements: FR-D01 (five readings), NFR-12 (soil supply low in sleep: function check only). v1 numbers are never product figures (WIRING.md section 2.7).
 
 **Status: nothing in this file has run on hardware. The firmware was not built for the target by its author (no ESP-IDF toolchain in the authoring session).
-**CI does NOT compile the v1 option either: `ci.yml` runs a plain `idf.py build` (devkit default only). A second CI build with the v1 defaults is a separate DevOps task, not done here.
+**CI compiles the v1 option too** (second `idf.py -B build-v1 ... build size` step in the `firmware` job of `ci.yml`, separate build dir and sdkconfig). Still NOT built on the board: the CI build only proves it compiles.
 So step 0 below (build with the v1 defaults) is the first time this option is compiled at all.** Every "expected" line below is read from `firmware/main/main.c`, every expected value is a typical value or UNVERIFIED. A FAIL with a good log is a useful result.**
 Peter: do not decide anything the checklist says to report. Report with the log and stop.
 

@@ -59,7 +59,8 @@ jobs:
           }
           # Contracts and decisions (docs/interfaces, docs/adr) also re-test their consumers.
           CT="$P/docs/interfaces/ $P/docs/adr/"
-          gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/" $CT
+          # v1/ too: v1/WIRING.md (pin table) is checked against board.h by a firmware host test (check_board_v1.py).
+          gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/" "$P/v1/" $CT
           gate app "test -f $P/app/package.json" "$P/app/" $CT
           # cloud = Deno lint/typecheck of the Supabase edge functions (they are Deno code, there is no cloud/package.json and must not be one).
           # Their tests run in cloud-db (Node 22 + Postgres), see the comment there.
@@ -88,6 +89,15 @@ jobs:
           target: esp32c3
           path: projects/plant-monitor/firmware
           command: idf.py build && idf.py size
+      - name: ESP-IDF build (esp32c3, v1 perfboard defaults = PLANT_BOARD_V1_SUPERMINI)
+        # Separate build dir and sdkconfig: SDKCONFIG_DEFAULTS only seeds a NEW sdkconfig, so reusing build/sdkconfig would
+        # silently build the devkit option again. The grep proves the v1 board option really was selected.
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.4
+          target: esp32c3
+          path: projects/plant-monitor/firmware
+          command: idf.py -B build-v1 -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.v1 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1" build size && grep -q '^CONFIG_PLANT_BOARD_V1_SUPERMINI=y' sdkconfig.v1
       - uses: actions/upload-artifact@v4
         with:
           name: firmware-esp32c3
@@ -136,8 +146,11 @@ jobs:
         with:
           deno-version: "2.1.4"          # the version this was verified with
       - run: deno lint supabase/functions
+      # Care-tips engine (4.B3): plain TypeScript with no I/O, not under supabase/functions. Lint covers the sources only: tips/test/tips.test.ts has
+      # 5 deno lint require-await findings (async stubs, lines 15 21 154 175 194), for the owner to fix; not silenced, not skipped here.
+      - run: deno lint tips/*.ts
       - name: Typecheck entry points and the test files
-        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts
+        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts tips/*.ts tips/test/tips.test.ts
 
   cloud-db:
     name: cloud DB tests

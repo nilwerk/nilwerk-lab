@@ -1,0 +1,19 @@
+$ deno --version
+deno 2.1.4 (stable, release, x86_64-unknown-linux-gnu)
+$ deno lint tips/*.ts
+Checked 3 files
+exit=0
+$ deno check tips/*.ts tips/test/tips.test.ts
+exit=0
+$ deno lint tips/test/tips.test.ts   (NOT in CI: fails)
+error[require-await]: Async arrow function has no 'await' expression or 'await using' declaration.
+  --> /tmp/wt-devops-ci-v1-and-tips/projects/plant-monitor/cloud/tips/test/tips.test.ts:15:55
+error[require-await]: Async arrow function has no 'await' expression or 'await using' declaration.
+  --> /tmp/wt-devops-ci-v1-and-tips/projects/plant-monitor/cloud/tips/test/tips.test.ts:21:45
+error[require-await]: Async arrow function has no 'await' expression or 'await using' declaration.
+   --> /tmp/wt-devops-ci-v1-and-tips/projects/plant-monitor/cloud/tips/test/tips.test.ts:154:126
+error[require-await]: Async arrow function has no 'await' expression or 'await using' declaration.
+   --> /tmp/wt-devops-ci-v1-and-tips/projects/plant-monitor/cloud/tips/test/tips.test.ts:175:27
+error[require-await]: Async arrow function has no 'await' expression or 'await using' declaration.
+   --> /tmp/wt-devops-ci-v1-and-tips/projects/plant-monitor/cloud/tips/test/tips.test.ts:194:72
+Found 5 problems
