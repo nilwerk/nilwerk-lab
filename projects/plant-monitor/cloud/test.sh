@@ -87,5 +87,11 @@ else export NW_TEST_DB_URL="postgresql://postgres@/nw_test_api?host=$TMP&port=$P
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/api.test.ts
 unset NW_TEST_DB_URL
 
+# --- 6. care-tips engine 4.B3 slice 1 (pure TypeScript, no DB): guardrail rules, premium gate, injected weather/assistant (FR-P02, FR-P04)
+if [ "${NW_ONLY:-}" != api ]; then
+echo "== care-tips engine (tips/test/tips.test.ts)"
+node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec tips/test/tips.test.ts
+fi
+
 for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
 echo "ALL CLOUD TESTS PASSED"
