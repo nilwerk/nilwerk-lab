@@ -44,7 +44,7 @@ export function RemovePlantScreen({ plant, onCancel, onRemoved }: { plant: Plant
       <Body muted>{t('plant.remove.exportHint')}</Body>
       <Button label={t('plant.remove.exportJson')} variant="secondary" disabled={exporting !== null} busy={exporting === 'json'} onPress={() => runExport('json')} />
       <Button label={t('plant.remove.exportCsv')} variant="secondary" disabled={exporting !== null} busy={exporting === 'csv'} onPress={() => runExport('csv')} />
-      {exported ? <Notice kind="info" text={t('plant.remove.exported', { fileName: exported.fileName, photoCount: exported.photoCount })} /> : null}
+      {exported ? <Notice kind="info" text={exported.photoCount === null ? t('plant.remove.exportedNoCount', { fileName: exported.fileName }) : t('plant.remove.exported', { fileName: exported.fileName, photoCount: exported.photoCount })} /> : null}
       {exportError ? <Notice kind="error" text={t('plant.remove.exportError')} /> : null}
       <Field label={t('plant.remove.confirmLabel')} value={typed} onChangeText={setTyped} autoCapitalize="none" autoCorrect={false} />
       {error ? <Notice kind="error" text={error} /> : null}

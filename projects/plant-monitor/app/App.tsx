@@ -28,6 +28,9 @@ import { PlantGalleryScreen } from './src/screens/PlantGalleryScreen';
 import { PlantsProvider } from './src/plants/PlantsContext';
 import { createFakePlants } from './src/plants/fakePlants';
 import { unconfiguredPlants } from './src/plants/unconfiguredPlants';
+import { createRealPlants } from './src/plants/realPlants';
+import { createFileHandOff } from './src/export/fileHandOff';
+import { platformHandOffDeps } from './src/export/handOffDeps';
 import type { PlantDetail, PlantSummary, PlantsService } from './src/plants/types';
 import { TabBar, type Tab } from './src/ui/TabBar';
 import { SetupFlow } from './src/screens/setup/SetupFlow';
@@ -40,7 +43,7 @@ type Removed = RemoveOutcome;
 /** Service used when no Supabase config is present: every call reports "not configured" instead of crashing. */
 function unconfiguredAuth(): AuthService {
   const no = async (): Promise<never> => { throw new AuthError('not_configured'); };
-  return { getSession: async () => null, onChange: () => () => undefined, signUp: no, signIn: no, signOut: no, getProfile: no, updateDisplayName: no, deleteAccount: no };
+  return { getSession: async () => null, onChange: () => () => undefined, signUp: no, signIn: no, signOut: no, getProfile: no, updateDisplayName: no, deleteAccount: no, getAccessToken: async () => null };
 }
 
 export function Root({ contactEmail, banner, setup }: { contactEmail: string; banner?: string; setup: SetupServices }) {
@@ -101,7 +104,9 @@ export default function App() {
   const cfg = useMemo(() => readConfig(), []);
   const mock = process.env.EXPO_PUBLIC_MOCK_AUTH === '1';
   const service = useMemo(() => (mock ? createFakeAuth() : isConfigured(cfg) ? createSupabaseAuth(cfg) : unconfiguredAuth()), [cfg, mock]);
-  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : unconfiguredPlants()), [mock]);
+  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : isConfigured(cfg)
+    ? createRealPlants({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken(), handOff: createFileHandOff(platformHandOffDeps) })
+    : unconfiguredPlants()), [cfg, mock, service]);
   // Real BLE provisioning (dev build, @orbital-systems/react-native-esp-idf-provisioning) is a later slice: until then only the mock build can run setup.
   const setup = useMemo<SetupServices>(() => (mock ? createFakeSetup().services : { ...createFakeSetup().services, provisioning: unavailableProvisioning() }), [mock]);
   const [fonts] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, Inter_400Regular, Inter_600SemiBold, JetBrainsMono_400Regular, JetBrainsMono_600SemiBold });

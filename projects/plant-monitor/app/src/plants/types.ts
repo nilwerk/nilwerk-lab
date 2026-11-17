@@ -68,13 +68,14 @@ export interface PlantPhoto {
   storagePath: string;
 }
 
-/** Result of an export run (GET /export?format=json|csv, openapi.yaml). Only the metadata is returned here; the file itself is handed over by a later slice. */
+/** Result of an export run (GET /export?format=json|csv, openapi.yaml). The file itself is handed to the user by src/export/fileHandOff.ts BEFORE exportData resolves (4.A9), so a resolved export means the user received it. */
 export interface ExportResult {
   format: 'json' | 'csv';
   fileName: string;
   contentType: string;
-  plantCount: number;
-  photoCount: number;
+  /** null when the format does not carry the number (CSV zip has no photo list) */
+  plantCount: number | null;
+  photoCount: number | null;
 }
 
 export type PlantsErrorCode = 'not_found' | 'network' | 'not_configured' | 'unknown';
