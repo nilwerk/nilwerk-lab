@@ -1,0 +1,23 @@
+# ctest, firmware/test/host (gcc, ASan+UBSan), 2026-11-17, fresh build dir, after review C1-C3
+# ./test_upload: 622 checks, 0 failed
+49/49 mutants killed
+ 1/19 Test  #1: board_v1_unit ....................   Passed    0.00 sec
+ 2/19 Test  #2: glue_unit ........................   Passed    0.02 sec
+ 3/19 Test  #3: sensors_unit .....................   Passed    0.01 sec
+ 4/19 Test  #4: provisioning_unit ................   Passed    0.01 sec
+ 5/19 Test  #5: report_buffer_unit ...............   Passed    0.01 sec
+ 6/19 Test  #6: sleep_decision_unit ..............   Passed    0.01 sec
+ 7/19 Test  #7: upload_unit ......................   Passed    0.01 sec
+ 8/19 Test  #8: report_contract_drift ............   Passed    0.07 sec
+ 9/19 Test  #9: board_pins_cite_pinmap ...........   Passed    0.02 sec
+10/19 Test #10: provisioning_contract ............   Passed    0.02 sec
+11/19 Test #11: provisioning_mutation_checks .....   Passed   12.18 sec
+12/19 Test #12: mutation_checks ..................   Passed    8.15 sec
+13/19 Test #13: upload_contract ..................   Passed    0.03 sec
+14/19 Test #14: upload_contract_selftest .........   Passed    0.03 sec
+15/19 Test #15: upload_mutation_checks ...........   Passed   12.26 sec
+16/19 Test #16: board_v1_matches_wiring ..........   Passed    0.03 sec
+17/19 Test #17: board_v1_check_selftest ..........   Passed    0.02 sec
+18/19 Test #18: api_url_not_committed ............   Passed    0.03 sec
+19/19 Test #19: api_url_check_selftest ...........   Passed    0.03 sec
+100% tests passed, 0 tests failed out of 19

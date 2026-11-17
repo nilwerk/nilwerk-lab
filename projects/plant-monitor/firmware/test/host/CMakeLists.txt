@@ -45,12 +45,27 @@ if(NOT MSVC)
     target_link_options(${t} PRIVATE -fsanitize=address,undefined)
   endforeach()
 endif()
+# Hourly upload logic: request, auth, response handling, backoff, drain on ack (task 4.F3 slice 2)
+set(UPL ${CMAKE_CURRENT_SOURCE_DIR}/../../components/upload)
+add_executable(test_upload test_upload.c ${STO}/src/nw_sample_ring.c ${REP}/src/nw_report.c ${PWR}/src/nw_sleep.c ${UPL}/src/nw_upload.c)
+target_include_directories(test_upload PRIVATE ${STO}/include ${REP}/include ${PWR}/include ${UPL}/include ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(test_upload PRIVATE -Wall -Wextra -Werror)
+if(NOT MSVC)
+  target_compile_options(test_upload PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=undefined)
+  target_link_options(test_upload PRIVATE -fsanitize=address,undefined)
+endif()
+# v1 perfboard board config (SuperMini, v1/WIRING.md section 3)
+add_executable(test_board_v1 test_board_v1.c)
+target_include_directories(test_board_v1 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/stub_v1)
+target_compile_options(test_board_v1 PRIVATE -Wall -Wextra -Werror)
 enable_testing()
+add_test(NAME board_v1_unit COMMAND test_board_v1)
 add_test(NAME glue_unit COMMAND test_glue)
 add_test(NAME sensors_unit COMMAND test_sensors)
 add_test(NAME provisioning_unit COMMAND test_prov)
 add_test(NAME report_buffer_unit COMMAND test_report)
 add_test(NAME sleep_decision_unit COMMAND test_sleep)
+add_test(NAME upload_unit COMMAND test_upload)
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
   add_test(NAME report_contract_drift
@@ -63,4 +78,18 @@ if(Python3_FOUND)
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mutate_prov.py ${CMAKE_C_COMPILER})
   add_test(NAME mutation_checks
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mutate.py ${CMAKE_C_COMPILER})
+  add_test(NAME upload_contract
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_upload_contract.py)
+  add_test(NAME upload_contract_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_upload_contract.py --selftest)
+  add_test(NAME upload_mutation_checks
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mutate_upload.py ${CMAKE_C_COMPILER})
+  add_test(NAME board_v1_matches_wiring
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_board_v1.py)
+  add_test(NAME board_v1_check_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_board_v1.py --selftest)
+  add_test(NAME api_url_not_committed
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_api_url_not_committed.py)
+  add_test(NAME api_url_check_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_api_url_not_committed.py --selftest)
 endif()

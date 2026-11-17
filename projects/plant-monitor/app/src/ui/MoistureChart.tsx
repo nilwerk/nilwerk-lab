@@ -9,9 +9,9 @@ import type { HourlyPoint } from '../plants/types';
 export const CHART_HEIGHT = 120;
 
 export function chartSummary(points: HourlyPoint[]) {
-  const vals = points.map((p) => p.moisturePct).filter((v): v is number => v !== null);
+  const vals = points.map((p) => p.moistureAvg).filter((v): v is number => v !== null);
   if (!vals.length) return null;
-  const last = [...points].reverse().find((p) => p.moisturePct !== null)!.moisturePct as number;
+  const last = [...points].reverse().find((p) => p.moistureAvg !== null)!.moistureAvg as number;
   return { count: vals.length, min: Math.min(...vals), max: Math.max(...vals), last };
 }
 
@@ -35,8 +35,8 @@ export function MoistureChart({ points, dry, wet }: { points: HourlyPoint[]; dry
       >
         {points.map((p) => (
           <View key={p.hour} style={{ flex: 1, height: CHART_HEIGHT, justifyContent: 'flex-end' }}>
-            {p.moisturePct === null ? null : (
-              <View testID="chart-bar" style={{ height: Math.max(1, y(p.moisturePct)), backgroundColor: p.moisturePct < dry ? th.color.dry : p.moisturePct > wet ? th.color.wet : th.color.accent }} />
+            {p.moistureAvg === null ? null : (
+              <View testID="chart-bar" style={{ height: Math.max(1, y(p.moistureAvg)), backgroundColor: p.moistureAvg < dry ? th.color.dry : p.moistureAvg > wet ? th.color.wet : th.color.accent }} />
             )}
           </View>
         ))}

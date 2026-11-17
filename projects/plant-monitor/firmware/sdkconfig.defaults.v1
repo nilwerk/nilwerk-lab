@@ -1,0 +1,9 @@
+# v1 perfboard bench build (ESP32-C3 SuperMini). Use together with sdkconfig.defaults, see v1/FIRMWARE-BENCH.md section 2:
+#   idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1" set-target esp32c3 build
+# Built in CI since PR #120 (compiles only), NOT run on the board. The author had no ESP-IDF toolchain.
+CONFIG_PLANT_BOARD_V1_SUPERMINI=y
+# The SuperMini has no UART bridge: the only host link is the chip's native USB Serial/JTAG (GPIO18/19). main.c prints NWBENCH on stdout.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# No BLE setup at the bench: a never-provisioned unit would otherwise deep sleep with no timer before reading any sensor (main.c, nw_setup_run).
+CONFIG_PLANT_SETUP_FLOW=n
+CONFIG_PLANT_BENCH_SLEEP_CYCLE=y

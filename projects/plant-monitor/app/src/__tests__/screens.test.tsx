@@ -111,6 +111,8 @@ describe('signed-in flow', () => {
     expect(await screen.findByRole('header', { name: 'Delete account?' })).toBeTruthy();
     const del = screen.getByRole('button', { name: 'Delete everything' });
     expect(del.props.accessibilityState?.disabled ?? del.props['aria-disabled']).toBeTruthy();
+    await tap('Export as JSON'); // NFR-07: export first
+    await screen.findByText(/You can delete now/);
     await type('Type DELETE to confirm', 'delete');
     expect(screen.getByRole('button', { name: 'Delete everything' }).props.accessibilityState?.disabled).toBe(true);
     await type('Type DELETE to confirm', 'DELETE');
@@ -123,9 +125,11 @@ describe('signed-in flow', () => {
     const svc = await signedIn();
     svc.options.deleteFails = true;
     await tap('Delete account');
+    await tap('Export as JSON');
+    await screen.findByText(/You can delete now/);
     await type('Type DELETE to confirm', 'DELETE');
     await tap('Delete everything');
-    expect(await screen.findByText(/Nothing was removed/)).toBeTruthy();
+    expect(await screen.findByText(/No connection, so we do not know whether the deletion went through/)).toBeTruthy();
     expect(svc.accounts).toHaveLength(1);
   });
 });
@@ -169,7 +173,7 @@ describe('legal line (A-052, draft)', () => {
 describe('requirement citations', () => {
   test('every screen has FR ids in the map and in its source header', () => {
     const files: Record<keyof typeof SCREEN_FR, string> = {
-      welcome: 'WelcomeScreen', plants: 'PlantsScreen', plantDetail: 'PlantDetailScreen', removePlant: 'RemovePlantScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen', setup: 'setup/SetupSteps',
+      welcome: 'WelcomeScreen', plants: 'PlantsScreen', plantDetail: 'PlantDetailScreen', plantGallery: 'PlantGalleryScreen', removePlant: 'RemovePlantScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen', setup: 'setup/SetupSteps',
     };
     for (const [screenName, ids] of Object.entries(SCREEN_FR)) {
       expect(ids.length).toBeGreaterThan(0);

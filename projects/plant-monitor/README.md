@@ -10,7 +10,7 @@ Nilwerk's sales-demo product, run like a real client project (Prototype M packag
 
 | Folder | Content | Owner role |
 |---|---|---|
-| `firmware/` | ESP-IDF firmware for ESP32-C3 | Firmware + Edge AI |
+| [`firmware/`](firmware/README.md) | ESP-IDF firmware for ESP32-C3 ([dev guide for new joiners](firmware/DEV_GUIDE.md)) | Firmware + Edge AI |
 | `ml/` | Edge-AI datasets (fetch scripts + data cards), training, TFLite export | Firmware + Edge AI |
 | `app/` | React Native (Expo) app | Full-stack |
 | `cloud/` | Supabase: migrations, edge functions, tips, analytics, MCP server | Full-stack, Cloud AI |

@@ -1,0 +1,13 @@
+$ npm run typecheck
+> plant-monitor-app@0.1.0 typecheck
+> tsc --noEmit
+
+$ npm test
+> jest
+
+
+Test Suites: 11 passed, 11 total
+Tests:       2 todo, 164 passed, 166 total
+Snapshots:   0 total
+Time:        4.501 s, estimated 10 s
+Ran all test suites.

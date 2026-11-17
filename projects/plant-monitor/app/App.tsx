@@ -1,5 +1,5 @@
 // App shell. Requirements: FR-A01 (signed-out: welcome -> sign up / sign in; signed-in: profile -> delete account / premium), FR-A06 (plants tab: list -> detail),
-// FR-A08 + A-022 (detail -> remove plant -> keep/release sensor), 4.A3 device setup (profile -> setup, fake service; real BLE is a later slice). gallery (FR-A05) and alerts (4.A5) are not part of this shell yet.
+// FR-A05 (detail -> photo gallery), FR-A08 + A-022 (detail -> export -> remove plant -> keep/release sensor), 4.A3 device setup (profile -> setup, fake service; real BLE is a later slice). Alerts (4.A5) are not part of this shell yet.
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -23,23 +23,27 @@ import { DeleteAccountScreen } from './src/screens/DeleteAccountScreen';
 import { PremiumScreen } from './src/screens/PremiumScreen';
 import { PlantsScreen } from './src/screens/PlantsScreen';
 import { PlantDetailScreen } from './src/screens/PlantDetailScreen';
-import { PlantRemovedScreen, RemovePlantScreen } from './src/screens/RemovePlantScreen';
+import { PlantRemovedScreen, RemovePlantScreen, type RemoveOutcome } from './src/screens/RemovePlantScreen';
+import { PlantGalleryScreen } from './src/screens/PlantGalleryScreen';
 import { PlantsProvider } from './src/plants/PlantsContext';
 import { createFakePlants } from './src/plants/fakePlants';
 import { unconfiguredPlants } from './src/plants/unconfiguredPlants';
-import type { PlantDetail, PlantsService } from './src/plants/types';
+import { createRealPlants } from './src/plants/realPlants';
+import { createFileHandOff } from './src/export/fileHandOff';
+import { platformHandOffDeps } from './src/export/handOffDeps';
+import type { PlantDetail, PlantSummary, PlantsService } from './src/plants/types';
 import { TabBar, type Tab } from './src/ui/TabBar';
 import { SetupFlow } from './src/screens/setup/SetupFlow';
 import { createFakeSetup, unavailableProvisioning } from './src/provisioning/fakeProvisioning';
 import type { SetupServices } from './src/provisioning/types';
 
-type Route = 'welcome' | AuthMode | 'plants' | 'setup' | 'plant' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium';
-interface Removed { plantName: string; deviceId: string | null; sensorName: string | null }
+type Route = 'welcome' | AuthMode | 'plants' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium';
+type Removed = RemoveOutcome;
 
 /** Service used when no Supabase config is present: every call reports "not configured" instead of crashing. */
 function unconfiguredAuth(): AuthService {
   const no = async (): Promise<never> => { throw new AuthError('not_configured'); };
-  return { getSession: async () => null, onChange: () => () => undefined, signUp: no, signIn: no, signOut: no, getProfile: no, updateDisplayName: no, deleteAccount: no };
+  return { getSession: async () => null, onChange: () => () => undefined, signUp: no, signIn: no, signOut: no, getProfile: no, updateDisplayName: no, deleteAccount: no, getAccessToken: async () => null };
 }
 
 export function Root({ contactEmail, banner, setup }: { contactEmail: string; banner?: string; setup: SetupServices }) {
@@ -48,10 +52,11 @@ export function Root({ contactEmail, banner, setup }: { contactEmail: string; ba
   const [route, setRoute] = useState<Route>('welcome');
   const [plantId, setPlantId] = useState<string | null>(null);
   const [toRemove, setToRemove] = useState<PlantDetail | null>(null);
+  const [gallery, setGallery] = useState<PlantSummary | null>(null);
   const [removed, setRemoved] = useState<Removed | null>(null);
   const signedOut = state.status === 'signedOut';
   // a signed-out user starts again at the welcome screen, so the next sign-in lands on the plants tab
-  useEffect(() => { if (signedOut) { setRoute('welcome'); setPlantId(null); setToRemove(null); setRemoved(null); } }, [signedOut]);
+  useEffect(() => { if (signedOut) { setRoute('welcome'); setPlantId(null); setToRemove(null); setGallery(null); setRemoved(null); } }, [signedOut]);
 
   if (state.status === 'loading') {
     return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: th.color.bg }}><ActivityIndicator accessibilityLabel={t('common.loading')} color={th.color.accent} /></View>;
@@ -71,10 +76,13 @@ export function Root({ contactEmail, banner, setup }: { contactEmail: string; ba
   } else if (route === 'premium') {
     screen = <PremiumScreen contactEmail={contactEmail} onBack={() => setRoute('profile')} />;
   } else if (route === 'plant' && plantId) {
-    screen = <PlantDetailScreen plantId={plantId} onBack={() => setRoute('plants')} onRemove={(d) => { setToRemove(d); setRoute('remove'); }} />;
+    screen = <PlantDetailScreen plantId={plantId} onBack={() => setRoute('plants')} onRemove={(d) => { setToRemove(d); setRoute('remove'); }}
+      onGallery={(p) => { setGallery(p); setRoute('gallery'); }} />;
+  } else if (route === 'gallery' && gallery) {
+    screen = <PlantGalleryScreen plant={gallery} onBack={() => setRoute('plant')} />;
   } else if (route === 'remove' && toRemove) {
     screen = <RemovePlantScreen plant={toRemove.plant} onCancel={() => setRoute('plant')}
-      onRemoved={() => { setRemoved({ plantName: toRemove.plant.name, deviceId: toRemove.plant.deviceId, sensorName: toRemove.plant.deviceName }); setToRemove(null); setPlantId(null); setRoute('removed'); }} />;
+      onRemoved={(r) => { setRemoved(r); setToRemove(null); setPlantId(null); setRoute('removed'); }} />;
   } else if (route === 'removed' && removed) {
     screen = <PlantRemovedScreen {...removed} onDone={() => { setRemoved(null); setRoute('plants'); }} />;
   } else if (route === 'profile') {
@@ -96,7 +104,9 @@ export default function App() {
   const cfg = useMemo(() => readConfig(), []);
   const mock = process.env.EXPO_PUBLIC_MOCK_AUTH === '1';
   const service = useMemo(() => (mock ? createFakeAuth() : isConfigured(cfg) ? createSupabaseAuth(cfg) : unconfiguredAuth()), [cfg, mock]);
-  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : unconfiguredPlants()), [mock]);
+  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : isConfigured(cfg)
+    ? createRealPlants({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken(), handOff: createFileHandOff(platformHandOffDeps) })
+    : unconfiguredPlants()), [cfg, mock, service]);
   // Real BLE provisioning (dev build, @orbital-systems/react-native-esp-idf-provisioning) is a later slice: until then only the mock build can run setup.
   const setup = useMemo<SetupServices>(() => (mock ? createFakeSetup().services : { ...createFakeSetup().services, provisioning: unavailableProvisioning() }), [mock]);
   const [fonts] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, Inter_400Regular, Inter_600SemiBold, JetBrainsMono_400Regular, JetBrainsMono_600SemiBold });

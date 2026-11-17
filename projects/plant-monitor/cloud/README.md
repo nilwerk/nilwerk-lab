@@ -1,4 +1,4 @@
-# Plant Monitor cloud backend (tasks 4.B1, 4.B2)
+# Plant Monitor cloud backend (tasks 4.B1, 4.B2, 4.B3 slice 1)
 
 Supabase scaffold implementing the merged 2.4 contract. **Source of truth for the schema:**
 [`../docs/interfaces/db-schema.sql`](../docs/interfaces/db-schema.sql) (+ `openapi.yaml`). Migration 1 is a verbatim copy; `test.sh` fails on drift.
@@ -26,6 +26,26 @@ TypeScript, no npm dependencies (Deno on Supabase, Node 22.6+ for tests). Contra
 * The data logic is in SQL (`migrations/20261108000004_device_api.sql`: `issue_claim_token`, `device_claim`, `ingest_batch`, `device_config`; `..0006_delete_account.sql`: `release_account_devices`), executable by `service_role` only. The edge functions pass SHA-256 digests, never plaintext tokens. A caller never names a device: the device is the owner of the token (device A cannot write device B).
 * **Not built** (marked `[not in 4.B2]` in the OpenAPI): rate limits (429 on `/ingest`, `/device-claim`), push dispatch, OTA manifest (`fw_target`/`model_target` are always `null`), `/device-release`, other app endpoints. `delete-account`: Storage listing/removal and `auth.admin.deleteUser` in `supabase.ts` are **never run against a live project** (the tests stub Storage and Auth); Deno was not run either. Tips, analytics, MCP are 4.B3-4.B5.
 * Batch size: the contract (schema, ADR-013) allows 192 samples per request; the task text said 96. 96 (24 h of buffer, FR-D04) is accepted, 193+ gets 413.
+
+## Care-tips engine (task 4.B3, slice 1: guardrail layer only)
+Premium feature (FR-P02, FR-P04, ADR-006). Pure TypeScript in `tips/`, no dependencies, no I/O, no clock, no LLM, no keys. **Not an edge function yet**: no `/tips` endpoint, no DB read/write, no cache, no deploy (slice 2).
+
+| File | What |
+|---|---|
+| `tips/types.ts` | input/output contract; injected interfaces `WeatherProvider` (Q-13 open) and `TextAssistant` (LLM seam) |
+| `tips/guardrails.ts` | rule layer `g1.1`: rules G-01..G-13, text classifier, validation of untrusted assistant output (architecture O-7) |
+| `tips/engine.ts` | `generateTips(request, deps)`: rule-based baseline tips -> optional assistant (`mode: "live"`, 5 s timeout) -> guardrails; `TIPS_MODE` default `rule_based` (A-029) |
+| `tips/test/tips.test.ts`, `tips/test/mutation.sh` | 31 tests (one per rule, adversarial assistant output, error paths, property sweep of 400 combinations); 42 mutants that must all be killed |
+
+* Input: plant (location type, soil type, species, city, thresholds), recent readings, `now`, `premium`, forecast via `WeatherProvider`, season derived from `now` (northern hemisphere assumed: only a city is stored). Output: tips with `reason` and `evidence`, the `removed` list (which rule dropped what, for audit), the weather snapshot, `notes`.
+* Guardrails win over everything (ADR-006): no watering when saturated (G-01), outdoors in rain or frost (G-02, G-03), without a fresh plausible reading (G-04) or when the soil is not dry (G-05); no fertilising in frost, in winter, on dry soil, or outdoors without a forecast (G-06..G-09); no "move it outside" in storm or frost (G-10, G-11); no direct-sun advice in heat (G-12). Thresholds are named constants in `guardrails.ts` and are **proposals, not agreed values** (frost <= 2 C, heat >= 30 C, rain >= 5 mm, reading age <= 6 h, dormancy = Dec-Feb).
+* Errors: `TipsError` `premium_required` (FR-P04; the weather provider is not called) and `invalid_input`. A failing weather provider, assistant, timeout or malformed assistant output degrades to rule-based tips plus a `notes` entry, never to unchecked text.
+* Known limit: the text classifier is keyword based (English and a few German stems). A hostile phrasing it does not know could pass; the sweep and adversarial tests cover the known cases only. Prompts, a real provider and the cost note per premium user are slice 2 (the cost is 0 in `rule_based`; `live` see `docs/stack-and-costs.md`, unverified).
+* Run: `node --experimental-strip-types --test tips/test/tips.test.ts` and `bash tips/test/mutation.sh` from `cloud/`; `test.sh` runs the tests as its last stage (CI job `cloud-db`).
+* FR-P02 requirement text itself (Google Doc) was not readable in this session; the contract above is taken from ADR-006, `architecture.md` section 5 / O-7, `db-schema.sql` (`tips`, `plants`) and `mcp-tools.json` `get_tips`.
+
+## Security review of anon RPC access: deferred (A-104 (2))
+**Status: not done, deferred by Arsany on 2026-11-16 (A-104 (2)).** The review of what the `anon` role can reach through RPC/function access (`handle_new_user`, `is_premium` and the other functions in `public`, including their `EXECUTE` grants and `SECURITY DEFINER` use) was postponed. **Revisit when moving from the prototype to the real app**, before real users or real data. Until then treat the live `nilwerk-cloud` project as prototype-only: no real personal data. This section records the decision only; no review was done or is claimed here. `test/grants.sql` and `test/functions/api.test.ts` already check that API roles are locked out of the 4.B2 token functions, which is not a full review.
 
 ## Run the tests (no Docker, no account)
 ```bash

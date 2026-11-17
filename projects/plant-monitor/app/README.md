@@ -1,13 +1,13 @@
-# Plant Monitor app (tasks 4.A2 account and profile, 4.A3 device setup UI, 4.A4 slice 1 plants)
+# Plant Monitor app (tasks 4.A2 account and profile, 4.A3 device setup UI, 4.A4 slices 1 and 2 plants)
 
-Expo (SDK 58) + TypeScript (strict). Screens: Welcome S01, Sign up / Sign in S02, Profile S03, Delete account S04, Premium sheet S40, plus (4.A4 slice 1) Plant list S20, Plant detail S21, Remove plant S24b/S24c with a Plants/Profile tab bar
-(wireframes: `wireframes/index.html`). Requirements: FR-A01 (account), FR-P04 (plan mirrors `profiles.is_premium`), NFR-06 (own rows only, RLS), NFR-07 (delete removes all data).
+Expo (SDK 58) + TypeScript (strict). Screens: Welcome S01, Sign up / Sign in S02, Profile S03, Delete account S04, Premium sheet S40, plus (4.A4 slice 1) Plant list S20, Plant detail S21 (with hourly table S22 and metadata), Photo gallery S23, Remove plant S24b/S24c with export first, a Plants/Profile tab bar
+(wireframes: `wireframes/index.html`). Requirements: FR-A01 (account), FR-P04 (plan mirrors `profiles.is_premium`), NFR-06 (own rows only, RLS), NFR-07 (delete removes all data, export first).
 Brand: the aligned set approved in A-040 (`theme.ts`, `tokens.json`, `assets/` copied from `showcase/brand/app/`; regenerate there, not here). English only, strings in `strings/en.json` (A-024).
 
 ## Run
 ```bash
 npm ci
-npm run typecheck && npm test                      # typecheck + 98 unit/screen tests (no backend needed)
+npm run typecheck && npm test                      # typecheck + 164 unit/screen tests (no backend needed)
 EXPO_PUBLIC_MOCK_AUTH=1 npx expo start --web       # whole app against an in-memory mock of Supabase (no account, no network)
 ```
 Real backend (needs a Supabase project, Arsany's step, see `../cloud/README.md`): set these environment variables before `expo start` / EAS build. Names only, values are never committed:
@@ -35,17 +35,32 @@ Profile -> "Add a sensor" -> S10 find sensor, S11 connect (type the label code),
 
 ## Not done / known gaps (4.A2)
 - Never run against a real Supabase project or on a phone. Web build + jsdom-free render tests only.
-- `DELETE /account` is in the OpenAPI contract but no edge function exists on `main` yet; delete will fail against a real backend until it is built (the app then shows "Nothing was removed").
+- `DELETE /account` is the edge function `delete-account` (deployed on project nilwerk-cloud, 4.B2b; route `/functions/v1/delete-account`, client `src/account/accountApi.ts`). Never run against the live project from the app (fakes and a fake fetch only). Base URL and publishable key come from the build env `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`, not from code.
 - No forgot-password, no data export, no plant list (the setup flow exists in 4.A3 but only against a fake). Export warning for plant removal is A-022 (separate).
 - `handle_new_user()` stores only the id, so the sign-up display name is kept in auth user metadata and copied into `profiles.display_name` on the first profile load.
+- **GET /export client + file hand-off (4.A9, NFR-07, FR-A01; owner decision A-106: no skip option, delete stays blocked until the user really received the export):** `src/export/exportClient.ts` (GET `/functions/v1/export?format=json|csv`, rejects empty / wrong-type / non-JSON 200s), `src/export/fileHandOff.ts` (write file and read its size back -> share sheet (native, `expo-file-system` + `expo-sharing`) or browser download (web) -> the user must confirm "I saved it"), `src/plants/realPlants.ts` (real `exportData`; resolves only after the hand-off succeeded, so `exported` cannot be set earlier). New dependencies: `expo-file-system`, `expo-sharing`. **Unverified:** not run on a phone; **the cloud has no export function** (not in `cloud/supabase/functions`, not deployed on nilwerk-cloud as of 2026-11-17), so against the real backend the export fails and delete stays blocked until a backend task builds it (route assumed `/functions/v1/export`).
+- Delete error wording is honest on purpose: the function releases devices and deletes photos before the auth user, so a 5xx or a dropped connection can leave data partly gone. A 401 after such an error is shown as "may already be deleted, sign in again to check", not "session expired".
 - Apple/Google sign-in, store assets and the Expo dev build for BLE are later tasks.
 
 ## 4.A4 slice 1: plants (list, detail, remove)
 ### Before wiring a real client (gates, from Theo's review of PR #65)
-The real `PlantsService` must not replace `unconfiguredPlants` until all three hold:
-1. **Export before delete (C1).** openapi.yaml says the app MUST offer the JSON/CSV export before removal. `RemovePlantScreen` has no "Export first" step yet. TODO test: `remove plant offers export first before the typed confirmation`.
-2. **Photo objects (C2).** `delete_plant` returns `photo_paths`; the caller must delete them from bucket `plant-photos` (NFR-07). The screen currently discards them. TODO test: `deletePlant removes every returned photo path from storage`.
+The real `PlantsService` must not replace `unconfiguredPlants` until all three hold (C1 and C2 only in the mock so far):
+1. **Export before delete (C1): built (mock in slice 2, real client + hand-off in 4.A9).** `RemovePlantScreen` now has an "Export first" step and `canDelete` needs export success AND the exact name. The risk was a user deleting after an export they never received; 4.A9 closes it: `createRealPlants.exportData` resolves only after the hand-off (write, share, user confirms), tested in `src/__tests__/realPlants.test.ts` and `fileHandOff.test.ts` (the two former `test.todo` items).
+2. **Photo objects (C2): built in slice 2 (mock); real client still needs the real storage call.** After `delete_plant` the screen calls `removePhotoObjects` with the returned `photo_paths` and keeps them for a retry on failure. The real implementation must delete them from bucket `plant-photos` (NFR-07). TODO test: `deletePlant removes every returned photo path from storage`.
 3. **Gaps in the hourly series (C3).** `readings_hourly` has no row for an offline hour; the client must fill the 168-hour grid with nulls. TODO test: `real hourly series with missing hours yields 168 points with null gaps`.
 Requirements: FR-A06 (list with status chips dry / wet / low battery / offline, detail with latest values and 7-day hourly chart), FR-A02 (no device cap), FR-A08 + A-022 (remove plant with warning and typed confirmation, then keep or release the sensor), NFR-06.
 `src/plants/types.ts` is the contract (mirrors `plant_status`, `readings_hourly`, `delete_plant`, `POST /device-release` in `docs/interfaces/`). `fakePlants.ts` is the in-memory mock (5 fixture plants as in wireframe S20, synthetic readings); with `EXPO_PUBLIC_MOCK_AUTH=1` the app uses it, otherwise `unconfiguredPlants.ts` answers "not connected". Status chips: `src/plants/status.ts` maps open alert kinds to the aligned colours in `theme.ts` (shape glyph + text label + colour). Chart: `src/ui/MoistureChart.tsx` (plain Views, one bar per hour, no SVG dependency).
 Not done in slice 1 (slice 2 and later): photo gallery S23 / photo hero (FR-A05, unlimited images), hourly data table S22, edit plant S24 (FR-A04), "Export first" before removal (needs GET /export + share sheet, A-022 asks to offer it), "+ Add" to S10 (4.A3), alerts tab (4.A5), 30/90-day Premium ranges (FR-P01), "dry in" forecast (FR-E01), pull-to-refresh (a Refresh button instead), a real Supabase `PlantsService` (never run against a backend or on a phone; web build + render tests only). Removing a plant in the mock does not touch a device table; real behaviour is `delete_plant` (sensor stays claimed, plant_id cleared). The mock's "latest" value is a fixture number, not derived from the synthetic chart series.
+
+## 4.A4 slice 2: gallery, export before delete, hourly table (mock only)
+Requirements: FR-A05 (unlimited dated photos, newest or oldest first), FR-A04 (location type, room, soil type shown on detail and gallery), FR-A06 (hourly table, 168 rows), FR-D02 (24 reports a day = 24 rows with a value), FR-A06 and the readings_hourly design (a missing hour is a gap, no row), FR-A08 + A-022 + NFR-07 (export before delete; photo objects removed from storage).
+- **Hourly table** (`src/ui/HourlyTable.tsx`, grid in `src/plants/hourly.ts`): columns are the readings_hourly fields of the contract (moisture_avg, temp_avg, rh_avg, lux_avg, vbat_min_mv), newest first, a missing hour is a dash. The service always returns the 168-hour grid (`hourlyGrid`). Boundary tests in `src/__tests__/hourly.test.ts` (empty, one reading, 24 readings, gap in time, window edges) and in `plantsSlice2.test.tsx`.
+- **Gallery** (`src/screens/PlantGalleryScreen.tsx`): every photo of the plant is rendered (no cap, no windowed list). Mock photos have no image bytes, so tiles show the date only.
+- **Export before delete** (`src/export/exportGate.ts`, `RemovePlantScreen`): the delete button stays disabled until `exportData` succeeded AND the exact name is typed. The export is account-wide because GET /export has no plant_id. The export result is metadata only (file name, counts); in a real build the file is handed over before it resolves (4.A9, see the GET /export bullet above).
+- **Photo objects** (C2 gate from PR #65): after `delete_plant`, the app calls `removePhotoObjects` with the returned paths; a failure keeps the paths on the Removed screen with a retry.
+- **Not in this slice:** account delete gate (DeleteAccountScreen is 4.A2), upload ("+ Add"), full-screen photo, long-press delete, real Supabase `PlantsService` (still mock only, never run against a backend).
+
+
+## 4.A2 follow-up: delete account wired, export gate (stacked on PR #114)
+Requirements: FR-A01, NFR-07 (export first, deletion removes all data), NFR-06. `DeleteAccountScreen` calls `AuthService.deleteAccount` -> `deleteAccountApi` (204 ok, 401 unauthorized, 400/405/413 bad_request, 5xx server, fetch failure network); the screen shows a message for 401, network and other errors. A gate block, an export failure and a first-attempt 401 remove nothing; after a network, server or unknown error the delete may have partly or fully run (the function releases devices and deletes photos before the auth user), and the message says so. The delete runs only through `deleteAccountGated` (export done via the plants service AND the word DELETE typed); the button is also disabled, but the guard does not depend on it. **No skip option:** the requirements name none (decision pending, see PR). In a non-mock build `exportData` is now real (4.A9) but needs the cloud export function, which does not exist yet, so delete stays blocked there until it does.
+Tests: `npx tsc --noEmit`; `npx jest` (accountApi, exportGate, deleteAccount, deleteAccountBypass, screens).
