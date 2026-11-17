@@ -1,5 +1,5 @@
-// Plants slice (4.A4): FR-A06 list + status chips + detail with latest values and 7-day chart, FR-A08/A-022 remove flow, FR-A02 no cap.
-// Against the in-memory PlantsService mock. Not a real backend.
+// Plants slice (4.A4 slices 1+2): FR-A06 list + status chips + detail with latest values and 7-day chart, FR-A08/A-022 remove flow (export gate, NFR-07), FR-A02 no cap.
+// Against the in-memory PlantsService mock. Not a real backend. Slice 2 cases (gallery, hourly table, boundaries) are in plantsSlice2.test.tsx and hourly.test.ts.
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -11,7 +11,8 @@ import { PlantsProvider } from '../plants/PlantsContext';
 import { createFakePlants, sampleFixture, syntheticHourly } from '../plants/fakePlants';
 import { ageParts, plantChips } from '../plants/status';
 import { chartSummary } from '../ui/MoistureChart';
-import { PlantsError, type PlantSummary } from '../plants/types';
+import { PlantsError, type HourlyPoint, type PlantSummary } from '../plants/types';
+import { hourlyGrid } from '../plants/hourly';
 import { colors, statusStyle, type PlantStatus } from '../../theme';
 import { contrast } from './contrastUtil';
 
@@ -56,19 +57,22 @@ describe('mock service + chart data (unit)', () => {
     expect(h[0].hour).toBe('2026-11-02T13:00:00.000Z');
   });
   test('chart summary skips gaps and reports min/max/last', () => {
-    const s = chartSummary([{ hour: 'a', moisturePct: 30 }, { hour: 'b', moisturePct: null }, { hour: 'c', moisturePct: 50 }, { hour: 'd', moisturePct: null }]);
+    const at = (h: number, v: number | null): HourlyPoint => ({ hour: `2026-11-09T${String(h).padStart(2, '0')}:00:00.000Z`, n: v === null ? null : 4, moistureAvg: v, moistureMin: v, moistureMax: v, tempAvg: null, rhAvg: null, luxAvg: null, vbatMinMv: null });
+    const s = chartSummary([at(0, 30), at(1, null), at(2, 50), at(3, null)]);
     expect(s).toEqual({ count: 2, min: 30, max: 50, last: 50 });
     expect(chartSummary([])).toBeNull();
+    expect(chartSummary(hourlyGrid([], FIXED))).toBeNull();
   });
-  test('fixture covers dry, low battery, offline and no-sensor; delete clears the plant and returns photo paths; unknown id is not_found', async () => {
+  test('fixture covers dry, low battery, offline and no-sensor; delete clears the plant and returns its photo paths; unknown id is not_found', async () => {
     const svc = createFakePlants({ now: () => NOW });
     expect((await svc.listPlants()).map((p) => plantChips(p)[0])).toEqual(['ok', 'dry', 'lowBattery', 'offline', 'noSensor']);
     const r = await svc.deletePlant('p-basil');
-    expect(r.photoPaths).toEqual(['p-basil/photo-1.jpg']);
+    expect(r.photoPaths).toHaveLength(12);
+    expect(r.photoPaths.every((x) => x.includes('/p-basil/'))).toBe(true);
     expect(await svc.listPlants()).toHaveLength(4);
     await expect(svc.getPlantDetail('p-basil')).rejects.toBeInstanceOf(PlantsError);
   });
-  test('FR-A02 (UI/mock only): 30 plants render in the list; the real no-limit proof is TODO in slice 2', async () => {
+  test('FR-A02 (mock only): 30 plants render in the list (the mock has no cap; the real no-cap check is the 5.6 device test)', async () => {
     const { plants } = sampleFixture(FIXED);
     const many = Array.from({ length: 30 }, (_, i) => ({ ...plants[0], id: `x${i}`, name: `Plant ${i}` }));
     expect(await createFakePlants({ now: () => NOW, plants: many }).listPlants()).toHaveLength(30);
@@ -193,11 +197,19 @@ describe('remove plant (S24b/S24c, FR-A08, A-022)', () => {
     await screen.findByRole('header', { name: 'Remove Basil?' });
     return svc;
   };
-  test('warning names what is deleted; delete stays disabled until the exact plant name is typed', async () => {
+  const exportFirst = async (format: 'JSON' | 'CSV' = 'JSON') => {
+    await press(`Export ${format}`);
+    await screen.findByText(/^Export ready: plant-monitor-export-\S+\.(json|zip) \(\d+ photos\)\. You can delete now\.$/);
+  };
+  test('warning names what is deleted; delete stays disabled until export ran AND the exact plant name is typed', async () => {
     await open();
     expect(screen.getByText(/permanently deletes the plant, all its readings, events, alerts, tips and photos/)).toBeTruthy();
     const btn = () => screen.getByRole('button', { name: 'Delete plant and all its data' });
     expect(btn().props.accessibilityState.disabled).toBe(true);
+    await fireEvent.changeText(screen.getByLabelText('Type the plant name to confirm'), 'Basil');
+    expect(btn().props.accessibilityState.disabled).toBe(true); // name typed, but no export yet
+    await exportFirst();
+    expect(btn().props.accessibilityState.disabled).toBe(false);
     await fireEvent.changeText(screen.getByLabelText('Type the plant name to confirm'), 'basil');
     expect(btn().props.accessibilityState.disabled).toBe(true);
     await fireEvent.changeText(screen.getByLabelText('Type the plant name to confirm'), 'Basil');
@@ -211,6 +223,7 @@ describe('remove plant (S24b/S24c, FR-A08, A-022)', () => {
   });
   test('delete, then Keep sensor: plant gone from list, sensor not released', async () => {
     const svc = await open();
+    await exportFirst();
     await fireEvent.changeText(screen.getByLabelText('Type the plant name to confirm'), 'Basil');
     await press('Delete plant and all its data');
     expect(await screen.findByRole('header', { name: 'Basil was removed' })).toBeTruthy();
@@ -223,6 +236,7 @@ describe('remove plant (S24b/S24c, FR-A08, A-022)', () => {
   });
   test('delete, then Release sensor calls device-release for that device', async () => {
     const svc = await open();
+    await exportFirst('CSV');
     await fireEvent.changeText(screen.getByLabelText('Type the plant name to confirm'), 'Basil');
     await press('Delete plant and all its data');
     await press('Release sensor');
@@ -231,6 +245,7 @@ describe('remove plant (S24b/S24c, FR-A08, A-022)', () => {
   });
   test('failed delete keeps the plant and says so; failed release stays on the screen', async () => {
     const svc = await open();
+    await exportFirst();
     svc.options.failDelete = true;
     await fireEvent.changeText(screen.getByLabelText('Type the plant name to confirm'), 'Basil');
     await press('Delete plant and all its data');
@@ -248,6 +263,7 @@ describe('remove plant (S24b/S24c, FR-A08, A-022)', () => {
     await fireEvent.press(await row(/^Rubber tree/));
     await screen.findByRole('header', { name: 'Rubber tree' });
     await press('Remove plant');
+    await exportFirst();
     await fireEvent.changeText(await screen.findByLabelText('Type the plant name to confirm'), 'Rubber tree');
     await press('Delete plant and all its data');
     expect(await screen.findByText('This plant had no sensor.')).toBeTruthy();

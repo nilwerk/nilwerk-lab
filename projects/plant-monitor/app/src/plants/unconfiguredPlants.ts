@@ -3,5 +3,5 @@ import { PlantsError, type PlantsService } from './types';
 
 export function unconfiguredPlants(): PlantsService {
   const no = async (): Promise<never> => { throw new PlantsError('not_configured'); };
-  return { listPlants: no, getPlantDetail: no, deletePlant: no, releaseDevice: no };
+  return { listPlants: no, getPlantDetail: no, listPhotos: no, deletePlant: no, removePhotoObjects: no, releaseDevice: no, exportData: no };
 }

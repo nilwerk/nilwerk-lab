@@ -1,19 +1,21 @@
-// S21 Plant detail. Requirements: FR-A06 (latest values = last report, 7-day hourly chart), FR-A08 (entry to remove, A-022), FR-A07 (dry/wet thresholds drawn on the chart), NFR-06.
-// Photos / hourly table / care tips rows (S22, S23, S42) are later slices.
+// S21 Plant detail. Requirements: FR-A06 (latest values = last report, 7-day hourly chart and hourly table), FR-A04 (location type, room, soil type shown), FR-A05 (entry to the photo gallery), FR-A08 (entry to remove, A-022), FR-A07 (dry/wet thresholds drawn on the chart), NFR-06.
+// Care tips rows (S42) are a later slice.
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { StatusChip } from '../ui/StatusChip';
 import { MoistureChart } from '../ui/MoistureChart';
+import { HourlyTable } from '../ui/HourlyTable';
+import { PlantMeta } from '../ui/PlantMeta';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { ageParts, plantChips } from '../plants/status';
-import { PlantsError, type PlantDetail } from '../plants/types';
+import { PlantsError, type PlantDetail, type PlantSummary } from '../plants/types';
 
 const fmt = (v: number | null | undefined, digits: number) => (v === null || v === undefined ? null : v.toFixed(digits));
 
-export function PlantDetailScreen({ plantId, onBack, onRemove, now = () => new Date() }: { plantId: string; onBack: () => void; onRemove: (d: PlantDetail) => void; now?: () => Date }) {
+export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = () => new Date() }: { plantId: string; onBack: () => void; onRemove: (d: PlantDetail) => void; onGallery: (p: PlantSummary) => void; now?: () => Date }) {
   const th = useTheme();
   const svc = usePlants();
   const [detail, setDetail] = useState<PlantDetail | null>(null);
@@ -43,7 +45,7 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, now = () => new D
       {!detail && !error ? <Body muted>{t('common.loading')}</Body> : null}
       {p ? (
         <>
-          <Body muted>{p.area ?? t('plants.noArea')}</Body>
+          <PlantMeta plant={p} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>{plantChips(p).map((c) => <StatusChip key={c} kind={c} />)}</View>
           <Text style={{ color: th.color.muted, ...th.type.caption }}>{t(age.key, age.n === undefined ? undefined : { n: age.n })}</Text>
           <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('plant.latest.title')}</Text>
@@ -55,6 +57,8 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, now = () => new D
             {cell('plant.latest.battery', 'plant.latest.batteryValue', l?.vbatMv == null ? null : (l.vbatMv / 1000).toFixed(2))}
           </View>
           <MoistureChart points={detail.hourly} dry={p.dryThresholdPct} wet={p.wetThresholdPct} />
+          <HourlyTable points={detail.hourly} />
+          <Button label={t('plant.photos.button')} variant="secondary" onPress={() => onGallery(p)} />
           <Button label={t('plant.remove.button')} variant="danger" onPress={() => onRemove(detail)} />
         </>
       ) : null}
