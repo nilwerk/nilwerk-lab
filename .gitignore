@@ -11,3 +11,6 @@ __pycache__/
 *-backups/
 fp-info-cache
 *.kicad_prl
+
+# Local build settings (API URL, A-082): never commit
+projects/plant-monitor/firmware/sdkconfig.defaults.local

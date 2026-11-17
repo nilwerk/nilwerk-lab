@@ -86,8 +86,8 @@ void app_main(void)
     }
     const nw_soil_cal_t cal = {.dry_raw = CONFIG_PLANT_SOIL_DRY_RAW, .wet_raw = CONFIG_PLANT_SOIL_WET_RAW};
     const nw_battery_cfg_t bat = {.r_top_ohm = NW_BAT_R_TOP_OHM, .r_bot_ohm = NW_BAT_R_BOT_OHM};
-    ESP_LOGI(TAG, "NWBENCH start wake=%d cal_dry=%d cal_wet=%d divider=%u/%u (CALIBRATION IS A PLACEHOLDER UNTIL SET ON THE BENCH)",
-             wake_count, cal.dry_raw, cal.wet_raw, (unsigned)bat.r_top_ohm, (unsigned)bat.r_bot_ohm);
+    ESP_LOGI(TAG, "NWBENCH start board=%s wake=%d cal_dry=%d cal_wet=%d divider=%u/%u (CALIBRATION IS A PLACEHOLDER UNTIL SET ON THE BENCH)",
+             NW_BOARD_NAME, wake_count, cal.dry_raw, cal.wet_raw, (unsigned)bat.r_top_ohm, (unsigned)bat.r_bot_ohm);
 
     for (int i = 0; i < CYCLES_BEFORE_SLEEP; i++) {
         nw_soil_t soil = {0};
