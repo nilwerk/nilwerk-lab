@@ -1,6 +1,6 @@
 # Claim sources and fiction-vs-fact (for Theo's fact check and Ines's QA)
 
-Task PR-2026-11-17 · Poppy · as of 17 Nov 2026, 22:35 Berlin (fact-check fixes round 17 Nov, late evening) · repo at origin/main 91f9b0e (was 75f09d5 at first draft; main moved on, claims re-read against the PR comments, not against the baseline). PR/comment ids are for checking only; they never appear on images. Types: measured (test output / CI), observed (a reviewer ran it), decision (human), read-from-source, status (state of the repo). "Comment" = the PR comment id on GitHub (`.../pull/<n>#issuecomment-<id>`). No decision ids, customers, leads, prices or private URLs are used.
+Task PR-2026-11-17 · Poppy · as of 17 Nov 2026, 22:35 Berlin (fact-check fixes round 17 Nov, late evening) · repo at origin/main 4b61598 (was 75f09d5 at first draft, 91f9b0e during the fix round; main moved on, claims re-read against the PR comments, not against the baseline). PR/comment ids are for checking only; they never appear on images. Types: measured (test output / CI), observed (a reviewer ran it), decision (human), read-from-source, status (state of the repo). "Comment" = the PR comment id on GitHub (`.../pull/<n>#issuecomment-<id>`). No decision ids, customers, leads, prices or private URLs are used.
 
 ## 1. Claim-source table (every fact in the pack)
 
