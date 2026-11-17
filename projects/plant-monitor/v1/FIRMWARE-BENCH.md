@@ -47,7 +47,7 @@ Nothing else in this document is meaningful until both hold. If the build fails,
 CI compiles the v1 option (PR #120), so a build failure here points to your setup or a difference from CI: report it, do not work around it.
 **If S1 shows no output, report it as a USB console finding to Mira (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG` on the SuperMini is UNVERIFIED), not as a hardware fault.** Send the `idf.py monitor` header and the `lsusb`/Device Manager entry.
 
-Flash and watch: `idf.py -p <PORT> flash monitor | tee v1-run1.log` (Ctrl+] exits). Keep the whole log; attach it with the readings table.
+Flash and watch: `idf.py -p <PORT> flash monitor | tee v1-run1.log` (Ctrl+] exits). If you built into `build-v1/` as in `firmware/DEV_GUIDE.md` section 3.2, use the full command there (it adds `-B build-v1 -DSDKCONFIG=sdkconfig.v1`); the short form only finds the default `build/`. Keep the whole log; attach it with the readings table.
 All sample lines below are **format examples with invented numbers, not measurements.**
 
 | # | Step | Expected serial line / reading | PASS | FAIL (what to send) |
