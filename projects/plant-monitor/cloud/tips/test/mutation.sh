@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Mutation check for the care-tips guardrails (FR-P02). Each mutant changes one expression in guardrails.ts/engine.ts and
-# MUST make test/tips.test.ts fail ("killed"). A surviving mutant = a rule the tests do not protect: exit 1. Files are restored.
+# Mutation check for the care-tips guardrails (FR-P02). Each mutant changes one expression in guardrails.ts/engine.ts/mcp.ts and
+# MUST make test/*.test.ts fail ("killed"). A surviving mutant = a rule the tests do not protect: exit 1. Files are restored.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-G=guardrails.ts; E=engine.ts
-BK="$(mktemp -d)"; cp "$G" "$BK/g"; cp "$E" "$BK/e"
-restore() { cp "$BK/g" "$G"; cp "$BK/e" "$E"; }
+G=guardrails.ts; E=engine.ts; M=mcp.ts
+BK="$(mktemp -d)"; cp "$G" "$BK/g"; cp "$E" "$BK/e"; cp "$M" "$BK/m"
+restore() { cp "$BK/g" "$G"; cp "$BK/e" "$E"; cp "$BK/m" "$M"; }
 trap 'restore; rm -rf "$BK"' EXIT
-run() { node --experimental-strip-types --disable-warning=ExperimentalWarning --test test/tips.test.ts >"$BK/out.txt" 2>&1; }
+run() { node --experimental-strip-types --disable-warning=ExperimentalWarning --test test/*.test.ts >"$BK/out.txt" 2>&1; }
 survived=0; total=0
 mutant() { # name file old new
   restore
@@ -48,8 +48,8 @@ mutant "G-11 outside-in-frost removed" $G 'e.goOutside && s.frost ?' 'false ?'
 mutant "G-12 heat/sun rule removed" $G 'e.directSun && s.heat ?' 'false ?'
 mutant "HEAT_C 30 -> 31" $G 'HEAT_C = 30;' 'HEAT_C = 31;'
 mutant "text not classified (category only)" $G 'watering: positive && (t.category === "watering" || WATER.test(t.text))' 'watering: positive && t.category === "watering"'
-mutant "declared avoid trusted without negation in text" $G 'const negated = t.action === "avoid" && NEGATION.test(t.text);' 'const negated = t.action === "avoid";'
-mutant "'do not water' counted as advice" $G 'const negated = t.action === "avoid" && NEGATION.test(t.text);' 'const negated = false;'
+mutant "declared avoid trusted without negation in text" $G 'const negated = t.source !== "llm" && t.action === "avoid" && NEGATION.test(t.text);' 'const negated = t.source !== "llm" && t.action === "avoid";'
+mutant "'do not water' counted as advice" $G 'const negated = t.source !== "llm" && t.action === "avoid" && NEGATION.test(t.text);' 'const negated = false;'
 mutant "applyGuardrails keeps everything" $G 'if (hit) removed.push({ tip, ...hit }); else kept.push(tip);' 'kept.push(tip);'
 mutant "first rule (G-01) skipped in the loop" $G 'for (const r of RULES) {' 'for (const r of RULES.slice(1)) {'
 mutant "assistant output not validated" $G 'if (!Array.isArray(raw)) return { ok, rejected: ["not an array"] };' 'if (!Array.isArray(raw)) return { ok, rejected: [] };'
@@ -63,5 +63,24 @@ mutant "assistant failure propagates" $E 'notes.push(`assistant_failed:${(e as E
 mutant "assistant tips bypass guardrails" $E 'applyGuardrails(candidates, s)' 'applyGuardrails(base, s)'
 mutant "live mode ignored flag: assistant used in rule_based" $E 'if (mode === "live" && deps.assistant)' 'if (deps.assistant)'
 mutant "guardrail results dropped (tips = candidates)" $E 'tips: kept,' 'tips: candidates,'
+mutant "N-1 assistant negation excuses text again" $G 'const negated = t.source !== "llm" && t.action' 'const negated = t.action'
+mutant "N-1 llm source check inverted (rules tips never negated)" $G 't.source !== "llm" && t.action' 't.source === "llm" && t.action'
+mutant "N-2 keyword 'drink' removed" $G '|drink|jug|' '|'
+mutant "N-2 keyword 'jug' removed" $G '|drink|jug|' '|drink|'
+mutant "N-2 keyword 'hose' removed" $G '|hose\w*|' '|'
+mutant "N-2 keyword 'top up' removed" $G '|top(ping)? up|' '|'
+mutant "N-2 German 'wasser' removed" $G '|wasser|' '|'
+mutant "N-2 'pour' removed" $G '|pour\w*|' '|'
+mutant "N-2 German 'duengen' stem removed" $G '|d(ü|ue)ng|' '|'
+mutant "N-3 forecast validation removed" $E 'if (validForecast(f)) weather = f;' 'weather = f as Forecast;'
+mutant "N-3 NaN allowed (finite check dropped)" $G 'typeof v === "number" && Number.isFinite(v);' 'typeof v === "number";'
+mutant "N-3 boolean flags not required" $G '&& typeof o.stormWarning === "boolean" && typeof o.heatWarning === "boolean"' ''
+mutant "N-3 null forecast object accepted" $G 'if (typeof f !== "object" || f === null) return false;' 'if (typeof f !== "object") return false;'
+mutant "G-13 outdoor watering without forecast allowed" $G 'e.watering && s.outdoor && s.weather === null ?' 'false ?'
+mutant "C1 fertilising not mapped to feeding" $M 'fertilising: "feeding"' 'fertilising: "fertilising" as McpCategory'
+mutant "C1 protection mapped outside enum" $M 'protection: "safety"' 'protection: "protection" as McpCategory'
+mutant "C1 text not truncated" $M 't.text.slice(0, MCP_TEXT_MAX)' 't.text'
+mutant "C1 frost id refinement dropped" $M '"frost-protect": "temperature", ' ''
+mutant "C2 guardrail_version not exposed on row" $M 'guardrail_version: r.guardrailVersion || GUARDRAIL_VERSION' 'guardrail_version: ""'
 echo "mutants: $total, survived: $survived"
 [ "$survived" -eq 0 ] && echo "ALL MUTANTS KILLED" || exit 1

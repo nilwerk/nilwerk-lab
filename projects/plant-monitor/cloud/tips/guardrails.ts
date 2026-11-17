@@ -31,6 +31,15 @@ export function currentMoisture(readings: ReadingInput[], nowIso: string): numbe
   return best ? best.m : null;
 }
 
+/** Provider output is untrusted: anything but a complete, finite forecast is "no forecast" (fail safe, G-09 etc. apply). */
+export function validForecast(f: unknown): f is Forecast {
+  if (typeof f !== "object" || f === null) return false;
+  const o = f as Record<string, unknown>;
+  const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
+  return num(o.minTempC) && num(o.maxTempC) && num(o.rainMm) && (o.rainMm as number) >= 0 && (o.minTempC as number) <= (o.maxTempC as number)
+    && typeof o.stormWarning === "boolean" && typeof o.heatWarning === "boolean";
+}
+
 export function deriveState(plant: PlantInput, readings: ReadingInput[], weather: Forecast | null, nowIso: string): GuardrailState {
   const moisturePct = currentMoisture(readings, nowIso);
   return {
@@ -50,15 +59,21 @@ export function deriveState(plant: PlantInput, readings: ReadingInput[], weather
 
 // --- what a tip really says (a model may mislabel category/action, so the text is classified too) ---------------
 const NEGATION = /\b(do not|don't|dont|never|avoid|skip|no need to|hold off|stop)\b|\b(not|no)\b/i;
-const WATER = /\b(water(?!proof|ed down)|watering|irrigat\w*|soak\w*|giess\w*|gie(ß|ss)\w*)\b/i;
-const FERT = /\b(fertili[sz]\w*|feed(ing)?|plant food|npk|d(ü|ue)ng\w*)\b/i;
-const OUTSIDE = /\b(move|put|place|set|leave|take)\b[^.]*\b(outside|outdoors?|balcony|garden|terrace)\b/i;
-const SUN = /\b(direct|full|afternoon|midday)\b[^.]*\bsun(light)?\b|\bsun(light)?\b[^.]*\b(direct|full|south[- ]facing)\b/i;
+// Keyword lists are deliberately wide (English + German, synonyms). Stems have no trailing \b: JS \b is ASCII-only (ß, ü).
+const WATER = /\b(water(?!proof|ed down)\w*|irrigat\w*|soak\w*|drench\w*|hydrat\w*|moisten\w*|dampen\w*|sprinkl\w*|hose\w*|pour\w*|drink|jug|watering[- ]can|top(ping)? up|giess|gie(ß|ss)|wasser|bew(ä|ae)sser|tr(ä|ae)nk|benetz|befeucht|tauch|feucht\w*)/i;
+const FERT = /\b(fertili[sz]\w*|feed\w*|plant food|nutrient\w*|compost|manure|npk|d(ü|ue)ng|n(ä|ae)hrstoff|n(ä|ae)hr(l(ö|oe)sung)?)/i;
+const OUTSIDE = /\b(move|put|place|set|leave|take|bring|keep|stand)\b[^.]*\b(outside|outdoors?|out|balcony|garden|terrace|patio|porch|draussen|drau(ß|ss)en|balkon|garten|terrasse)\b/i;
+const SUN = /\b(direct|full|afternoon|midday|noon|strong|bright)\b[^.]*\b(sun(light|shine)?|sonne)\b|\b(sun(light|shine)?|sonne)\b[^.]*\b(direct|full|south[- ]facing|noon|midday)\b|\bsonne\b/i;
 
 export interface Effective { watering: boolean; fertilising: boolean; goOutside: boolean; directSun: boolean }
-/** Positive advice only: "do not water" is not watering advice. Declared 'avoid' is trusted only if the text also negates. */
-export function effective(t: Pick<Tip, "category" | "action" | "text">): Effective {
-  const negated = t.action === "avoid" && NEGATION.test(t.text);
+/**
+ * Positive advice only: "do not water" from the RULES is not watering advice. Text from the assistant (source "llm") is never
+ * excused by a negation word or by a declared 'avoid': "Avoid letting it dry out, water it now" / "Never let it go thirsty:
+ * water daily" are watering advice. An assistant tip that matches a keyword is judged as if it advised it (fail safe; the
+ * baseline rule tips already carry the legitimate "do not water" messages).
+ */
+export function effective(t: Pick<Tip, "category" | "action" | "text"> & { source?: string }): Effective {
+  const negated = t.source !== "llm" && t.action === "avoid" && NEGATION.test(t.text);
   const positive = !negated;
   return {
     watering: positive && (t.category === "watering" || WATER.test(t.text)),
@@ -81,6 +96,7 @@ export const RULES: Rule[] = [
   { id: "G-09", why: (s, e) => e.fertilising && s.outdoor && s.weather === null ? "outdoor plant and no forecast to rule out frost" : null },
   { id: "G-10", why: (s, e) => e.goOutside && s.storm ? "storm warning" : null },
   { id: "G-11", why: (s, e) => e.goOutside && s.frost ? `frost forecast (${s.weather?.minTempC} C)` : null },
+  { id: "G-13", why: (s, e) => e.watering && s.outdoor && s.weather === null ? "outdoor plant and no valid forecast to rule out frost or rain" : null },
   { id: "G-12", why: (s, e) => e.directSun && s.heat ? "heat warning or forecast maximum >= 30 C" : null },
 ];
 

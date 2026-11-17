@@ -1,7 +1,7 @@
 // Care-tips engine, slice 1 (4.B3): rule-based candidates -> optional injected text assistant -> deterministic guardrails.
 // Requirements: FR-P02, FR-P04, ADR-006 (TIPS_MODE rule_based | live), A-029. No I/O of its own: weather and the text
 // assistant are injected, the clock is a parameter. No LLM, no keys, no network in this slice.
-import { applyGuardrails, deriveState, GUARDRAIL_VERSION, validateProposals } from "./guardrails.ts";
+import { applyGuardrails, deriveState, GUARDRAIL_VERSION, validateProposals, validForecast } from "./guardrails.ts";
 import type { AssistantContext, Evidence, Forecast, GuardrailState, PlantInput, ReadingInput, TextAssistant, Tip, TipCategory, TipsResult, WeatherProvider } from "./types.ts";
 import { TipsError } from "./types.ts";
 
@@ -78,7 +78,10 @@ export async function generateTips(req: TipsRequest, deps: TipsDeps): Promise<Ti
   const notes: string[] = [];
   let weather: Forecast | null = null;
   if (req.plant.city) {
-    try { weather = await deps.weather.forecast(req.plant.city); } catch (e) { notes.push(`weather_unavailable:${(e as Error).message}`); }
+    try {
+      const f: unknown = await deps.weather.forecast(req.plant.city);
+      if (validForecast(f)) weather = f; else notes.push("weather_unavailable:invalid forecast from provider");
+    } catch (e) { notes.push(`weather_unavailable:${(e as Error).message}`); }
   } else notes.push("weather_unavailable:no city");
   const s = deriveState(req.plant, req.readings, weather, req.now);
   if (s.moisturePct === null) notes.push("no_fresh_reading");
