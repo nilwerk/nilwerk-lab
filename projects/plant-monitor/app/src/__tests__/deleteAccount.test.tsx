@@ -77,9 +77,9 @@ describe('delete states (FR-A01)', () => {
 
   test.each([
     ['401 unauthorized', new AuthError('unauthorized'), /Your session has expired\. Nothing was removed/],
-    ['network', new AuthError('network'), /No connection\. Nothing was removed/],
-    ['server error', new AuthError('server'), /The account could not be deleted\. Nothing was removed/],
-    ['unknown error', new AuthError('unknown'), /The account could not be deleted\. Nothing was removed/],
+    ['network', new AuthError('network'), /No connection, so we do not know whether the deletion went through/],
+    ['server error', new AuthError('server'), /The account could not be deleted, and some of your data may already be gone/],
+    ['unknown error', new AuthError('unknown'), /The account could not be deleted, and some of your data may already be gone/],
   ])('%s: message shown, account kept, button usable again for a retry', async (_n, err, msg) => {
     const auth = createFakeAuth();
     const { spy } = await ready(auth);
@@ -92,5 +92,17 @@ describe('delete states (FR-A01)', () => {
     await fireEvent.press(delBtn());
     expect(await screen.findByRole('header', { name: 'Plant Monitor' })).toBeTruthy();
     expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  test('401 on the retry after a network error does not claim "session expired" (the first attempt may have deleted the account)', async () => {
+    const auth = createFakeAuth();
+    await ready(auth);
+    auth.options.deleteError = new AuthError('network');
+    await fireEvent.press(delBtn());
+    expect(await screen.findByText(/No connection, so we do not know/)).toBeTruthy();
+    auth.options.deleteError = new AuthError('unauthorized');
+    await fireEvent.press(delBtn());
+    expect(await screen.findByText(/may already have been deleted/)).toBeTruthy();
+    expect(screen.queryByText(/session has expired/)).toBeNull();
   });
 });

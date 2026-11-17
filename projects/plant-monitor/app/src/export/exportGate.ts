@@ -1,7 +1,7 @@
-// Export before delete (A-022, openapi.yaml /plants/{id} and /account: "the app MUST show a warning first and offer the JSON/CSV export").
+// Export before delete. Plant removal: A-022, openapi.yaml /plants/{id} ("the app MUST show a warning first and offer the JSON/CSV export"). Account delete: NFR-07 + openapi.yaml /account ("Export (FR-A08) before deleting is the app's job, not enforced here"); A-022 is about plant removal, not the account.
 // Deleting is allowed only after an export has run in this session AND the exact name is typed. Pure function, tested in __tests__/exportGate.test.ts.
 // Requirements: NFR-07 (delete removes all data, export first), FR-A08 (remove plant), FR-A01 (account delete: DeleteAccountScreen, 4.A2).
-// There is NO skip option: the requirements (NFR-07 / A-022 "export first") name none, and the OpenAPI says the app MUST offer the export first. A skip needs an owner decision (see the PR, Needs Arsany).
+// There is NO skip option: the requirements (NFR-07, A-022 for plants) name none, and the OpenAPI says the app does the export first. A skip needs an owner decision (see the PR, Needs Arsany).
 export interface DeleteGate {
   /** an export (GET /export) has completed successfully */
   exported: boolean;

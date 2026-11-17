@@ -38,6 +38,8 @@ Profile -> "Add a sensor" -> S10 find sensor, S11 connect (type the label code),
 - `DELETE /account` is the edge function `delete-account` (deployed on project nilwerk-cloud, 4.B2b; route `/functions/v1/delete-account`, client `src/account/accountApi.ts`). Never run against the live project from the app (fakes and a fake fetch only). Base URL and publishable key come from the build env `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`, not from code.
 - No forgot-password, no data export, no plant list (the setup flow exists in 4.A3 but only against a fake). Export warning for plant removal is A-022 (separate).
 - `handle_new_user()` stores only the id, so the sign-up display name is kept in auth user metadata and copied into `profiles.display_name` on the first profile load.
+- **TODO (new task, C2 of Theo's review of PR #117):** the real `GET /export` client is not built, so the export gate can never open in a real build and account delete is blocked there (only the mock build can delete). Build the client plus the file hand-off (share sheet or download), then wire it into `DeleteAccountScreen` and the real `PlantsService`.
+- Delete error wording is honest on purpose: the function releases devices and deletes photos before the auth user, so a 5xx or a dropped connection can leave data partly gone. A 401 after such an error is shown as "may already be deleted, sign in again to check", not "session expired".
 - Apple/Google sign-in, store assets and the Expo dev build for BLE are later tasks.
 
 ## 4.A4 slice 1: plants (list, detail, remove)

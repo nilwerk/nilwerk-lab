@@ -1,19 +1,22 @@
-// S04 Delete account. Requirements: FR-A01 (delete account, 0 rows remain), NFR-07 (all personal data removed; export first, A-022).
+// S04 Delete account. Requirements: FR-A01 (delete account, 0 rows remain), NFR-07 (all personal data removed; export first: openapi.yaml /account says the app does it, the server does not enforce it).
 // Calls DELETE /account {confirm:"DELETE"} through AuthService.deleteAccount (src/account/accountApi.ts -> edge function delete-account, docs/interfaces/openapi.yaml).
 // Gate: the delete runs only after a successful export (JSON or CSV) AND the typed word DELETE (src/export/exportGate.ts). There is no skip (see exportGate.ts).
 // User-visible states: idle, exporting, export failed, export ready, deleting, success (session ends -> welcome screen), 401 (session expired), network, server/other error.
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
 import { usePlants } from '../plants/PlantsContext';
 import type { ExportResult } from '../plants/types';
 import { AuthError } from '../auth/types';
-import { canDelete, deleteAccountGated } from '../export/exportGate';
+import { DeleteGateError, canDelete, deleteAccountGated } from '../export/exportGate';
 
-export const deleteErrorKey = (e: unknown): string => {
+/** `afterUncertain`: an earlier attempt in this screen ended in network/server/unknown, so the delete may have partly or fully run (the function releases devices and deletes photos before the auth user). A 401 then can mean "already erased", not "session expired". */
+export const deleteErrorKey = (e: unknown, afterUncertain = false): string => {
+  if (e instanceof DeleteGateError) return 'deleteAccount.error.gate';
   const code = e instanceof AuthError ? e.code : 'unknown';
-  return code === 'network' ? 'deleteAccount.error.network' : code === 'unauthorized' ? 'deleteAccount.error.unauthorized' : 'deleteAccount.error';
+  if (code === 'unauthorized') return afterUncertain ? 'deleteAccount.error.unauthorizedAfterError' : 'deleteAccount.error.unauthorized';
+  return code === 'network' ? 'deleteAccount.error.network' : 'deleteAccount.error';
 };
 
 export function DeleteAccountScreen({ onCancel }: { onCancel: () => void }) {
@@ -25,6 +28,7 @@ export function DeleteAccountScreen({ onCancel }: { onCancel: () => void }) {
   const [exported, setExported] = useState<ExportResult | null>(null);
   const [exportError, setExportError] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const uncertain = useRef(false); // an attempt failed in a way that may have deleted data
   const gate = { exported: exported !== null, typed, expected: t('deleteAccount.confirmWord') };
   const allowed = canDelete(gate);
 
@@ -39,7 +43,9 @@ export function DeleteAccountScreen({ onCancel }: { onCancel: () => void }) {
     try {
       await deleteAccountGated(gate, () => service.deleteAccount()); // success ends the session -> AuthProvider shows the welcome screen
     } catch (e) {
-      setError(t(deleteErrorKey(e)));
+      const code = e instanceof AuthError ? e.code : 'unknown';
+      setError(t(deleteErrorKey(e, uncertain.current)));
+      if (code !== 'unauthorized' && !(e instanceof DeleteGateError)) uncertain.current = true;
       setBusy(false);
     }
   };

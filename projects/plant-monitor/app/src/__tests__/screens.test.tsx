@@ -129,7 +129,7 @@ describe('signed-in flow', () => {
     await screen.findByText(/You can delete now/);
     await type('Type DELETE to confirm', 'DELETE');
     await tap('Delete everything');
-    expect(await screen.findByText(/No connection\. Nothing was removed/)).toBeTruthy();
+    expect(await screen.findByText(/No connection, so we do not know whether the deletion went through/)).toBeTruthy();
     expect(svc.accounts).toHaveLength(1);
   });
 });

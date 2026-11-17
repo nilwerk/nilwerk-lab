@@ -1,4 +1,4 @@
-// Export-before-delete gate (A-022, NFR-07, openapi.yaml: "the app MUST offer the JSON/CSV export before removal"). Pure logic, no UI.
+// Export-before-delete gate (NFR-07; plant removal A-022 + openapi /plants/{id}; account delete openapi /account "Export before deleting is the app's job"). Pure logic, no UI.
 import { canDelete } from '../export/exportGate';
 
 describe('canDelete (export before delete)', () => {
