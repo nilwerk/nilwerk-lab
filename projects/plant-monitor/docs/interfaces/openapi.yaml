@@ -232,24 +232,62 @@ paths:
     get:
       tags: [app]
       summary: Export all of the user's data (JSON or CSV)
-      x-requirements: [NFR-07, FR-A01]
+      x-requirements: [NFR-07, FR-A01, NFR-06]
       description: |
-        Available to free and premium users alike, covers all retained data (12 months of readings),
-        and is not subject to the 7-day free-user read window of the readings policy.
-        format=json: one JSON document {exported_at, profile, plants, devices, readings, events, alerts,
-        tips, photos:[{plant_id, taken_at, url}]}; photo URLs are signed Storage URLs valid 7 days
-        (photos are linked, not embedded) [proposed].
-        format=csv: application/zip with plants.csv, devices.csv, readings.csv, events.csv, alerts.csv, tips.csv
-        (UTF-8, header row, ISO-8601 UTC timestamps, one row per record).
-        Size/time limits of the Supabase function runtime are UNVERIFIED; if a large export times out, move to an async job (4.B1 to confirm).
+        Implemented in task 4.B2c by the edge function `export` (cloud/supabase/functions/export, `verify_jwt = false`; the function verifies
+        the user JWT itself with auth.getUser, NFR-06). The user is ONLY the one the token identifies; no parameter can name another user,
+        and every table is read with an explicit owner filter (service-role SQL function export_account, migration ..0008).
+        Available to free and premium users alike, covers all retained data (raw readings 3 months, hourly roll-up 12 months), and is not
+        subject to the 7-day free-user read window of the readings policy. No device tokens, API-key hashes, push tokens or claim tokens.
+        format=json: one JSON document {exported_at, profile, plants, devices, readings, readings_hourly, events, alerts, tips,
+        photos:[{id, plant_id, taken_at, url, expires_at, file}]}. `plants` is always a top-level array (the app client rejects anything
+        else); an account without data answers 200 with empty arrays, never an empty body.
+        Photos are linked, not embedded: `url` is a signed Storage URL valid 7 days, `expires_at` its absolute end (exported_at + 7 days),
+        `file` the name to save it under ('<plant_id>/<uuid>.jpg'). The APP downloads the photos from these URLs before it unlocks account
+        deletion (A-107 option b); after deletion the Storage objects are gone. A photo whose Storage object is missing has url and
+        expires_at null. If Storage signing fails, the whole request fails with 500 (never a document without photo links).
+        format=csv: application/zip with plants.csv, devices.csv, readings.csv, readings_hourly.csv, events.csv, alerts.csv, tips.csv,
+        photos.csv (id, plant_id, taken_at, url, expires_at, file) (UTF-8, header row, ISO-8601 UTC timestamps, one row per record,
+        RFC 4180 quoting; text cells starting with = + - @ get a leading ' against spreadsheet formula injection).
+        Responses are `Cache-Control: no-store`. Size/time limits of the Supabase function runtime are UNVERIFIED (the document is built
+        in memory); if a large export times out, move to an async job (4.B1 to confirm). Not run against a live project.
       security: [{ userJwt: [] }]
       parameters: [{ name: format, in: query, required: true, schema: { type: string, enum: [json, csv] } }]
       responses:
         "200":
           description: Export
           content:
-            application/json: { schema: { type: object } }
+            application/json:
+              schema:
+                type: object
+                required: [exported_at, profile, plants, devices, readings, readings_hourly, events, alerts, tips, photos]
+                properties:
+                  exported_at: { type: string, format: date-time }
+                  profile: { type: [object, "null"] }
+                  plants: { type: array, items: { type: object } }
+                  devices: { type: array, items: { type: object } }
+                  readings: { type: array, items: { type: object } }
+                  readings_hourly: { type: array, items: { type: object } }
+                  events: { type: array, items: { type: object } }
+                  alerts: { type: array, items: { type: object } }
+                  tips: { type: array, items: { type: object } }
+                  photos:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, plant_id, taken_at, url, expires_at, file]
+                      properties:
+                        id: { type: string, format: uuid }
+                        plant_id: { type: string, format: uuid }
+                        taken_at: { type: string, format: date-time }
+                        url: { type: [string, "null"], description: "Signed Storage URL, valid 7 days; null if the object is missing" }
+                        expires_at: { type: [string, "null"], format: date-time }
+                        file: { type: string }
             application/zip: { schema: { type: string, format: binary } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
+        "500": { $ref: "#/components/responses/Internal" }
   /account:
     delete:
       tags: [app]

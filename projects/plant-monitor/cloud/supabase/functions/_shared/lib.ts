@@ -12,6 +12,11 @@ export interface Deps {
   deleteUserPhotos(userId: string, knownPaths: string[]): Promise<{ message: string } | null>;
   /** Deletes the auth.users row (FK cascade removes the user's data). A user that does not exist anymore is NOT an error (idempotent). */
   deleteAuthUser(userId: string): Promise<{ message: string } | null>;
+  /**
+   * Signs Storage paths of the private bucket plant-photos for `expiresInSeconds` (only used by GET /export). A whole-call failure is `{error}`;
+   * a single object that cannot be signed (missing in Storage) is `null` in `urls`.
+   */
+  signPhotoUrls(paths: string[], expiresInSeconds: number): Promise<{ urls: Record<string, string | null> } | { error: { message: string } }>;
 }
 
 export const MAX_BODY_BYTES = 64 * 1024;   // openapi /ingest 413

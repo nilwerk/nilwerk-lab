@@ -1,0 +1,25 @@
+# cloud/test/mutation.sh, final run (first run: EX-13 survived, a test for the zip local-header CRC was added, then all 61 killed)
+baseline (no mutation) must pass:
+baseline ok
+killed    EX-1 no token check (any caller is treated as the user)  (✖ NFR-07, NFR-06: wrong method -> 405, missing/invalid token -> 401; nothing is 
+killed    EX-2 any HTTP method exports  (✖ NFR-07, NFR-06: wrong method -> 405, missing/invalid token -> 401; nothing is read or signed before the t
+killed    EX-3 format not validated  (✖ NFR-07: format must be json or csv (missing, other case, list, empty -> 400); no data access for a bad for)
+killed    EX-4 user taken from a query parameter (cross-user)  (✖ NFR-07, FR-A01, FR-A06: JSON export has the top-level plants array, ALL of E's ret
+killed    EX-5 photo URL lifetime 7 days -> 1 day  (✖ NFR-07, A-107(b): photos are 7-day signed URLs with an absolute expires_at, only E's paths are
+killed    EX-6 signing failure ignored (export without photo links)  (✖ NFR-07: a photo whose Storage object is missing gets url null (export still 
+killed    EX-7 foreign storage path is signed  (✖ NFR-06: a photo row whose path is not under the caller's folder is never signed (defence in depth)
+killed    EX-8 expires_at not exported_at + 7 days  (✖ NFR-07, A-107(b): photos are 7-day signed URLs with an absolute expires_at, only E's paths ar
+killed    EX-9 Cache-Control: no-store dropped  (✖ NFR-07, FR-A01, FR-A06: JSON export has the top-level plants array, ALL of E's retained data (old
+killed    EX-10 CSV formula-injection guard removed  (✖ csvCell: RFC 4180 quoting and formula-injection guard for strings only (numbers keep their s
+killed    EX-11 CSV guard also mangles numbers (-3.5 -> '-3.5)  (✖ csvCell: RFC 4180 quoting and formula-injection guard for strings only (numbers k
+killed    EX-12 CSV cells never quoted  (✖ csvCell: RFC 4180 quoting and formula-injection guard for strings only (numbers keep their sign) (0.88595
+killed    EX-13 zip CRC not written  (✖ zipStore: local header and central directory agree with each other and with node:zlib's crc32 (streaming r)
+killed    EX-S1 readings of ALL users exported (cross-user)  (✖ NFR-07, FR-A01, FR-A06: JSON export has the top-level plants array, ALL of E's retai
+killed    EX-S2 plants of ALL users exported (cross-user)  (✖ NFR-07, FR-A01, FR-A06: JSON export has the top-level plants array, ALL of E's retaine
+killed    EX-S3 photo rows of ALL users exported (cross-user)  (✖ NFR-07, FR-A01, FR-A06: JSON export has the top-level plants array, ALL of E's ret
+killed    EX-S4 export limited to the 7-day free window  (✖ NFR-07, FR-A01, FR-A06: JSON export has the top-level plants array, ALL of E's retained 
+killed    EX-S5 tips only for premium (RLS policy leaks into export)  (✖ NFR-07, FR-A01, FR-A06: JSON export has the top-level plants array, ALL of 
+killed    EX-S6 hourly roll-up missing owner filter (cross-user)  (✖ NFR-07, FR-A01, FR-A06: JSON export has the top-level plants array, ALL of E's 
+killed    EX-S7 API roles may execute export_account  (✖ NFR-06: the SQL function is service_role only (API roles get permission denied), and only r
+mutants: 61, survived: 0
+MUTATION CHECK PASSED (all mutants killed)

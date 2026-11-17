@@ -146,11 +146,11 @@ jobs:
         with:
           deno-version: "2.1.4"          # the version this was verified with
       - run: deno lint supabase/functions
-      # Care-tips engine (4.B3): plain TypeScript with no I/O, not under supabase/functions. Lint covers the sources only: tips/test/tips.test.ts has
-      # 5 deno lint require-await findings (async stubs, lines 15 21 154 175 194), for the owner to fix; not silenced, not skipped here.
-      - run: deno lint tips/*.ts
+      # Care-tips engine (4.B3): plain TypeScript with no I/O, not under supabase/functions. Lint covers the sources AND all tips test files
+      # (the require-await and no-explicit-any findings in the tests were fixed in code, no rule is silenced or skipped).
+      - run: deno lint tips/*.ts tips/test/*.test.ts
       - name: Typecheck entry points and the test files
-        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts tips/*.ts tips/test/tips.test.ts
+        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts test/functions/export.test.ts tips/*.ts tips/test/*.test.ts
 
   cloud-db:
     name: cloud DB tests
