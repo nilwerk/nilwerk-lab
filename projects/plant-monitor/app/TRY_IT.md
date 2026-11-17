@@ -130,16 +130,16 @@ Set before `expo start` (names only; values come from Arsany and are never commi
 
 ## 4. Can we connect the app to the sensor today?
 
-**No.** Not for a real sensor, not even with a dev build. Three pieces are missing, and all three are needed:
+**No.** Not for a real sensor, not even with a dev build. Four pieces are missing, and all four are needed:
 
 | Gap | Where it is today | Task that closes it | State |
 |---|---|---|---|
-| App side: a real BLE `ProvisioningService` (scan for the service UUID, connect with the label code, send Wi-Fi and claim token) | Only `fakeProvisioning.ts` and `unavailableProvisioning()` exist. The BLE library is not in `package.json`; no dev build config; no QR scanning (`expo-image-picker` / camera also missing) | 4.A3 real-BLE slice (dev build on iOS and Android) | not started |
-| Sensor side: the setup flow switched on in firmware | The v1 bench build sets `CONFIG_PLANT_SETUP_FLOW=n` (BLE setup flow off). With it on, a never-provisioned unit deep sleeps with no timer before reading any sensor | firmware tasks 4.F1 / 4.F2 (setup flow on the real board), tracked by Mira | off in v1 bench; nothing has run on hardware |
-| Sensor side: the hourly upload adapter (real HTTP over TLS and Wi-Fi to `/ingest`, with the per-device token) | Upload logic is host-tested with a fake transport only; `PLANT_API_BASE_URL` stays `https://api.invalid` (A-082) | 4.F3 | slice 2 done on the host, no real transport |
-| Cloud side: reading plant data in the app | Real plants service for list, detail, photos is missing; export function missing | app real `PlantsService` (4.A4 follow-up), 4.B2c (export) | not started |
+| App side: a real BLE `ProvisioningService` (scan for the service UUID, connect with the label code, send Wi-Fi and claim token) | Only `fakeProvisioning.ts` and `unavailableProvisioning()` exist. The BLE library is not in `package.json`; no dev build config; no QR scanning (`expo-image-picker` / camera also missing) | 4.A3b (real BLE `ProvisioningService`, dev build, QR/camera, real `PlantSetupService`; app side) | not started |
+| Sensor side: the setup flow switched on in firmware | The v1 bench build sets `CONFIG_PLANT_SETUP_FLOW=n` (BLE setup flow off). With it on, a never-provisioned unit deep sleeps with no timer before reading any sensor | 4.F2b (firmware setup flow on, per-unit security-2 provisioning), Mira | off in v1 bench; nothing has run on hardware |
+| Sensor side: the hourly upload adapter (real HTTP over TLS and Wi-Fi to `/ingest`, with the per-device token) | Upload logic is host-tested with a fake transport only; `PLANT_API_BASE_URL` stays `https://api.invalid` (A-082) | 4.F3 (firmware upload adapter, remaining slices) | slice 2 done on the host, no real transport |
+| Cloud side: reading plant data in the app | Real plants service for list, detail, photos is missing; export function missing | 4.A4c (real `PlantsService`), 4.B2c (export edge function, Sana, in progress) | not started |
 
-Until all rows are closed the honest status of "can a first-time user set up a sensor in three minutes?" (NFR-03) is **untestable**. Test 5.5 on a real phone is the check; 4.A3 is Done only after it.
+Until all rows are closed the honest status of "can a first-time user set up a sensor in three minutes?" (NFR-03) is **untestable**. Test 5.5 on a real phone is the check; 4.A3b is Done only after it.
 
 ## 5. What to try first (suggested order for a 15 minute session)
 1. 1 + 2.1 (sign up, profile). 2. 2.3 and 2.4 (list, detail, chart, table). 3. 2.2 including the wrong code five times and the wrong Wi-Fi password. 4. 2.6 and 2.7 (the delete gates).
