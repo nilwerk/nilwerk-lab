@@ -56,7 +56,7 @@ export function DeleteAccountScreen({ onCancel }: { onCancel: () => void }) {
       <Body muted>{t('deleteAccount.exportHint')}</Body>
       <Button label={t('deleteAccount.exportJson')} variant="secondary" disabled={exporting !== null || busy} busy={exporting === 'json'} onPress={() => runExport('json')} />
       <Button label={t('deleteAccount.exportCsv')} variant="secondary" disabled={exporting !== null || busy} busy={exporting === 'csv'} onPress={() => runExport('csv')} />
-      {exported ? <Notice kind="info" text={t('deleteAccount.exported', { fileName: exported.fileName, photoCount: exported.photoCount })} /> : null}
+      {exported ? <Notice kind="info" text={exported.photoCount === null ? t('deleteAccount.exportedNoCount', { fileName: exported.fileName }) : t('deleteAccount.exported', { fileName: exported.fileName, photoCount: exported.photoCount })} /> : null}
       {exportError ? <Notice kind="error" text={t('deleteAccount.exportError')} /> : null}
       {!exported ? <Body muted>{t('deleteAccount.exportRequired')}</Body> : null}
       {error ? <Notice kind="error" text={error} /> : null}

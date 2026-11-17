@@ -28,4 +28,6 @@ export interface AuthService {
   updateDisplayName(name: string): Promise<void>;
   /** DELETE /account with {confirm:"DELETE"} (openapi.yaml /account, edge function delete-account), then drops the local session. Rejects with AuthError: unauthorized (401 / no session), network, server (5xx), unknown. The export-before-delete gate is the caller's job (src/export/exportGate.ts deleteAccountGated). */
   deleteAccount(): Promise<void>;
+  /** Current session's access token (JWT) for calls to our own edge functions (GET /export), or null when signed out. */
+  getAccessToken(): Promise<string | null>;
 }

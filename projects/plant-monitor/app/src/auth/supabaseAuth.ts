@@ -91,6 +91,11 @@ export function createSupabaseAuth(cfg: AppConfig): AuthService {
       const { error } = await client.from('profiles').update({ display_name: name.trim() || null }).eq('id', ures.user.id);
       if (error) throw mapError(error);
     },
+    async getAccessToken() {
+      const { data, error } = await client.auth.getSession();
+      if (error) throw mapError(error);
+      return data.session?.access_token ?? null;
+    },
     async deleteAccount() {
       const { data, error } = await client.auth.getSession();
       if (error) throw mapError(error);

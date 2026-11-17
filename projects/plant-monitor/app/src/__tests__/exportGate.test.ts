@@ -38,8 +38,4 @@ describe('deleteAccountGated', () => {
   });
 });
 
-// Gate from Theo's review of PR #114 (N2): exportData returns metadata only, no file reaches the user yet.
-describe('real client gate (not built)', () => {
-  test.todo('real PlantsService must not replace unconfiguredPlants until the export file hand-off (share sheet or download) exists');
-  test.todo('exported is set only after the file hand-off succeeded, not when exportData resolves');
-});
+// The two gates from Theo's review of PR #114 (N2) are tests now: realPlants.test.ts (exported only after the hand-off) and fileHandOff.test.ts.

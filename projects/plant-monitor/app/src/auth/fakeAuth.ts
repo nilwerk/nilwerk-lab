@@ -46,6 +46,7 @@ export function createFakeAuth(opts: FakeAuthOptions = {}): AuthService & { acco
     async signOut() { maybeFail(); current = null; emit(); },
     async getProfile() { maybeFail(); return { ...me().profile }; },
     async updateDisplayName(name) { maybeFail(); me().profile.displayName = name.trim() || null; },
+    async getAccessToken() { return current ? 'fake-access-token' : null; },
     async deleteAccount() {
       if (opts.deleteError) throw opts.deleteError;
       if (opts.deleteFails) throw new AuthError('network');

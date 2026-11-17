@@ -1,0 +1,4 @@
+$ npx tsc --noEmit  -> clean
+$ npx jest
+Test Suites: 18 passed, 18 total
+Tests:       220 passed, 220 total
