@@ -45,7 +45,12 @@ if(NOT MSVC)
     target_link_options(${t} PRIVATE -fsanitize=address,undefined)
   endforeach()
 endif()
+# v1 perfboard board config (SuperMini, v1/WIRING.md section 3)
+add_executable(test_board_v1 test_board_v1.c)
+target_include_directories(test_board_v1 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/stub_v1)
+target_compile_options(test_board_v1 PRIVATE -Wall -Wextra -Werror)
 enable_testing()
+add_test(NAME board_v1_unit COMMAND test_board_v1)
 add_test(NAME glue_unit COMMAND test_glue)
 add_test(NAME sensors_unit COMMAND test_sensors)
 add_test(NAME provisioning_unit COMMAND test_prov)
@@ -63,4 +68,12 @@ if(Python3_FOUND)
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mutate_prov.py ${CMAKE_C_COMPILER})
   add_test(NAME mutation_checks
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mutate.py ${CMAKE_C_COMPILER})
+  add_test(NAME board_v1_matches_wiring
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_board_v1.py)
+  add_test(NAME board_v1_check_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_board_v1.py --selftest)
+  add_test(NAME api_url_not_committed
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_api_url_not_committed.py)
+  add_test(NAME api_url_check_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_api_url_not_committed.py --selftest)
 endif()
