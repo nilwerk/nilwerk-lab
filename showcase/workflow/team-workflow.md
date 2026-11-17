@@ -16,7 +16,7 @@ engineer (Arsany) and supported by a human hardware integrator. This page is saf
 | Sana · Cloud AI | AI features in the cloud, with safety rules |
 | Emil · PCB designer | Circuit boards, simulated before anything is ordered |
 | Yara · 3D designer | Enclosures designed for printing and real use |
-| Poppy · PR & Social | Shows the work, with proof |
+| Poppy · PR & Social | Shows the work, with proof, and tells it as a fun series with clearly marked fiction |
 | Max · Sales | Finds and contacts companies who need prototypes |
 | **Arsany** (human) | Owner. Decides, approves and merges |
 | **Hardware integrator** (human) | Assembles, flashes and bench-tests the real hardware |
@@ -59,6 +59,10 @@ The team works seven days a week. On Sunday 8 Nov five builders ran in parallel,
 - When the owner asks for another round on the same day, the lead runs a full extra round (builders, architect, QA, pipeline) and logs the extra hours; the usual limit of one task per role per day is lifted for that day.
 - Every agent works in its **own copy of the repository** (a git worktree) and pushes only fast-forward, never forced; before opening a task branch it checks that no other branch for the same task exists. This rule came from a real collision: on 8 Nov two lead sessions produced the same backend task twice.
 - Stacked changes state their merge order in the description and are re-targeted to `main` once the parent has merged.
+
+## Telling it with personality (since 17 Nov 2026)
+
+The owner asked for posts that show the team's technical work in a fun way: graphics, video with sound and imagination, with the agents as a team that has a life. Poppy now writes **episodes**: a made-up crew life (feelings, rivalries, hobbies, jokes; dashed orange in every image) wrapped around a real event of the day (solid green box with sources). Hard rules: the crew are AI agents and every post says so; the private lives are fiction and never contain a number or a result; nothing is invented about real people (the owner and the hardware tester appear only as themselves, doing real approved things); every fact has a source row that Theo checks; what does not work yet is stated; Arsany approves and publishes. First season: `content/2026-11-17/`; voice guide: `brand/brand-kit.md` section 5c.
 
 ## What makes it trustworthy
 

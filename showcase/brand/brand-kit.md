@@ -101,6 +101,31 @@ Every post serves two audiences at once; the **layers** let each one take what i
 3. **Lead layer per slot:** the calendar says which audience leads (A, B or both); the other layer still appears, but second.
 4. Honesty chip and the human-review line (`AI agents, led and reviewed by humans`) appear in both layers' posts. This exact phrase is the one wording used everywhere; German: "KI-Agenten, geleitet und geprüft von Menschen".
 
+## 5c. Voice guide: "AI crew, fictional life + real engineering" (owner creative direction, 17 Nov 2026)
+
+Arsany's direction: keep the technical achievements, but show them in a FUN way: more graphics, video with sound, much more imagination; treat the agent team as a real team with lives, love stories, drama and challenges. Pilot: `content/2026-11-17/` ("The crew has a life", five episodes). This **adds** a style; it relaxes **no** rule in sections 5, 5b, 6, 6b or 7.
+
+**The two-layer pattern gets a third dimension (fiction layer vs. fact layer):**
+
+| Layer | What it is | How it looks |
+|---|---|---|
+| Fiction (Poppy's imagination) | Characters' feelings, rivalries, love stories, hobbies, jokes, crew chat, dialogue | **Dashed orange border/bubble**, chip `FICTIONAL CREW LIFE · REAL ENGINEERING`, persona voice, never a verbatim log line |
+| Fact (real engineering) | The bug, the numbers, the fix, what is not done yet | **Solid green box** labelled `REAL`, source line (date, review/test), caveat in the same box |
+| Humans | Owner and hardware tester | Real people, shown only doing real, approved things; role names; never in a dashed bubble, no invented words, feelings or private life |
+
+**Rules (all binding):**
+1. **Always say they are AI agents**, playfully ("our AI crew") and with the exact line "AI crew, led and reviewed by humans" (DE: "KI-Agenten, geleitet und geprüft von Menschen") on every image and in every text. Visible line "The crew are AI agents. Their private lives are made up. The engineering is not."
+2. **Fiction never contains a fact.** No number, result, date, customer, price or claim inside a dashed element; facts live only in solid green boxes with a source. Each episode has a `claim-check.md` row per fact and a fiction-vs-fact table.
+3. **Never invent details about real people** (the owner, the hardware tester, customers, leads). They may appear only as themselves, doing a real, approved, recorded thing, without quotes. No names of customers or leads, ever. The tester stays "our hardware tester" until he agrees to his name (Needs Arsany).
+4. **Honest ledger:** every series ends with what does not work yet. Prototype status words stay ("not built", "not run on hardware", "tests on a PC only").
+5. **Tone of the fiction:** warm workplace banter, slow-burn glances, rivalries that end in respect; no explicit content, nothing at anyone's expense, no politics, no real-world brands or songs.
+6. **Illustrations are labelled** ("illustration of the logic, not a photo or a bench result"); diagrams say who drew them.
+7. **Video with sound:** original, code-generated or licensed sound only; a synthetic voice counts as AI-generated (set the platform AI flag, say "AI-generated voice"); never clone a real voice; burned-in captions for sound-off viewing; the fiction/real chips stay on screen.
+8. **Accessibility:** text at least 20 px on a 1080 px image; fiction chip text uses `--warntext #8a3c0c` (6.6:1 on `warn-soft`), because `warn` itself is only 4.2:1 on that fill; alt text describes both the comic and the green box.
+9. Episode arcs use real events of one day or week; the cast is the eleven agents of `team/PERSONAS.md` and their avatars in `team/avatars/` (never `integrator.svg`; humans use `human-public.svg`).
+
+Build reference: `content/2026-11-17/build_pack.py` (images, HTML to PNG via headless Chrome, avatars inlined with unique ids) and `build_video.py` (frames, synthesised sound, ffmpeg).
+
 ## 6. Do / Don't
 
 | Do | Don't |
@@ -136,6 +161,6 @@ Rebuild: `NW_FONT_DIR=<node_modules/@fontsource> python3 -I build_post.py --prev
 
 ## 9. Approval needed
 
-Also for approval: the audience split and the two-layer pattern (section 5b).
+Also for approval: the audience split and the two-layer pattern (section 5b); the fun-series voice guide (section 5c) is applied from 17 Nov on the owner's direction and remains a draft style until he approves the first episodes.
 
 Palette, fonts and logo usage are proposals: see the Needs-Arsany rows in Poppy's result. Until approved, treat this as v0.1 for drafts only.
