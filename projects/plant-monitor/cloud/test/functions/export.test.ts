@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { crc32 as zlibCrc32 } from "node:zlib";
-import { handleExport, CSV_COLUMNS, PHOTO_URL_TTL_SECONDS, csvCell, toCsv, zipStore, crc32 } from "../../supabase/functions/_shared/export.ts";
+import { handleExport, CSV_COLUMNS, PHOTO_URL_TTL_SECONDS, isSafePhotoPath, csvCell, toCsv, zipStore, crc32 } from "../../supabase/functions/_shared/export.ts";
 import type { Deps } from "../../supabase/functions/_shared/lib.ts";
 import { psql, psqlDeps, signCtl, signed } from "./psql_deps.ts";
 
@@ -183,6 +183,61 @@ test("NFR-06: a photo row whose path is not under the caller's folder is never s
   assert.ok(!signed[0].paths.includes(foreign));
   assert.equal(doc.photos.length, 3); assert.equal(doc.photos.filter((p: any) => p.url === null).length, 1);
   q(`delete from public.plant_images where storage_path = :'a'`, { a: foreign });
+});
+
+// ---- 4.B2c-fix (QA N1): path traversal in plant_images.storage_path
+const UE = E, PL = "11111111-1111-1111-1111-111111111111", FL = "22222222-2222-2222-2222-222222222222.jpg";
+const BAD_PATHS: [string, string][] = [
+  ["dot-dot traversal into F's folder", `${E}/../${F}/${PL}/${FL}`],
+  ["dot-dot at the end", `${E}/${PL}/..`],
+  ["dot-dot inside a name", `${E}/${PL}/a..b.jpg`],
+  ["leading slash", `/${E}/${PL}/${FL}`],
+  ["backslash separator", `${E}\\${PL}\\${FL}`],
+  ["backslash traversal", `${E}/${PL}\\..\\${F}\\x.jpg`],
+  ["no user-id prefix", `${PL}/${FL}`],
+  ["foreign user's prefix", `${F}/${PL}/${FL}`],
+  ["near-prefix (uid + extra char)", `${E}x/${PL}/${FL}`],
+  ["uid only, no file", `${E}/`],
+  ["too many segments", `${E}/${PL}/sub/${FL}`],
+  ["empty segment", `${E}//${FL}`],
+  ["dot segment", `${E}/./${FL}`],
+  ["percent-encoded traversal", `${E}/%2e%2e/${F}/${FL}`],
+  ["control character", `${E}/${PL}/a\nb.jpg`],
+  ["not a string (null)", null as unknown as string],
+];
+test("NFR-06 (QA N1): isSafePhotoPath accepts only <uid>/<folder>/<file> and rejects every traversal form", () => {
+  assert.equal(isSafePhotoPath(UE, `${E}/${PL}/${FL}`), true);
+  assert.equal(isSafePhotoPath(UE, `${E}/${PL}/a.b-c_d.jpg`), true, "dots inside a name are fine");
+  for (const [why, p] of BAD_PATHS) assert.equal(isSafePhotoPath(UE, p), false, why);
+});
+test("NFR-06 (QA N1): handler never signs a hostile photo path and returns url null for it, the safe photo is still signed", async () => {
+  const good = `${E}/${PL}/${FL}`;
+  const rows = [good, ...BAD_PATHS.slice(0, -1).map(([, p]) => p)].map((storage_path, i) => ({ id: `i${i}`, plant_id: PL, taken_at: "2026-01-01T00:00:00Z", storage_path }));
+  const empty = { plants: [], devices: [], readings: [], readings_hourly: [], events: [], alerts: [], tips: [], profile: {}, photo_rows: rows };
+  const paths: string[] = [];
+  const { deps } = spy({
+    rpc: async () => ({ data: empty, error: null }),
+    signPhotoUrls: async (ps: string[]) => { paths.push(...ps); return { urls: Object.fromEntries(ps.map((x) => [x, `https://storage.test/${x}`])) }; },
+  });
+  const r = await get(deps, "?format=json", "good"); assert.equal(r.status, 200);
+  const doc = await r.json() as any;
+  assert.deepEqual(paths, [good], "only the one well-formed own path reaches the signer");
+  assert.equal(doc.photos.length, rows.length);
+  assert.equal(doc.photos.filter((p: any) => p.url !== null).length, 1);
+  assert.ok(doc.photos.filter((p: any) => p.url === null).every((p: any) => p.expires_at === null));
+  // nothing but hostile rows: the signer is not called at all
+  const none = spy({ rpc: async () => ({ data: { ...empty, photo_rows: rows.slice(1) }, error: null }) });
+  assert.equal((await get(none.deps, "?format=json", "good")).status, 200);
+  assert.ok(!none.calls.includes("sign"), "no signing call when no path is safe");
+});
+test("NFR-06 (QA N1): a traversal row written through the real table is exported with url null and never signed", db, async () => {
+  const evil = `${E}/../${F}/${PF}/44444444-4444-4444-4444-444444444444.jpg`;
+  q(`insert into public.plant_images(plant_id,owner_id,storage_path) values (:'p', :'u', :'a')`, { p: PE, u: E, a: evil });
+  signed.length = 0;
+  const doc = await (await exp("jwt-e")).json() as any;
+  assert.ok(!signed.some((s) => s.paths.some((x: string) => x.includes(".."))), "no path with .. reached the signer");
+  assert.equal(doc.photos.find((p: any) => p.file.includes(".."))?.url, null);
+  q(`delete from public.plant_images where storage_path = :'a'`, { a: evil });
 });
 
 test("NFR-06: user F gets only F's data with F's token (and E's token never yields F)", db, async () => {

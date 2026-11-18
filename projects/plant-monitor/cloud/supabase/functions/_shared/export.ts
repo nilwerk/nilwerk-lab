@@ -63,6 +63,19 @@ export function zipStore(files: { name: string; data: Uint8Array }[], when: Date
 }
 
 /**
+ * QA N1 (PR #130): is `path` exactly '<uid>/<folder>/<file>' under the caller's own folder, and nothing else? The plant_images RLS lets a user
+ * write any storage_path for their own row, and the export signs with the service-role key, so the path must be validated here, not trusted.
+ * Rejected (no signed URL is ever created): non-strings, '..' anywhere (also as part of a name), a leading '/', backslashes, '%' (encoded
+ * traversal), control characters, empty or '.' segments, any other segment count than 3, any character outside [A-Za-z0-9._-] in a segment,
+ * and any path whose first segment is not the caller's user id (exact match, so '<uid>x/...' fails too).
+ */
+export function isSafePhotoPath(uid: string, path: unknown): path is string {
+  if (typeof path !== "string" || path.includes("..") || path.startsWith("/") || path.includes("\\")) return false;
+  const seg = path.split("/");
+  return seg.length === 3 && seg[0] === uid && seg.every((x) => /^[A-Za-z0-9._-]+$/.test(x) && x !== ".");
+}
+
+/**
  * GET /export?format=json|csv (app, user JWT): NFR-07, FR-A01, NFR-06. The user is ONLY the one the token verifies (auth.getUser); there is no
  * parameter that names a user. Order of checks: method (405) -> token (401, before anything is read) -> format (400) -> data (500 on any failure).
  * Data comes from the service_role-only SQL function export_account(p_user), which filters every table on owner_id and covers all retained data
@@ -83,7 +96,7 @@ export async function handleExport(req: Request, deps: Deps): Promise<Response> 
   if (!TABLES.every((t) => Array.isArray(d[t])) || !Array.isArray(d.photo_rows)) return err(500, "internal");
   const now = new Date();   // taken BEFORE signing: the real link lifetime is >= the stated one
   const rows = d.photo_rows as { id: string; plant_id: string; taken_at: string; storage_path: string }[];
-  const own = rows.filter((p) => typeof p.storage_path === "string" && p.storage_path.startsWith(`${uid}/`));   // defence in depth: never sign a foreign path
+  const own = rows.filter((p) => isSafePhotoPath(uid, p.storage_path));   // defence in depth: never sign a foreign or malformed path (QA N1)
   let urls: Record<string, string | null> = {};
   if (own.length > 0) {
     const s = await deps.signPhotoUrls(own.map((p) => p.storage_path), PHOTO_URL_TTL_SECONDS);
