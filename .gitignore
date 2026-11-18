@@ -18,3 +18,7 @@ build-v1/
 sdkconfig.v1
 sdkconfig.v1.old
 build-host/
+provision-out/
+build-setup/
+sdkconfig.setup
+sdkconfig.setup.old

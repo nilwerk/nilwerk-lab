@@ -1,0 +1,3 @@
+# Bench overlay for the BLE setup flow (task 4.F2b). List it AFTER sdkconfig.defaults.v1 so the later file wins: setup flow on.
+# Needs a per-unit security-2 salt and verifier in NVS (docs/BENCH-SEC2.md), otherwise BLE stays off. NOT RUN ON HARDWARE.
+CONFIG_PLANT_SETUP_FLOW=y
