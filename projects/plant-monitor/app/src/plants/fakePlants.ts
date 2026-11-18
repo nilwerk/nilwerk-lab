@@ -13,7 +13,7 @@ export interface FakePlantsOptions {
   failList?: boolean;
   failDelete?: boolean;
   failRelease?: boolean;
-  failExport?: boolean;
+  failExport?: boolean | 'photos' | 'expired' | 'rejected';
   failPhotoRemoval?: boolean;
 }
 
@@ -108,12 +108,16 @@ export function createFakePlants(opts: FakePlantsOptions = {}): PlantsService & 
     async removePhotoObjects(paths) { if (opts.failPhotoRemoval) throw new PlantsError('network'); removedObjects.push(...paths); },
     async releaseDevice(deviceId) { if (opts.failRelease) throw new PlantsError('network'); released.push(deviceId); },
     async exportData(format) {
+      if (opts.failExport === 'photos') throw new PlantsError('photos_failed', undefined, { failed: 2, total: 15 });
+      if (opts.failExport === 'expired') throw new PlantsError('photos_expired');
+      if (opts.failExport === 'rejected') throw new PlantsError('photos_rejected');
       if (opts.failExport) throw new PlantsError('network');
       const stamp = now().toISOString().slice(0, 10);
       const r: ExportResult = {
-        format, fileName: `plant-monitor-export-${stamp}.${format === 'json' ? 'json' : 'zip'}`,
-        contentType: format === 'json' ? 'application/json' : 'application/zip',
-        plantCount: plants.length, photoCount: Object.values(photos).reduce((n, list) => n + list.length, 0),
+        format, fileName: `plant-monitor-export-${stamp}.zip`, // json: archive with export.json + photos/ (A-107); csv: tables only
+        contentType: 'application/zip',
+        plantCount: plants.length, photoCount: format === 'json' ? Object.values(photos).reduce((n, list) => n + list.length, 0) : null,
+        complete: format === 'json', photosMissing: 0,
       };
       exports.push(r);
       return { ...r };

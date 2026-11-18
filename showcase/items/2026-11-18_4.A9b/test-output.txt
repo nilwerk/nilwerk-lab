@@ -1,0 +1,3 @@
+# jest (app) 2026-11-18, tsc --noEmit clean; lines for the 4.A9b tests
+Test Suites: 21 passed, 21 total
+Tests:       272 passed, 272 total

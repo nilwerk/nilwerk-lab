@@ -75,13 +75,21 @@ export interface ExportResult {
   contentType: string;
   /** null when the format does not carry the number (CSV zip has no photo list) */
   plantCount: number | null;
+  /** JSON: number of photos saved INSIDE the archive. null for CSV (no photo list). */
   photoCount: number | null;
+  /** true only when the user holds the data AND every photo (A-107, NFR-07). Only a complete export may open the delete gate. CSV is never complete: it lists photos but does not contain them. */
+  complete: boolean;
+  /** photos the server listed without a file (Storage object missing, url null): nothing to download, reported to the user */
+  photosMissing: number;
 }
 
-export type PlantsErrorCode = 'not_found' | 'network' | 'not_configured' | 'unknown';
+/** photos_*: the export JSON arrived but the photos could not all be saved (A-107). failed/total are set for photos_failed. */
+export type PlantsErrorCode = 'not_found' | 'network' | 'not_configured' | 'unknown' | 'photos_failed' | 'photos_expired' | 'photos_rejected';
 export class PlantsError extends Error {
   code: PlantsErrorCode;
-  constructor(code: PlantsErrorCode, message?: string) { super(message ?? code); this.name = 'PlantsError'; this.code = code; }
+  failed?: number;
+  total?: number;
+  constructor(code: PlantsErrorCode, message?: string, counts?: { failed: number; total: number }) { super(message ?? code); this.name = 'PlantsError'; this.code = code; this.failed = counts?.failed; this.total = counts?.total; }
 }
 
 export interface PlantsService {

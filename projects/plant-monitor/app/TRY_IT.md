@@ -97,7 +97,7 @@ On Basil press **Photos**. Expected: "12 photos" (Fern has 3, the others none: "
 ### 2.6 Remove a plant, export first (FR-A08, A-022, NFR-07)
 Basil -> **Remove plant**. Expected: "Remove Basil?" with the permanent-delete warning, **Export JSON**, **Export CSV**, a field "Type the plant name to confirm", and "Export first. The delete button unlocks after the export."
 - **Delete plant and all its data** is disabled. Type `Basil`: still disabled (no export yet).
-- **Export JSON**: "Export ready: plant-monitor-export-2026-11-17.json (15 photos). You can delete now." (the count is all photos of the account, because the export has no plant filter). The mock only pretends: no file is downloaded.
+- **Export JSON**: "Export ready: plant-monitor-export-2026-11-17.zip (your data and 15 photos). You can delete now." (4.A9b: in a real build the archive holds `export.json` and every photo; **Export CSV** only saves the tables and keeps delete locked) (the count is all photos of the account, because the export has no plant filter). The mock only pretends: no file is downloaded.
 - Now the button is enabled (name typed exactly, no skip option by owner decision A-106). Press it: "Basil was removed", "Your sensor NW-d4e5f6 is still linked to your account." with **Keep sensor** and **Release sensor** (Release unlinks it, mock only). Keep sensor: the list now has four plants.
 
 ![Remove after export](../../../showcase/items/2026-11-17_4.A10-try-it/05-remove-after-export.png)
@@ -105,7 +105,7 @@ Basil -> **Remove plant**. Expected: "Remove Basil?" with the permanent-delete w
 ### 2.7 Delete account gate (NFR-07, FR-A01)
 Profile -> **Delete account**. Expected: warning text, **Export as JSON**, **Export as CSV**, field "Type DELETE to confirm", and "Export first...". Check the gate:
 - **Delete everything** is disabled before an export, even with `DELETE` typed.
-- After **Export as CSV**: "Export ready: plant-monitor-export-2026-11-17.zip (3 photos). You can delete now." (the count follows what is left: the 12 Basil photos were removed in 2.6).
+- After **Export as CSV**: "...The CSV lists your photos but does not contain them, so delete stays locked." Delete is still disabled. After **Export as JSON**: "Export ready: plant-monitor-export-2026-11-17.zip (your data and 3 photos). You can delete now." (the count follows what is left: the 12 Basil photos were removed in 2.6).
 - Typing `delete` in lower case keeps it disabled; `DELETE` enables it.
 - **Delete everything**: back to Welcome. Signing in with the same e-mail now says "E-mail or password is not right." (the account is gone). Real behaviour differs: see section 3.
 
@@ -120,7 +120,7 @@ Set before `expo start` (names only; values come from Arsany and are never commi
 | Edge functions deployed on `nilwerk-cloud` | `claim-token`, `device-claim`, `ingest`, `delete-account` | [`../cloud/README.md`](../cloud/README.md); not exercised from the app on a phone |
 | Plant list, detail, gallery | **Not working.** In a real build only `exportData` is real; list, detail, photos and delete-plant are not wired (see the header of `realPlants.ts`), so the plant screens show an error | `App.tsx`, `src/plants/` (`realPlants.ts` has export only) |
 | Delete account | The call exists (`DELETE /functions/v1/delete-account`) but the gate needs an export first, and the export cannot succeed (next row). **Delete stays blocked.** | `src/account/accountApi.ts`, `src/export/exportGate.ts` |
-| Export (JSON / CSV) | **Fails.** The client is built (4.A9) but there is **no `export` edge function** in `cloud/supabase/functions` and none deployed, until task 4.B2c | README "4.A2 follow-up" |
+| Export (JSON / CSV) | **Fails against the live project.** The client is built (4.A9) and now also downloads the photos into the archive (4.A9b, A-107), but the `export` edge function is not deployed (4.B2c, PR #130) | README "4.A2 follow-up" |
 | Real sensor connection | **No.** No real BLE client in the app | section 4 |
 | Real plant data from a device | **No.** v1 bench firmware only prints to the serial console; upload is not wired | [`../v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) |
 | Push alerts | Not built (alerts screens are task 4.A5; no push dispatch in the cloud) | `App.tsx` header, cloud README |

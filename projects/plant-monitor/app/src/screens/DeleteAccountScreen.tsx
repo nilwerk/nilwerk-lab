@@ -7,6 +7,7 @@ import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
 import { usePlants } from '../plants/PlantsContext';
+import { exportDoneText, exportErrorText } from '../export/exportErrorText';
 import type { ExportResult } from '../plants/types';
 import { AuthError } from '../auth/types';
 import { DeleteGateError, canDelete, deleteAccountGated } from '../export/exportGate';
@@ -26,16 +27,16 @@ export function DeleteAccountScreen({ onCancel }: { onCancel: () => void }) {
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState<'json' | 'csv' | null>(null);
   const [exported, setExported] = useState<ExportResult | null>(null);
-  const [exportError, setExportError] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const uncertain = useRef(false); // an attempt failed in a way that may have deleted data
-  const gate = { exported: exported !== null, typed, expected: t('deleteAccount.confirmWord') };
+  const gate = { exported: exported?.complete === true, typed, expected: t('deleteAccount.confirmWord') };
   const allowed = canDelete(gate);
 
   const runExport = async (format: 'json' | 'csv') => {
-    setExporting(format); setExportError(false);
+    setExporting(format); setExportError(null);
     try { setExported(await plants.exportData(format)); }
-    catch { setExported(null); setExportError(true); }
+    catch (e) { setExported(null); setExportError(exportErrorText(e, 'deleteAccount.exportError')); }
     finally { setExporting(null); }
   };
   const run = async () => {
@@ -56,9 +57,9 @@ export function DeleteAccountScreen({ onCancel }: { onCancel: () => void }) {
       <Body muted>{t('deleteAccount.exportHint')}</Body>
       <Button label={t('deleteAccount.exportJson')} variant="secondary" disabled={exporting !== null || busy} busy={exporting === 'json'} onPress={() => runExport('json')} />
       <Button label={t('deleteAccount.exportCsv')} variant="secondary" disabled={exporting !== null || busy} busy={exporting === 'csv'} onPress={() => runExport('csv')} />
-      {exported ? <Notice kind="info" text={exported.photoCount === null ? t('deleteAccount.exportedNoCount', { fileName: exported.fileName }) : t('deleteAccount.exported', { fileName: exported.fileName, photoCount: exported.photoCount })} /> : null}
-      {exportError ? <Notice kind="error" text={t('deleteAccount.exportError')} /> : null}
-      {!exported ? <Body muted>{t('deleteAccount.exportRequired')}</Body> : null}
+      {exported ? <Notice kind="info" text={exportDoneText(exported, 'deleteAccount.exported')} /> : null}
+      {exportError ? <Notice kind="error" text={exportError} /> : null}
+      {!exported?.complete ? <Body muted>{t('deleteAccount.exportRequired')}</Body> : null}
       {error ? <Notice kind="error" text={error} /> : null}
       <Field label={t('deleteAccount.confirmLabel')} value={typed} onChangeText={setTyped} autoCapitalize="characters" autoCorrect={false} />
       <Button label={t('deleteAccount.confirm')} variant="danger" onPress={run} disabled={!allowed} busy={busy} />
