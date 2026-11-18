@@ -6,12 +6,13 @@ x = SHA512(salt | SHA512(user ":" PoP)), user = "wifiprov"), written to the NVS 
 "verifier", the names nw_prov_idf.c reads) as an nvs_partition_gen CSV. The PoP printed on the unit label is NOT stored on the device.
 
 Formula follows the ESP-IDF security-2 tooling (pysrp create_salted_verification_key, SHA-512, NG_3072). Wire compatibility with a real
-ESP-IDF 5.4 device and the phone app is UNVERIFIED (no ESP-IDF, no hardware here): bench step B4 in docs/BENCH-SEC2.md is the proof.
+ESP-IDF 5.4 device and the phone app is UNVERIFIED (no ESP-IDF, no hardware here): bench step B4 in tests/procedures/4.F2b-sec2-provisioning.md is the proof.
 
 SECRETS: the PoP, salt and verifier are per-unit secrets. They are written only under --out, which must be OUTSIDE any git work tree;
 stdout/stderr only ever show hw_id and a short verifier fingerprint. Stdlib only.
 
   gen   --hw-id nw-a1b2c3d4e5f6 --out DIR [--pop XXXXXXXX]   -> DIR/<hw_id>.nvs.csv (0600) and DIR/<hw_id>.label.txt (0600)
+  (omit --pop: the default random PoP is right; a --pop value lands in shell history and is for tests only)
   check --csv FILE --label FILE                               -> recompute the verifier from the label PoP and compare
 """
 import argparse, base64, hashlib, os, pathlib, re, secrets, stat, sys

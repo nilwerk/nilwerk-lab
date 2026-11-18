@@ -51,11 +51,21 @@ check(T.derive(salt, pop, user="other") != v, "user name is part of the hash")
 check(pop.encode() not in v and pop.encode() not in salt, "PoP not contained in stored data")
 try:
     import srp   # optional cross-check against pysrp, the library ESP-IDF tooling uses
-    s2, v2 = srp.create_salted_verification_key(T.USER, pop, srp.SHA512, srp.NG_3072, salt_len=16)
-    check(srp.create_salted_verification_key(T.USER, pop, srp.SHA512, srp.NG_3072)[0] is not None and
-          T.derive(s2, pop) == v2.rjust(384, b"\0"), "matches pysrp create_salted_verification_key")
-except ImportError:
-    print("SKIP pysrp not installed: external cross-check not run (UNVERIFIED against pysrp / ESP-IDF)")
+    # PyPI srp has no NG_3072: pass the RFC 5054 3072-bit group as NG_CUSTOM (review C2, PR #132)
+    s2, v2 = srp.create_salted_verification_key(T.USER, pop, srp.SHA512, srp.NG_CUSTOM,
+                                                format(T.N, "x").encode(), b"5", salt_len=16)
+    check(T.derive(s2, pop) == v2.rjust(384, b"\0"), "matches pysrp create_salted_verification_key (NG_CUSTOM 3072, g=5, SHA-512)")
+except Exception as e:   # ImportError, or API differences between srp versions: optional check, never red
+    print("SKIP pysrp cross-check not run (%s: %s); UNVERIFIED against pysrp / ESP-IDF" % (type(e).__name__, e))
+# --- doc pointers must exist (review C1, PR #132): every repo path cited by the tool, overlay and procedure
+pm = fw.parent   # projects/plant-monitor
+cited = set()
+for src in (tool_path, fw / "sdkconfig.defaults.setup"):
+    cited |= set(re.findall(r"\b((?:tests|docs|firmware)/[\w./-]+\.(?:md|py|c|h|setup))\b", src.read_text()))
+check(cited >= {"tests/procedures/4.F2b-sec2-provisioning.md"}, "tool/overlay cite the bench procedure path")
+check("docs/BENCH-SEC2.md" not in "".join(p.read_text() for p in (tool_path, fw / "sdkconfig.defaults.setup")), "no stale docs/BENCH-SEC2.md pointer")
+for c in sorted(cited):
+    check((pm / c).exists() or (fw / c.removeprefix("firmware/")).exists(), "cited path exists: " + c)
 for bad in ("", "7KQ2M9X", "7KQ2M9XDD", "7KQ2M9XI", "7kq2m9xd", "7KQ2M9XL", "7KQ2M9X!"):
     try: T.derive(salt, bad); check(False, "PoP %r rejected" % bad)
     except ValueError: check(True, "PoP %r rejected" % bad)
