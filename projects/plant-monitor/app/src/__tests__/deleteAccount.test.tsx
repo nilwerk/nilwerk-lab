@@ -52,12 +52,13 @@ describe('export-before-delete gate (NFR-07)', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  test('photos failed: honest error (data arrived, copy incomplete, delete locked), no "nothing was removed" copy; retry with the same button unlocks', async () => {
+  test('photos failed: honest error (nothing saved, delete locked), no "nothing was removed" copy; retry with the same button unlocks', async () => {
     const plants = createFakePlants({ failExport: 'photos' });
     const { spy } = await mount(createFakeAuth(), plants);
     await press('Export as JSON');
-    expect(await screen.findByText(/2 of 15 photos could not be downloaded, so your copy is not complete\. Delete stays locked/)).toBeTruthy();
+    expect(await screen.findByText(/2 of 15 photos could not be downloaded\. Nothing was saved to your device and delete stays locked/)).toBeTruthy();
     expect(screen.queryByText(/Nothing was removed/)).toBeNull();
+    expect(screen.queryByText(/data arrived/i)).toBeNull();
     await typeWord('DELETE');
     expect(delBtn().props.accessibilityState.disabled).toBe(true);
     await fireEvent.press(delBtn());
@@ -73,7 +74,7 @@ describe('export-before-delete gate (NFR-07)', () => {
     await mount(createFakeAuth(), plants);
     await typeWord('DELETE');
     await press('Export as JSON');
-    expect(await screen.findByText(/photo links in the export have expired.*Tap the export button again to get fresh links/)).toBeTruthy();
+    expect(await screen.findByText(/photo links have expired.*Tap the export button again to get fresh links/)).toBeTruthy();
     expect(delBtn().props.accessibilityState.disabled).toBe(true);
     plants.options.failExport = 'rejected';
     await press('Export as JSON');

@@ -1,4 +1,4 @@
-// User-facing text for a failed or incomplete export (A-107, NFR-07). Honest about what happened: when the photos failed the JSON DID arrive but the copy is incomplete, and delete stays locked.
+// User-facing text for a failed or incomplete export (A-107, NFR-07). Honest about what happened: when the photos fail NOTHING is handed over (no file is saved on the device) and delete stays locked.
 // The screen passes its own catalogue keys (generic error, ready line) so the string test can see them.
 import { t } from '../i18n';
 import { PlantsError, type ExportResult } from '../plants/types';
@@ -7,6 +7,9 @@ export function exportErrorText(e: unknown, genericKey: string): string {
   if (e instanceof PlantsError) {
     if (e.code === 'photos_expired') return t('export.photos.expired');
     if (e.code === 'photos_rejected') return t('export.photos.rejected');
+    if (e.code === 'photos_none') return t('export.photos.none');
+    if (e.code === 'photos_too_large') return t('export.photos.tooLarge');
+    if (e.code === 'photos_archive') return t('export.photos.archive');
     if (e.code === 'photos_failed') return e.total ? t('export.photos.failed', { failed: e.failed ?? 0, total: e.total }) : t('export.photos.noList');
   }
   return t(genericKey);

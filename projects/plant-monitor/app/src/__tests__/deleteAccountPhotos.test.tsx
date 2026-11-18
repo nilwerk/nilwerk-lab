@@ -60,7 +60,7 @@ test('one photo fails: honest error, delete stays disabled and pressing it does 
   const spy = await mount(svc);
   await typeWord();
   await press('Export as JSON');
-  await screen.findByText(/1 of 3 photos could not be downloaded, so your copy is not complete\. Delete stays locked/);
+  await screen.findByText(/1 of 3 photos could not be downloaded\. Nothing was saved to your device and delete stays locked/);
   expect(screen.queryByText(/Nothing was removed/)).toBeNull();
   expect(screen.queryByText(/You can delete now/)).toBeNull();
   expect(del().props.accessibilityState.disabled).toBe(true);
@@ -78,7 +78,7 @@ test('expired links: clear message, delete locked', async () => {
   await mount(svc);
   await typeWord();
   await press('Export as JSON');
-  await screen.findByText(/photo links in the export have expired/);
+  await screen.findByText(/photo links have expired/);
   expect(del().props.accessibilityState.disabled).toBe(true);
   expect(calls.filter((c) => c.includes('/storage/'))).toHaveLength(0);
 });
@@ -99,4 +99,15 @@ test('CSV: saved, but says delete stays locked and the button stays disabled', a
   await screen.findByText(/does not contain them, so delete stays locked/);
   expect(del().props.accessibilityState.disabled).toBe(true);
   expect(spy).not.toHaveBeenCalled();
+});
+test('C2 on the real screen path: photos listed but every url null -> own message, nothing handed over, delete stays locked', async () => {
+  const { svc, handOff } = mk(photos({ url: null }));
+  const spy = await mount(svc);
+  await press('Export as JSON');
+  await screen.findByText(/none of them had a file the app could download\. Nothing was saved to your device/);
+  await typeWord();
+  expect(del().props.accessibilityState.disabled).toBe(true);
+  await fireEvent.press(del());
+  expect(spy).not.toHaveBeenCalled();
+  expect(handOff).not.toHaveBeenCalled();
 });

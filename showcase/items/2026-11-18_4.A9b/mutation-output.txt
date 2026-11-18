@@ -43,3 +43,18 @@ Tests:       13 failed, 259 passed, 272 total
 === MUTATION f: CSV marked complete (src/plants/realPlants.ts)
   ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › CSV is handed over but is never complete (no photos inside): it cannot open the gate
 Tests:       2 failed, 270 passed, 272 total
+
+##### Round 2 (Theo review C1-C3): mutations on the real caller path
+=== MUTATION g: C2 guard removed (photos listed, none saved still hands over / unlocks) (src/plants/realPlants.ts)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › C2: photos listed but every url is null (nothing saved) -> photos_none, nothing handed over, gate closed
+Tests:       2 failed, 285 passed, 287 total
+=== MUTATION h: C1 non-photo error mapped back to photos_failed with failed:0 (src/plants/realPlants.ts)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › C1: a non-photo error (zip writer: archive too large / OOM) is photos_archive with NO counts, never "0 of N failed"
+Tests:       1 failed, 286 passed, 287 total
+=== MUTATION i: size cap disabled (budget never exhausted) (src/export/photoExport.ts)
+  ● downloadPhotos › size cap: the summed Content-Length is checked BEFORE the body is read; over the cap -> too_large
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › size cap through the real caller: photos over the cap -> photos_too_large, nothing handed over
+Tests:       2 failed, 285 passed, 287 total
+=== MUTATION j: photo path pin removed (src/export/photoExport.ts)
+  ● isExpectedPhotoUrl (host check) › https://abc.supabase.co/storage/v1/object/sign/other-bucket/x.jpg?token=1 -> false
+Tests:       1 failed, 286 passed, 287 total

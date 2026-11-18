@@ -122,6 +122,34 @@ describe('photos are downloaded into the archive before exportData resolves (A-1
     expect(r).toMatchObject({ complete: true, photoCount: 1, photosMissing: 1 });
     expect(Object.keys(readZip(handOff.mock.calls[0][0].bytes)).sort()).toEqual(['export.json', 'photos/a_1.jpg']);
   });
+  test('C2: photos listed but every url is null (nothing saved) -> photos_none, nothing handed over, gate closed', async () => {
+    const nulls = [0, 1].map((i) => ({ id: `n${i}`, plant_id: 'p', taken_at: 't', url: null, expires_at: null, file: `${i}.jpg` }));
+    const { svc, handOff } = mk({ fetchImpl: router(nulls) });
+    await expect(svc.exportData('json')).rejects.toMatchObject({ code: 'photos_none', total: 2 });
+    expect(handOff).not.toHaveBeenCalled();
+    expect(await screenExported(svc)).toBe(false);
+  });
+  test('C2: an EMPTY photo list is fine (nothing to lose): complete with 0 photos', async () => {
+    const { svc, handOff } = mk({ fetchImpl: router([]) });
+    expect(await svc.exportData('json')).toMatchObject({ complete: true, photoCount: 0, photosMissing: 0 });
+    expect(handOff).toHaveBeenCalledTimes(1);
+  });
+  test('C1: a non-photo error (zip writer: archive too large / OOM) is photos_archive with NO counts, never "0 of N failed"', async () => {
+    const zip = jest.spyOn(require('../export/zip'), 'buildStoredZip').mockImplementation(() => { throw new Error('archive too large'); });
+    try {
+      const { svc, handOff } = mk();
+      const e = await svc.exportData('json').catch((x) => x);
+      expect(e).toMatchObject({ code: 'photos_archive' });
+      expect(e.failed).toBeUndefined();
+      expect(handOff).not.toHaveBeenCalled();
+    } finally { zip.mockRestore(); }
+  });
+  test('size cap through the real caller: photos over the cap -> photos_too_large, nothing handed over', async () => {
+    const big = (u: string) => ({ ...photoRes(), headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/jpeg' : h.toLowerCase() === 'content-length' ? String(200 * 1024 * 1024) : null) } }) as unknown as Response;
+    const { svc, handOff } = mk({ fetchImpl: router(two, big) });
+    await expect(svc.exportData('json')).rejects.toMatchObject({ code: 'photos_too_large' });
+    expect(handOff).not.toHaveBeenCalled();
+  });
   test('CSV is handed over but is never complete (no photos inside): it cannot open the gate', async () => {
     const f = jest.fn().mockResolvedValue({ status: 200, headers: { get: () => 'application/zip' }, arrayBuffer: async () => new Uint8Array([80, 75, 3, 4]).buffer });
     const { svc, handOff } = mk({ fetchImpl: f });

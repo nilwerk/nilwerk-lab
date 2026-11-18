@@ -83,8 +83,8 @@ export interface ExportResult {
   photosMissing: number;
 }
 
-/** photos_*: the export JSON arrived but the photos could not all be saved (A-107). failed/total are set for photos_failed. */
-export type PlantsErrorCode = 'not_found' | 'network' | 'not_configured' | 'unknown' | 'photos_failed' | 'photos_expired' | 'photos_rejected';
+/** photos_*: the photos could not all be saved, so NOTHING was handed over and delete stays locked (A-107). failed/total are set for photos_failed. photos_none: the server listed photos but none had a file. photos_too_large: over the in-app size cap. photos_archive: the archive could not be built (e.g. out of memory). */
+export type PlantsErrorCode = 'not_found' | 'network' | 'not_configured' | 'unknown' | 'photos_failed' | 'photos_expired' | 'photos_rejected' | 'photos_none' | 'photos_too_large' | 'photos_archive';
 export class PlantsError extends Error {
   code: PlantsErrorCode;
   failed?: number;

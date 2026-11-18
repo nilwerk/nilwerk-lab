@@ -19,13 +19,14 @@ describe('isExpectedPhotoUrl (host check)', () => {
     ['https://user:pw@abc.supabase.co/storage/v1/object/sign/x', false],
     ['http://abc.supabase.co/storage/v1/object/sign/x', false],
     ['https://abc.supabase.co/rest/v1/profiles', false],
+    ['https://abc.supabase.co/storage/v1/object/sign/other-bucket/x.jpg?token=1', false],
     ['https://abc.supabase.co:8443/storage/v1/object/sign/x', false],
     ['not a url', false],
     ['file:///etc/passwd', false],
   ])('%s -> %s', (u, ok) => expect(isExpectedPhotoUrl(u, BASE)).toBe(ok));
   test('plain http is accepted only for a localhost dev backend', () => {
-    expect(isExpectedPhotoUrl('http://127.0.0.1:54321/storage/v1/object/sign/x', 'http://127.0.0.1:54321')).toBe(true);
-    expect(isExpectedPhotoUrl('http://127.0.0.1:54321/storage/v1/object/sign/x', 'https://abc.supabase.co')).toBe(false);
+    expect(isExpectedPhotoUrl('http://127.0.0.1:54321/storage/v1/object/sign/plant-photos/x', 'http://127.0.0.1:54321')).toBe(true);
+    expect(isExpectedPhotoUrl('http://127.0.0.1:54321/storage/v1/object/sign/plant-photos/x', 'https://abc.supabase.co')).toBe(false);
   });
 });
 
@@ -43,6 +44,20 @@ describe('readPhotoRefs', () => {
 });
 
 describe('downloadPhotos', () => {
+  test('size cap: the summed Content-Length is checked BEFORE the body is read; over the cap -> too_large', async () => {
+    const body = jest.fn(async () => new Uint8Array([1, 2, 3]).buffer);
+    const f = jest.fn().mockImplementation(async () => ({ ...img(200, 'image/jpeg', new Uint8Array([1, 2, 3]), { 'content-length': '600' }), arrayBuffer: body }));
+    let err: PhotoExportError | undefined;
+    try { await downloadPhotos([ref(1), ref(2)], { baseUrl: BASE, fetchImpl: f as unknown as typeof fetch, now: () => NOW, maxTotalBytes: 1000, concurrency: 1 }); } catch (e) { err = e as PhotoExportError; }
+    expect(err?.reason).toBe('too_large');
+    expect(body).toHaveBeenCalledTimes(1); // the second body was never read
+  });
+  test('size cap without Content-Length counts the bytes that arrived', async () => {
+    const f = jest.fn().mockImplementation(async () => img(200, 'image/jpeg', new Uint8Array(600)));
+    let err: PhotoExportError | undefined;
+    try { await downloadPhotos([ref(1), ref(2)], { baseUrl: BASE, fetchImpl: f as unknown as typeof fetch, now: () => NOW, maxTotalBytes: 1000, concurrency: 1 }); } catch (e) { err = e as PhotoExportError; }
+    expect(err?.reason).toBe('too_large');
+  });
   test('saves every photo; GET without Authorization; names are unique and cannot escape photos/', async () => {
     const f = jest.fn().mockImplementation(async () => img());
     const r = await run([ref(1), ref(2, { id: 'same', file: '../../etc/passwd' }), ref(3, { id: 'same', file: '../../etc/passwd' })], f);
@@ -109,4 +124,26 @@ describe('downloadPhotos', () => {
     expect([r.saved.length, r.missing, r.total]).toEqual([0, 0, 0]);
   });
   test('photoEntryName works without id/file (bare openapi shape)', () => expect(photoEntryName(ref(1, { id: null, file: null }), 4)).toBe('photos/photo-5'));
+});
+
+// C1 (Theo): error copy must say what reached the device. No photo failure may claim data arrived; every one says nothing was saved.
+import { exportErrorText } from '../export/exportErrorText';
+import { PlantsError } from '../plants/types';
+describe('export error copy states what reached the device (C1)', () => {
+  const cases: [PlantsError, RegExp][] = [
+    [new PlantsError('photos_failed', undefined, { failed: 2, total: 15 }), /2 of 15 photos/],
+    [new PlantsError('photos_failed', undefined, { failed: 0, total: 0 }), /did not include a list/],
+    [new PlantsError('photos_expired'), /expired/],
+    [new PlantsError('photos_rejected'), /does not trust/],
+    [new PlantsError('photos_none', undefined, { failed: 3, total: 3 }), /none of them had a file/],
+    [new PlantsError('photos_too_large'), /too large/],
+    [new PlantsError('photos_archive'), /archive could not be built/],
+  ];
+  test.each(cases)('%s', (e, re) => {
+    const s = exportErrorText(e, 'generic');
+    expect(s).toMatch(re);
+    expect(s).toMatch(/Nothing was saved to your device/);
+    expect(s).toMatch(/delete stays locked/);
+    expect(s).not.toMatch(/arrived|0 of/i);
+  });
 });

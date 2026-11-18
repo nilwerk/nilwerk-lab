@@ -176,8 +176,10 @@ paths:
       description: |
         Calls the database function `delete_plant(p_plant)` (db-schema.sql). Deletes the plant, its photos,
         readings, events, alerts and tips. The sensor stays claimed (plant_id becomes null) and is released
-        separately with POST /device-release. The app MUST show a warning first and offer the JSON/CSV export
-        (GET /export); there is no undo. Photo objects in Storage bucket 'plant-photos' are removed by the caller
+        separately with POST /device-release. The app MUST show a warning first and offer the export
+        (GET /export); there is no undo. In the app only the JSON export (photos downloaded into the archive, A-107) satisfies the
+        export-before-delete gate and unlocks this call; a CSV export lists the photos but does not contain them, so it does NOT unlock
+        deletion (wording change, NFR-07; ADR/Q-ID note pending with Theo). Photo objects in Storage bucket 'plant-photos' are removed by the caller
         from the returned `photo_paths`. Readings recorded before the sensor was assigned to this plant are kept.
       security: [{ userJwt: [] }]
       parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
@@ -267,7 +269,8 @@ paths:
         Failure semantics: if a step fails the function returns 500 and has NOT deleted the auth user, so the client retries; every
         step is idempotent. A repeated call with a token whose user still resolves returns 204 again; once the auth user is gone
         the hosted Auth rejects the token, so the repeat gets 401 (the account is already erased).
-        Export (FR-A08) before deleting is the app's job (UC flow), not enforced here.
+        Export (FR-A08) before deleting is the app's job (UC flow), not enforced here. The app's gate opens only after a complete JSON
+        export (photos downloaded and handed to the user, A-107, NFR-07); a CSV export alone does NOT unlock account deletion.
       security: [{ userJwt: [] }]
       requestBody:
         required: true
