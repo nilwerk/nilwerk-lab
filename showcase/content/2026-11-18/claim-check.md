@@ -1,6 +1,6 @@
 # Claim check, content pack 2026-11-18 (for Theo's fact check and Ines's QA)
 
-Task PR-2026-11-18 · Poppy (PR & Social) · as of 18 Nov 2026, 08:30 Berlin · repo base origin/main 4b61598; PR heads read: #132 `8a72ff8`, #133 `604ecea`. PR/comment ids are for checking only and never go on an image. Types: measured (test/CI output), observed (a reviewer ran it), read-from-source, status (state of repo/PR), decision. Comment ids are GitHub issue-comment ids on the named PR.
+Task PR-2026-11-18 · Poppy (PR & Social) · as of 18 Nov 2026, 08:20 Berlin · repo base origin/main 4b61598; PR heads read: #132 `8a72ff8`, #133 `604ecea`. PR/comment ids are for checking only and never go on an image. Types: measured (test/CI output), observed (a reviewer ran it), read-from-source, status (state of repo/PR), decision. Comment ids are GitHub issue-comment ids on the named PR.
 
 **Not for posting before PR #131 is merged and Arsany approves.**
 
@@ -21,7 +21,7 @@ Task PR-2026-11-18 · Poppy (PR & Social) · as of 18 Nov 2026, 08:30 Berlin · 
 | C11 | CI green at head 604ecea (run 44256542043, 18 Nov 07:11 Berlin) | measured | Kai 6971810146 |
 | C12 | Not run on a phone or simulator; not run against a deployed export function; PR #130 (server export) not merged or deployed | status | caption 4.A9b "Unverified"; QA 6971773511 note 2; #130 QA 6962373305 (`list_edge_functions`: no `export`); #130 open at the as-of time |
 | C13 | 150 MB cap not measured on a device; archive built in memory so a huge library may run out of memory, failure is safe (delete stays locked) | observed | caption "Unverified"; Theo 6971592801 finding 5; QA 6971773511 note 2 |
-| C14 | PR open, not merged (as of 18 Nov 08:30 Berlin) | status | GitHub API `pulls/133`: state open, merged false |
+| C14 | PR open, not merged (as of 18 Nov 08:20 Berlin) | status | GitHub API `pulls/133`: state open, merged false |
 | C15 | "Our reviewing AI agent" = Theo (architecture review); QA agent re-ran tests | read-from-source | #133 comments 6971592801, 6971773511. Roles only in the text |
 
 ## 2. Post 2: "one setup code per sensor, never in the repo" (PR #132, 4.F2b)
@@ -41,7 +41,7 @@ Task PR-2026-11-18 · Poppy (PR & Social) · as of 18 Nov 2026, 08:30 Berlin · 
 | C26 | Not verified: no board, no real Bluetooth handshake, no flashing, the hardware tester's bench procedure not run | status | caption 4.F2b "Unverified"; QA 6971762756 ("Not run by me") |
 | C27 | Known open risk: the check value is stored unencrypted, so a flash dump allows an offline guess of the 40-bit code; accepted for the prototype and still open; where the code list is kept long term is open | observed | procedure s7 (Q-H6) as quoted in Theo 6971619848 ("open risk ... stated in procedure s7"), N4; QA 6971762756 (C3b NOT DONE, N4 not seen). Owner decision ids are not named in the text |
 | C28 | Must merge after PR #129 | status | procedure header "Merge order (hard): #129 first" (QA 6971762756 C4 FIXED); PR #132 body |
-| C29 | PR open, not merged (as of 18 Nov 08:30 Berlin) | status | GitHub API `pulls/132`: state open, merged false |
+| C29 | PR open, not merged (as of 18 Nov 08:20 Berlin) | status | GitHub API `pulls/132`: state open, merged false |
 
 ## 3. Rules check
 
