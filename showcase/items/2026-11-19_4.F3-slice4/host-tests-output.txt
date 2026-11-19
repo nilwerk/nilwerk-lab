@@ -1,0 +1,18 @@
+rtc state: 3140 bytes (budget 4096)
+151 checks, 0 failed
+---
+killed   nw_cycle.c: RTC state kept across deep sleep
+killed   nw_cycle.c: RTC content checked, not only the magic (FR-D04)
+killed   nw_cycle.c: bool bytes must be 0/1
+killed   nw_cycle.c: last report is 0 or a synced time
+killed   nw_sample_ring.c: head index in range
+killed   nw_sample_ring.c: seq strictly increasing
+killed   nw_sample_ring.c: newest seq equals next_seq
+killed   nw_sample_ring.c: stored samples pass admission rules
+killed   nw_cycle.c: sample stamped with the RTC time
+47/47 mutants killed
+---
+
+100% tests passed, 0 tests failed out of 21
+
+Total Test time (real) =  47.27 sec

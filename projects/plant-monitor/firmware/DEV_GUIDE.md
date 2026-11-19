@@ -277,7 +277,7 @@ Real output of the author's run on 2026-11-17 (Linux, cmake 3.28.3, gcc 13.3.0, 
 
 Total Test time (real) =  23.01 sec
 ```
-The 19 tests: `board_v1_unit`, `glue_unit`, `sensors_unit`, `provisioning_unit`, `report_buffer_unit`, `sleep_decision_unit`, `upload_unit`, `report_contract_drift`, `board_pins_cite_pinmap`, `provisioning_contract`, `provisioning_mutation_checks`, `mutation_checks`, `upload_contract`, `upload_contract_selftest`, `upload_mutation_checks`, `board_v1_matches_wiring`, `board_v1_check_selftest`, `api_url_not_committed`, `api_url_check_selftest`. Any "Failed" line: copy the whole output into the issue.
+The 21 tests: `board_v1_unit`, `glue_unit`, `sensors_unit`, `provisioning_unit`, `report_buffer_unit`, `sleep_decision_unit`, `upload_unit`, `cycle_unit`, `report_contract_drift`, `board_pins_cite_pinmap`, `provisioning_contract`, `provisioning_mutation_checks`, `mutation_checks`, `upload_contract`, `upload_contract_selftest`, `upload_mutation_checks`, `cycle_mutation_checks`, `board_v1_matches_wiring`, `board_v1_check_selftest`, `api_url_not_committed`, `api_url_check_selftest`. Any "Failed" line: copy the whole output into the issue.
 
 ### 5.3 Per OS
 - **Linux:** works as above (the tested case).
@@ -386,7 +386,7 @@ What it needs, all three:
 
 To switch it on (DevKit, local build): `idf.py -B build-upload -DSDKCONFIG=sdkconfig.upload -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.upload" set-target esp32c3` then `idf.py -B build-upload -DSDKCONFIG=sdkconfig.upload -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.upload" build` (the same two options CI uses; the PowerShell quoting of the semicolon is UNVERIFIED, use `idf.py menuconfig` then Plant Monitor then "Hourly upload" if it misbehaves). On the serial log look for lines starting `nw_upload:` (`wake:`, `upload: outcome=...`) and `NWUPLOAD sleep s=...`. `outcome=0` is an acknowledged upload. The log never contains the token or the Wi-Fi password; if you ever see one in a log you paste, stop and tell Nora.
 
-Known gaps (also in the 4.F3 slice 3 PR): no critical-event path (no producer yet), no `cal` or forecast in the payload, current draw per state not measured (NFR-01), the RTC ring size and `idf.py size` impact unchecked, RTC retention of the clock and ring across deep sleep assumed from the Espressif docs.
+Known gaps (also in the 4.F3 slice 3 PR): no critical-event path (no producer yet), no `cal` or forecast in the payload, current draw per state not measured (NFR-01), the RTC state is 3140 bytes on the host (budget 4096, compile-time assert; `idf.py size` impact still unchecked), RTC retention of the clock and ring across deep sleep assumed from the Espressif docs. Slice 4 (host only): after a wake the retained state is checked for consistency (ring indices, seq order, schema ranges), not only the magic number; an inconsistent copy is re-initialised, so a corrupted RTC copy loses the buffered samples instead of writing outside the ring (FR-D04). Main loop, sleep and low-battery logic were already wired in slice 3; nothing here was run on a board.
 
 ---
 

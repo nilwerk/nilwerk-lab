@@ -66,9 +66,9 @@ static void test_state_and_clock(void)
     nw_cycle_state_t st; memset(&st, 0xA5, sizeof st);           /* power-on RTC garbage */
     CHECK(nw_cycle_state_ensure(&st));
     CHECK_EQ(st.magic, NW_CYCLE_MAGIC); CHECK_EQ(nw_ring_count(&st.ring), 0); CHECK_EQ(st.last_report_unix, 0); CHECK(!st.outage_pending);
-    nw_sample_t s = good_sample(); st.last_report_unix = 77;
+    nw_sample_t s = good_sample(); st.last_report_unix = T0;
     CHECK(!nw_cycle_state_ensure(&st));                          /* deep-sleep wake: kept */
-    CHECK_EQ(st.last_report_unix, 77);
+    CHECK_EQ(st.last_report_unix, T0);
     (void)s;
     CHECK(!nw_cycle_clock_ok(0)); CHECK(!nw_cycle_clock_ok(NW_TS_MIN - 1)); CHECK(nw_cycle_clock_ok(NW_TS_MIN));
     CHECK_EQ(nw_cycle_sleep_s(T0), 900); CHECK_EQ(nw_cycle_sleep_s(T0 + 1), 899); CHECK_EQ(nw_cycle_sleep_s(T0 + 899), 1);
@@ -214,6 +214,36 @@ static void test_outage_then_reconnect(void)
     CHECK_EQ(r.outcome, NW_UP_ACK); CHECK_EQ(r.n_samples, 21); CHECK_EQ(nw_ring_count(&st.ring), 0); CHECK(!st.outage_pending);
 }
 
+/* FR-D04 + NFR-12: RTC content that kept a valid magic but is inconsistent (brown-out, partial write) must be re-initialised, never used:
+ * a head index >= 96 would write outside the ring. Also: the retained struct stays within the RTC budget. */
+static void test_rtc_state_integrity(void)
+{
+    CHECK(sizeof(nw_cycle_state_t) <= NW_CYCLE_RTC_BUDGET_BYTES);
+    printf("rtc state: %zu bytes (budget %u)\n", sizeof(nw_cycle_state_t), NW_CYCLE_RTC_BUDGET_BYTES);
+    nw_sample_t s = good_sample(); s.ts = T0;
+    nw_cycle_state_t st;
+    memset(&st, 0, sizeof st); nw_cycle_state_ensure(&st);
+    for (int i = 0; i < 100; i++) { s.ts = T0 + (uint32_t)i * 900; nw_ring_push(&st.ring, &s, true); }   /* wrapped once: 96 kept */
+    st.last_report_unix = T0;
+    CHECK(!nw_cycle_state_ensure(&st)); CHECK_EQ(nw_ring_count(&st.ring), 96);   /* a healthy, wrapped state survives deep sleep */
+    nw_cycle_state_t g;
+    g = st; g.ring.head = NW_RING_CAP;                          CHECK(nw_cycle_state_ensure(&g)); CHECK_EQ(nw_ring_count(&g.ring), 0);   /* head out of range */
+    nw_cycle_state_t full; memset(&full, 0, sizeof full); nw_cycle_state_ensure(&full);
+    for (int i = 0; i < NW_RING_CAP; i++) { s.ts = T0 + (uint32_t)i * 900; nw_ring_push(&full.ring, &s, true); }   /* exactly full: head wrapped to 0 */
+    CHECK(!nw_cycle_state_ensure(&full));
+    g = full; g.ring.head = NW_RING_CAP;                        CHECK(nw_cycle_state_ensure(&g));   /* head==96 reads like 0 but the next push would write slot[96] */
+    g = st; g.ring.slot[5].seq = g.ring.slot[4].seq;            CHECK(nw_cycle_state_ensure(&g));   /* duplicate seq: ack by seq would be ambiguous */
+    g = st; g.ring.count = NW_RING_CAP + 1;                     CHECK(nw_cycle_state_ensure(&g));
+    g = st; g.ring.next_seq += 5;                               CHECK(nw_cycle_state_ensure(&g));   /* newest seq != next_seq */
+    g = st; g.ring.slot[10].seq = 0;                            CHECK(nw_cycle_state_ensure(&g));   /* seq 0 = never stored */
+    g = st; g.ring.slot[g.ring.head].seq = 0xFFFFFFFFu;         CHECK(nw_cycle_state_ensure(&g));   /* oldest slot newer than the rest: order broken */
+    g = st; g.ring.slot[3].ts = 5;                              CHECK(nw_cycle_state_ensure(&g));   /* below the schema floor */
+    g = st; g.ring.slot[3].moisture_x10 = 1001;                 CHECK(nw_cycle_state_ensure(&g));   /* outside the schema range */
+    g = st; g.last_report_unix = 1234;                          CHECK(nw_cycle_state_ensure(&g));   /* not 0 and not a synced time */
+    g = st; *(unsigned char *)&g.low_battery = 7;               CHECK(nw_cycle_state_ensure(&g));   /* a bool byte that is neither 0 nor 1 */
+    g = st; g.magic ^= 1;                                       CHECK(nw_cycle_state_ensure(&g));   /* wrong magic (power-on) */
+}
+
 int main(void)
 {
     test_creds();
@@ -224,6 +254,7 @@ int main(void)
     test_report_ack_and_failure();
     test_24h_cadence();
     test_outage_then_reconnect();
+    test_rtc_state_integrity();
     printf("%d checks, %d failed\n", nwtest_checked, nwtest_failed);
     return nwtest_failed ? 1 : 0;
 }

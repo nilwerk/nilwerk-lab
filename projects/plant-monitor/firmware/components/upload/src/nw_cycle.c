@@ -2,9 +2,19 @@
 #include "nw_cycle.h"
 #include <string.h>
 
+_Static_assert(sizeof(nw_cycle_state_t) <= NW_CYCLE_RTC_BUDGET_BYTES, "RTC state over budget (NFR-12): shrink it or revisit the budget");
+
+static bool state_consistent(const nw_cycle_state_t *st)
+{
+    const unsigned char *lb = (const unsigned char *)&st->low_battery, *op = (const unsigned char *)&st->outage_pending;
+    if (*lb > 1 || *op > 1) return false;                                       /* a bool byte other than 0/1 is garbage */
+    if (st->last_report_unix != 0 && st->last_report_unix < NW_TS_MIN) return false;
+    return nw_ring_valid(&st->ring);
+}
+
 bool nw_cycle_state_ensure(nw_cycle_state_t *st)
 {
-    if (st->magic == NW_CYCLE_MAGIC) return false;
+    if (st->magic == NW_CYCLE_MAGIC && state_consistent(st)) return false;
     memset(st, 0, sizeof *st);
     st->magic = NW_CYCLE_MAGIC;
     nw_ring_init(&st->ring);

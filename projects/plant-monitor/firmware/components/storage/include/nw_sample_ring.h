@@ -76,4 +76,9 @@ const nw_sample_t *nw_ring_newest(const nw_ring_t *r);
  * removed. Pass the last_seq of the batch that was acknowledged (2xx), never a count. */
 size_t nw_ring_consume_upto(nw_ring_t *r, uint32_t last_seq);
 
+/* RTC-memory integrity check (FR-D04, NFR-01): after a brown-out or a flash/reset the retained ring can hold garbage that still carries a valid
+ * magic. True only when head < NW_RING_CAP, count <= NW_RING_CAP, every stored sample passes the admission rules, seq runs strictly up from the
+ * oldest to the newest and the newest seq equals next_seq. A false result means: nw_ring_init() and start again (samples lost, never replayed). */
+bool nw_ring_valid(const nw_ring_t *r);
+
 #endif

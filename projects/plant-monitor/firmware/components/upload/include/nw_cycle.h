@@ -32,7 +32,12 @@ typedef struct {
     bool outage_pending;         /* FR-D04: next report is trigger=reconnect */
 } nw_cycle_state_t;
 
-/* Power-on RTC memory is not trustworthy: re-initialise unless the magic matches. Returns true when it (re)initialised. */
+/* RTC memory budget (NFR-12: retained RTC memory counts against the deep-sleep current, so keep it small; ESP32-C3 has 8 KB of RTC fast memory
+ * shared with the bootloader/Wi-Fi stack). The struct must stay under this; checked at compile time in nw_cycle.c. [proposed] limit, check idf.py size. */
+#define NW_CYCLE_RTC_BUDGET_BYTES 4096u
+
+/* Power-on RTC memory is not trustworthy: re-initialise unless the magic matches AND the content is self-consistent (FR-D04): ring invariants
+ * (nw_ring_valid), bool fields 0/1, last_report_unix 0 or a synced time. Returns true when it (re)initialised (retained samples are then lost). */
 bool nw_cycle_state_ensure(nw_cycle_state_t *st);
 /* A clock below the schema floor (NW_TS_MIN, Nov 2023) has not been SNTP-synced (1970 after power-on). */
 bool nw_cycle_clock_ok(uint32_t now_unix);

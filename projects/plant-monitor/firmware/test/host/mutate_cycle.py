@@ -11,7 +11,14 @@ SRC = ["storage/src/nw_sample_ring.c", "report/src/nw_report.c", "power/src/nw_s
        "sensors/src/nw_battery.c", "provisioning/src/nw_prov_proto.c"]
 
 M = [  # (file, old, new, what)
- ("nw_cycle.c", "if (st->magic == NW_CYCLE_MAGIC) return false;", "if (0) return false;", "RTC state kept across deep sleep"),
+ ("nw_cycle.c", "if (st->magic == NW_CYCLE_MAGIC && state_consistent(st)) return false;", "(void)state_consistent; if (0) return false;", "RTC state kept across deep sleep"),
+ ("nw_cycle.c", "if (st->magic == NW_CYCLE_MAGIC && state_consistent(st)) return false;", "(void)state_consistent; if (st->magic == NW_CYCLE_MAGIC) return false;", "RTC content checked, not only the magic (FR-D04)"),
+ ("nw_cycle.c", "if (*lb > 1 || *op > 1) return false;", "(void)lb; (void)op;", "bool bytes must be 0/1"),
+ ("nw_cycle.c", "st->last_report_unix < NW_TS_MIN) return false;", "st->last_report_unix < 1) return false;", "last report is 0 or a synced time"),
+ ("nw_sample_ring.c", "r->head >= NW_RING_CAP || r->count > NW_RING_CAP", "r->head > NW_RING_CAP || r->count > NW_RING_CAP", "head index in range"),
+ ("nw_sample_ring.c", "if (i > 0 && s->seq <= prev) return false;", "if (i > 0 && s->seq < prev) return false;", "seq strictly increasing"),
+ ("nw_sample_ring.c", "return prev == r->next_seq;", "return true;", "newest seq equals next_seq"),
+ ("nw_sample_ring.c", "if (!sample_ok(s)) return false;\n        if (i > 0", "if (i > 0", "stored samples pass admission rules"),
  ("nw_cycle.c", "return now_unix >= NW_TS_MIN;", "return now_unix > NW_TS_MIN;", "clock floor inclusive"),
  ("nw_cycle.c", "return now_unix >= NW_TS_MIN;", "return now_unix != 0;", "1970 clock is not synced"),
  ("nw_cycle.c", "if (sl == 0 || sl > NW_PROV_SSID_MAX_BYTES)", "if (sl > NW_PROV_SSID_MAX_BYTES)", "empty SSID refused"),
