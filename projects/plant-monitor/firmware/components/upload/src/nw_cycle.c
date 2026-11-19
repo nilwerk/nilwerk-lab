@@ -2,9 +2,24 @@
 #include "nw_cycle.h"
 #include <string.h>
 
+_Static_assert(sizeof(nw_cycle_state_t) <= NW_CYCLE_RTC_BUDGET_BYTES, "RTC state over budget (design proposal, motivated by NFR-12): shrink it or revisit the limit");
+
+static bool ts_plausible_or_zero(uint32_t t) { return t == 0 || (t >= NW_TS_MIN && t <= NW_CYCLE_TS_MAX); }
+
+static bool state_consistent(const nw_cycle_state_t *st)
+{
+    const unsigned char *lb = (const unsigned char *)&st->low_battery, *op = (const unsigned char *)&st->outage_pending;
+    if (*lb > 1 || *op > 1) return false;                                       /* a bool byte other than 0/1 is garbage */
+    if (st->last_report_unix != 0 && st->last_report_unix < NW_TS_MIN) return false;
+    const nw_upload_state_t *u = &st->up;                                       /* att_head indexes attempts[]: out of range = write outside the array */
+    if (u->att_head >= NW_UPLOAD_MAX_PER_HOUR || !ts_plausible_or_zero(u->next_attempt_unix)) return false;
+    for (size_t i = 0; i < NW_UPLOAD_MAX_PER_HOUR; i++) if (!ts_plausible_or_zero(u->attempts[i])) return false;
+    return nw_ring_valid(&st->ring);
+}
+
 bool nw_cycle_state_ensure(nw_cycle_state_t *st)
 {
-    if (st->magic == NW_CYCLE_MAGIC) return false;
+    if (st->magic == NW_CYCLE_MAGIC && state_consistent(st)) return false;
     memset(st, 0, sizeof *st);
     st->magic = NW_CYCLE_MAGIC;
     nw_ring_init(&st->ring);

@@ -32,7 +32,16 @@ typedef struct {
     bool outage_pending;         /* FR-D04: next report is trigger=reconnect */
 } nw_cycle_state_t;
 
-/* Power-on RTC memory is not trustworthy: re-initialise unless the magic matches. Returns true when it (re)initialised. */
+/* RTC memory limit: motivated by NFR-12 (retained RTC memory is part of the deep-sleep current), but NFR-12 defines no byte budget. The 4096-byte
+ * limit is a design proposal, not a requirement (half of the 8 KB RTC memory; the share used by the bootloader/Wi-Fi/ULP is unverified: check
+ * idf.py size). Checked at compile time in nw_cycle.c. Open for the Lead/Arsany if it should become a requirement. */
+#define NW_CYCLE_RTC_BUDGET_BYTES 4096u
+/* Upper plausibility bound for a retained unix time (2038-01-19) [proposed]: garbage patterns above it are refused. Lower bound is NW_TS_MIN. */
+#define NW_CYCLE_TS_MAX 2147483647u
+
+/* Power-on RTC memory is not trustworthy: re-initialise unless the magic matches AND the content is self-consistent (FR-D04): ring invariants
+ * (nw_ring_valid), upload state (att_head < NW_UPLOAD_MAX_PER_HOUR, next_attempt_unix and attempts[] 0 or a plausible time), bool fields 0/1,
+ * last_report_unix 0 or a synced time. Returns true when it (re)initialised (retained samples are then lost). */
 bool nw_cycle_state_ensure(nw_cycle_state_t *st);
 /* A clock below the schema floor (NW_TS_MIN, Nov 2023) has not been SNTP-synced (1970 after power-on). */
 bool nw_cycle_clock_ok(uint32_t now_unix);
