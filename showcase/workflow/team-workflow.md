@@ -1,7 +1,7 @@
 # How the Nilwerk team works
 
 Nilwerk builds connected hardware prototypes with a team of AI agents, led and reviewed by a human
-engineer (Arsany) and supported by a human hardware integrator. This page is safe to share.
+engineer (Arsany) and supported by a human hardware tester. This page is safe to share.
 
 ## Who is on the team
 
@@ -19,7 +19,7 @@ engineer (Arsany) and supported by a human hardware integrator. This page is saf
 | Poppy · PR & Social | Shows the work, with proof, and tells it as a fun series with clearly marked fiction |
 | Max · Sales | Finds and contacts companies who need prototypes |
 | **Arsany** (human) | Owner. Decides, approves and merges |
-| **Hardware integrator** (human) | Assembles, flashes and bench-tests the real hardware |
+| **Hardware tester** (human) | Assembles, flashes and bench-tests the real hardware |
 
 ## One day
 
@@ -33,7 +33,7 @@ flowchart LR
   E --> F["Kai · pipeline green?"]
   F --> G{"Arsany reviews<br/>and merges"}
   G --> H["Done ✅"]
-  B -. "hands-on hardware" .-> P["Work order for our integrator<br/>(assemble · flash · measure · photos)"]
+  B -. "hands-on hardware" .-> P["Work order for our hardware tester<br/>(assemble · flash · measure · photos)"]
   P --> E
   C -. "questions / decisions" .-> N["Needs Arsany list<br/>pinned to the exact line"]
   N --> G

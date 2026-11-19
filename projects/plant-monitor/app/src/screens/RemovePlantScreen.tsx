@@ -6,7 +6,7 @@ import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { exportDoneText, exportErrorText } from '../export/exportErrorText';
-import type { ExportResult, PlantSummary } from '../plants/types';
+import { PlantsError, type ExportResult, type PlantSummary } from '../plants/types';
 import { canDelete } from '../export/exportGate';
 
 export interface RemoveOutcome { plantName: string; deviceId: string | null; sensorName: string | null; orphanPhotoPaths: string[] }
@@ -35,7 +35,7 @@ export function RemovePlantScreen({ plant, onCancel, onRemoved }: { plant: Plant
     catch { setError(t('plant.remove.error')); setBusy(false); return; }
     // NFR-07: the caller removes the photo objects (SQL cannot). A failure here keeps the paths on the next screen for a retry.
     const orphanPhotoPaths: string[] = [];
-    try { await svc.removePhotoObjects(photoPaths); } catch { orphanPhotoPaths.push(...photoPaths); }
+    try { await svc.removePhotoObjects(photoPaths); } catch (e) { orphanPhotoPaths.push(...(e instanceof PlantsError && e.leftover ? e.leftover : photoPaths)); }
     onRemoved({ plantName: plant.name, deviceId: plant.deviceId, sensorName: plant.deviceName, orphanPhotoPaths });
   };
 
@@ -64,7 +64,7 @@ export function PlantRemovedScreen({ plantName, deviceId, sensorName, orphanPhot
   const retryPhotos = async () => {
     setBusy(true); setError(null);
     try { await svc.removePhotoObjects(orphans); setOrphans([]); }
-    catch { setError(t('plant.removed.photosError')); }
+    catch (e) { if (e instanceof PlantsError && e.leftover) setOrphans(e.leftover); setError(t('plant.removed.photosError')); }
     setBusy(false);
   };
   const release = async () => {

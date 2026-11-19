@@ -49,10 +49,9 @@ describe('real exportData hands the file over before it resolves', () => {
     const svc = createRealPlants({ baseUrl: 'https://x.supabase.co', publishableKey: 'p', getAccessToken: async () => 'jwt', handOff: (f) => handOffFile(f, deps), fetchImpl: router(two) });
     expect(await screenExported(svc)).toBe(false);
   });
-  test('every other call is still not_configured (only the export is real in this slice)', async () => {
+  test('only releaseDevice is still not_configured (POST /device-release is a later slice)', async () => {
     const { svc } = mk();
-    await expect(svc.listPlants()).rejects.toMatchObject({ code: 'not_configured' });
-    expect(Object.keys(svc).sort()).toEqual(Object.keys(unconfiguredPlants()).sort());
+    await expect(svc.releaseDevice('x')).rejects.toMatchObject({ code: 'not_configured' });
   });
 });
 

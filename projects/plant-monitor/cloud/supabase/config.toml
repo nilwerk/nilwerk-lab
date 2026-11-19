@@ -48,3 +48,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.delete-account]
 verify_jwt = false   # 4.B2b DELETE /account: the function verifies the user JWT itself (auth.getUser), FR-A01, NFR-07
+[functions.export]
+verify_jwt = false   # 4.B2c GET /export: the function verifies the user JWT itself (auth.getUser), NFR-07, FR-A01

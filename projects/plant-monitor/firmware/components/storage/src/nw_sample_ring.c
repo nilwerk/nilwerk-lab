@@ -68,3 +68,18 @@ size_t nw_ring_consume_upto(nw_ring_t *r, uint32_t last_seq)
     }
     return removed;
 }
+
+bool nw_ring_valid(const nw_ring_t *r)
+{
+    if (!r || r->head >= NW_RING_CAP || r->count > NW_RING_CAP) return false;
+    if (r->count == 0) return true;
+    uint32_t prev = 0;
+    for (size_t i = 0; i < r->count; i++) {
+        const nw_sample_t *s = nw_ring_at(r, i);
+        if (!sample_ok(s)) return false;
+        if (i > 0 && s->seq <= prev) return false;
+        if (s->seq == 0) return false;
+        prev = s->seq;
+    }
+    return prev == r->next_seq;
+}

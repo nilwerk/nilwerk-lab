@@ -1,0 +1,25 @@
+Real output of projects/plant-monitor/cloud/test.sh on 2026-11-19 (PostgreSQL 16.15, Node 22.23.5), summary lines only:
+== RLS isolation (test/rls_isolation.sql)
+== retention / roll-up (test/retention.sql)
+== 2.4 contract test (docs/interfaces/db-schema.test.sql) on the migrated DB
+== OpenAPI matches the edge functions (test/openapi_check.py)
+== edge functions (test/functions/api.test.ts) against local Postgres
+ℹ tests 23
+ℹ pass 23
+ℹ fail 0
+== export edge function (test/functions/export.test.ts) against local Postgres
+ℹ tests 19
+ℹ pass 19
+ℹ fail 0
+== care-tips engine (tips/test/*.test.ts: ALL test files, not only tips.test.ts)
+ℹ tests 68
+ℹ pass 68
+ℹ fail 0
+ALL CLOUD TESTS PASSED
+
+Path-guard tests in the export run:
+✔ NFR-06 (QA N1): isSafePhotoPath accepts only <uid>/<folder>/<file> and rejects every traversal form
+✔ NFR-06 (QA N1): handler never signs a hostile photo path and returns url null for it, the safe photo is still signed
+✔ NFR-06 (QA N1): a traversal row written through the real table is exported with url null and never signed
+
+Care-tips tests: first tips.test.ts alone = 31, whole tips/test/*.test.ts = 68 (node --test, tap reporter).

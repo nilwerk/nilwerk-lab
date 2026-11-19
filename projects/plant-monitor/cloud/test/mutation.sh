@@ -8,10 +8,12 @@ cd "$(dirname "$0")/.."
 SQL=supabase/migrations/20261108000004_device_api.sql
 SQL5=supabase/migrations/20261108000005_devices_plant_check.sql
 SQL6=supabase/migrations/20261110000006_delete_account.sql
+SQL8=supabase/migrations/20261117000008_export_account.sql
+EXP=supabase/functions/_shared/export.ts
 LIB=supabase/functions/_shared/lib.ts
 HAN=supabase/functions/_shared/handlers.ts
-BK="$(mktemp -d)"; cp "$SQL" "$BK/sql"; cp "$SQL5" "$BK/sql5"; cp "$SQL6" "$BK/sql6"; cp "$LIB" "$BK/lib"; cp "$HAN" "$BK/han"
-restore() { cp "$BK/sql" "$SQL"; cp "$BK/sql5" "$SQL5"; cp "$BK/sql6" "$SQL6"; cp "$BK/lib" "$LIB"; cp "$BK/han" "$HAN"; }
+BK="$(mktemp -d)"; cp "$SQL" "$BK/sql"; cp "$SQL5" "$BK/sql5"; cp "$SQL6" "$BK/sql6"; cp "$SQL8" "$BK/sql8"; cp "$EXP" "$BK/exp"; cp "$LIB" "$BK/lib"; cp "$HAN" "$BK/han"
+restore() { cp "$BK/sql" "$SQL"; cp "$BK/sql5" "$SQL5"; cp "$BK/sql6" "$SQL6"; cp "$BK/sql8" "$SQL8"; cp "$BK/exp" "$EXP"; cp "$BK/lib" "$LIB"; cp "$BK/han" "$HAN"; }
 trap 'restore; rm -rf "$BK"' EXIT
 survived=0; total=0
 mutant() { # name file old new
@@ -88,6 +90,33 @@ mutant "DA-10 releases every user's devices (cross-user)"           "$SQL6" 'upd
 mutant "DA-11 revokes every device token (cross-user)"              "$SQL6" 'where device_id in (select id from public.devices where owner_id = p_user);' ';'
 mutant "DA-12 open claim tokens survive"                            "$SQL6" 'delete from public.claim_tokens where user_id = p_user;' 'select 1;'
 mutant "DA-13 photo paths of all users returned (cross-user)"       "$SQL6" 'from public.plant_images where owner_id = p_user;' 'from public.plant_images;'
+# 4.B2c GET /export (NFR-07, FR-A01, NFR-06)
+mutant "EX-1 no token check (any caller is treated as the user)"   "$EXP" 'if (!uid) return err(401, "unauthorized", "missing or invalid user JWT");' ''
+mutant "EX-2 any HTTP method exports"                               "$EXP" 'if (req.method !== "GET") return err(405, "method_not_allowed");' ''
+mutant "EX-3 format not validated"                                  "$EXP" 'if (format !== "json" && format !== "csv") return err(400, "bad_request", "format must be json or csv");' ''
+mutant "EX-4 user taken from a query parameter (cross-user)"        "$EXP" '{ p_user: uid }' '{ p_user: new URL(req.url).searchParams.get("user_id") ?? uid }'
+mutant "EX-5 photo URL lifetime 7 days -> 1 day"                    "$EXP" '7 * 24 * 3600' '24 * 3600'
+mutant "EX-6 signing failure ignored (export without photo links)"  "$EXP" 'if ("error" in s) return err(500, "internal");
+    urls = s.urls;' 'urls = "urls" in s ? s.urls : {};'
+mutant "EX-7 foreign storage path is signed" "$EXP" 'isSafePhotoPath(uid, p.storage_path));' 'typeof p.storage_path === "string");'
+mutant "EX-14 path guard removed (any path with the uid prefix is signed, '..' too)" "$EXP" 'isSafePhotoPath(uid, p.storage_path));' 'typeof p.storage_path === "string" && p.storage_path.startsWith(`${uid}/`));'
+mutant "EX-15 path guard accepts '..'"                               "$EXP" 'path.includes("..") || ' ''
+mutant "EX-16 path guard: segment character check removed (backslash, %2e, control chars)" "$EXP" ' && seg.every((x) => /^[A-Za-z0-9._-]+$/.test(x) && x !== ".")' ''
+mutant "EX-17 path guard: segment count not checked" "$EXP" 'seg.length === 3 && ' ''
+mutant "EX-18 path guard accepts a foreign/near user prefix"         "$EXP" 'seg[0] === uid' 'seg[0].startsWith(uid.slice(0, 8))'
+mutant "EX-8 expires_at not exported_at + 7 days"                   "$EXP" 'new Date(now.getTime() + PHOTO_URL_TTL_SECONDS * 1000)' 'new Date(now.getTime())'
+mutant "EX-9 Cache-Control: no-store dropped"                       "$EXP" 'const common = { "cache-control": "no-store" };' 'const common = {};'
+mutant "EX-10 CSV formula-injection guard removed"                  "$EXP" '/^[=+\-@\t\r]/.test(s)' '/^$/.test(s)'
+mutant "EX-11 CSV guard also mangles numbers (-3.5 -> '-3.5)"       "$EXP" 'if (typeof v === "string" && /^' 'if (/^'
+mutant "EX-12 CSV cells never quoted"                               "$EXP" '/[",\r\n]/.test(s) ? ' 'false ? '
+mutant "EX-13 zip CRC not written"                                  "$EXP" 'lv.setUint32(14, crc, true);' ''
+mutant "EX-S1 readings of ALL users exported (cross-user)"          "$SQL8" 'from public.readings x where x.owner_id = p_user' 'from public.readings x'
+mutant "EX-S2 plants of ALL users exported (cross-user)"            "$SQL8" 'from public.plants x where x.owner_id = p_user' 'from public.plants x'
+mutant "EX-S3 photo rows of ALL users exported (cross-user)"        "$SQL8" 'from public.plant_images x where x.owner_id = p_user' 'from public.plant_images x'
+mutant "EX-S4 export limited to the 7-day free window"              "$SQL8" 'from public.readings x where x.owner_id = p_user' "from public.readings x where x.owner_id = p_user and x.ts > now() - interval '7 days'"
+mutant "EX-S5 tips only for premium (RLS policy leaks into export)" "$SQL8" 'from public.tips x where x.owner_id = p_user' 'from public.tips x where x.owner_id = p_user and public.is_premium()'
+mutant "EX-S6 hourly roll-up missing owner filter (cross-user)"     "$SQL8" 'from public.readings_hourly x where x.owner_id = p_user' 'from public.readings_hourly x'
+mutant "EX-S7 API roles may execute export_account"                 "$SQL8" 'grant execute on function public.export_account(uuid) to service_role;' 'grant execute on function public.export_account(uuid) to service_role, authenticated, anon;'
 # not mutants (equivalent here): DA-14 dropping `authenticated` from the revoke in migration 6 changes nothing in plain Postgres, because the test harness never grants function execute to API roles (Supabase default privileges do; the grants test in api.test.ts "API roles cannot call" covers the revoke on the real roles only as far as the harness allows); deleteAuthUser idempotency lives in supabase.ts (404 tolerated), which no test can reach without a live project.
 # not a mutant: dropping `p.owner_id = auth.uid()` is equivalent for authenticated users, because plants_select_own already hides foreign plants from the subquery; the explicit check is defence in depth.
 restore

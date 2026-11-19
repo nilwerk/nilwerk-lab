@@ -21,6 +21,7 @@ jobs:
       app: ${{ steps.d.outputs.app }}
       cloud: ${{ steps.d.outputs.cloud }}
       clouddb: ${{ steps.d.outputs.clouddb }}
+      cloudmut: ${{ steps.d.outputs.cloudmut }}
       ml: ${{ steps.d.outputs.ml }}
       pcb: ${{ steps.d.outputs.pcb }}
       sim: ${{ steps.d.outputs.sim }}
@@ -45,8 +46,8 @@ jobs:
             ALL=false
             CHANGED="$(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA")"
             echo "Changed files:"; echo "$CHANGED"
-            # Shared build config: the workflow itself and tool-version files re-test every workstream.
-            if echo "$CHANGED" | grep -Eq '^(\.github/workflows/ci\.yml|\.github/actions/|\.tool-versions$)'; then ALL=true; echo "Shared build config changed: running all workstreams"; fi
+            # Shared build config: the workflow files and tool-version files re-test every workstream.
+            if echo "$CHANGED" | grep -Eq '^(\.github/workflows/ci\.yml|\.github/workflows/cloud-mutation\.yml|\.github/actions/|\.tool-versions$)'; then ALL=true; echo "Shared build config changed: running all workstreams"; fi
           fi
           # touched <name> <path-prefix...> -> true if running everything or a changed file is under a prefix
           touched() { [ "$ALL" = true ] && return 0; shift; for pre in "$@"; do echo "$CHANGED" | grep -q "^$pre" && return 0; done; return 1; }
@@ -66,6 +67,9 @@ jobs:
           # Their tests run in cloud-db (Node 22 + Postgres), see the comment there.
           gate cloud "find $P/cloud/supabase/functions -name index.ts 2>/dev/null | grep -q ." "$P/cloud/" $CT
           gate clouddb "test -f $P/cloud/test.sh" "$P/cloud/" $CT
+          # cloudmut = the ~15 min mutation suites (cloud-mutation.yml). Narrower than clouddb on purpose: only files under cloud/ (not contract docs)
+          # trigger it on a PR. ALL (ci.yml / tool versions changed, manual run) still turns it on. Push to main skips it, see the job's `if`.
+          gate cloudmut "test -f $P/cloud/test/mutation.sh" "$P/cloud/"
           gate ml "find $P/ml -name '*.py' 2>/dev/null | grep -q ." "$P/ml/"
           gate pcb "ls $P/pcb/*.kicad_pro" "$P/pcb/"
           # sim = ngspice netlists (.cir/.sp), a run_all.sh, or a Python check script that drives ngspice (ldo_dropout.py)
@@ -98,6 +102,14 @@ jobs:
           target: esp32c3
           path: projects/plant-monitor/firmware
           command: idf.py -B build-v1 -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.v1 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1" build size && grep -q '^CONFIG_PLANT_BOARD_V1_SUPERMINI=y' sdkconfig.v1
+      - name: ESP-IDF build (esp32c3, hourly upload = CONFIG_PLANT_UPLOAD, compiles only)
+        # Third build, own dir and sdkconfig (see above). Compiles the 4.F3 slice 3 adapter (nw_upload_idf.c), which is off in the two builds above.
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.4
+          target: esp32c3
+          path: projects/plant-monitor/firmware
+          command: idf.py -B build-upload -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.upload -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.upload" build size && grep -q '^CONFIG_PLANT_UPLOAD=y' sdkconfig.upload
       - uses: actions/upload-artifact@v4
         with:
           name: firmware-esp32c3
@@ -146,11 +158,11 @@ jobs:
         with:
           deno-version: "2.1.4"          # the version this was verified with
       - run: deno lint supabase/functions
-      # Care-tips engine (4.B3): plain TypeScript with no I/O, not under supabase/functions. Lint covers the sources only: tips/test/tips.test.ts has
-      # 5 deno lint require-await findings (async stubs, lines 15 21 154 175 194), for the owner to fix; not silenced, not skipped here.
-      - run: deno lint tips/*.ts
+      # Care-tips engine (4.B3): plain TypeScript with no I/O, not under supabase/functions. Lint covers the sources AND all tips test files
+      # (the require-await and no-explicit-any findings in the tests were fixed in code, no rule is silenced or skipped).
+      - run: deno lint tips/*.ts tips/test/*.test.ts
       - name: Typecheck entry points and the test files
-        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts tips/*.ts tips/test/tips.test.ts
+        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts test/functions/export.test.ts tips/*.ts tips/test/*.test.ts
 
   cloud-db:
     name: cloud DB tests
@@ -177,6 +189,14 @@ jobs:
       - run: pip install pyyaml          # cloud/test/openapi_check.py
       - name: Cloud DB tests (projects/plant-monitor/cloud/test.sh)
         run: bash projects/plant-monitor/cloud/test.sh
+
+  cloud-mutation:
+    name: cloud mutation suite (full)
+    needs: detect
+    # Runs on a pull_request that changes cloud/ (or the shared build config) and on a manual CI run; NOT on push to main (the PR already ran it,
+    # the nightly schedule in cloud-mutation.yml covers drift). Docs-only PRs: detect says cloudmut=false, so this job is skipped and costs nothing.
+    if: needs.detect.outputs.cloudmut == 'true' && github.event_name != 'push'
+    uses: ./.github/workflows/cloud-mutation.yml
 
   ml:
     needs: detect
@@ -371,7 +391,7 @@ jobs:
 
   summary:
     name: Final status
-    needs: [detect, firmware, app, cloud, cloud-db, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
+    needs: [detect, firmware, app, cloud, cloud-db, cloud-mutation, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -386,6 +406,7 @@ jobs:
             echo "| app | ${{ needs.app.result }} |"
             echo "| cloud | ${{ needs.cloud.result }} |"
             echo "| cloud-db | ${{ needs.cloud-db.result }} |"
+            echo "| cloud-mutation | ${{ needs.cloud-mutation.result }} |"
             echo "| ml | ${{ needs.ml.result }} |"
             echo "| pcb | ${{ needs.pcb.result }} |"
             echo "| sim | ${{ needs.sim.result }} |"
@@ -396,7 +417,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           # Detect must succeed: if it fails, every job is skipped and that must not look green.
           [ "${{ needs.detect.result }}" = "success" ] || { echo "Pipeline RED: Detect ${{ needs.detect.result }}"; exit 1; }
-          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.cloud-db.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
+          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.cloud-db.result }}" "${{ needs.cloud-mutation.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "Pipeline RED"; exit 1; fi
           done
           echo "Pipeline GREEN (skipped = workstream not started yet)"

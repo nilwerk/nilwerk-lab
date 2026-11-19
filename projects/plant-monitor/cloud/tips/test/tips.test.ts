@@ -12,13 +12,13 @@ const WINTER = "2026-01-15T10:00:00Z";
 const plant = (o: Partial<PlantInput> = {}): PlantInput => ({ id: "p1", name: "Tomato", locationType: "balcony", soilType: "potting", city: "Berlin", dryThresholdPct: 25, wetThresholdPct: 85, ...o });
 const mild: Forecast = { minTempC: 12, maxTempC: 22, rainMm: 0, stormWarning: false, heatWarning: false };
 const fc = (o: Partial<Forecast> = {}): Forecast => ({ ...mild, ...o });
-const weather = (f: Forecast | Error) => ({ forecast: async () => { if (f instanceof Error) throw f; return f; } });
+const weather = (f: Forecast | Error) => ({ forecast: () => (f instanceof Error ? Promise.reject(f) : Promise.resolve(f)) });
 const read = (m: number | null, minAgo = 10) => [{ ts: new Date(Date.parse(NOW) - minAgo * 60_000).toISOString(), moisturePct: m }];
 const run = (p: PlantInput, readings: ReturnType<typeof read>, f: Forecast | Error, o: { now?: string; premium?: boolean; assistant?: unknown; mode?: "live" | "rule_based"; timeoutMs?: number } = {}) =>
   generateTips({ plant: p, readings, now: o.now ?? NOW, premium: o.premium ?? true }, { weather: weather(f), assistant: o.assistant as never, mode: o.mode, timeoutMs: o.timeoutMs });
 const advisesWatering = (tips: Tip[]) => tips.some((t) => effective(t).watering);
 const advisesFert = (tips: Tip[]) => tips.some((t) => effective(t).fertilising);
-const llm = (items: unknown) => ({ propose: async () => items });
+const llm = (items: unknown) => ({ propose: () => Promise.resolve(items) });
 const evil = (id: string, category: string, text: string, action = "do") => ({ id, category, action, text, reason: "because the model said so" });
 
 // ---------- contract: tips carry reason + evidence -------------------------------------------------------------------
@@ -151,7 +151,7 @@ test("effective(): negated advice is not advice", () => {
 // ---------- error paths ---------------------------------------------------------------------------------------------------
 test("non-premium user gets premium_required, weather is not even called (FR-P04)", async () => {
   let called = 0;
-  await assert.rejects(generateTips({ plant: plant(), readings: read(10), now: NOW, premium: false }, { weather: { forecast: async () => { called++; return mild; } } }), (e: TipsError) => e instanceof TipsError && e.code === "premium_required");
+  await assert.rejects(generateTips({ plant: plant(), readings: read(10), now: NOW, premium: false }, { weather: { forecast: () => { called++; return Promise.resolve(mild); } } }), (e: TipsError) => e instanceof TipsError && e.code === "premium_required");
   assert.equal(called, 0);
   await assert.rejects(generateTips({ plant: plant(), readings: [], now: NOW, premium: undefined as never }, { weather: weather(mild) }), (e: TipsError) => e.code === "premium_required");
 });
@@ -172,7 +172,7 @@ test("weather provider failure degrades, does not fail; no city also degrades", 
 test("assistant failure / timeout / garbage falls back to rule-based tips", async () => {
   const base = (await run(plant({ locationType: "house" }), read(10), mild)).tips.map((t) => t.id);
   const cases: Array<[string, unknown]> = [
-    ["throws", { propose: async () => { throw new Error("boom"); } }],
+    ["throws", { propose: () => Promise.reject(new Error("boom")) }],
     ["hangs", { propose: () => new Promise(() => {}) }],
     ["not json shape", llm("hello")], ["null", llm(null)],
   ];
@@ -191,7 +191,7 @@ test("validateProposals rejects bad ids, categories, actions, lengths, markup an
 });
 test("rule-based mode ignores an assistant entirely (TIPS_MODE default, A-029)", async () => {
   let called = 0;
-  const r = await run(plant(), read(10), mild, { assistant: { propose: async () => { called++; return []; } } });
+  const r = await run(plant(), read(10), mild, { assistant: { propose: () => { called++; return Promise.resolve([]); } } });
   assert.equal(called, 0); assert.equal(r.mode, "rule_based"); assert.ok(r.tips.every((t) => t.source === "rules"));
 });
 test("a harmless assistant tip passes through, marked source=llm", async () => {

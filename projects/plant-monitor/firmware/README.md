@@ -1,6 +1,6 @@
 # Plant Monitor firmware
 
-ESP-IDF v5.4 firmware (C) for the ESP32-C3. Today it is a sensor bench app: it prints the five readings (soil, temperature, humidity, light, battery) as `NWBENCH` lines and deep-sleeps for 60 s after 5 lines. It has never run on a board.
+ESP-IDF v5.4 firmware (C) for the ESP32-C3. Today it is a sensor bench app: it prints the five readings (soil, temperature, humidity, light, battery) as `NWBENCH` lines and deep-sleeps for 60 s after 5 lines. It has never run on a board. With the opt-in `CONFIG_PLANT_UPLOAD` build (default off) it also buffers 96 samples in RTC memory, reports hourly and deep-sleeps; that path is host-tested and CI-compiled only, never run on a board (see DEV_GUIDE 7.4).
 
 **New here? Start with the [developer guide](DEV_GUIDE.md)**: install ESP-IDF, pick the board config (DevKitM-1 or v1 SuperMini), build, flash, run the PC tests, first-run bench check, troubleshooting, and how to report results.
 

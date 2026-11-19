@@ -46,6 +46,18 @@ export function makeDeps(): Deps {
       }
       return null;
     },
+    // GET /export (NFR-07). UNVERIFIED against a live project.
+    async signPhotoUrls(paths, expiresInSeconds) {
+      const urls: Record<string, string | null> = {};
+      for (let i = 0; i < paths.length; i += 100) {
+        const chunk = paths.slice(i, i + 100);
+        const { data, error } = await admin.storage.from("plant-photos").createSignedUrls(chunk, expiresInSeconds);
+        if (error || !data) return { error: { message: error?.message ?? "no data" } };
+        for (const p of chunk) urls[p] = null;
+        for (const o of data) if (o.path && !o.error && o.signedUrl) urls[o.path] = o.signedUrl;
+      }
+      return { urls };
+    },
     async deleteAuthUser(userId) {
       const { error } = await admin.auth.admin.deleteUser(userId);
       if (error && !/not.?found/i.test(error.message) && (error as { status?: number }).status !== 404) return { message: error.message };

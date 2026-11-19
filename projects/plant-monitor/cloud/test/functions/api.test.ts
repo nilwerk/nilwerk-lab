@@ -56,7 +56,7 @@ test("NFR-06: handlers send only SHA-256 digests to the database, never plaintex
   const deps: Deps = {
     rpc: async (_n, a) => { seen.push(a); return { data: { error: "token_invalid" }, error: null }; },
     getUserId: async () => null, randomBytes: (n) => new Uint8Array(n).fill(7),
-    deleteUserPhotos: async () => null, deleteAuthUser: async () => null,
+    deleteUserPhotos: async () => null, deleteAuthUser: async () => null, signPhotoUrls: async () => ({ urls: {} }),
   };
   const valid = readFileSync(join(fx, "device-report.valid.json"), "utf8");
   const r = await handleIngest(new Request("http://x/ingest", { method: "POST", headers: { authorization: "Bearer SECRET-TOKEN" }, body: valid }), deps);

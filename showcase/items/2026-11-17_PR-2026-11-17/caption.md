@@ -5,4 +5,5 @@
 - Where: `showcase/content/2026-11-17/` (`episodes.md`, `posts.md`, `video-script.md`, `claim-check.md`, `images/`, `video/`, `build_pack.py`, `build_video.py`)
 - Persona: Poppy (PR & Social) · Owner direction: Arsany, 17 Nov 2026 · Drafts only, nothing published or scheduled.
 - Checks run: both build scripts run offline (headless Chrome, numpy, ffmpeg); every PNG opened and read after layout fixes; `showcase/brand/check_contrast.py` and `check_svg_wellformed.py` pass (118 SVGs, 0 not well-formed); `ffprobe` on the MP4: 25.2 s, h264 + aac, 1080x1920; audio peak -3.0 dB, mean -22.4 dB.
-- Unverified: the sound was never heard (no audio output here); German texts unchecked by a native speaker; the care-tip approval by the owner is second-hand (Theo's review); fonts Space Grotesk and JetBrains Mono were not installed, so renders use Inter and DejaVu Sans Mono.
+- Unverified: the sound was never heard (no audio output here); German texts (rewritten after Theo's doubts) still unchecked by a native speaker; the care-tip approval is for the demo only (verified by Theo, comment 6961927275); fonts Space Grotesk and JetBrains Mono were not installed, so renders use Inter and DejaVu Sans Mono.
+- Fixes round (Theo C1-C8, Ines QA): see `showcase/content/2026-11-17/claim-check.md` section 5.

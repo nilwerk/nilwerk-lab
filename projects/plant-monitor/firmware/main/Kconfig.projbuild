@@ -49,6 +49,35 @@ menu "Plant Monitor"
             sdkconfig.defaults.local, or use idf.py menuconfig (stored in the git-ignored sdkconfig). See v1/FIRMWARE-BENCH.md section 2.
             The default ".invalid" never resolves, so a claim ends as claim_failed/network. test/host/check_api_url_not_committed.py guards this.
 
+    config PLANT_UPLOAD
+        bool "Hourly upload to the cloud (task 4.F3 slice 3): Wi-Fi + SNTP + HTTPS POST /ingest"
+        default n
+        help
+            OFF by default: the v1 bench build is unchanged. When on, each wake reads the sensors once, keeps the sample in an RTC ring buffer
+            (96 samples = 24 h) and sleeps to the next 15-min boundary; about once an hour it joins Wi-Fi, syncs time (SNTP) and POSTs the buffer.
+            Needs: a unit provisioned by the BLE setup flow (Wi-Fi credentials and device token in NVS namespace "nw_prov"; the v1 defaults switch the
+            setup flow OFF, so build with CONFIG_PLANT_SETUP_FLOW=y), and PLANT_API_BASE_URL set to the real https URL (build setting, A-082).
+            UNVERIFIED: compiled by CI only, never run on hardware.
+
+    config PLANT_NTP_SERVER
+        string "NTP server for the SNTP time sync (needed for sample timestamps)"
+        default "pool.ntp.org"
+        depends on PLANT_UPLOAD
+
+    config PLANT_UPLOAD_NET_TIMEOUT_S
+        int "Seconds to wait for the Wi-Fi join and, separately, for SNTP"
+        default 20
+        range 5 120
+        depends on PLANT_UPLOAD
+        help
+            Radio-on time costs battery (NFR-01). [proposed], not measured.
+
+    config PLANT_UPLOAD_HTTP_TIMEOUT_MS
+        int "HTTPS request timeout in ms (connect + TLS + answer)"
+        default 15000
+        range 3000 60000
+        depends on PLANT_UPLOAD
+
     config PLANT_FW_VERSION
         string "Firmware version string sent as fw in /device-claim (max 32 chars)"
         default "0.4.2-dev"
