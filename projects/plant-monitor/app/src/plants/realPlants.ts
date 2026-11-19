@@ -88,9 +88,18 @@ export function createRealPlants(d: RealPlantsDeps): PlantsService {
     },
     async removePhotoObjects(paths) {
       if (paths.length === 0) return;
-      // refuse to send anything that is not '<uid>/<plant>/<file>' to Storage: one bad path fails the whole call, nothing is removed
-      if (!paths.every((p) => isPhotoPath(p))) throw bad('photo path outside the <uid>/<plant_id>/<file> layout');
-      for (let i = 0; i < paths.length; i += 100) await removeObjects(rest, 'plant-photos', paths.slice(i, i + 100));
+      // The plant rows are already gone (delete_plant), so one odd path must not orphan the others: remove every well-formed path, then report the rest.
+      // Storage policy photos_own already confines the call to the caller's own folder; the shape check only keeps traversal-like strings out of the request.
+      const good = paths.filter((p) => isPhotoPath(p));
+      const left = paths.filter((p) => !isPhotoPath(p));
+      for (let i = 0; i < good.length; i += 100) {
+        try { await removeObjects(rest, 'plant-photos', good.slice(i, i + 100)); }
+        catch (e) {
+          const code = e instanceof PlantsError ? e.code : 'unknown';
+          throw new PlantsError(code, e instanceof Error ? e.message : undefined, [...good.slice(i), ...left]);
+        }
+      }
+      if (left.length > 0) throw new PlantsError('unknown', 'photo path outside the <uid>/<plant_id>/<file> layout', left);
     },
     async exportData(format): Promise<ExportResult> {
       const token = await d.getAccessToken().catch(() => null);

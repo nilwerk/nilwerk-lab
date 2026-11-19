@@ -3,6 +3,7 @@
 import { createRealPlants } from '../plants/realPlants';
 import { PlantsError } from '../plants/types';
 import { buildPhotoPath, isPhotoPath } from '../plants/photoPath';
+import { UID as FUID, PL as FPL, GOOD_PATHS, BAD_PATHS } from './photoPathFixtures';
 
 const NOW = new Date('2026-11-19T10:30:00Z');
 const UID = '11111111-1111-4111-8111-111111111111';
@@ -139,25 +140,41 @@ describe('deletePlant + removePhotoObjects (C2, FR-A08, NFR-07)', () => {
     const sent = f.mock.calls.flatMap((c) => JSON.parse((c[1] as any).body).prefixes);
     expect(f).toHaveBeenCalledTimes(2); expect(sent).toEqual(many);
   });
-  test('empty list -> no call; storage failure rejects (path list stays with the caller for retry); malformed path blocks the whole call', async () => {
+  test('empty list -> no call; storage failure rejects with every path as leftover (retry keeps the full list)', async () => {
     const e = mk(() => res(200, [])); await e.svc.removePhotoObjects([]); expect(e.f).not.toHaveBeenCalled();
-    await expect(mk(() => res(500, {})).svc.removePhotoObjects(paths)).rejects.toMatchObject({ code: 'network' });
-    await expect(mk(() => { throw new TypeError('x'); }).svc.removePhotoObjects(paths)).rejects.toMatchObject({ code: 'network' });
-    const b = mk(() => res(200, []));
-    await expect(b.svc.removePhotoObjects([paths[0], `${UID}/../other/x.jpg`])).rejects.toMatchObject({ code: 'unknown' });
-    await expect(b.svc.removePhotoObjects([`${UID}/a.jpg`])).rejects.toMatchObject({ code: 'unknown' });
-    expect(b.f).not.toHaveBeenCalled();
+    await expect(mk(() => res(500, {})).svc.removePhotoObjects(paths)).rejects.toMatchObject({ code: 'network', leftover: paths });
+    await expect(mk(() => { throw new TypeError('x'); }).svc.removePhotoObjects(paths)).rejects.toMatchObject({ code: 'network', leftover: paths });
+  });
+  test('mixed batch (C1): well-formed paths are removed, the malformed one is reported as leftover, retry with the leftover only never touches the good ones', async () => {
+    const odd = `${UID}/${P1}/sub/legacy.jpg`;
+    const { svc, f } = mk(() => res(200, []));
+    await expect(svc.removePhotoObjects([paths[0], odd, paths[1]])).rejects.toMatchObject({ code: 'unknown', leftover: [odd] });
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(JSON.parse((f.mock.calls[0][1] as any).body).prefixes).toEqual(paths);
+    // second chunk fails: the removed first chunk is not in leftover
+    const many = Array.from({ length: 150 }, (_, i) => `${UID}/${P1}/f${i}.jpg`);
+    let n = 0;
+    const g = mk(() => (n++ === 0 ? res(200, []) : res(500, {})));
+    await expect(g.svc.removePhotoObjects([...many, odd])).rejects.toMatchObject({ code: 'network', leftover: [...many.slice(100), odd] });
+  });
+  test('only malformed paths: nothing is sent, all are leftover', async () => {
+    const odd = `${UID}/../x/a.jpg`;
+    const { svc, f } = mk(() => res(200, []));
+    await expect(svc.removePhotoObjects([odd])).rejects.toMatchObject({ leftover: [odd] });
+    expect(f).not.toHaveBeenCalled();
   });
 });
 
-describe('photo path contract <uid>/<plant_id>/<uuid>.<ext>', () => {
-  test('builder produces exactly 3 segments; guard rejects traversal, wrong depth, foreign uid', () => {
+describe('photo path contract <uid>/<plant_id>/<uuid>.<ext> (shared fixtures)', () => {
+  test('every good fixture passes for its uid, every bad one fails', () => {
+    for (const [why, p] of GOOD_PATHS) expect(isPhotoPath(p, FUID)).toBe(true);
+    for (const [why, p] of BAD_PATHS) expect([why, isPhotoPath(p, FUID)]).toEqual([why, false]);
+  });
+  test('builder produces exactly 3 segments and rejects what the guard rejects', () => {
     const p = buildPhotoPath(UID, P1, U1, '.JPG');
     expect(p).toBe(`${UID}/${P1}/${U1}.jpg`);
-    expect(p.split('/')).toHaveLength(3);
     expect(isPhotoPath(p, UID)).toBe(true);
     expect(isPhotoPath(p, U1)).toBe(false);
-    for (const x of [`${UID}/${U1}.jpg`, `${UID}/${P1}/x/${U1}.jpg`, `/${UID}/${P1}/a.jpg`, `${UID}/${P1}/..`, `${UID}\\${P1}\\a.jpg`, `${UID}/${P1}/a%2e.jpg`, `${UID}/${P1}/`, 5]) expect(isPhotoPath(x)).toBe(false);
     expect(() => buildPhotoPath(UID, P1, U1, 'exe')).toThrow();
     expect(() => buildPhotoPath(UID, `${P1}/x`, U1, 'jpg')).toThrow();
   });

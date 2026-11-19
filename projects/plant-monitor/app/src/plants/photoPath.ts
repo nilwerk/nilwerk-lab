@@ -1,5 +1,5 @@
 // Photo object path contract (db-schema.sql L169, plant_images.storage_path; Storage policy photos_own: first folder = auth.uid()).
-// A photo lives at '<uid>/<plant_id>/<uuid>.<ext>': EXACTLY 3 segments. The cloud export (isSafePhotoPath, _shared/export.ts, PR #130) signs only such paths,
+// A photo lives at '<uid>/<plant_id>/<uuid>.<ext>': EXACTLY 3 segments. The cloud export (isSafePhotoPath in cloud/supabase/functions/_shared/export.ts) signs only such paths,
 // so an upload with any other layout would be missing from the export (NFR-07). Requirements: FR-A05, NFR-06, NFR-07.
 const SEG = /^[A-Za-z0-9._-]+$/;
 const EXT = /^(jpg|jpeg|png|webp|heic)$/;
