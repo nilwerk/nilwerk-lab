@@ -53,25 +53,25 @@ def frame(name, body, secs):
 
 
 def build_frames():
-    frame("f1", chips() + f"""<div class="h" style="font-size:120px;margin:50px 0 60px">One real bug.<br><span style="color:var(--accent)">Two stubborn</span><br>engineers.</div>
+    frame("f1", chips() + f"""<div class="h" style="font-size:120px;margin:50px 0 60px">One real bug.<br><span style="color:var(--accent)">Two stubborn</span><br>AI agents.</div>
 {bubble("ines","<b>Show me the log.</b>","l",64)}
 <div style="height:40px"></div>{capt("Tuesday 17 November 2026. The crew are AI agents; their drama is made up.")}""", 3.5)
-    frame("f2", chips() + f"""<div style="height:40px"></div>{bubble("mira","My guard drops a batch the server keeps rejecting. So one bad batch can never block us.","l",46)}
-<div style="height:50px"></div>{realbox("HOW THE DEVICE WORKS","Every 15 min","the sensor stores a new sample. A retry waits at least as long.",92)}
+    frame("f2", chips() + f"""<div style="height:40px"></div>{bubble("mira","I built a guard for stubborn batches. I am extremely proud of it.","l",50)}
+<div style="height:50px"></div>{realbox("BY DESIGN (FIRMWARE SETTING)","Every 15 min","the sensor is designed to store a new sample. A retry waits at least as long. Not yet observed on a device.",92)}
 {capt("Mira's guard counted the newest sample. Spot the problem?")}""", 4.5)
     # counter frames
     cells = lambda n: "".join(f'<span style="display:inline-block;width:96px;height:96px;border-radius:18px;border:5px solid var(--ink);background:{"var(--accent)" if i<4 else "var(--warnsoft)"};margin:6px"></span>' for i in range(n))
-    frame("f3a", chips() + f"""<div style="height:40px"></div>{bubble("ines","Six rejects in a row. Watch the buffer.","r",52)}
-<div style="height:40px"></div><div class="panel" style="padding:30px"><div class="mono" style="font-size:26px;font-weight:700;color:var(--accent)">REAL &middot; QA'S REPRODUCTION</div>
+    frame("f3a", chips() + f"""<div style="height:40px"></div>{bubble("ines","Let us make the server say no. A lot. Watch the buffer.","r",52)}
+<div style="height:40px"></div><div class="panel" style="padding:30px"><div class="mono" style="font-size:26px;font-weight:700;color:var(--accent)">REAL &middot; QA'S REPRODUCTION (6 REJECTS IN A ROW)</div>
 <div style="font-size:150px;font-weight:800;letter-spacing:-.04em;line-height:1">4 <span style="font-size:60px;color:var(--muted)">samples waiting</span></div><div>{cells(4)}</div>
 <div class="mono" style="font-size:30px;font-weight:700;margin-top:16px;color:var(--warn)">guard fired: NO</div></div>{capt("Every retry, a new sample arrives.")}""", 1.0)
     for n in range(5, 11):
-        frame(f"f3_{n}", chips() + f"""<div style="height:40px"></div>{bubble("ines","Six rejects in a row. Watch the buffer.","r",52)}
-<div style="height:40px"></div><div class="panel" style="padding:30px"><div class="mono" style="font-size:26px;font-weight:700;color:var(--accent)">REAL &middot; QA'S REPRODUCTION</div>
+        frame(f"f3_{n}", chips() + f"""<div style="height:40px"></div>{bubble("ines","Let us make the server say no. A lot. Watch the buffer.","r",52)}
+<div style="height:40px"></div><div class="panel" style="padding:30px"><div class="mono" style="font-size:26px;font-weight:700;color:var(--accent)">REAL &middot; QA'S REPRODUCTION (6 REJECTS IN A ROW)</div>
 <div style="font-size:150px;font-weight:800;letter-spacing:-.04em;line-height:1;color:{"var(--warn)" if n>=9 else "var(--ink)"}">{n} <span style="font-size:60px;color:var(--muted)">samples waiting</span></div><div>{cells(n)}</div>
 <div class="mono" style="font-size:30px;font-weight:700;margin-top:16px;color:var(--warn)">guard fired: NO</div></div>{capt("The counter resets. The guard never fires." if n==10 else "Every retry, a new sample arrives.")}""", 0.5 if n < 10 else 1.2)
-    frame("f4", chips() + f"""<div style="height:40px"></div>{bubble("mira","...Count from the <b>oldest</b> sample, not the newest. Fine. You were right.","l",50)}
-<div style="height:50px"></div>{realbox("AFTER THE FIX","3rd reject = batch dropped","QA re-ran the same case: the guard now fires and the buffer is cleared.",70)}
+    frame("f4", chips() + f"""<div style="height:40px"></div>{bubble("mira","...Fine. You were right. I am fixing it.","l",54)}
+<div style="height:50px"></div>{realbox("AFTER THE FIX","3rd reject = batch dropped","Fix: count from the oldest sample. QA re-ran the same case: the guard now fires and the buffer is cleared.",70)}
 {capt("Fixed the same morning. Re-checked by QA.")}""", 4.0)
     frame("f5", chips() + f"""<div style="height:30px"></div><div class="mono" style="font-size:28px;font-weight:700;background:var(--accent);color:#fff;display:inline-block;border-radius:999px;padding:8px 20px">MEASURED, 17 NOV 2026 &middot; HOST TESTS ON A PC</div>
 <div style="height:30px"></div>

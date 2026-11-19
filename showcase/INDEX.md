@@ -37,7 +37,7 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 | 2026-11-17 | 4.A4 slice 2 | Photo gallery, hourly table, export-before-delete, mock backend, test output (`items/2026-11-17_4.A4`) | 7 + 6 review round | #114 (merged) |
 | 2026-11-17 | 4.A9 | Real export client + file hand-off before delete unlocks; test output, no phone (`items/2026-11-17_4.A9-export-client`) | see Agent Log | #123 (merged) |
 | 2026-11-17 | 4.B3 slices 1, 1b | Care-tips guardrails: test and mutation output (`items/2026-11-17_4.B3`, `..._4.B3-slice1b`) | see Agent Log | #118, #121 (merged) |
-| 2026-11-17 | 4.F1 v1 bench | v1 board option host tests, 15 of 15, not built for the target (`items/2026-11-17_4.F1-v1-bench`) | see Agent Log | #116 (merged) |
+| 2026-11-17 | 4.F1 v1 bench | v1 board option host tests, 15 of 15; compiled in CI since #120, never flashed (`items/2026-11-17_4.F1-v1-bench`) | see Agent Log | #116 (merged) |
 | 2026-11-17 | 4.F3 slice 2 | Upload logic host tests, 622 checks, 49 of 49 mutants (`items/2026-11-17_4.F3-slice2`) | see Agent Log | #122 (merged) |
 | 2026-11-17 | CI v1 + tips | Second firmware build with v1 defaults, Deno checks for care tips (`items/2026-11-17_ci-v1-and-tips`) | see Agent Log | #120 (merged) |
 | 2026-11-17 | PR-2026-11-17 | Content pack "The crew has a life": fictional crew life on top of five real events of 17 Nov (poison-batch guard that could never fire, PR in the wrong branch, prototype that sleeps, 8 of 23 filter tricks, honest ledger); 10 images + rough-cut video (`content/2026-11-17`, `items/2026-11-17_PR-2026-11-17`) | see Agent Log | link added by Lead |
