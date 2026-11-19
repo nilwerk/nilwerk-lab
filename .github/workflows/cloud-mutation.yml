@@ -1,0 +1,67 @@
+name: Cloud mutation suite
+
+# Full mutation suites of the cloud backend (about 15 min, too slow for every PR):
+#   projects/plant-monitor/cloud/test/mutation.sh        62 mutants (token hash/auth, claim, idempotency, RLS, delete, export)
+#   projects/plant-monitor/cloud/tips/test/mutation.sh   67 mutants (care-tips guardrails)
+# Each script exits 1 if any mutant survives, so a red job = a test gap.
+#
+# Three ways in:
+#   workflow_call      from ci.yml job `cloud-mutation` (pull_request that touches cloud/, or manual CI run); ci.yml's Final status counts it
+#   schedule           nightly on main, so drift is caught even when no cloud PR runs it (standalone, NOT part of Final status)
+#   workflow_dispatch  manual run of this suite alone
+# No secrets: a throw-away Postgres service container with a fixed CI-only password, like the cloud-db job.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"   # 02:17 UTC, off the hour on purpose (scheduled runs queue at :00)
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    name: cloud mutation suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 40          # normal run ~15 min; a hang must not burn the runner for 6 h
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres   # superuser of the throw-away service; test.sh creates/drops nw_test_* databases
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4      # edge function tests run TypeScript natively (Node >= 22.6)
+        with:
+          node-version: 22
+      - name: Care-tips mutants (no database, fast)
+        run: bash projects/plant-monitor/cloud/tips/test/mutation.sh | tee tips-mutation.txt
+        shell: bash                      # explicit bash = pipefail, so `| tee` cannot hide a surviving mutant
+      - name: Cloud API / SQL / RLS mutants (needs Postgres)
+        run: bash projects/plant-monitor/cloud/test/mutation.sh | tee cloud-mutation.txt
+        shell: bash
+        if: success() || failure()       # run both suites even if the first one found a survivor, so one run shows every gap
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Cloud mutation suite"
+            for f in tips-mutation.txt cloud-mutation.txt; do
+              echo "- $f: $(grep -E '^mutants:' "$f" 2>/dev/null || echo 'did not finish')"
+              grep -E '^SURVIVED|^BAD MUTANT|^baseline FAILS' "$f" 2>/dev/null | sed 's/^/  - /'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloud-mutation-output
+          path: |
+            tips-mutation.txt
+            cloud-mutation.txt
+          if-no-files-found: ignore
