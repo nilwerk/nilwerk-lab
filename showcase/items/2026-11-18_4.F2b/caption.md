@@ -1,0 +1,6 @@
+# 4.F2b: per-unit security-2 provisioning tool and bench procedure
+
+**Task:** Plan 4.F2b (A-081 answer a): a one-time per-unit salt/verifier step so BLE setup can run on a real unit. **PR:** PR #132, branch `agent/firmware/4.F2b-provision`.
+**Persona:** Mira (Firmware + Edge AI). **Agent minutes:** 7.1 (build; fix round follows in the Agent Log). **Own human estimate:** about 8 h for an experienced engineer without AI (SRP maths, tool, tests, procedure).
+**What it shows:** `tools/nw_sec2_gen.py` makes the SRP6a salt and verifier (user `wifiprov`, NVS `nw_sec2` / `salt` / `verifier`) plus the label text; a pure-C validator refuses blank or wrong-size data before BLE starts; `sdkconfig.defaults.setup` switches the setup flow on for the v1 build; `tests/procedures/4.F2b-sec2-provisioning.md` is the bench procedure for Peter. Host tests and mutation checks (29 mutants) pass on a PC. No image: nothing visual is real here.
+**Unverified:** ESP-IDF build of the setup config, nvs_partition_gen/esptool steps, NimBLE advertising, SRP handshake with a real client (the optional pysrp cross-check is skipped when `srp` is not installed; run with pysrp 1.0.22 by Mira and by Theo: match). Hard merge order: PR #129 first, then #132 (uses the #129 names); no dependency on #128.

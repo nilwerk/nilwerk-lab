@@ -22,6 +22,7 @@
 #include "nvs.h"
 #include "nw_prov_glue.h"
 #include "nw_prov_store_nvs.h"
+#include "nw_sec2.h"
 #include "sdkconfig.h"
 #include "wifi_provisioning/manager.h"
 #include "wifi_provisioning/scheme_ble.h"
@@ -178,7 +179,7 @@ static bool load_sec2(wifi_prov_security2_params_t *p, uint8_t *salt, size_t *sl
     if (nvs_open("nw_sec2", NVS_READONLY, &h) != ESP_OK) return false;
     bool ok = nvs_get_blob(h, "salt", salt, sl) == ESP_OK && nvs_get_blob(h, "verifier", ver, vl) == ESP_OK;
     nvs_close(h);
-    if (!ok) return false;
+    if (!ok || !nw_sec2_valid(salt, *sl, ver, *vl)) return false;   /* exact lengths, not blank (4.F2b) */
     p->salt = (const char *)salt; p->salt_len = (uint16_t)*sl; p->verifier = (const char *)ver; p->verifier_len = (uint16_t)*vl;   /* IDF 5.4: const char * + uint16_t */
     return true;
 }

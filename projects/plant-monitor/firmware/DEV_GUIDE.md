@@ -356,7 +356,7 @@ Code exists (task 4.F2) and is **NOT RUN ON HARDWARE**. In short *(repo: `docs/i
 3. The app sends Wi-Fi name and password, then a device name and a one-time claim token.
 4. The unit joins Wi-Fi and calls `POST /device-claim` on the cloud; the answer contains a per-device token stored on the unit.
 5. Setup ends after 5 wrong handshakes or 5 minutes.
-It needs a per-unit security-2 salt and verifier stored in NVS namespace `nw_sec2`, otherwise BLE stays off (fail closed). A tool or procedure that puts these on a unit is not in the repo (searched; none found). So a bench unit **cannot be provisioned today**, and that is why the bench builds have the setup flow switched off.
+It needs a per-unit security-2 salt and verifier stored in NVS namespace `nw_sec2`, otherwise BLE stays off (fail closed). Since task 4.F2b the repo has the tool (`firmware/tools/nw_sec2_gen.py`, PC only, tested on the PC) and the bench procedure `tests/procedures/4.F2b-sec2-provisioning.md` (build with `sdkconfig.defaults.setup` last in `SDKCONFIG_DEFAULTS`, generate per-unit data outside the repo, flash the NVS image). **None of the device steps has been run (UNVERIFIED)**; the bench builds still have the setup flow switched off.
 
 ### 7.3 What is wired and what is not (today, 2026-11-17)
 
@@ -364,7 +364,7 @@ It needs a per-unit security-2 salt and verifier stored in NVS namespace `nw_sec
 |---|---|
 | Sensor bench app (read, print, sleep 60 s) | Written, compiles in CI, unit tests on PC, **never run on hardware** |
 | v1 SuperMini config | Compiles in CI (second build step), **not run on the board**; console choice on native USB is UNVERIFIED |
-| BLE setup and claim (4.F2) | Code exists, off in bench builds, not run on hardware, cannot be provisioned yet (7.2) |
+| BLE setup and claim (4.F2, 4.F2b) | Code exists, off in bench builds, not run on hardware; per-unit provisioning tool + bench procedure written (4.F2b), device steps UNVERIFIED (7.2) |
 | Report payload, sample ring, sleep decision, hourly upload decision, one-wake cycle (4.F3) | Pure C with PC tests. Called from `main.c` only with `CONFIG_PLANT_UPLOAD` (default off) |
 | 4.F3 upload adapter (Wi-Fi join, SNTP, HTTPS POST, RTC-retained state), `nw_upload_idf.c` | **Written, compiled only by CI (third build step), UNVERIFIED on hardware.** With the option off (the default, and in both bench builds) no data leaves the device |
 | Edge AI (TFLite Micro model on the device) | **Not integrated.** Training code is in `ml/`; the firmware has no model or `esp-tflite-micro` dependency |
