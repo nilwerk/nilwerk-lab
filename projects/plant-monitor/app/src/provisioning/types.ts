@@ -1,5 +1,5 @@
-// Device setup contract used by the UI (task 4.A3, FR-A03 / FR-D03). Two implementations: fakeProvisioning.ts (tests, web mock) and, LATER,
-// a real BLE one built on @orbital-systems/react-native-esp-idf-provisioning (needs an Expo dev build, not Expo Go; separate slice).
+// Device setup contract used by the UI (task 4.A3, FR-A03 / FR-D03). Two implementations: fakeProvisioning.ts (tests, web mock) and
+// bleProvisioning.ts (4.A3b slice 1: real BLE on @orbital-systems/react-native-esp-idf-provisioning via espAdapter.ts; needs an Expo dev build, not Expo Go).
 // Mirrors docs/interfaces/ble-provisioning.md (sequence section 3, nw-claim, nw-status) and openapi.yaml /claim-token + /device-claim.
 // A-023: hub pairing (S17, nw-hub) is v1.1 and deliberately NOT part of this contract.
 
