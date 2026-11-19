@@ -245,7 +245,8 @@ paths:
         Photos are linked, not embedded: `url` is a signed Storage URL valid 7 days, `expires_at` its absolute end (exported_at + 7 days),
         `file` the name to save it under ('<plant_id>/<uuid>.jpg'). The APP downloads the photos from these URLs before it unlocks account
         deletion (A-107 option b); after deletion the Storage objects are gone. A photo whose Storage object is missing has url and
-        expires_at null. If Storage signing fails, the whole request fails with 500 (never a document without photo links).
+        expires_at null, and so does a photo row whose storage_path is not exactly '<caller id>/<folder>/<file>' (contains '..', a leading '/',
+        a backslash or other unsafe characters, or another user's prefix): such a path is never signed. If Storage signing fails, the whole request fails with 500 (never a document without photo links).
         format=csv: application/zip with plants.csv, devices.csv, readings.csv, readings_hourly.csv, events.csv, alerts.csv, tips.csv,
         photos.csv (id, plant_id, taken_at, url, expires_at, file) (UTF-8, header row, ISO-8601 UTC timestamps, one row per record,
         RFC 4180 quoting; text cells starting with = + - @ get a leading ' against spreadsheet formula injection).

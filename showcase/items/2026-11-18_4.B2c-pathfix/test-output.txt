@@ -1,0 +1,10 @@
+cloud/test.sh (local PG 16, Node 22): ALL CLOUD TESTS PASSED. api 23/23, export 19/19, tips 68/68.
+✔ NFR-06 (QA N1): isSafePhotoPath accepts only <uid>/<folder>/<file> and rejects every traversal form (0.373489ms)
+✔ NFR-06 (QA N1): handler never signs a hostile photo path and returns url null for it, the safe photo is still signed (1.05263ms)
+✔ NFR-06 (QA N1): a traversal row written through the real table is exported with url null and never signed (140.318275ms)
+
+mutation.sh (stopped part-way, EX-1..EX-16 incl. new guard mutants killed):
+killed    EX-7 foreign storage path is signed  (✖ NFR-06: a photo row whose path is not under the caller's f
+killed    EX-14 path guard removed (any path with the uid prefix is signed, '..' too)  (✖ NFR-06 (QA N1): ha
+killed    EX-15 path guard accepts '..'  (✖ NFR-06 (QA N1): isSafePhotoPath accepts only <uid>/<folder>/<fil
+killed    EX-16 path guard: segment character check removed (backslash, %2e, control chars)  (✖ NFR-06 (QA N
