@@ -197,9 +197,9 @@ describe('remove plant (S24b/S24c, FR-A08, A-022)', () => {
     await screen.findByRole('header', { name: 'Remove Basil?' });
     return svc;
   };
-  const exportFirst = async (format: 'JSON' | 'CSV' = 'JSON') => {
+  const exportFirst = async (format: 'JSON' = 'JSON') => {
     await press(`Export ${format}`);
-    await screen.findByText(/^Export ready: plant-monitor-export-\S+\.(json|zip) \(\d+ photos\)\. You can delete now\.$/);
+    await screen.findByText(/^Export ready: plant-monitor-export-\S+\.zip \(your data and \d+ photos\)\. You can delete now\.$/);
   };
   test('warning names what is deleted; delete stays disabled until export ran AND the exact plant name is typed', async () => {
     await open();
@@ -236,7 +236,7 @@ describe('remove plant (S24b/S24c, FR-A08, A-022)', () => {
   });
   test('delete, then Release sensor calls device-release for that device', async () => {
     const svc = await open();
-    await exportFirst('CSV');
+    await exportFirst();
     await fireEvent.changeText(screen.getByLabelText('Type the plant name to confirm'), 'Basil');
     await press('Delete plant and all its data');
     await press('Release sensor');

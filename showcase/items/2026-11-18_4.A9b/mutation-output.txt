@@ -1,0 +1,60 @@
+=== MUTATION a: caller swallows photo failures (hands over without photos) (src/plants/realPlants.ts)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › a URL on another host is never fetched and the export is rejected (photos_rejected)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › expired links (date in the past, no photo request made) -> photos_expired
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › expired links reported by Storage (400) -> photos_expired
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › network drop during photos -> photos_failed, nothing handed over
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › one photo fails (500): exportData rejects photos_failed 1 of 2, the hand-off is NEVER called, the gate stays closed
+Tests:       8 failed, 264 passed, 272 total
+=== MUTATION b: screen gate opens on any export (exported !== null) (src/screens/DeleteAccountScreen.tsx)
+  ● export-before-delete gate (NFR-07) › CSV alone never unlocks delete (it has no photos); the screen says why
+Tests:       2 failed, 270 passed, 272 total
+=== MUTATION b2: remove-plant screen gate opens on any export (src/screens/RemovePlantScreen.tsx)
+  ● export before delete (A-022, NFR-07) and photo objects in storage › CSV export does NOT unlock the delete (no photos inside, A-107); delete after the JSON export removes every returned photo path from storage (NFR-07)
+Tests:       1 failed, 271 passed, 272 total
+=== MUTATION c: host check always true (src/export/photoExport.ts)
+  ● downloadPhotos › a redirect to another host is refused (final url checked)
+  ● downloadPhotos › wrong host: rejected WITHOUT any request (also when only one of many is bad)
+  ● isExpectedPhotoUrl (host check) › file:///etc/passwd -> false
+  ● isExpectedPhotoUrl (host check) › http://abc.supabase.co/storage/v1/object/sign/x -> false
+  ● isExpectedPhotoUrl (host check) › https://abc.supabase.co.evil.example/storage/v1/object/sign/x -> false
+  ● isExpectedPhotoUrl (host check) › https://abc.supabase.co/rest/v1/profiles -> false
+  ● isExpectedPhotoUrl (host check) › https://abc.supabase.co:8443/storage/v1/object/sign/x -> false
+  ● isExpectedPhotoUrl (host check) › https://abc.supabase.co@evil.example/storage/v1/object/sign/x -> false
+  ● isExpectedPhotoUrl (host check) › https://evil.example/storage/v1/object/sign/plant-photos/x.jpg -> false
+  ● isExpectedPhotoUrl (host check) › https://user:pw@abc.supabase.co/storage/v1/object/sign/x -> false
+  ● isExpectedPhotoUrl (host check) › not a url -> false
+  ● isExpectedPhotoUrl (host check) › plain http is accepted only for a localhost dev backend
+=== MUTATION d: expiry check removed (src/export/photoExport.ts)
+  ● downloadPhotos › expired by expires_at: clear reason, no request
+  ● downloadPhotos › expires_at exactly now counts as expired; one second ahead is fine
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › expired links (date in the past, no photo request made) -> photos_expired
+Tests:       4 failed, 268 passed, 272 total
+=== MUTATION e: real caller skips the photo step (archive = JSON only) (src/plants/realPlants.ts)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › a URL on another host is never fetched and the export is rejected (photos_rejected)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › a photo whose url is null (object missing) is reported, not fatal; the rest is archived
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › expired links (date in the past, no photo request made) -> photos_expired
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › expired links reported by Storage (400) -> photos_expired
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › export JSON without a photos list cannot prove completeness: rejected, nothing handed over
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › hand-off gets ONE zip with the untouched export.json and every photo; result is complete
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › network drop during photos -> photos_failed, nothing handed over
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › one photo fails (500): exportData rejects photos_failed 1 of 2, the hand-off is NEVER called, the gate stays closed
+  ● real exportData hands the file over before it resolves › resolves with metadata after the hand-off got the exact bytes and name
+Tests:       13 failed, 259 passed, 272 total
+=== MUTATION f: CSV marked complete (src/plants/realPlants.ts)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › CSV is handed over but is never complete (no photos inside): it cannot open the gate
+Tests:       2 failed, 270 passed, 272 total
+
+##### Round 2 (Theo review C1-C3): mutations on the real caller path
+=== MUTATION g: C2 guard removed (photos listed, none saved still hands over / unlocks) (src/plants/realPlants.ts)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › C2: photos listed but every url is null (nothing saved) -> photos_none, nothing handed over, gate closed
+Tests:       2 failed, 285 passed, 287 total
+=== MUTATION h: C1 non-photo error mapped back to photos_failed with failed:0 (src/plants/realPlants.ts)
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › C1: a non-photo error (zip writer: archive too large / OOM) is photos_archive with NO counts, never "0 of N failed"
+Tests:       1 failed, 286 passed, 287 total
+=== MUTATION i: size cap disabled (budget never exhausted) (src/export/photoExport.ts)
+  ● downloadPhotos › size cap: the summed Content-Length is checked BEFORE the body is read; over the cap -> too_large
+  ● photos are downloaded into the archive before exportData resolves (A-107, NFR-07) › size cap through the real caller: photos over the cap -> photos_too_large, nothing handed over
+Tests:       2 failed, 285 passed, 287 total
+=== MUTATION j: photo path pin removed (src/export/photoExport.ts)
+  ● isExpectedPhotoUrl (host check) › https://abc.supabase.co/storage/v1/object/sign/other-bucket/x.jpg?token=1 -> false
+Tests:       1 failed, 286 passed, 287 total

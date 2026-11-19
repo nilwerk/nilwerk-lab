@@ -41,7 +41,7 @@ describe('export-before-delete gate (NFR-07)', () => {
     expect(auth.accounts).toHaveLength(1);
   });
 
-  test('a failed export keeps it blocked and says so; a retry (CSV) unlocks it', async () => {
+  test('a failed export keeps it blocked and says so', async () => {
     const plants = createFakePlants({ failExport: true });
     const { spy } = await mount(createFakeAuth(), plants);
     await press('Export as JSON');
@@ -52,9 +52,48 @@ describe('export-before-delete gate (NFR-07)', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  test('photos failed: honest error (nothing saved, delete locked), no "nothing was removed" copy; retry with the same button unlocks', async () => {
+    const plants = createFakePlants({ failExport: 'photos' });
+    const { spy } = await mount(createFakeAuth(), plants);
+    await press('Export as JSON');
+    expect(await screen.findByText(/2 of 15 photos could not be downloaded\. Nothing was saved to your device and delete stays locked/)).toBeTruthy();
+    expect(screen.queryByText(/Nothing was removed/)).toBeNull();
+    expect(screen.queryByText(/data arrived/i)).toBeNull();
+    await typeWord('DELETE');
+    expect(delBtn().props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(delBtn());
+    expect(spy).not.toHaveBeenCalled();
+    plants.options.failExport = false;
+    await press('Export as JSON');
+    await screen.findByText(/You can delete now/);
+    expect(screen.queryByText(/could not be downloaded/)).toBeNull();
+    expect(delBtn().props.accessibilityState.disabled).toBe(false);
+  });
+  test('expired photo links and untrusted host each get their own clear message and keep delete locked', async () => {
+    const plants = createFakePlants({ failExport: 'expired' });
+    await mount(createFakeAuth(), plants);
+    await typeWord('DELETE');
+    await press('Export as JSON');
+    expect(await screen.findByText(/photo links have expired.*Tap the export button again to get fresh links/)).toBeTruthy();
+    expect(delBtn().props.accessibilityState.disabled).toBe(true);
+    plants.options.failExport = 'rejected';
+    await press('Export as JSON');
+    expect(await screen.findByText(/server the app does not trust, so it did not download them/)).toBeTruthy();
+    expect(delBtn().props.accessibilityState.disabled).toBe(true);
+  });
+  test('CSV alone never unlocks delete (it has no photos); the screen says why', async () => {
+    const { spy } = await mount();
+    await typeWord('DELETE');
+    await press('Export as CSV');
+    await screen.findByText(/does not contain them, so delete stays locked/);
+    expect(delBtn().props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(delBtn());
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   test('export done but wrong or missing word: still blocked', async () => {
     const { spy } = await mount();
-    await exportReady('Export as CSV');
+    await exportReady();
     expect(delBtn().props.accessibilityState.disabled).toBe(true);
     await typeWord('delete');
     expect(delBtn().props.accessibilityState.disabled).toBe(true);

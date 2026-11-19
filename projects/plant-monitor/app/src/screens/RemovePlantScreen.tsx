@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
+import { exportDoneText, exportErrorText } from '../export/exportErrorText';
 import { PlantsError, type ExportResult, type PlantSummary } from '../plants/types';
 import { canDelete } from '../export/exportGate';
 
@@ -16,14 +17,14 @@ export function RemovePlantScreen({ plant, onCancel, onRemoved }: { plant: Plant
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState<'json' | 'csv' | null>(null);
   const [exported, setExported] = useState<ExportResult | null>(null);
-  const [exportError, setExportError] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const allowed = canDelete({ exported: exported !== null, typed, expected: plant.name });
+  const allowed = canDelete({ exported: exported?.complete === true, typed, expected: plant.name });
 
   const runExport = async (format: 'json' | 'csv') => {
-    setExporting(format); setExportError(false);
+    setExporting(format); setExportError(null);
     try { setExported(await svc.exportData(format)); }
-    catch { setExported(null); setExportError(true); }
+    catch (e) { setExported(null); setExportError(exportErrorText(e, 'plant.remove.exportError')); }
     finally { setExporting(null); }
   };
   const remove = async () => {
@@ -44,11 +45,11 @@ export function RemovePlantScreen({ plant, onCancel, onRemoved }: { plant: Plant
       <Body muted>{t('plant.remove.exportHint')}</Body>
       <Button label={t('plant.remove.exportJson')} variant="secondary" disabled={exporting !== null} busy={exporting === 'json'} onPress={() => runExport('json')} />
       <Button label={t('plant.remove.exportCsv')} variant="secondary" disabled={exporting !== null} busy={exporting === 'csv'} onPress={() => runExport('csv')} />
-      {exported ? <Notice kind="info" text={exported.photoCount === null ? t('plant.remove.exportedNoCount', { fileName: exported.fileName }) : t('plant.remove.exported', { fileName: exported.fileName, photoCount: exported.photoCount })} /> : null}
-      {exportError ? <Notice kind="error" text={t('plant.remove.exportError')} /> : null}
+      {exported ? <Notice kind="info" text={exportDoneText(exported, 'plant.remove.exported')} /> : null}
+      {exportError ? <Notice kind="error" text={exportError} /> : null}
       <Field label={t('plant.remove.confirmLabel')} value={typed} onChangeText={setTyped} autoCapitalize="none" autoCorrect={false} />
       {error ? <Notice kind="error" text={error} /> : null}
-      {!exported ? <Body muted>{t('plant.remove.exportRequired')}</Body> : null}
+      {!exported?.complete ? <Body muted>{t('plant.remove.exportRequired')}</Body> : null}
       <Button label={t('plant.remove.confirm')} variant="danger" disabled={!allowed} busy={busy} onPress={remove} />
       <Button label={t('plant.remove.cancel')} variant="secondary" onPress={onCancel} />
     </Screen>

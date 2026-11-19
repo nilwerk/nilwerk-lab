@@ -75,15 +75,26 @@ export interface ExportResult {
   contentType: string;
   /** null when the format does not carry the number (CSV zip has no photo list) */
   plantCount: number | null;
+  /** JSON: number of photos saved INSIDE the archive. null for CSV (no photo list). */
   photoCount: number | null;
+  /** true only when the user holds the data AND every photo (A-107, NFR-07). Only a complete export may open the delete gate. CSV is never complete: it lists photos but does not contain them. */
+  complete: boolean;
+  /** photos the server listed without a file (Storage object missing, url null): nothing to download, reported to the user */
+  photosMissing: number;
 }
 
-export type PlantsErrorCode = 'not_found' | 'network' | 'not_configured' | 'unknown';
+/** photos_*: the photos could not all be saved, so NOTHING was handed over and delete stays locked (A-107). failed/total are set for photos_failed. photos_none: the server listed photos but none had a file. photos_too_large: over the in-app size cap. photos_archive: the archive could not be built (e.g. out of memory). */
+export type PlantsErrorCode = 'not_found' | 'network' | 'not_configured' | 'unknown' | 'photos_failed' | 'photos_expired' | 'photos_rejected' | 'photos_none' | 'photos_too_large' | 'photos_archive';
 export class PlantsError extends Error {
   code: PlantsErrorCode;
+  failed?: number;
+  total?: number;
   /** removePhotoObjects only: the paths that are still in Storage, so the screen can keep exactly those for a retry. */
   leftover?: string[];
-  constructor(code: PlantsErrorCode, message?: string, leftover?: string[]) { super(message ?? code); this.name = 'PlantsError'; this.code = code; this.leftover = leftover; }
+  constructor(code: PlantsErrorCode, message?: string, detail?: string[] | { failed: number; total: number }) {
+    super(message ?? code); this.name = 'PlantsError'; this.code = code;
+    if (Array.isArray(detail)) this.leftover = detail; else { this.failed = detail?.failed; this.total = detail?.total; }
+  }
 }
 
 export interface PlantsService {

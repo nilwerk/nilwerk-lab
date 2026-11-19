@@ -187,23 +187,28 @@ describe('export before delete (A-022, NFR-07) and photo objects in storage', ()
     expect(screen.getByRole('header', { name: 'Remove Basil?' })).toBeTruthy();
     svc.options.failExport = false;
     await press('Export JSON');
-    await screen.findByText(/^Export ready: plant-monitor-export-\S+\.json \(15 photos\)\. You can delete now\.$/); // account-wide: Basil 12 + Fern 3
+    await screen.findByText(/^Export ready: plant-monitor-export-\S+\.zip \(your data and 15 photos\)\. You can delete now\.$/); // account-wide: Basil 12 + Fern 3
     expect(deleteBtn().props.accessibilityState.disabled).toBe(false);
     expect(svc.exports).toEqual([expect.objectContaining({ format: 'json', photoCount: 15 })]);
   });
 
-  test('CSV export also unlocks the delete; delete then removes every returned photo path from storage (NFR-07)', async () => {
+  test('CSV export does NOT unlock the delete (no photos inside, A-107); delete after the JSON export removes every returned photo path from storage (NFR-07)', async () => {
     const svc = createFakePlants({ now: () => NOW });
     await open(svc);
     await press('Export CSV');
-    await screen.findByText(/\.zip \(/);
+    await screen.findByText(/CSV lists your photos but does not contain them, so delete stays locked/);
     await typeName('Basil');
+    expect(deleteBtn().props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(deleteBtn());
+    expect(svc.deleted).toEqual([]);
+    await press('Export JSON');
+    await screen.findByText(/You can delete now/);
     await press('Delete plant and all its data');
     expect(await screen.findByRole('header', { name: 'Basil was removed' })).toBeTruthy();
     expect(svc.deleted).toEqual(['p-basil']);
     expect(svc.removedObjects).toHaveLength(12);
     expect(svc.removedObjects.every((p) => p.includes('/p-basil/'))).toBe(true);
-    expect(svc.exports[0].format).toBe('csv');
+    expect(svc.exports.map((e) => e.format)).toEqual(['csv', 'json']);
   });
 
   test('photo cleanup failure keeps the paths on the next screen; Retry removes them', async () => {
