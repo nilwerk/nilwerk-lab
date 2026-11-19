@@ -12,6 +12,9 @@ export function psql(url: string, sql: string, vars: Record<string, string> = {}
 export const storage: { userId: string; knownPaths: string[] }[] = [];
 let failPhotos = false;
 export const setFailPhotos = (v: boolean) => { failPhotos = v; };
+/** GET /export: what the handler asked Storage to sign, and switches to make signing fail / objects go missing. */
+export const signed: { paths: string[]; ttl: number }[] = [];
+export const signCtl = { fail: false, missing: new Set<string>() };
 
 export function psqlDeps(url: string, users: Record<string, string>): Deps {
   return {
@@ -29,6 +32,11 @@ export function psqlDeps(url: string, users: Record<string, string>): Deps {
     randomBytes: (n) => new Uint8Array(randomBytes(n)),
     // Storage is not available in plain Postgres: the test records which prefixes the handler asked to delete.
     async deleteUserPhotos(userId, knownPaths) { storage.push({ userId, knownPaths }); return failPhotos ? { message: "storage down" } : null; },
+    async signPhotoUrls(paths, ttl) {
+      signed.push({ paths, ttl });
+      if (signCtl.fail) return { error: { message: "storage down" } };
+      return { urls: Object.fromEntries(paths.map((p) => [p, signCtl.missing.has(p) ? null : `https://storage.test/sign/plant-photos/${p}?token=T&ttl=${ttl}`])) };
+    },
     async deleteAuthUser(userId) {
       const r = psql(url, `delete from auth.users where id = :'u'`, { u: userId });   // not-found deletes 0 rows: idempotent
       return r.ok ? null : { message: r.err };

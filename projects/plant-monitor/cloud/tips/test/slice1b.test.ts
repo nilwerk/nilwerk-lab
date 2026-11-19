@@ -12,7 +12,7 @@ const plant = (o = {}) => ({ id: "p", name: "T", locationType: "house" as const,
 const mild = { minTempC: 12, maxTempC: 22, rainMm: 0, stormWarning: false, heatWarning: false };
 const rd = (m: number) => [{ ts: "2026-06-15T09:50:00Z", moisturePct: m }];
 const go = (p: ReturnType<typeof plant>, m: number, f: unknown, items?: unknown[]) =>
-  generateTips({ plant: p, readings: rd(m), now: NOW, premium: true }, { weather: { forecast: async () => f as never }, assistant: items ? { propose: async () => items } : undefined, mode: items ? "live" : "rule_based" });
+  generateTips({ plant: p, readings: rd(m), now: NOW, premium: true }, { weather: { forecast: () => Promise.resolve(f as never) }, assistant: items ? { propose: () => Promise.resolve(items) } : undefined, mode: items ? "live" : "rule_based" });
 const one = (category: string, text: string, action = "do") => [{ id: "a", category, action, text, reason: "model says" }];
 
 test("N-1 false negation / N-2 synonyms: assistant text advising water/fertiliser/outside/sun never survives a forbidding state", async () => {
