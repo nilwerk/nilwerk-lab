@@ -15,8 +15,11 @@ fp-info-cache
 # Local build settings (API URL, A-082): never commit
 projects/plant-monitor/firmware/sdkconfig.defaults.local
 build-v1/
+build-upload/
 sdkconfig.v1
 sdkconfig.v1.old
+sdkconfig.upload
+sdkconfig.upload.old
 build-host/
 provision-out/
 build-setup/

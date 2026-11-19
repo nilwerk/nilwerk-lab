@@ -1,0 +1,3 @@
+# Upload build (task 4.F3 slice 3): hourly upload on top of the normal config. UNVERIFIED: compiled by CI only, never run on hardware.
+# The BLE setup flow stays ON (sdkconfig.defaults default): it is the only thing that stores the Wi-Fi credentials and the device token.
+CONFIG_PLANT_UPLOAD=y

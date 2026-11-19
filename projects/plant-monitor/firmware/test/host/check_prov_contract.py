@@ -45,5 +45,17 @@ if app.exists():
         check(f"'{st}'" in t, f"app LinkState has '{st}'")
 else:
     print("SKIP app types.ts not in this checkout (4.A3 not merged); compared by hand in the PR")
+# 5. new contract text (PR #129): SRP user name, nw-claim before apply, NVS names; checked against the firmware sources
+def contract_text_ok(d, nvs, idf):
+    doc_ok = all(x in d for x in ("`wifiprov`", "`nw-claim` (any time after the handshake, before apply)",
+                                  "namespace `nw_prov`", "blob `rec`", "Namespace `nw_sec2`"))
+    fw_ok = '#define NS "nw_prov"' in nvs and '#define KEY "rec"' in nvs and 'nvs_open("nw_sec2"' in idf
+    return doc_ok and fw_ok
+nvs = (root / "components/provisioning/src/nw_prov_store_nvs.c").read_text()
+idf = (root / "components/provisioning/src/nw_prov_idf.c").read_text()
+check(contract_text_ok(doc, nvs, idf), "doc: wifiprov, nw-claim before apply, NVS nw_prov/rec/nw_sec2 (names also in firmware sources)")
+# self-test: the check must fail when a name is wrong
+check(not contract_text_ok(doc.replace("nw_sec2", "nw_xxx"), nvs, idf), "self-test: renamed nw_sec2 in doc is detected")
+check(not contract_text_ok(doc, nvs.replace('"rec"', '"zzz"'), idf), "self-test: renamed rec in firmware is detected")
 print(f"{len(fails)} failed")
 sys.exit(1 if fails else 0)
