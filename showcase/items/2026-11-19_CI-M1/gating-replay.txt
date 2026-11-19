@@ -1,0 +1,22 @@
+# Local replay of ci.yml's real 'detect' and 'Final status' scripts (extracted from the YAML). GitHub Actions itself was not run.
+
+== detect: which events start the 15-min mutation job (cloud-mutation runs only if cloudmut=true and event is not push)
+docs-only PR          cloudmut=false
+PR touching cloud/    cloudmut=true
+manual CI run         cloudmut=true
+push to main          cloudmut=true
+                      (cloudmut=true but job 'if' has event_name != push -> skipped)
+
+== Final status
+docs-only PR (cloud-mutation skipped):
+Pipeline GREEN (skipped = workstream not started yet)
+   exit code 0
+cloud PR, mutation green:
+Pipeline GREEN (skipped = workstream not started yet)
+   exit code 0
+cloud PR, a mutant survives (mutation failure):
+Pipeline RED
+   exit code 1
+cloud PR, mutation cancelled:
+Pipeline RED
+   exit code 1
