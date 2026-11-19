@@ -214,7 +214,7 @@ static void test_outage_then_reconnect(void)
     CHECK_EQ(r.outcome, NW_UP_ACK); CHECK_EQ(r.n_samples, 21); CHECK_EQ(nw_ring_count(&st.ring), 0); CHECK(!st.outage_pending);
 }
 
-/* FR-D04 + NFR-12: RTC content that kept a valid magic but is inconsistent (brown-out, partial write) must be re-initialised, never used:
+/* FR-D04 (NFR-12 motivates the size limit): RTC content that kept a valid magic but is inconsistent (brown-out, partial write) must be re-initialised, never used:
  * a head index >= 96 would write outside the ring. Also: the retained struct stays within the RTC budget. */
 static void test_rtc_state_integrity(void)
 {
@@ -239,6 +239,13 @@ static void test_rtc_state_integrity(void)
     g = st; g.ring.slot[g.ring.head].seq = 0xFFFFFFFFu;         CHECK(nw_cycle_state_ensure(&g));   /* oldest slot newer than the rest: order broken */
     g = st; g.ring.slot[3].ts = 5;                              CHECK(nw_cycle_state_ensure(&g));   /* below the schema floor */
     g = st; g.ring.slot[3].moisture_x10 = 1001;                 CHECK(nw_cycle_state_ensure(&g));   /* outside the schema range */
+    g = st; g.up.att_head = NW_UPLOAD_MAX_PER_HOUR;             CHECK(nw_cycle_state_ensure(&g));   /* attempts[att_head] would write outside the array */
+    g = st; g.up.att_head = NW_UPLOAD_MAX_PER_HOUR - 1;         CHECK(!nw_cycle_state_ensure(&g));  /* last valid index is kept */
+    g = st; g.up.next_attempt_unix = 0xA5A5A5A5u;               CHECK(nw_cycle_state_ensure(&g));   /* years in the future: would silence uploads */
+    g = st; g.up.next_attempt_unix = 1234;                      CHECK(nw_cycle_state_ensure(&g));   /* not 0 and not a synced time */
+    g = st; g.up.next_attempt_unix = T0 + 3600;                 CHECK(!nw_cycle_state_ensure(&g));  /* a real back-off value is kept */
+    g = st; g.up.attempts[5] = 99;                              CHECK(nw_cycle_state_ensure(&g));
+    g = st; g.up.attempts[5] = T0;                              CHECK(!nw_cycle_state_ensure(&g));
     g = st; g.last_report_unix = 1234;                          CHECK(nw_cycle_state_ensure(&g));   /* not 0 and not a synced time */
     g = st; *(unsigned char *)&g.low_battery = 7;               CHECK(nw_cycle_state_ensure(&g));   /* a bool byte that is neither 0 nor 1 */
     g = st; g.magic ^= 1;                                       CHECK(nw_cycle_state_ensure(&g));   /* wrong magic (power-on) */
