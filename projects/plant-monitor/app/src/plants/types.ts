@@ -1,4 +1,4 @@
-// Plants contract used by the UI. Two sides: fakePlants.ts (mock, tests + EXPO_PUBLIC_MOCK_AUTH=1) and, later, a real Supabase client (NOT built in 4.A4).
+// Plants contract used by the UI. Two sides: fakePlants.ts (mock, tests + EXPO_PUBLIC_MOCK_AUTH=1) and realPlants.ts (real PostgREST/Storage client, 4.A4c, never run against a backend).
 // Shapes mirror docs/interfaces/db-schema.sql: view plant_status (L356), table readings_hourly (L214), table plant_images (L162), rpc delete_plant (L447), GET /export and POST /device-release (openapi.yaml).
 // Requirements: FR-A06 (list with status, detail with latest values + 7-day chart and hourly table), FR-A04 (location type, room, soil type shown), FR-A05 (unlimited dated photos), FR-A02 (no cap), FR-A08 + A-022 (remove plant, release sensor), NFR-06 (own rows only), NFR-07 (export before delete, delete all data).
 import type { LocationType, SoilType } from '../provisioning/types';
@@ -81,7 +81,9 @@ export interface ExportResult {
 export type PlantsErrorCode = 'not_found' | 'network' | 'not_configured' | 'unknown';
 export class PlantsError extends Error {
   code: PlantsErrorCode;
-  constructor(code: PlantsErrorCode, message?: string) { super(message ?? code); this.name = 'PlantsError'; this.code = code; }
+  /** removePhotoObjects only: the paths that are still in Storage, so the screen can keep exactly those for a retry. */
+  leftover?: string[];
+  constructor(code: PlantsErrorCode, message?: string, leftover?: string[]) { super(message ?? code); this.name = 'PlantsError'; this.code = code; this.leftover = leftover; }
 }
 
 export interface PlantsService {
@@ -93,7 +95,7 @@ export interface PlantsService {
   listPhotos(plantId: string): Promise<PlantPhoto[]>;
   /** rpc delete_plant(p_plant) (A-022). Returns the storage paths the caller must remove. The sensor stays claimed. */
   deletePlant(plantId: string): Promise<{ photoPaths: string[] }>;
-  /** Storage: remove the photo objects returned by deletePlant (NFR-07; SQL cannot remove storage objects). */
+  /** Storage: remove the photo objects returned by deletePlant (NFR-07; SQL cannot remove storage objects). Removes every well-formed path; if any call fails or a path is malformed it rejects with PlantsError.leftover = the paths still in Storage. */
   removePhotoObjects(paths: string[]): Promise<void>;
   /** POST /device-release (A-022 / FR-A08). */
   releaseDevice(deviceId: string): Promise<void>;
