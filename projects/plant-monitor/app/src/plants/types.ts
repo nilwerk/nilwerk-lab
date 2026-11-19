@@ -1,4 +1,4 @@
-// Plants contract used by the UI. Two sides: fakePlants.ts (mock, tests + EXPO_PUBLIC_MOCK_AUTH=1) and, later, a real Supabase client (NOT built in 4.A4).
+// Plants contract used by the UI. Two sides: fakePlants.ts (mock, tests + EXPO_PUBLIC_MOCK_AUTH=1) and realPlants.ts (real PostgREST/Storage client, 4.A4c, never run against a backend).
 // Shapes mirror docs/interfaces/db-schema.sql: view plant_status (L356), table readings_hourly (L214), table plant_images (L162), rpc delete_plant (L447), GET /export and POST /device-release (openapi.yaml).
 // Requirements: FR-A06 (list with status, detail with latest values + 7-day chart and hourly table), FR-A04 (location type, room, soil type shown), FR-A05 (unlimited dated photos), FR-A02 (no cap), FR-A08 + A-022 (remove plant, release sensor), NFR-06 (own rows only), NFR-07 (export before delete, delete all data).
 import type { LocationType, SoilType } from '../provisioning/types';
