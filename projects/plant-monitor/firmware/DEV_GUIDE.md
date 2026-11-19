@@ -54,7 +54,7 @@ Everything marked *(repo)* was read from a file in this repository and the file 
 | [`firmware/main/`](main/) | `main.c` (the bench app), `board.h` (pin map per board), `Kconfig.projbuild` (the "Plant Monitor" menu in `menuconfig`) |
 | [`firmware/components/sensors/`](components/sensors/) | Drivers for AHT20 (temperature, humidity), BH1750 (light), soil probe (ADC), battery divider, ESP32 hardware layer `hal_esp32.c` |
 | [`firmware/components/provisioning/`](components/provisioning/) | BLE setup and device claim (task 4.F2); logic in pure C, ESP-IDF glue in `nw_prov_idf.c` |
-| [`firmware/components/report/`](components/report/), [`storage/`](components/storage/), [`power/`](components/power/), [`upload/`](components/upload/) | Report payload, sample ring buffer, deep-sleep decision, hourly upload decision (task 4.F3). Pure C with PC tests. **Not called from `main.c` yet** (section 7) |
+| [`firmware/components/report/`](components/report/), [`storage/`](components/storage/), [`power/`](components/power/), [`upload/`](components/upload/) | Report payload, sample ring buffer, deep-sleep decision, hourly upload decision (task 4.F3). Pure C with PC tests. Called from `main.c` only when `CONFIG_PLANT_UPLOAD` is on (default off, section 7.4) |
 | [`firmware/test/host/`](test/host/) | PC tests (no ESP-IDF, no board needed): C unit tests plus Python contract checks, started with `cmake`/`ctest` |
 | [`firmware/sdkconfig.defaults`](sdkconfig.defaults) | Default build settings for every board (BLE on, 4 MB flash, single large app partition) |
 | [`firmware/sdkconfig.defaults.v1`](sdkconfig.defaults.v1) | Extra settings for the v1 SuperMini perfboard |
@@ -365,11 +365,28 @@ It needs a per-unit security-2 salt and verifier stored in NVS namespace `nw_sec
 | Sensor bench app (read, print, sleep 60 s) | Written, compiles in CI, unit tests on PC, **never run on hardware** |
 | v1 SuperMini config | Compiles in CI (second build step), **not run on the board**; console choice on native USB is UNVERIFIED |
 | BLE setup and claim (4.F2) | Code exists, off in bench builds, not run on hardware, cannot be provisioned yet (7.2) |
-| Report payload, sample ring, sleep decision, hourly upload decision (4.F3) | Pure C with PC tests. **Not called from `main.c`** |
-| 4.F3 upload adapter (Wi-Fi bring-up, TLS client, SNTP, RTC-retained state) | **Not written.** No data leaves the device today |
+| Report payload, sample ring, sleep decision, hourly upload decision, one-wake cycle (4.F3) | Pure C with PC tests. Called from `main.c` only with `CONFIG_PLANT_UPLOAD` (default off) |
+| 4.F3 upload adapter (Wi-Fi join, SNTP, HTTPS POST, RTC-retained state), `nw_upload_idf.c` | **Written, compiled only by CI (third build step), UNVERIFIED on hardware.** With the option off (the default, and in both bench builds) no data leaves the device |
 | Edge AI (TFLite Micro model on the device) | **Not integrated.** Training code is in `ml/`; the firmware has no model or `esp-tflite-micro` dependency |
 | OTA update, 15-minute sampling schedule, custom-PCB soil reading (PCNT) | Not written |
 | Soil calibration | Placeholder numbers until measured on the bench (WO-005 step 8) |
+
+### 7.4 Hourly upload build (`CONFIG_PLANT_UPLOAD`, task 4.F3 slice 3): UNVERIFIED on hardware
+
+**Not needed for WO-005.** The bench builds leave it off and behave as before. It exists so that, once a unit can be provisioned, data can reach the cloud. Nobody has run it on a board; the code was never even compiled by its author (CI's third build step is its first compile).
+
+What the option does *(repo: `components/upload/`, `main/main.c`)*: each wake reads the four sensors once, stores the sample in a 96-slot ring kept in RTC memory (24 h), and deep-sleeps to the next 15-minute boundary. About once an hour (or as the first report after an outage) it joins Wi-Fi, syncs the clock over SNTP, POSTs the buffer to `<PLANT_API_BASE_URL>/ingest` over HTTPS (ESP-IDF certificate bundle, no plain http, no redirects) and drops the samples from the ring only after a real acknowledgement.
+
+What it needs, all three:
+1. **Wi-Fi credentials and a device token on the unit**, in NVS namespace `nw_prov`, blob `rec` (written by the BLE setup flow after a successful claim; `components/provisioning/include/nw_prov_store_nvs.h`). Never hard-coded, never printed. The v1 defaults switch the setup flow OFF, so for this option use a build with `CONFIG_PLANT_SETUP_FLOW=y`. As section 7.2 says, a unit cannot be provisioned today (no tool writes the `nw_sec2` salt and verifier), so **there is currently no way to give a unit a token**: without it the log says `no usable stored credentials` and nothing is sent.
+2. **`PLANT_API_BASE_URL`** set to the real `https://...` URL (no trailing slash), locally only (7.1). With the committed `.invalid` placeholder the unit logs a warning and every upload ends as a transport error with back-off.
+3. **Internet access through that Wi-Fi** for SNTP (`PLANT_NTP_SERVER`, default `pool.ntp.org`) and HTTPS.
+
+**Which networks it joins:** open networks and WPA2-PSK (including WPA2/WPA3 mixed mode, which still offers WPA2). **WPA3-only (SAE-only) access points are not supported and are not joined by design**: the adapter sets the auth threshold to WPA2-PSK and makes no SAE settings (no `sae_pwe_h2e`), so treat a WPA3-only network as unsupported; the expected log is `wifi: no connection`, nothing is sent. Put the unit on a WPA2 or WPA2/WPA3 mixed network (a phone hotspot in WPA2 mode works). Read from the code, UNVERIFIED on hardware.
+
+To switch it on (DevKit, local build): `idf.py -B build-upload -DSDKCONFIG=sdkconfig.upload -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.upload" set-target esp32c3` then `idf.py -B build-upload -DSDKCONFIG=sdkconfig.upload -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.upload" build` (the same two options CI uses; the PowerShell quoting of the semicolon is UNVERIFIED, use `idf.py menuconfig` then Plant Monitor then "Hourly upload" if it misbehaves). On the serial log look for lines starting `nw_upload:` (`wake:`, `upload: outcome=...`) and `NWUPLOAD sleep s=...`. `outcome=0` is an acknowledged upload. The log never contains the token or the Wi-Fi password; if you ever see one in a log you paste, stop and tell Nora.
+
+Known gaps (also in the 4.F3 slice 3 PR): no critical-event path (no producer yet), no `cal` or forecast in the payload, current draw per state not measured (NFR-01), the RTC ring size and `idf.py size` impact unchecked, RTC retention of the clock and ring across deep sleep assumed from the Espressif docs.
 
 ---
 

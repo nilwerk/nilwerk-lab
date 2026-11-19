@@ -1,0 +1,44 @@
+$ cmake -S test/host -B build-host && cmake --build build-host && ctest --test-dir build-host --output-on-failure   (tail)
+      Start 11: provisioning_contract
+11/21 Test #11: provisioning_contract ............   Passed    0.02 sec
+      Start 12: provisioning_mutation_checks
+12/21 Test #12: provisioning_mutation_checks .....   Passed    8.02 sec
+      Start 13: mutation_checks
+13/21 Test #13: mutation_checks ..................   Passed    6.15 sec
+      Start 14: upload_contract
+14/21 Test #14: upload_contract ..................   Passed    0.02 sec
+      Start 15: upload_contract_selftest
+15/21 Test #15: upload_contract_selftest .........   Passed    0.02 sec
+      Start 16: upload_mutation_checks
+16/21 Test #16: upload_mutation_checks ...........   Passed    9.66 sec
+      Start 17: cycle_mutation_checks
+17/21 Test #17: cycle_mutation_checks ............   Passed   11.66 sec
+      Start 18: board_v1_matches_wiring
+18/21 Test #18: board_v1_matches_wiring ..........   Passed    0.03 sec
+      Start 19: board_v1_check_selftest
+19/21 Test #19: board_v1_check_selftest ..........   Passed    0.03 sec
+      Start 20: api_url_not_committed
+20/21 Test #20: api_url_not_committed ............   Passed    0.04 sec
+      Start 21: api_url_check_selftest
+21/21 Test #21: api_url_check_selftest ...........   Passed    0.04 sec
+
+100% tests passed, 0 tests failed out of 21
+
+Total Test time (real) =  35.82 sec
+
+$ build-host/test_cycle
+134 checks, 0 failed
+
+$ python3 test/host/mutate_cycle.py cc   (summary)
+killed   nw_cycle.c: fw sent
+killed   nw_cycle.c: result updates outage state
+killed   nw_cycle.c: last report only on an ack
+killed   nw_cycle.c: ack time from the server
+killed   nw_cycle.c: wake aligned to the 15-min boundary
+killed   nw_cycle.c: unsynced clock sleeps 15 min
+killed   nw_cycle.c: empty Retry-After is unusable
+killed   nw_cycle.c: Retry-After digit cap (no overflow)
+killed   nw_cycle.c: Retry-After digit range
+killed   nw_cycle.c: Retry-After zero digit
+killed   nw_cycle.c: Retry-After value
+40/40 mutants killed

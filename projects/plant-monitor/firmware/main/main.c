@@ -15,6 +15,9 @@
 #include "nw_bh1750.h"
 #include "nw_hal_esp32.h"
 #include "nw_soil.h"
+#ifdef CONFIG_PLANT_UPLOAD
+#include "nw_upload_idf.h"
+#endif
 #ifdef CONFIG_PLANT_SETUP_FLOW
 #include "driver/gpio.h"
 #include "esp_system.h"
@@ -88,6 +91,25 @@ void app_main(void)
     const nw_battery_cfg_t bat = {.r_top_ohm = NW_BAT_R_TOP_OHM, .r_bot_ohm = NW_BAT_R_BOT_OHM};
     ESP_LOGI(TAG, "NWBENCH start board=%s wake=%d cal_dry=%d cal_wet=%d divider=%u/%u (CALIBRATION IS A PLACEHOLDER UNTIL SET ON THE BENCH)",
              NW_BOARD_NAME, wake_count, cal.dry_raw, cal.wet_raw, (unsigned)bat.r_top_ohm, (unsigned)bat.r_bot_ohm);
+
+#ifdef CONFIG_PLANT_UPLOAD
+    {   /* 4.F3 slice 3 (UNVERIFIED on hardware): one wake = read once, buffer, maybe report, deep sleep to the next 15-min boundary. */
+        nw_soil_t soil = {0};
+        nw_aht20_t aht = {0};
+        nw_bh1750_t bh = {0};
+        uint32_t vbat = 0, vadc = 0;
+        nw_err_t e_soil = NW_SOIL_ANALOG ? nw_soil_measure(&hal, &cal, &soil) : NW_ERR_UNSUPPORTED;
+        nw_err_t e_aht = nw_aht20_read(&hal, &aht);
+        nw_err_t e_bh = nw_bh1750_read(&hal, &bh);
+        nw_err_t e_bat = nw_battery_measure(&hal, &bat, &vbat, &vadc);
+        uint32_t sleep_s = nw_upload_idf_wake(&soil, e_soil, &aht, e_aht, &bh, e_bh, vbat, e_bat);
+        ESP_LOGI(TAG, "NWUPLOAD sleep s=%u", (unsigned)sleep_s);
+        fflush(stdout);
+        nw_hal_esp32_prepare_deep_sleep();
+        esp_sleep_enable_timer_wakeup((uint64_t)sleep_s * 1000000ULL);
+        esp_deep_sleep_start();
+    }
+#endif
 
     for (int i = 0; i < CYCLES_BEFORE_SLEEP; i++) {
         nw_soil_t soil = {0};
