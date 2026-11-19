@@ -1,3 +1,5 @@
+INTERNAL working notes, not for posting. PR numbers and comment ids stay here for checking only.
+
 # Content Plan notes 2026-11-19 (for the sheet *Nilwerk – Content Plan*)
 
 The Google Drive/Sheets connector is attached, but a Drive search for "Nilwerk" + "Content Plan" returned nothing at 08:10 Berlin, so no row was written to the sheet. Add these rows by hand (Backlog tab) or let Nora point me to the sheet id.
