@@ -20,6 +20,10 @@ const config: ExpoConfig = {
   plugins: [
     'expo-font',
     'expo-secure-store',
+    // 4.A3b: real BLE setup needs a dev build (native module), not Expo Go.
+    'expo-dev-client',
+    // BLE only (no SoftAP). neverForLocation: Android 12+ needs no location permission to scan for the sensor.
+    ['@orbital-systems/react-native-esp-idf-provisioning', { transport: 'ble', neverForLocation: true, bluetoothAlwaysPermission: 'Plant Monitor uses Bluetooth once to connect your new sensor to Wi-Fi.' }],
     [
       'expo-splash-screen',
       {

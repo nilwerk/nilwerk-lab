@@ -2,7 +2,7 @@
 
 For Arsany, Peter and new joiners. Written 2026-11-17 by Leo (task 4.A10) against `main` after PR #123. Every step below was run in a headless Chrome (390 x 844 px, the mock build) on 2026-11-17, and the "expected" text is what the page showed. Nothing here was run on a phone or against the live backend.
 
-**Short version:** you can click through the whole app in a browser against an in-memory fake backend. You cannot connect the app to a real sensor today (section 4).
+**Short version:** you can click through the whole app in a browser against an in-memory fake backend. You still cannot connect the app to a real sensor today: the real Bluetooth code now exists (4.A3b slice 1) but has never run on a phone (section 4).
 
 ![Plant list](../../../showcase/items/2026-11-17_4.A10-try-it/01-plant-list.png)
 
@@ -29,9 +29,9 @@ Things to know about the mock:
 |---|---|---|
 | **Web** (`expo start --web`) | Yes, verified for this guide | The path for everything in section 2. |
 | **Expo Go** on a phone (`npx expo start`, scan QR) | Not tried | The mock screens may run there, but no one has checked. Expo Go cannot do Bluetooth provisioning, so it can never be the way to test a real sensor. |
-| **Dev build** (a custom Expo app with native modules) | Not built, no config yet | Needed for Bluetooth setup (playbook rule: BLE needs a dev build, not Expo Go). The BLE library `@orbital-systems/react-native-esp-idf-provisioning` and `expo-dev-client` are **not in `package.json` yet**, and `app.config.ts` has no BLE plugin. |
+| **Dev build** (a custom Expo app with native modules) | Configured (4.A3b slice 1), **never built** | Needed for Bluetooth setup. `expo-dev-client` and `@orbital-systems/react-native-esp-idf-provisioning@0.7.1` are in `package.json` and `app.config.ts`; `expo prebuild` runs. Nobody has compiled or installed it yet (needs Android Studio/Xcode or EAS). |
 
-The real Bluetooth service (`ProvisioningService`) is **not built**. In a build without `EXPO_PUBLIC_MOCK_AUTH=1`, "Find my sensor" shows "Sensor setup needs the full app build because it uses Bluetooth. It is not available in this preview." (string `setup.error.not_available`, wired in `App.tsx`).
+The real Bluetooth service (`ProvisioningService`, `src/provisioning/bleProvisioning.ts`) is **now written and unit-tested against mocks, but never run with Bluetooth or a sensor**. It is used only in a dev build (not web, not Expo Go, Supabase configured). In Expo Go or the web without `EXPO_PUBLIC_MOCK_AUTH=1`, "Find my sensor" still shows "Sensor setup needs the full app build because it uses Bluetooth. It is not available in this preview." (`setup.error.not_available`).
 
 ## 2. Click-by-click walkthrough (mock build)
 
@@ -121,7 +121,7 @@ Set before `expo start` (names only; values come from Arsany and are never commi
 | Plant list, detail, gallery | **Not working.** In a real build only `exportData` is real; list, detail, photos and delete-plant are not wired (see the header of `realPlants.ts`), so the plant screens show an error | `App.tsx`, `src/plants/` (`realPlants.ts` has export only) |
 | Delete account | The call exists (`DELETE /functions/v1/delete-account`) but the gate needs an export first, and the export cannot succeed (next row). **Delete stays blocked.** | `src/account/accountApi.ts`, `src/export/exportGate.ts` |
 | Export (JSON / CSV) | **Fails against the live project.** The client is built (4.A9) and now also downloads the photos into the archive (4.A9b, A-107), but the `export` edge function is not deployed (4.B2c, PR #130) | README "4.A2 follow-up" |
-| Real sensor connection | **No.** No real BLE client in the app | section 4 |
+| Real sensor connection | **No.** Real BLE client written and mock-tested (4.A3b slice 1), never run on a phone or sensor | section 4 |
 | Real plant data from a device | **No.** v1 bench firmware only prints to the serial console; upload is not wired | [`../v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) |
 | Push alerts | Not built (alerts screens are task 4.A5; no push dispatch in the cloud) | `App.tsx` header, cloud README |
 | Premium dashboard (30 / 90-day history, trends) | Not built. The Premium sheet is text only; Premium is switched on by Nilwerk by hand (`profiles.is_premium`) | `PremiumScreen`, FR-P04 |
@@ -130,16 +130,17 @@ Set before `expo start` (names only; values come from Arsany and are never commi
 
 ## 4. Can we connect the app to the sensor today?
 
-**No.** Not for a real sensor, not even with a dev build. Four pieces are missing, and all four are needed:
+**No.** The app side now has real Bluetooth code (4.A3b slice 1, unit-tested against mocks only), but nothing has run on a phone or sensor. Five pieces are still missing:
 
 | Gap | Where it is today | Task that closes it | State |
 |---|---|---|---|
-| App side: a real BLE `ProvisioningService` (scan for the service UUID, connect with the label code, send Wi-Fi and claim token) | Only `fakeProvisioning.ts` and `unavailableProvisioning()` exist. The BLE library is not in `package.json`; no dev build config; no QR scanning (`expo-image-picker` / camera also missing) | 4.A3b (real BLE `ProvisioningService`, dev build, QR/camera, real `PlantSetupService`; app side) | not started |
+| App side, done as code in slice 1 (PR for 4.A3b): real BLE `ProvisioningService` (scan `NW-*` + service UUID, connect with the label code, Wi-Fi, claim token, `nw-status`, error mapping), `expo-dev-client` + BLE config plugin, wired in `App.tsx` for non-mock phone builds | `bleProvisioning.ts`, `espAdapter.ts`, `claimApi.ts`; 261 Jest tests green with a mocked library; `expo prebuild` produces the Bluetooth permissions. **Never compiled as a native app, never run with Bluetooth**; library built for RN 0.84, app is on 0.88 (UNVERIFIED) | 4.A3b slice 1 | code done, not run |
+| App side, still missing: a dev build on a real phone, QR scanning and camera/library (`expo-image-picker`), the real `PlantSetupService` (in a real build plant details and photo are still in-memory fakes and are not saved), the SRP user name agreed with firmware (app uses `wifiprov`, UNVERIFIED) | none of it exists yet | 4.A3b slices 2+ | not started |
 | Sensor side: the setup flow switched on in firmware | The v1 bench build sets `CONFIG_PLANT_SETUP_FLOW=n` (BLE setup flow off). With it on, a never-provisioned unit deep sleeps with no timer before reading any sensor | 4.F2b (firmware setup flow on, per-unit security-2 provisioning), Mira | off in v1 bench; nothing has run on hardware |
 | Sensor side: the hourly upload adapter (real HTTP over TLS and Wi-Fi to `/ingest`, with the per-device token) | Upload logic is host-tested with a fake transport only; `PLANT_API_BASE_URL` stays `https://api.invalid` (A-082) | 4.F3 (firmware upload adapter, remaining slices) | slice 2 done on the host, no real transport |
 | Cloud side: reading plant data in the app | Real plants service for list, detail, photos is missing; export function missing | 4.A4c (real `PlantsService`), 4.B2c (export edge function, Sana, in progress) | not started |
 
-Until all rows are closed the honest status of "can a first-time user set up a sensor in three minutes?" (NFR-03) is **untestable**. Test 5.5 on a real phone is the check; 4.A3b is Done only after it.
+Until all rows are closed the honest status of "can a first-time user set up a sensor in three minutes?" (NFR-03) is **untestable**. Test 5.5 on a real phone is the check (**not done**); 4.A3 / 4.A3b are Done only after it.
 
 ## 5. What to try first (suggested order for a 15 minute session)
 1. 1 + 2.1 (sign up, profile). 2. 2.3 and 2.4 (list, detail, chart, table). 3. 2.2 including the wrong code five times and the wrong Wi-Fi password. 4. 2.6 and 2.7 (the delete gates).
