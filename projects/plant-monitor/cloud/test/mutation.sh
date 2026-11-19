@@ -98,7 +98,12 @@ mutant "EX-4 user taken from a query parameter (cross-user)"        "$EXP" '{ p_
 mutant "EX-5 photo URL lifetime 7 days -> 1 day"                    "$EXP" '7 * 24 * 3600' '24 * 3600'
 mutant "EX-6 signing failure ignored (export without photo links)"  "$EXP" 'if ("error" in s) return err(500, "internal");
     urls = s.urls;' 'urls = "urls" in s ? s.urls : {};'
-mutant "EX-7 foreign storage path is signed"                        "$EXP" 'own = rows.filter((p) => typeof p.storage_path === "string" && ' 'own = rows.filter((p) => typeof p.storage_path === "string" || '
+mutant "EX-7 foreign storage path is signed" "$EXP" 'isSafePhotoPath(uid, p.storage_path));' 'typeof p.storage_path === "string");'
+mutant "EX-14 path guard removed (any path with the uid prefix is signed, '..' too)" "$EXP" 'isSafePhotoPath(uid, p.storage_path));' 'typeof p.storage_path === "string" && p.storage_path.startsWith(`${uid}/`));'
+mutant "EX-15 path guard accepts '..'"                               "$EXP" 'path.includes("..") || ' ''
+mutant "EX-16 path guard: segment character check removed (backslash, %2e, control chars)" "$EXP" ' && seg.every((x) => /^[A-Za-z0-9._-]+$/.test(x) && x !== ".")' ''
+mutant "EX-17 path guard: segment count not checked" "$EXP" 'seg.length === 3 && ' ''
+mutant "EX-18 path guard accepts a foreign/near user prefix"         "$EXP" 'seg[0] === uid' 'seg[0].startsWith(uid.slice(0, 8))'
 mutant "EX-8 expires_at not exported_at + 7 days"                   "$EXP" 'new Date(now.getTime() + PHOTO_URL_TTL_SECONDS * 1000)' 'new Date(now.getTime())'
 mutant "EX-9 Cache-Control: no-store dropped"                       "$EXP" 'const common = { "cache-control": "no-store" };' 'const common = {};'
 mutant "EX-10 CSV formula-injection guard removed"                  "$EXP" '/^[=+\-@\t\r]/.test(s)' '/^$/.test(s)'
