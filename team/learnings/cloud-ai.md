@@ -23,7 +23,7 @@ Living skill file for this role (TEAM.md §8). Rules are short and imperative, m
    *Why:* the two runs clash on shared state and give false results.
    *Source:* 18 Nov lesson (Sana, Lead).
 
-6. **Safety filters fail closed.** A negation or keyword check that misses a negation must block, not pass.
+6. **Safety filters fail closed.** A negation or keyword check that misses a negation must block, not pass. *Check:* a fixture with a negated phrase must be blocked by the test.
    *Why:* keyword negation in the tips filter was fail-open (N-1); one miss is a bad-advice path to a user.
    *Source:* 4.B3 slice 1 QA, 17 Nov (Ines).
 
