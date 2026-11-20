@@ -25,3 +25,7 @@ provision-out/
 build-setup/
 sdkconfig.setup
 sdkconfig.setup.old
+# SIMULATOR build (simulator boot test, tests/qemu_boot_check.sh): build output and settings, never commit
+build-sim-qemu/
+sdkconfig.sim-qemu
+sdkconfig.sim-qemu.old
