@@ -214,7 +214,7 @@
   "alerts.title": "Alerts",
   "alerts.intro": "Worked out from the last 7 days of readings. Push notifications are not built yet, so alerts show on this screen only.",
   "alerts.empty.title": "No alerts right now",
-  "alerts.empty.body": "A plant shows up here when its soil is too dry or too wet, the sensor battery is low, or the sensor has not reported for more than 3 hours.",
+  "alerts.empty.body": "A plant shows up here when its soil is too dry or too wet, the sensor battery is low, or the sensor has not reported for more than 3 h 10 min.",
   "alerts.error.load": "Could not load alerts. Check your connection and try again.",
   "alerts.refresh": "Refresh",
   "alerts.text.too_dry": "Soil moisture {value} %, below the dry limit of {threshold} %.",

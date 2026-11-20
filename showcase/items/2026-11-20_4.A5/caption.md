@@ -6,8 +6,8 @@
 
 **Persona.** Full-stack agent (app front end).
 
-**Images.** The repo holds no images, so the screenshot is not committed. It is at `/home/user/sim-evidence/app/06-alerts.png` (outside the repo), 390 px wide, scale 1. Upload it to Drive `Nilwerk/Marketing/Assets/` if it is used publicly.
+**Images.** The repo holds no images, so the screenshot is not committed. It is kept outside the repo, 390 px wide, scale 1. Upload it to Drive `Nilwerk/Marketing/Assets/` if it is used publicly.
 
 **Time.** Agent minutes: 6.4 at push (wall clock, 19:36:15 to 19:42:36 CET; the final figure is in the Agent Log). Own human estimate for an experienced engineer: about 6 h.
 
-**Unverified.** Real push notifications and their no-duplicate rule, real Bluetooth, real sensors, live Supabase data, a phone build (not run on a phone). The app works on hourly averages, while the server works on raw 15-minute samples, so edge cases can differ. The 5-point clear margin and the battery clear level are still marked to confirm in the code.
+**Unverified.** Real push notifications and their no-duplicate rule, real Bluetooth, real sensors, live Supabase data, a phone build (not run on a phone). The app works on hourly averages, while the server works on raw 15-minute samples, so edge cases can differ. The clear margins (5 points for dry and wet, 100 mV for the battery) follow the decided clear rules.

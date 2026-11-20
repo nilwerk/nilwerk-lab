@@ -17,9 +17,9 @@ export type RuleAlertKind = Extract<AlertKind, 'too_dry' | 'too_wet' | 'low_batt
 export const LOW_BATTERY_MV = 3400;
 /** Low battery clears at threshold + 100 mV (= 3.5 V). Accepted A-018 (2026-11-05). */
 export const BATTERY_CLEAR_MV = 100;
-/** Too dry clears at dry threshold + 5 points (30 % with the 25 % default). TO CONFIRM: the 5-point reading is "my reading" in the acceptance matrix; Theo to state the wording. */
+/** Too dry clears at dry threshold + 5 points (30 % with the 25 % default). Decided A-018 (2026-11-05). */
 export const DRY_CLEAR_POINTS = 5;
-/** Too wet clears at wet threshold - 5 points (80 % with the 85 % default). TO CONFIRM: same reading as DRY_CLEAR_POINTS. */
+/** Too wet clears at wet threshold - 5 points (80 % with the 85 % default). Decided A-018 (2026-11-05). */
 export const WET_CLEAR_POINTS = 5;
 /** Offline when the last report is older than 3 missed hourly reports + 10 min grace = 190 min. Accepted A-008 point 21 and A-018 (2026-11-05). */
 export const OFFLINE_AFTER_MIN = 190;

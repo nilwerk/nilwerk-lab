@@ -7,6 +7,7 @@ import { PlantsScreen } from '../screens/PlantsScreen';
 import { PlantsProvider } from '../plants/PlantsContext';
 import { createFakePlants } from '../plants/fakePlants';
 import { t } from '../i18n';
+import { OFFLINE_AFTER_MIN } from '../plants/alerts';
 
 const frame = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } };
 const withPlants = async (ui: React.ReactElement, service = createFakePlants()) =>
@@ -43,6 +44,12 @@ describe('alerts screen', () => {
       hourly: {},
     }));
     expect(await screen.findByText('No alerts right now')).toBeTruthy();
+  });
+
+  test('empty-state copy states the offline rule as the rule has it (190 min = 3 h 10 min)', () => {
+    expect(OFFLINE_AFTER_MIN).toBe(190);
+    expect(t('alerts.empty.body')).toMatch(/more than 3 h 10 min\./);
+    expect(t('alerts.empty.body')).not.toMatch(/3 hours/);
   });
 
   test('a failed load shows the error and a retry button', async () => {
