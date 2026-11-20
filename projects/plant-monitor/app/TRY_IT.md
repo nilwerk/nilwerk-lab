@@ -16,7 +16,7 @@ For Arsany, Peter and new joiners. Written 2026-11-17 by Leo (task 4.A10) agains
    EXPO_PUBLIC_MOCK_AUTH=1 npx expo start --web
    ```
 3. Open the URL it prints (default `http://localhost:8081`) in Chrome. The first load takes a while while Metro bundles. Use the browser's phone view (DevTools, device toolbar, 390 px wide) so it looks like the phone.
-4. A green bar at the top says "Mock backend (no real account)". If you do not see it, you are not in mock mode.
+4. A green bar at the top says "MOCK: test values and a fake sensor, not real data. No real account.". If you do not see it, you are not in mock mode.
 
 Things to know about the mock:
 - Everything lives in memory. **Reloading the page erases accounts, removed plants and setup state.** Sign up again after a reload.

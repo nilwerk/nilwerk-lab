@@ -8,7 +8,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "test:web-flow": "node --test --test-timeout=600000 e2e/web-flow.test.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -39,6 +40,7 @@
     "@types/react": "~19.3.0",
     "jest": "~30.5.2",
     "jest-expo": "~58.0.14",
+    "playwright": "1.63.0",
     "react-test-renderer": "^19.3.0",
     "typescript": "~6.0.3"
   }

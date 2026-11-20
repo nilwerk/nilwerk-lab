@@ -90,7 +90,7 @@
   "a11y.screenTitle": "{title} screen",
   "legal.line": "Contact and privacy: {email}. E-mail is processed by Google (Gmail).",
   "legal.contactLabel": "Contact and privacy information",
-  "app.mockBanner": "Mock backend (no real account)",
+  "app.mockBanner": "MOCK: test values and a fake sensor, not real data. No real account.",
   "setup.step": "Step {n} of {total}",
   "setup.timer": "Time so far {time}",
   "setup.cancel": "Cancel setup",
