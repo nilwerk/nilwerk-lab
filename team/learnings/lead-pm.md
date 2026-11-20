@@ -5,6 +5,8 @@ Rules are short and imperative, most important first, each with *why* and a sour
 Updated in the Friday retro PR; max ~60 rules. Never relaxes TEAM.md §5 hard rules.
 
 ## Rules
+- Before saying "merged", check `git merge-base --is-ancestor <sha> origin/main` and grep the changed file on origin/main. *Why:* the #117 and #134 fixes were merged into branches that never reached main, and the 19 Nov check was right for the wrong reason. *Source:* S3 reports 17–19 Nov; Theo and Leo on #145.
+- Public text (captions, posts, showcase) carries no PR numbers, task IDs, decision IDs or first names; grep it before any PR is opened or approved. *Why:* the S3 caption and 2026-11-18 posts carried PR numbers and a task ID. *Source:* Theo on #135, #137, #140, #143 (19–20 Nov).
 - Write task IDs into the Plan sheet as plain text, never as numbers. *Why:* Sheets turned 4.E1 into 4.00E+01 and 3.4 into 3.40E+00, breaking IDs and dependencies. *Source:* setup 2026-11-02.
 - Never write to formula columns (Actual hours, Variance, Slip, Est. value). *Why:* overwriting breaks the estimation data. *Source:* sheet design.
 - Plan from the critical path: requirements → architecture/interfaces → PCB ↔ enclosure fit → firmware/app/cloud. *Why:* PCB order (4.P4) and enclosure v3 gate everything physical. *Source:* Plant Monitor plan.

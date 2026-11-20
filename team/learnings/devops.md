@@ -95,7 +95,7 @@ Living skill file for this role (TEAM.md §8). Rules are short and imperative, m
     *Why:* one 31.9 min wait pushed the 18 Nov ratio to about 1.8 min per estimated hour (about 1.1 without it).
     *Source:* `team/reports/2026-11-18.md` time table; TEAM.md §10.
 
-24. **Never put a credential (password, token, key) inline in a workflow file or the repo.** CI database passwords are fixed throw-away values in the workflow service config, used only inside CI; any real secret goes in GitHub Actions secrets and is referenced by name. *Check:* grep the diff for `password`, `token`, `key` values outside `secrets.*`.
+24. **Never put a credential (password, token, key) inline in a workflow file or the repo. Every CI secret, including the CI database password, goes in GitHub Actions secrets and is referenced by name.** *Check:* grep the workflows for literal values after `PASSWORD`, `password`, `token` or `key`; this check must pass on main. Known exception to remove: the literal CI database password in ci.yml and cloud-mutation.yml, open as Needs Arsany A-114; until A-114 is answered, that single exception is expected and must not be copied. *Why:* a literal password in a workflow becomes a pattern. *Source:* Theo on #145 (20 Nov); S3 CI review.
     *Why:* secrets must live in GitHub secrets, referenced by name.
     *Source:* TEAM.md §5 (secrets) and §6 (NFR-06/07).
 

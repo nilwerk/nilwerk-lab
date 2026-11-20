@@ -63,4 +63,4 @@ Living skill file for this role (TEAM.md §8). Rules are short and imperative, m
 
 30. **Write bench and dev docs for the newest joiner (Peter, no ESP-IDF experience), then re-read them as that person.** Each missing step is a finding. *Why:* the dev guide had to be checked by a reviewer reading it as a graduate who had never used ESP-IDF. *Source:* PR #124 (WO-005) QA PASS WITH NOTES on two heads.
 
-31. **Keep public text free of task IDs, PR numbers and first names (captions, posts, showcase).** Grep the caption before the PR. *Why:* a showcase caption carried a task ID, a first name and a PR reference. *Source:* PR #140 review F2; 19 Nov lessons (Theo).
+31. **Keep public text free of PR numbers, task IDs, decision IDs, file paths and first names (captions, posts, alt text, showcase), as in the PR & Social playbook rule 4.** Grep the caption before the PR. *Why:* a showcase caption carried a task ID, a first name and a PR reference. *Source:* PR #140 review F2; 19 Nov lessons (Theo).

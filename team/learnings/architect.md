@@ -6,7 +6,7 @@ Living skill file for this role (TEAM.md §8). Rules are short and imperative, m
 ### Contracts and design
 1. Write the interface contract (device report JSON, OpenAPI, DB SQL, MCP tool schema, BLE characteristics) before any builder codes against it. *Why:* parallel builders otherwise invent incompatible shapes and merge order breaks. *Source:* team setup; S3 #129 (BLE contract) had to land before #132 (4.F2b).
 2. Keep one source per contract value (limit, row count, threshold, UUID format). Everyone else links to it, never retypes it. *Why:* a retyped copy drifts; NFR-12 was once proposed twice with different text. *Source:* Sprint 1 Agent Log; S1 PROJECT LESSONS.
-3. Cite the contract by file and line (or requirement ID) in builder PRs and reviews. *Why:* a bare claim cannot be checked; a line reference can. *Source:* Sprint 1 (T-13 mismatch); TEAM.md §6 (cite FR/NFR IDs).
+3. Cite the contract by file and line and by requirement ID (FR/NFR) in builder PRs and reviews (TEAM.md §6). *Why:* a bare claim cannot be checked; a line reference can. *Source:* Sprint 1 (T-13 mismatch); TEAM.md §6 (cite FR/NFR IDs).
 4. When a builder fix clarifies an edge case, update the contract in the same PR. *Why:* otherwise code and contract disagree on the next change. *Source:* Sprint 1.
 5. When a new decision conflicts with an older contract, flag it to the Lead and Arsany with both references; never edit either silently. *Why:* silent edits hide scope and cost changes. *Source:* Sprint 1 (A-025 vs NFR-13).
 6. A contract change needs an ADR that cites its Q-IDs, and the traceability row moves with it. *Why:* contract churn is the most expensive kind of rework. *Source:* role file (ADR rule); S3 #129 (ADR-016).
@@ -47,7 +47,7 @@ Living skill file for this role (TEAM.md §8). Rules are short and imperative, m
 
 ### Reviews, decisions and public text
 35. Large design PRs list conditions as numbered items (C1..Cn) with owner and line reference, so each can be closed. *Why:* loose comments are not tracked to closure. *Source:* Sprint 1, PR #13.
-36. Each decision needed from Arsany goes to Needs Arsany with an A-ID, a needed-by date and your recommendation; overdue items are escalated in the next report, not re-asked. *Why:* A-094 and A-109 were overdue for two days with no recommendation to act on. *Source:* 17-19 Nov Needs-you lists.
-37. Public text (posts, captions, showcase, website) has no PR numbers, task IDs or real names of people; run a repo-wide grep when a term changes. *Why:* internal IDs leak into public copy and the same term drifts across files. *Source:* S3 #135 (18 Nov); S3 #137/#140 (19 Nov).
+36. Each decision needed from Arsany goes to Needs Arsany with an A-ID, a needed-by date and your recommendation; items due within 24 h are pushed to Arsany at once, and overdue items are escalated the same day, not re-asked (TEAM.md §9). *Why:* A-094 and A-109 were overdue for two days with no recommendation to act on. *Source:* 17-19 Nov Needs-you lists.
+37. Public text (posts, captions, alt text, showcase, website) has no PR numbers, task IDs, decision IDs, file paths or first names of real people (role names by default; PR & Social rule 4); run a repo-wide grep when a term changes. *Why:* internal IDs leak into public copy and the same term drifts across files. *Source:* S3 #135 (18 Nov); S3 #137/#140 (19 Nov).
 38. Use CI run numbers and measured counts in any claim, not counts copied from PR bodies. *Why:* PR bodies go stale (67+62 vs 66+61). *Source:* S3 19 Nov (Poppy).
 39. Keep fiction or story material visually apart from facts, and date every "not built yet" claim. *Why:* readers take a story statement as a product fact. *Source:* 19 Nov evening lesson (cross-role, Lead).
