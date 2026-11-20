@@ -58,6 +58,11 @@ describe('remove plant: leftover photo paths are kept and retried exactly (NFR-0
     expect(await screen.findByRole('header', { name: 'Basil was removed' })).toBeTruthy();
     expect(await screen.findByText('2 photo(s) could not be deleted from storage yet.')).toBeTruthy();
     expect(screen.queryByText('12 photo(s) could not be deleted from storage yet.')).toBeNull();
+    // FR-A08 / A-022: the photo leftover does not release the sensor. The sensor section is still shown and nothing was released.
+    expect(await screen.findByText(/is still linked to your account/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Keep sensor/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Release sensor/ })).toBeTruthy();
+    expect(svc.released).toEqual([]);
     expect(calls).toHaveLength(1);
     const all = calls[0];
     expect(all).toHaveLength(12);
@@ -74,5 +79,8 @@ describe('remove plant: leftover photo paths are kept and retried exactly (NFR-0
     expect(calls[2]).toEqual(all.slice(-1));
     expect(screen.queryByText(/could not be deleted from storage yet/)).toBeNull();
     expect(svc.removedObjects.slice().sort()).toEqual(all.slice().sort());
+    // Sensor still claimed after the photo cleanup finished: still linked, not released (FR-A08 / A-022).
+    expect(screen.getByRole('button', { name: /^Keep sensor/ })).toBeTruthy();
+    expect(svc.released).toEqual([]);
   });
 });

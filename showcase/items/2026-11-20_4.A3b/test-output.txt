@@ -1,0 +1,10 @@
+
+Test Suites: 25 passed, 25 total
+Tests:       354 passed, 354 total
+Snapshots:   0 total
+Time:        4.235 s
+Ran all test suites.
+
+> plant-monitor-app@0.1.0 typecheck
+> tsc --noEmit
+
