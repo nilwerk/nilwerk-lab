@@ -6,9 +6,9 @@
 export const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
 
-/** TO CONFIRM (Arsany / Theo): soil percent points one sample step must rise to count as a watering event. Strictly above. */
+/** TO CONFIRM (open decision A-115): soil percent points one sample step must rise to count as a watering event. Strictly above. */
 export const WATERING_RISE_PCT = 10;
-/** TO CONFIRM (Theo): two consecutive samples further apart than this are not compared (a rise across a long gap is not a watering). */
+/** TO CONFIRM (open decision A-115): two consecutive samples further apart than this are not compared (a rise across a long gap is not a watering). */
 export const MAX_EVENT_GAP_MS = 2 * 3_600_000;
 
 export const ANALYTICS_WINDOWS_DAYS = [30, 90] as const;
@@ -117,7 +117,7 @@ export type AnalyticsResult =
   | { ok: true; windowDays: AnalyticsWindow; plants: PlantAnalytics[] }
   | { ok: false; error: "invalid_window" | "premium_required" };
 
-/** Entry point with the entitlement rule (FR-P04): 30 and 90 days need profiles.is_premium; the check runs before any data is read. */
+/** Entry point. The premium flag is passed in by the caller (FR-P04); this module does not check entitlement itself (the entitlement rule is 4.B7). The flag is checked before any data is read. */
 export function analyticsForPlants(input: {
   isPremium: boolean;
   windowDays: number;
