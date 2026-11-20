@@ -101,5 +101,9 @@ echo "== care-tips engine (tips/test/*.test.ts: ALL test files, not only tips.te
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec tips/test/*.test.ts
 fi
 
+# --- 7. analytics 4.B4 (pure TypeScript, no DB): 30/90-day aggregates, watering events, trend, comparison, premium gate (FR-P01, FR-P04)
+echo "== analytics (analytics/test/*.test.ts: pure functions, hand-computed fixtures)"
+node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec analytics/test/*.test.ts
+
 for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api nw_test_export; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
 echo "ALL CLOUD TESTS PASSED"
