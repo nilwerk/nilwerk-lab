@@ -91,6 +91,7 @@ Each agent's result ends with a `Lessons:` block. Put each lesson into the Agent
    Update the report PR before finishing — never leave extra work only in chat.
 3. Re-check the report PR, the Needs Arsany tab and the summary at the very end of the run: everything
    done that day must be in all three.
+4. **Meet-the-team page (website `nilwerk/nilwerk.github.io`, `meet-the-team/data/status.json`).** Every daily run: check whether something new was achieved or the product or app view changed. Weekly (Friday run): refresh the employee-of-the-month image (team avatar illustration, or a real photo Arsany supplies with that person's OK), the current project and the gallery (max 5 photos per project). Rules: keep the existing keys, set `updated`, give every text field a `_de` twin, no names, roles or client details, photos under 300 KB with lowercase file names. Work on a branch and open a PR for Arsany to merge; never push to `main`, never publish. (Owner, 2026-11-20.)
 
 ## Needs Arsany (TEAM.md §9)
 - Every item that concerns a file gets a line comment on the PR (or a `needs-arsany` issue with a permalink for merged
