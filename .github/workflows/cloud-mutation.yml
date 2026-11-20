@@ -9,7 +9,7 @@ name: Cloud mutation suite
 #   workflow_call      from ci.yml job `cloud-mutation` (pull_request that touches cloud/, or manual CI run); ci.yml's Final status counts it
 #   schedule           nightly on main, so drift is caught even when no cloud PR runs it (standalone, NOT part of Final status)
 #   workflow_dispatch  manual run of this suite alone
-# No secrets: a throw-away Postgres service container with a fixed CI-only password, like the cloud-db job.
+# Password from the CI_POSTGRES_PASSWORD repository secret (throw-away CI-only Postgres service).
 
 on:
   workflow_call:
@@ -29,12 +29,12 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres   # superuser of the throw-away service; test.sh creates/drops nw_test_* databases
+      DATABASE_URL: postgres://postgres:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/postgres   # superuser of the throw-away service; test.sh creates/drops nw_test_* databases
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4      # edge function tests run TypeScript natively (Node >= 22.6)
