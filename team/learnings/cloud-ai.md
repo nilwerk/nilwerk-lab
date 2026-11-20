@@ -98,4 +98,4 @@ Living skill file for this role (TEAM.md §8). Rules are short and imperative, m
 24. **Measure the agent minutes of every build and fix round, and log them with the human estimate.** Harness durations are the source, not the agent's own clock.
     *Why:* the own clock read short against wall time; the S3 ratio is only comparable when measured the same way.
     *Source:* 19 Nov report (time note).
-25. **Public text (captions, showcase) carries no PR numbers, task IDs, decision IDs, internal review IDs or first names; grep the caption before the PR.** *Why:* the 4.B2c caption carried a PR number, a review ID and migration wording (Needs Arsany content). *Source:* Theo on #144 (20 Nov).
+25. **Public text carries no PR numbers, task IDs, decision IDs (A-0xx), file paths or first names. (captions, showcase, alt text); grep the caption before the PR.** *Why:* the 4.B2c caption carried a PR number, a review ID and migration wording (Needs Arsany content). *Source:* Theo on #144 (20 Nov).
