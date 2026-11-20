@@ -1,5 +1,6 @@
 // S20 Plant list. Requirements: FR-A06 (list with status chips), FR-A02 (no cap on plants/devices), NFR-06 (own rows only under RLS).
 // "+ Add" / "Add your first sensor" (S10, FR-A03) is 4.A3 and not wired here.
+// "View alerts" opens the alerts list (4.A5, FR-A07); it is the only way to reach alerts for now.
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
@@ -12,7 +13,7 @@ import { PlantsError, type PlantSummary } from '../plants/types';
 
 export const loadErrorKey = (e: unknown) => (e instanceof PlantsError && e.code === 'not_configured' ? 'plants.error.notConnected' : 'plants.error.load');
 
-export function PlantsScreen({ onOpen }: { onOpen: (plantId: string) => void }) {
+export function PlantsScreen({ onOpen, onAlerts }: { onOpen: (plantId: string) => void; onAlerts: () => void }) {
   const th = useTheme();
   const svc = usePlants();
   const [plants, setPlants] = useState<PlantSummary[] | null>(null);
@@ -35,6 +36,7 @@ export function PlantsScreen({ onOpen }: { onOpen: (plantId: string) => void }) 
           <Body muted>{t('plants.empty.body')}</Body>
         </View>
       ) : null}
+      {plants && plants.length > 0 ? <Button label={t('plants.alerts.button')} variant="secondary" onPress={onAlerts} /> : null}
       {plants?.map((p) => <PlantRow key={p.id} plant={p} onOpen={() => onOpen(p.id)} />)}
       {plants && plants.length > 0 ? <Button label={t('plants.refresh')} variant="ghost" onPress={load} /> : null}
     </Screen>

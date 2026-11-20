@@ -1,5 +1,5 @@
 // App shell. Requirements: FR-A01 (signed-out: welcome -> sign up / sign in; signed-in: profile -> delete account / premium), FR-A06 (plants tab: list -> detail),
-// FR-A05 (detail -> photo gallery), FR-A08 + A-022 (detail -> export -> remove plant -> keep/release sensor), 4.A3 device setup (profile -> setup; fake service in the mock build, real BLE in a dev build, 4.A3b). Alerts (4.A5) are not part of this shell yet.
+// FR-A05 (detail -> photo gallery), FR-A08 + A-022 (detail -> export -> remove plant -> keep/release sensor), 4.A3 device setup (profile -> setup; fake service in the mock build, real BLE in a dev build, 4.A3b). Alerts (4.A5, FR-A07): plant list -> alerts list, rules from src/plants/alerts.ts; push delivery is not built.
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -25,6 +25,7 @@ import { PlantsScreen } from './src/screens/PlantsScreen';
 import { PlantDetailScreen } from './src/screens/PlantDetailScreen';
 import { PlantRemovedScreen, RemovePlantScreen, type RemoveOutcome } from './src/screens/RemovePlantScreen';
 import { PlantGalleryScreen } from './src/screens/PlantGalleryScreen';
+import { AlertsScreen } from './src/screens/AlertsScreen';
 import { PlantsProvider } from './src/plants/PlantsContext';
 import { createFakePlants } from './src/plants/fakePlants';
 import { unconfiguredPlants } from './src/plants/unconfiguredPlants';
@@ -40,7 +41,7 @@ import { createEspAdapter } from './src/provisioning/espAdapter';
 import { createFetchClaimApi } from './src/provisioning/claimApi';
 import type { SetupServices } from './src/provisioning/types';
 
-type Route = 'welcome' | AuthMode | 'plants' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium';
+type Route = 'welcome' | AuthMode | 'plants' | 'alerts' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium';
 type Removed = RemoveOutcome;
 
 /** Service used when no Supabase config is present: every call reports "not configured" instead of crashing. */
@@ -90,10 +91,12 @@ export function Root({ contactEmail, banner, setup }: { contactEmail: string; ba
     screen = <PlantRemovedScreen {...removed} onDone={() => { setRemoved(null); setRoute('plants'); }} />;
   } else if (route === 'profile') {
     screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} onAddSensor={() => setRoute('setup')} />;
+  } else if (route === 'alerts') {
+    screen = <AlertsScreen onBack={() => setRoute('plants')} />;
   } else {
-    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} />;
+    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onAlerts={() => setRoute('alerts')} />;
   }
-  const tab: Tab | null = !signedIn ? null : route === 'profile' ? 'profile' : route === 'plants' || route === 'welcome' || route === 'signUp' || route === 'signIn' ? 'plants' : null;
+  const tab: Tab | null = !signedIn ? null : route === 'profile' ? 'profile' : route === 'plants' || route === 'alerts' || route === 'welcome' || route === 'signUp' || route === 'signIn' ? 'plants' : null;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: th.color.bg }}>
       {banner ? <Notice kind="info" text={banner} /> : null}
