@@ -1,0 +1,39 @@
+BUILD: idf.py -B build-sim-qemu (v1 defaults + sdkconfig.defaults.sim-qemu, mocked sensors)
+Executing action: all (aliases: build)
+Running ninja in directory /home/user/wt-sim-fw/projects/plant-monitor/firmware/build-sim-qemu
+Executing "ninja all"...
+[1/4] cd /home/user/wt-sim-fw/projects/plant-monitor/firmware/build-sim-qemu/esp-idf/esptool_py && /root/.espressif/python_env/idf5.4_py3.11_env/bin/python /home/user/esp/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/user/wt-sim-fw/projects/plant-monitor/firmware/build-sim-qemu/partition_table/partition-table.bin /home/user/wt-sim-fw/projects/plant-monitor/firmware/build-sim-qemu/plant_monitor.bin
+plant_monitor.bin binary size 0x32af0 bytes. Smallest app partition is 0x177000 bytes. 0x144510 bytes (86%) free.
+[2/4] Performing build step for 'bootloader'
+[1/1] cd /home/user/wt-sim-fw/projects/plant-monitor/firmware/build-sim-qemu/bootloader/esp-idf/esptool_py && /root/.espressif/python_env/idf5.4_py3.11_env/bin/python /home/user/esp/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /home/user/wt-sim-fw/projects/plant-monitor/firmware/build-sim-qemu/bootloader/bootloader.bin
+Bootloader binary size 0x5150 bytes. 0x2eb0 bytes (36%) free.
+[3/4] No install step for 'bootloader'
+[4/4] Completed 'bootloader'
+
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32c3 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 4MB --flash_freq 80m 0x0 build-sim-qemu/bootloader/bootloader.bin 0x8000 build-sim-qemu/partition_table/partition-table.bin 0x10000 build-sim-qemu/plant_monitor.bin
+or from the "/home/user/wt-sim-fw/projects/plant-monitor/firmware/build-sim-qemu" directory
+ python -m esptool --chip esp32c3 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"
+NOTE: sensor values are MOCKED (main/sim_mock_hal.c). This checks the driver code path, not hardware.
+RUN: QEMU esp32c3 for 45 s, serial log -> /home/user/sim-evidence/firmware/boot-log.txt
+PASS  mock banner (labelled MOCK)
+PASS  boot line, v1 board, wake 1
+PASS  reading i=0, all drivers err=0
+PASS  reading i=1, all drivers err=0
+PASS  reading i=2, all drivers err=0
+PASS  reading i=3, all drivers err=0
+PASS  reading i=4, all drivers err=0
+PASS  AHT20 decode: 23.45 C, 41.25 %RH
+PASS  BH1750 decode: raw 300 -> 250.0 lx
+PASS  soil normalise: raw 2000 -> 50.0 %
+PASS  battery: 2100 mV pin -> 4200 mV, plausible
+PASS  sleep call reached
+PASS  no setup flow on the v1 build
+PASS  no crash / panic
+PASS  no sensor error code
+----
+RESULT: PASS (15 checks). Serial log: /home/user/sim-evidence/firmware/boot-log.txt
