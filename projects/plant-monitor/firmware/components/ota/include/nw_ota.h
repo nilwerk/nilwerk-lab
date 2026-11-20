@@ -20,7 +20,8 @@
 
 /* Rollback window, counted in BOOTS and not in seconds: the device has no trusted clock before SNTP, and the
  * confirmation point (a successful /ingest) comes once per hourly report = every 4th wake of 15 min (FR-D01, FR-D02).
- * [proposed] 8 boots = two hourly upload chances before rollback. Derived here, not from an NFR: asked to the Lead. */
+ * [proposed, open decision A-116] 8 boots = two hourly upload chances before rollback. Derived here, not from an NFR:
+ * asked to the Lead. */
 #define NW_OTA_MAX_UNCONFIRMED_BOOTS 8
 
 /* Streaming SHA-256 (FIPS 180-4) for the chunked download. */
@@ -45,6 +46,21 @@ bool nw_ota_digest_equal(const uint8_t a[NW_OTA_SHA256_LEN], const uint8_t b[NW_
 /* The pure check (FR-D05, ADR-009): true only when the SHA-256 of the whole image equals `expected`.
  * A NULL expected digest always fails: an image with no expected hash is never installed. */
 bool nw_ota_image_ok(const void *img, size_t len, const uint8_t expected[NW_OTA_SHA256_LEN]);
+
+/* Result of the hash check on the downloaded image. NOT_CHECKED is 0, so an unset value refuses install. */
+typedef enum {
+    NW_OTA_HASH_NOT_CHECKED = 0,
+    NW_OTA_HASH_MISMATCH,
+    NW_OTA_HASH_MATCH
+} nw_ota_hash_result_t;
+
+/* Maps nw_ota_image_ok() onto the hash result: MATCH only when the image digest equals `expected`. */
+nw_ota_hash_result_t nw_ota_hash_check(const void *img, size_t len, const uint8_t expected[NW_OTA_SHA256_LEN]);
+
+/* Install gate (architect condition C1, PR #153): the image may be written to the inactive slot only on a MATCH.
+ * The hash result is a required parameter; NOT_CHECKED and MISMATCH both refuse. The ESP-IDF adapter must call this
+ * gate before it writes any byte to the inactive slot. */
+bool nw_ota_may_install(nw_ota_hash_result_t hash);
 
 /* Boot state the firmware keeps (the RTC-retained fields are written by the ESP-IDF adapter, not here). */
 typedef struct {

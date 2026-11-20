@@ -137,6 +137,16 @@ bool nw_ota_image_ok(const void *img, size_t len, const uint8_t expected[NW_OTA_
     return nw_ota_digest_equal(digest, expected);
 }
 
+nw_ota_hash_result_t nw_ota_hash_check(const void *img, size_t len, const uint8_t expected[NW_OTA_SHA256_LEN])
+{
+    return nw_ota_image_ok(img, len, expected) ? NW_OTA_HASH_MATCH : NW_OTA_HASH_MISMATCH;
+}
+
+bool nw_ota_may_install(nw_ota_hash_result_t hash)
+{
+    return hash == NW_OTA_HASH_MATCH;
+}
+
 nw_ota_decision_t nw_ota_boot_decide(const nw_ota_boot_t *b)
 {
     if (!b->pending_verify) return NW_OTA_KEEP;

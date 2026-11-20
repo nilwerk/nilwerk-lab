@@ -22,6 +22,9 @@ M = [  # (old, new, what)
  ("if (hi < 0 || lo < 0) return false;", "if (hi < 0 && lo < 0) return false;", "manifest hash: non-hex digit accepted"),
  ("size_t total = (n < 56) ? 64 : 128;", "size_t total = (n < 55) ? 64 : 128;", "SHA-256 padding boundary (55-byte message)"),
  ("0x428a2f98, 0x71374491", "0x428a2f99, 0x71374491", "SHA-256 round constant K[0]"),
+ # install gate (C1)
+ ("return hash == NW_OTA_HASH_MATCH;", "return hash != NW_OTA_HASH_NOT_CHECKED;", "install gate: a mismatch is allowed to install"),
+ ("return nw_ota_image_ok(img, len, expected) ? NW_OTA_HASH_MATCH : NW_OTA_HASH_MISMATCH;", "(void)img; (void)len; (void)expected; return NW_OTA_HASH_MATCH;", "hash check result ignores the image"),
  # rollback decision (AC 2)
  ("if (b->unconfirmed_boots >= b->max_unconfirmed_boots) return NW_OTA_ROLLBACK;", "if (b->unconfirmed_boots > b->max_unconfirmed_boots) return NW_OTA_ROLLBACK;", "window boundary off by one (rolls back one boot late)"),
  ("if (b->ingest_ok) return NW_OTA_CONFIRM;", "if (0) return NW_OTA_CONFIRM;", "successful ingest does not confirm"),

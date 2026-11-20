@@ -193,11 +193,36 @@ static void test_rollback_decision(void)
     /* FR-D05 says "rolls back to the previous slot": the slot switch itself is in the ESP-IDF adapter (not built here) */
 }
 
+/* C1 (architect review of PR #153): the install gate takes the hash result as a required input and refuses install on
+ * anything but a MATCH. The mismatch case is called through the real hash check, not with a hand-set enum value. */
+static void test_install_gate(void)
+{
+    uint8_t exp[NW_OTA_SHA256_LEN];
+    CHECK(nw_ota_parse_sha256_hex(HEX_MOCK, 64, exp));
+    /* the unset value (0) refuses */
+    CHECK(!nw_ota_may_install(NW_OTA_HASH_NOT_CHECKED));
+    /* a mismatch from the decision inputs: wrong content, and a NULL expected digest */
+    char flipped[sizeof MOCK_IMG];
+    memcpy(flipped, MOCK_IMG, sizeof MOCK_IMG);
+    flipped[0] ^= 0x01;
+    nw_ota_hash_result_t bad = nw_ota_hash_check(flipped, strlen(flipped), exp);
+    CHECK_EQ(bad, NW_OTA_HASH_MISMATCH);
+    CHECK(!nw_ota_may_install(bad));
+    CHECK(!nw_ota_may_install(nw_ota_hash_check(MOCK_IMG, strlen(MOCK_IMG), NULL)));
+    /* the exact image is the only path to install */
+    nw_ota_hash_result_t good = nw_ota_hash_check(MOCK_IMG, strlen(MOCK_IMG), exp);
+    CHECK_EQ(good, NW_OTA_HASH_MATCH);
+    CHECK(nw_ota_may_install(good));
+    /* the gate and the image check agree on a truncated image */
+    CHECK(!nw_ota_may_install(nw_ota_hash_check(MOCK_IMG, strlen(MOCK_IMG) - 1, exp)));
+}
+
 int main(void)
 {
     test_sha256_vectors();
     test_hex_parse();
     test_image_check();
+    test_install_gate();
     test_rollback_decision();
     printf("test_ota: %d checks, %d failed\n", nwtest_checked, nwtest_failed);
     return nwtest_failed ? 1 : 0;
