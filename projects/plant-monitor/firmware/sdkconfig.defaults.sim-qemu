@@ -1,0 +1,8 @@
+# SIMULATOR OVERLAY (simulator boot test, sim-qemu). Applied AFTER sdkconfig.defaults.v1; used only by tests/qemu_boot_check.sh.
+# Never use this for a board build. It changes two things versus the v1 bench image, both needed to run it in QEMU:
+#  1. Console on UART0 instead of native USB Serial/JTAG: Espressif's QEMU ESP32-C3 model has no USB Serial/JTAG peripheral, so the
+#     v1 image prints nothing there (measured: 60 s run, only the bootloader and the app entry line, no NWBENCH line; see tests/README).
+#  2. Sensor values are MOCKED (main/sim_mock_hal.c): AHT20, BH1750, soil ADC and battery ADC return fixed numbers, labelled NWSIMMOCK.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=n
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_PLANT_SIM_MOCK_SENSORS=y

@@ -28,6 +28,14 @@ menu "Plant Monitor"
         help
             PLACEHOLDER, UNVERIFIED: no probe has been measured. Replace with the bench value (WO-firmware-4.F1).
 
+    config PLANT_SIM_MOCK_SENSORS
+        bool "SIMULATOR ONLY: mocked sensor values instead of I2C/ADC (QEMU, no hardware)"
+        default n
+        help
+            MOCK, NOT SENSOR DATA. Replaces the real HAL (main/sim_mock_hal.c) with fixed values for AHT20, BH1750, soil ADC and battery ADC,
+            so the Espressif QEMU ESP32-C3 can run the sensor drivers without sensors. Every boot prints a line starting `NWSIMMOCK`.
+            Used only by the sdkconfig overlay sdkconfig.defaults.sim-qemu and tests/qemu_boot_check.sh. Never set this on a board build.
+
     config PLANT_BENCH_SLEEP_CYCLE
         bool "Bench app: after 5 readings, deep sleep 60 s, then repeat (NFR-12 IO3 check)"
         default y

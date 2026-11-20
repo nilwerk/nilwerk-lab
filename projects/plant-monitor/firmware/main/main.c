@@ -15,6 +15,12 @@
 #include "nw_bh1750.h"
 #include "nw_hal_esp32.h"
 #include "nw_soil.h"
+#ifdef CONFIG_PLANT_SIM_MOCK_SENSORS
+#include "sim_mock_hal.h"   /* SIMULATOR ONLY: mocked sensor values (MOCK, not sensor data). Off in every board build. */
+#define PREPARE_DEEP_SLEEP() nw_sim_mock_prepare_deep_sleep()
+#else
+#define PREPARE_DEEP_SLEEP() nw_hal_esp32_prepare_deep_sleep()
+#endif
 #ifdef CONFIG_PLANT_UPLOAD
 #include "nw_upload_idf.h"
 #endif
@@ -74,6 +80,13 @@ void app_main(void)
         }
     }
 #endif
+    nw_hal_t hal;
+#ifdef CONFIG_PLANT_SIM_MOCK_SENSORS
+    if (nw_sim_mock_hal_init(&hal) != 0) {   /* MOCK values, see main/sim_mock_hal.c */
+        ESP_LOGE(TAG, "mock HAL init failed");
+        return;
+    }
+#else
     nw_hal_esp32_cfg_t cfg = {
         .sda_gpio = NW_PIN_I2C_SDA,
         .scl_gpio = NW_PIN_I2C_SCL,
@@ -82,11 +95,11 @@ void app_main(void)
         .adc_soil_channel = NW_SOIL_ANALOG ? NW_ADC1_CH_SOIL : -1,
         .i2c_hz = NW_I2C_HZ,
     };
-    nw_hal_t hal;
     if (nw_hal_esp32_init(&cfg, &hal) != 0) {
         ESP_LOGE(TAG, "HAL init failed");
         return;
     }
+#endif
     const nw_soil_cal_t cal = {.dry_raw = CONFIG_PLANT_SOIL_DRY_RAW, .wet_raw = CONFIG_PLANT_SOIL_WET_RAW};
     const nw_battery_cfg_t bat = {.r_top_ohm = NW_BAT_R_TOP_OHM, .r_bot_ohm = NW_BAT_R_BOT_OHM};
     ESP_LOGI(TAG, "NWBENCH start board=%s wake=%d cal_dry=%d cal_wet=%d divider=%u/%u (CALIBRATION IS A PLACEHOLDER UNTIL SET ON THE BENCH)",
@@ -105,7 +118,7 @@ void app_main(void)
         uint32_t sleep_s = nw_upload_idf_wake(&soil, e_soil, &aht, e_aht, &bh, e_bh, vbat, e_bat);
         ESP_LOGI(TAG, "NWUPLOAD sleep s=%u", (unsigned)sleep_s);
         fflush(stdout);
-        nw_hal_esp32_prepare_deep_sleep();
+        PREPARE_DEEP_SLEEP();
         esp_sleep_enable_timer_wakeup((uint64_t)sleep_s * 1000000ULL);
         esp_deep_sleep_start();
     }
@@ -134,7 +147,7 @@ void app_main(void)
 
     printf("NWBENCH sleep s=%d (IO3 must read 0 V now)\n", SLEEP_S);
     fflush(stdout);
-    nw_hal_esp32_prepare_deep_sleep();
+    PREPARE_DEEP_SLEEP();
     esp_sleep_enable_timer_wakeup((uint64_t)SLEEP_S * 1000000ULL);
     esp_deep_sleep_start();
 }
