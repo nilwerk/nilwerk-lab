@@ -7,7 +7,7 @@
       62 |     expect(await screen.findByText(/is still linked to your account/)).toBeTruthy();
 Tests:       1 failed, 1 total
 
-### M2: PlantRemovedScreen.tsx:67 retry does not narrow the notice to PlantsError.leftover
+### M2: RemovePlantScreen.tsx:67 retry does not narrow the notice to PlantsError.leftover
  projects/plant-monitor/app/src/screens/RemovePlantScreen.tsx | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
       72 |     expect(calls[1]).toEqual(all.slice(-2));
