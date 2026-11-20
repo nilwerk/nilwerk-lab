@@ -197,6 +197,7 @@ jobs:
     # the nightly schedule in cloud-mutation.yml covers drift). Docs-only PRs: detect says cloudmut=false, so this job is skipped and costs nothing.
     if: needs.detect.outputs.cloudmut == 'true' && github.event_name != 'push'
     uses: ./.github/workflows/cloud-mutation.yml
+    secrets: inherit   # pass CI_POSTGRES_PASSWORD into the reusable workflow (A-114)
 
   ml:
     needs: detect
