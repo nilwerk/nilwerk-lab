@@ -1,0 +1,17 @@
+### M1: RemovePlantScreen.tsx:38 keeps all 12 paths instead of PlantsError.leftover (removePhotoObjects catch)
+ projects/plant-monitor/app/src/screens/RemovePlantScreen.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      58 |     expect(await screen.findByRole('header', { name: 'Basil was removed' })).toBeTruthy();
+    > 59 |     expect(await screen.findByText('2 photo(s) could not be deleted from storage yet.')).toBeTruthy();
+      60 |     expect(screen.queryByText('12 photo(s) could not be deleted from storage yet.')).toBeNull();
+      62 |     expect(await screen.findByText(/is still linked to your account/)).toBeTruthy();
+Tests:       1 failed, 1 total
+
+### M2: RemovePlantScreen.tsx:67 retry does not narrow the notice to PlantsError.leftover
+ projects/plant-monitor/app/src/screens/RemovePlantScreen.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+      72 |     expect(calls[1]).toEqual(all.slice(-2));
+      73 |     expect(await screen.findByText('Photo cleanup failed again. Try later.')).toBeTruthy();
+    > 74 |     expect(await screen.findByText('1 photo(s) could not be deleted from storage yet.')).toBeTruthy();
+      75 |     expect(screen.queryByText('2 photo(s) could not be deleted from storage yet.')).toBeNull();
+Tests:       1 failed, 1 total
