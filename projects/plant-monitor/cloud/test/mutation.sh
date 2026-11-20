@@ -104,6 +104,7 @@ mutant "EX-15 path guard accepts '..'"                               "$EXP" 'pat
 mutant "EX-16 path guard: segment character check removed (backslash, %2e, control chars)" "$EXP" ' && seg.every((x) => /^[A-Za-z0-9._-]+$/.test(x) && x !== ".")' ''
 mutant "EX-17 path guard: segment count not checked" "$EXP" 'seg.length === 3 && ' ''
 mutant "EX-18 path guard accepts a foreign/near user prefix"         "$EXP" 'seg[0] === uid' 'seg[0].startsWith(uid.slice(0, 8))'
+mutant "EX-19 path guard: % allowed in a segment (encoded traversal not refused by the character class)" "$EXP" '/^[A-Za-z0-9._-]+$/.test(x)' '/^[A-Za-z0-9._%-]+$/.test(x)'
 mutant "EX-8 expires_at not exported_at + 7 days"                   "$EXP" 'new Date(now.getTime() + PHOTO_URL_TTL_SECONDS * 1000)' 'new Date(now.getTime())'
 mutant "EX-9 Cache-Control: no-store dropped"                       "$EXP" 'const common = { "cache-control": "no-store" };' 'const common = {};'
 mutant "EX-10 CSV formula-injection guard removed"                  "$EXP" '/^[=+\-@\t\r]/.test(s)' '/^$/.test(s)'

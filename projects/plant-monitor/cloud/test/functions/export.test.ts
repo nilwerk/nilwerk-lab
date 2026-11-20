@@ -210,6 +210,29 @@ test("NFR-06 (QA N1): isSafePhotoPath accepts only <uid>/<folder>/<file> and rej
   assert.equal(isSafePhotoPath(UE, `${E}/${PL}/a.b-c_d.jpg`), true, "dots inside a name are fine");
   for (const [why, p] of BAD_PATHS) assert.equal(isSafePhotoPath(UE, p), false, why);
 });
+// NFR-06 (4.B2c follow-up, Ines N1 / Theo review; NFR-07 is export and deletion, so the path guard cites NFR-06 "users only see their own data"): the export signs with the service-role key, so the guard must refuse any '%' inside a
+// segment, whether or not it decodes to '..'. The guard has no percent-decode step; it rejects '%' through its per-segment character class.
+const PCT_PATHS: [string, string][] = [
+  ["encoded dot-dot as its own folder segment (lower case)", `${E}/%2e%2e/${PL}/${FL}`],
+  ["encoded dot-dot as its own folder segment (upper case)", `${E}/%2E%2E/${PL}/${FL}`],
+  ["encoded slash inside the folder segment", `${E}/${PL}%2f${F}/${FL}`],
+  ["encoded dot-dot inside the file name", `${E}/${PL}/%2e%2e${FL}`],
+  ["bare percent sign in the folder segment", `${E}/a%b/${FL}`],
+  ["bare percent sign in the file name", `${E}/${PL}/${FL.replace(".jpg", "%.jpg")}`],
+];
+test("NFR-06 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not", () => {
+  for (const [why, p] of PCT_PATHS) assert.equal(isSafePhotoPath(UE, p), false, why);
+});
+test("NFR-06 (4.B2c follow-up): a plain '..' segment in any position is rejected by the export path guard", () => {
+  assert.equal(isSafePhotoPath(UE, `${E}/../${PL}/${FL}`), false, "'..' as the first folder segment");
+  assert.equal(isSafePhotoPath(UE, `${E}/${PL}/../${FL}`), false, "'..' as the middle segment");
+  assert.equal(isSafePhotoPath(UE, `${E}/${PL}/..`), false, "'..' as the file segment");
+});
+test("NFR-06 (4.B2c follow-up): a normal <uid>/<plant_id>/<uuid>.<ext> path is accepted by the export path guard", () => {
+  for (const ext of ["jpg", "jpeg", "png", "webp"]) {
+    assert.equal(isSafePhotoPath(UE, `${E}/${PL}/22222222-2222-2222-2222-222222222222.${ext}`), true, `ext ${ext}`);
+  }
+});
 test("NFR-06 (QA N1): handler never signs a hostile photo path and returns url null for it, the safe photo is still signed", async () => {
   const good = `${E}/${PL}/${FL}`;
   const rows = [good, ...BAD_PATHS.slice(0, -1).map(([, p]) => p)].map((storage_path, i) => ({ id: `i${i}`, plant_id: PL, taken_at: "2026-01-01T00:00:00Z", storage_path }));

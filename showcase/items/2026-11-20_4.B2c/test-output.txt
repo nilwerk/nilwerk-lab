@@ -1,0 +1,37 @@
+# Real output excerpts (from cloud/test.sh runs; full logs kept outside the repo)
+## 1. Branch, full fast suite (bash test.sh), after adding the tests
+== RLS isolation (test/rls_isolation.sql)
+== retention / roll-up (test/retention.sql)
+== 2.4 contract test (docs/interfaces/db-schema.test.sql) on the migrated DB
+ALL OK
+== OpenAPI matches the edge functions (test/openapi_check.py)
+== edge functions (test/functions/api.test.ts) against local Postgres
+ℹ tests 23
+ℹ pass 23
+ℹ fail 0
+== export edge function (test/functions/export.test.ts) against local Postgres
+✔ NFR-06 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not
+✔ NFR-06 (4.B2c follow-up): a plain '..' segment in any position is rejected by the export path guard
+✔ NFR-06 (4.B2c follow-up): a normal <uid>/<plant_id>/<uuid>.<ext> path is accepted by the export path guard
+ℹ tests 22
+ℹ pass 22
+ℹ fail 0
+== care-tips engine (tips/test/*.test.ts: ALL test files, not only tips.test.ts)
+ℹ tests 68
+ℹ pass 68
+ℹ fail 0
+ALL CLOUD TESTS PASSED
+
+## 2. Mutation check, scratch copy: segment character class allows % (NW_ONLY=api)
+ℹ fail 0
+ℹ fail 1
+ℹ pass 21
+ℹ pass 23
+✖ NFR-06 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not
+
+## 3. Scratch copy restored (NW_ONLY=api)
+ℹ pass 23
+ℹ fail 0
+ℹ pass 22
+ℹ fail 0
+ALL CLOUD TESTS PASSED
