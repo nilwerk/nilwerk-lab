@@ -210,7 +210,7 @@ test("NFR-06 (QA N1): isSafePhotoPath accepts only <uid>/<folder>/<file> and rej
   assert.equal(isSafePhotoPath(UE, `${E}/${PL}/a.b-c_d.jpg`), true, "dots inside a name are fine");
   for (const [why, p] of BAD_PATHS) assert.equal(isSafePhotoPath(UE, p), false, why);
 });
-// NFR-07 (4.B2c follow-up, Ines N1 / Theo review): the export signs with the service-role key, so the guard must refuse any '%' inside a
+// NFR-06 (4.B2c follow-up, Ines N1 / Theo review; NFR-07 is export and deletion, so the path guard cites NFR-06 "users only see their own data"): the export signs with the service-role key, so the guard must refuse any '%' inside a
 // segment, whether or not it decodes to '..'. The guard has no percent-decode step; it rejects '%' through its per-segment character class.
 const PCT_PATHS: [string, string][] = [
   ["encoded dot-dot as its own folder segment (lower case)", `${E}/%2e%2e/${PL}/${FL}`],
@@ -220,15 +220,15 @@ const PCT_PATHS: [string, string][] = [
   ["bare percent sign in the folder segment", `${E}/a%b/${FL}`],
   ["bare percent sign in the file name", `${E}/${PL}/${FL.replace(".jpg", "%.jpg")}`],
 ];
-test("NFR-07 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not", () => {
+test("NFR-06 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not", () => {
   for (const [why, p] of PCT_PATHS) assert.equal(isSafePhotoPath(UE, p), false, why);
 });
-test("NFR-07 (4.B2c follow-up): a plain '..' segment in any position is rejected by the export path guard", () => {
+test("NFR-06 (4.B2c follow-up): a plain '..' segment in any position is rejected by the export path guard", () => {
   assert.equal(isSafePhotoPath(UE, `${E}/../${PL}/${FL}`), false, "'..' as the first folder segment");
   assert.equal(isSafePhotoPath(UE, `${E}/${PL}/../${FL}`), false, "'..' as the middle segment");
   assert.equal(isSafePhotoPath(UE, `${E}/${PL}/..`), false, "'..' as the file segment");
 });
-test("NFR-07 (4.B2c follow-up): a normal <uid>/<plant_id>/<uuid>.<ext> path is accepted by the export path guard", () => {
+test("NFR-06 (4.B2c follow-up): a normal <uid>/<plant_id>/<uuid>.<ext> path is accepted by the export path guard", () => {
   for (const ext of ["jpg", "jpeg", "png", "webp"]) {
     assert.equal(isSafePhotoPath(UE, `${E}/${PL}/22222222-2222-2222-2222-222222222222.${ext}`), true, `ext ${ext}`);
   }

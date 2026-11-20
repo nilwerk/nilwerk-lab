@@ -10,9 +10,9 @@ ALL OK
 ℹ pass 23
 ℹ fail 0
 == export edge function (test/functions/export.test.ts) against local Postgres
-✔ NFR-07 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not
-✔ NFR-07 (4.B2c follow-up): a plain '..' segment in any position is rejected by the export path guard
-✔ NFR-07 (4.B2c follow-up): a normal <uid>/<plant_id>/<uuid>.<ext> path is accepted by the export path guard
+✔ NFR-06 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not
+✔ NFR-06 (4.B2c follow-up): a plain '..' segment in any position is rejected by the export path guard
+✔ NFR-06 (4.B2c follow-up): a normal <uid>/<plant_id>/<uuid>.<ext> path is accepted by the export path guard
 ℹ tests 22
 ℹ pass 22
 ℹ fail 0
@@ -27,7 +27,7 @@ ALL CLOUD TESTS PASSED
 ℹ fail 1
 ℹ pass 21
 ℹ pass 23
-✖ NFR-07 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not
+✖ NFR-06 (4.B2c follow-up): a percent sign inside a path segment is rejected by the export path guard, decoded or not
 
 ## 3. Scratch copy restored (NW_ONLY=api)
 ℹ pass 23
