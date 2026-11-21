@@ -4,8 +4,10 @@ name: Bench (self-hosted)
 # Triggers are deliberately narrow: this runner is on a private repo and must never
 # execute code from pull requests, forks or pushed branches.
 #   schedule           nightly on main
-#   workflow_dispatch  manual run, only from the main branch (guard below)
+#   workflow_dispatch  manual run, only from main or from agent/devops/bench-workflow (guard below)
 # NO pull_request, pull_request_target, push or issue_comment triggers, on purpose.
+# Owner decision (Arsany, 21 Nov): nothing else may run on the Pi. The branch allowance
+# is for the one PR that adds these steps. Remove it again when that PR is closed.
 # See docs/ci-bench-runner.md.
 
 on:
@@ -19,8 +21,8 @@ permissions:
 jobs:
   bench:
     name: bench smoke and E2E
-    # Only main. A manual dispatch from any other branch runs nothing.
-    if: github.ref == 'refs/heads/main'
+    # Only main, plus the one PR branch for manual runs. Any other ref runs nothing.
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/devops/bench-workflow'
     runs-on: [self-hosted, bench]
     timeout-minutes: 60
     # Job-level, not workflow-level: a branch dispatch must not be able to displace a queued
@@ -55,6 +57,156 @@ jobs:
             echo "::error::node major is ${node_major}, expected ${EXPECTED_NODE_MAJOR} (see docs/ci-bench-runner.md)"
             exit 1
           fi
+
+      # Hardware steps a-e, in this order. Each one fails closed: if its input is missing it
+      # prints "not configured: nothing tested" and exits 1. Nothing is built on the Pi.
+
+      - name: "a. Firmware flash (ESP32-C3 over USB)"
+        # Input: bench/firmware/image.bin (a prebuilt, merged full-flash image). No file, no flash.
+        env:
+          BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
+          BENCH_FLASH_OFFSET: "0x0"        # offset of a merged full-flash image
+        run: |
+          set -euo pipefail
+          image="bench/firmware/image.bin"
+          if [ ! -f "$image" ]; then
+            echo "::error::a. firmware flash: not configured: nothing tested (missing ${image})"
+            exit 1
+          fi
+          esptool="$(command -v esptool.py || command -v esptool || true)"
+          if [ -z "$esptool" ]; then
+            echo "::error::a. firmware flash: not configured: nothing tested (esptool not installed on the runner)"
+            exit 1
+          fi
+          if [ ! -e "$BENCH_ESP_PORT" ]; then
+            echo "::error::a. firmware flash: not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
+            exit 1
+          fi
+          # Read the chip id first. Stop unless it is an ESP32-C3.
+          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip_id 2>&1)"
+          echo "$chip_out"
+          if ! grep -q "ESP32-C3" <<<"$chip_out"; then
+            echo "::error::a. firmware flash: chip is not an ESP32-C3, not flashing"
+            exit 1
+          fi
+          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$BENCH_FLASH_OFFSET" "$image"
+
+      - name: "b. Serial boot log check (20 s)"
+        # Inputs: bench/firmware/expect.txt (first non-empty line = expected boot line text).
+        env:
+          BENCH_ESP_PORT: /dev/ttyACM0
+        run: |
+          set -euo pipefail
+          expect="bench/firmware/expect.txt"
+          if [ ! -f "$expect" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
+            exit 1
+          fi
+          line="$(grep -m1 -E '[^[:space:]]' "$expect" || true)"
+          if [ -z "$line" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          esptool="$(command -v esptool.py || command -v esptool || true)"
+          if [ -z "$esptool" ] || [ ! -e "$BENCH_ESP_PORT" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (no esptool or no device at ${BENCH_ESP_PORT})"
+            exit 1
+          fi
+          log="$(mktemp)"
+          stty -F "$BENCH_ESP_PORT" 115200 raw -echo
+          # Start the reader first, then reset the board, so the boot lines are captured.
+          timeout 20 cat "$BENCH_ESP_PORT" > "$log" &
+          reader=$!
+          sleep 1
+          "$esptool" --port "$BENCH_ESP_PORT" run
+          wait "$reader" || true   # timeout exits 124 after 20 s; that is the expected end
+          if grep -F -q -- "$line" "$log"; then
+            echo "b. serial: expected boot line seen: ${line}"
+          else
+            echo "::error::b. serial check failed: expected boot line not seen in 20 s: ${line}"
+            tail -n 20 "$log"
+            exit 1
+          fi
+
+      - name: "c. BLE scan (10 s)"
+        # Input: bench/ble/expect.txt (first non-empty line = device name prefix).
+        run: |
+          set -euo pipefail
+          expect="bench/ble/expect.txt"
+          if [ ! -f "$expect" ]; then
+            echo "::error::c. BLE check: not configured: nothing tested (missing ${expect})"
+            exit 1
+          fi
+          prefix="$(grep -m1 -E '[^[:space:]]' "$expect" | tr -d '[:space:]' || true)"
+          if [ -z "$prefix" ]; then
+            echo "::error::c. BLE check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          if ! command -v bluetoothctl >/dev/null 2>&1; then
+            echo "::error::c. BLE check: not configured: nothing tested (bluetoothctl not installed)"
+            exit 1
+          fi
+          log="$(mktemp)"
+          { echo "power on"; echo "scan on"; sleep 10; echo "scan off"; echo "quit"; } \
+            | timeout 30 bluetoothctl > "$log" 2>&1 || true
+          if grep -E '(Device [0-9A-Fa-f:]{17}|Name:)' "$log" | grep -F -q -- "$prefix"; then
+            echo "c. BLE: device with name prefix '${prefix}' seen in 10 s scan"
+          else
+            echo "::error::c. BLE check failed: no device with name prefix '${prefix}' in 10 s scan"
+            tail -n 20 "$log"
+            exit 1
+          fi
+
+      - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
+        # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
+        # BENCH_APP_TEST_ACCOUNT (test account config). Values are never in the repo.
+        env:
+          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
+          BENCH_APP_TEST_ACCOUNT: ${{ secrets.BENCH_APP_TEST_ACCOUNT }}
+          APPIUM_PLATFORM_NAME: Android
+          APPIUM_AUTOMATION_NAME: UiAutomator2
+        run: |
+          set -euo pipefail
+          script="bench/app/run_appium.sh"
+          if [ ! -f "$script" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (missing ${script})"
+            exit 1
+          fi
+          if [ -z "${BENCH_APP_TEST_ACCOUNT:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_APP_TEST_ACCOUNT is not set)"
+            exit 1
+          fi
+          if [ -z "${BENCH_ANDROID_SERIAL:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
+            exit 1
+          fi
+          if ! command -v appium >/dev/null 2>&1; then
+            echo "::error::d. app flow: not configured: nothing tested (appium not installed)"
+            exit 1
+          fi
+          appium_major="$(appium --version 2>/dev/null | cut -d. -f1)"
+          if [ "$appium_major" != "2" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (Appium 2.x required, found major '${appium_major}')"
+            exit 1
+          fi
+          bash "$script"
+
+      - name: "e. Cloud check (device readings, EU project)"
+        # Input: bench/cloud/check.sh; secret BENCH_CLOUD_CHECK_CONFIG (config for the EU project).
+        env:
+          BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
+        run: |
+          set -euo pipefail
+          script="bench/cloud/check.sh"
+          if [ ! -f "$script" ]; then
+            echo "::error::e. cloud check: not configured: nothing tested (missing ${script})"
+            exit 1
+          fi
+          if [ -z "${BENCH_CLOUD_CHECK_CONFIG:-}" ]; then
+            echo "::error::e. cloud check: not configured: nothing tested (secret BENCH_CLOUD_CHECK_CONFIG is not set)"
+            exit 1
+          fi
+          bash "$script"
 
       - name: Bench E2E
         run: |

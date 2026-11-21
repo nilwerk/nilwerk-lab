@@ -14,10 +14,37 @@ The runner executes whatever code a job checks out. On a private repo that is sa
 while untrusted code cannot reach it. So `bench.yml` allows only:
 
 - `schedule`: nightly at 02:00 UTC, on `main`.
-- `workflow_dispatch`: manual runs, and the job runs only when the ref is `refs/heads/main`.
+- `workflow_dispatch`: manual runs. The job runs only when the ref is `refs/heads/main`
+  or `refs/heads/agent/devops/bench-workflow`. Any other ref runs nothing.
+
+The branch `agent/devops/bench-workflow` is allowed by the owner's decision of 21 Nov 2026
+(Arsany): it is for the one PR that adds the hardware steps, and nothing else may run on the
+Pi. Remove that branch from the guard when that PR is closed.
 
 Never add `pull_request`, `pull_request_target`, `push` or `issue_comment` to a bench
 workflow. Those let a pull request, a fork or a comment run code on the Pi.
+
+Residual risk: a manual run uses the workflow file on the chosen branch. Anyone who can push
+to `agent/devops/bench-workflow` can change what runs on the Pi, so only that branch's
+owner pushes to it.
+
+## Steps of the bench job
+The job runs these steps in order. Each hardware step fails closed: if its input is missing
+it prints `not configured: nothing tested` and exits 1. Nothing is built on the Pi.
+
+| Step | What it does | Input it needs | If missing |
+|---|---|---|---|
+| Runner smoke check | Host, arch, Node major, adb | none | fails |
+| a. Firmware flash | Reads the chip id (must be ESP32-C3), then writes `bench/firmware/image.bin` with esptool at `BENCH_FLASH_OFFSET` (`0x0`, merged image) to the USB port `BENCH_ESP_PORT` (`/dev/ttyACM0`) | `bench/firmware/image.bin` (prebuilt, not built on the Pi), a device at the port, `esptool` on the runner | fails, no flash |
+| b. Serial boot log | Reads the boot log for 20 s after a reset and asserts the first non-empty line of the expect file is in it | `bench/firmware/expect.txt` | fails |
+| c. BLE scan | `bluetoothctl` scan for 10 s; asserts a device whose name starts with the first non-empty line of the expect file is seen | `bench/ble/expect.txt`, `bluetoothctl` | fails |
+| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2) for the setup and profile flow | `bench/app/run_appium.sh`; secrets `BENCH_ANDROID_SERIAL` (phone id) and `BENCH_APP_TEST_ACCOUNT` (test account config); Appium 2.x on the runner | fails |
+| e. Cloud check | Runs `bench/cloud/check.sh` to read the device's readings from the EU project | `bench/cloud/check.sh`; secret `BENCH_CLOUD_CHECK_CONFIG` | fails |
+| Bench E2E | Runs `bench/run_e2e.sh` | `bench/run_e2e.sh` | fails |
+
+Steps a to c need no secrets. Secrets are referenced by name only in the workflow; their values
+live in the repository's Actions secrets and are never written to the repo. The `bench/` input
+files are not in the repo yet and must come from the owner or the hardware work.
 
 ## Node workaround
 This is a workaround, not the intended setup.
@@ -49,10 +76,23 @@ After every runner update, check again:
 ## Triggering a manual run
 1. Open the repository on GitHub and go to **Actions**.
 2. Pick **Bench (self-hosted)** in the left list.
-3. Click **Run workflow**, set the branch to **main**, and confirm.
+3. Click **Run workflow**, set the branch to **main** (or to `agent/devops/bench-workflow` for
+   the PR branch only), and confirm.
 4. Watch the job on the runner `plant-bench-pi`. A run from any other branch does nothing.
 
+Manual run from the PR branch, in the order the owner allowed it:
+1. Push the branch (fast-forward only) and check the head sha on GitHub.
+2. Make sure `bench/firmware/image.bin` (and the other inputs) exist on the branch, or the
+   steps stop with `not configured: nothing tested`. The inputs are not added by this PR.
+3. Run the workflow from `agent/devops/bench-workflow` as above. Read each step's output.
+4. A green run from this branch proves only the steps that ran. A red run names the first step
+   that failed and the input it is missing.
+
 ## Current state
-The smoke step (host, architecture, Node, adb) runs and FAILS if Node is missing or is not
-major 20. The E2E step FAILS with "bench E2E not configured: nothing tested" until
-`bench/run_e2e.sh` exists on `main`. A green run therefore always means something was tested.
+- The smoke step (host, architecture, Node, adb) runs and FAILS if Node is missing or is not
+  major 20.
+- Steps a to e fail closed until their inputs exist (see the table above). Today none of the
+  `bench/` inputs are in the repo, so a manual run stops at step a with
+  `not configured: nothing tested`.
+- The E2E step FAILS with "bench E2E not configured: nothing tested" until `bench/run_e2e.sh`
+  exists on `main`. A green run therefore always means something was tested.
