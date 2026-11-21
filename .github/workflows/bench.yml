@@ -147,9 +147,13 @@ jobs:
             exit 1
           fi
           log="$(mktemp)"
+          names="$(mktemp)"
           { echo "power on"; echo "scan on"; sleep 10; echo "scan off"; echo "quit"; } \
             | timeout 30 bluetoothctl > "$log" 2>&1 || true
-          if grep -E '(Device [0-9A-Fa-f:]{17}|Name:)' "$log" | grep -F -q -- "$prefix"; then
+          # Capture the device and name lines to a file first. A grep -q downstream of a pipe
+          # exits early and SIGPIPEs the upstream grep, and pipefail then reports a false FAIL.
+          grep -E '(Device [0-9A-Fa-f:]{17}|Name:)' "$log" > "$names" || true
+          if grep -F -q -- "$prefix" "$names"; then
             echo "c. BLE: device with name prefix '${prefix}' seen in 10 s scan"
           else
             echo "::error::c. BLE check failed: no device with name prefix '${prefix}' in 10 s scan"

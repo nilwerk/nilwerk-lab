@@ -33,6 +33,10 @@ Residual risk, two places:
   can push to it can change what runs on the Pi, so only that branch's owner pushes to it.
   This branch has NO branch protection today (checked on 21 Nov 2026: the branch protection
   API returns 404, not protected). Protecting it is an open decision for the owner.
+  A run from this branch or from `main` gets the bench secrets `BENCH_ANDROID_SERIAL`,
+  `BENCH_APP_TEST_ACCOUNT` and `BENCH_CLOUD_CHECK_CONFIG`, so whoever can change the workflow
+  file on either ref can reach them on the Pi. These secrets are the reason the bench branch
+  needs protection (open decision for the owner).
 
 ## Steps of the bench job
 The job runs these steps in order. Each hardware step fails closed: if its input is missing
