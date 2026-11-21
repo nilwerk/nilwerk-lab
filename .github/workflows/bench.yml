@@ -60,6 +60,8 @@ jobs:
 
       # Hardware steps a-e, in this order. Each one fails closed: if its input is missing it
       # prints "not configured: nothing tested" and exits 1. Nothing is built on the Pi.
+      # Scope (owner decision, 21 Nov): the bench round tests ESP32-to-app and ESP32-to-cloud
+      # communication only. Sensor values are not checked yet, and the firmware is the normal build.
 
       - name: "a. Firmware flash (ESP32-C3 over USB)"
         # Input: bench/firmware/image.bin (a prebuilt, merged full-flash image). No file, no flash.
@@ -130,6 +132,7 @@ jobs:
 
       - name: "c. BLE scan (10 s)"
         # Input: bench/ble/expect.txt (first non-empty line = device name prefix).
+        # Checks only that the device advertises its expected name prefix. No other check.
         run: |
           set -euo pipefail
           expect="bench/ble/expect.txt"
@@ -164,6 +167,9 @@ jobs:
       - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
         # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
         # BENCH_APP_TEST_ACCOUNT (test account config). Values are never in the repo.
+        # Scope: communication path only. The flow scans and finds the device, connects, writes
+        # the setup data, and checks that the app shows the device as connected. It asserts no
+        # reading of any kind.
         env:
           BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
           BENCH_APP_TEST_ACCOUNT: ${{ secrets.BENCH_APP_TEST_ACCOUNT }}
@@ -193,10 +199,15 @@ jobs:
             echo "::error::d. app flow: not configured: nothing tested (Appium 2.x required, found major '${appium_major}')"
             exit 1
           fi
+          # Test start time (UTC), read by step e to find rows received after the test started.
+          echo "BENCH_TEST_START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
           bash "$script"
 
-      - name: "e. Cloud check (device readings, EU project)"
+      - name: "e. Cloud check (EU project, communication only)"
         # Input: bench/cloud/check.sh; secret BENCH_CLOUD_CHECK_CONFIG (config for the EU project).
+        # Scope: checks only that the device communicated with the cloud, i.e. at least one row
+        # from this device exists in the EU project and was received after BENCH_TEST_START_UTC
+        # (set by step d). It must not read, print or compare any reading value.
         env:
           BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
         run: |
@@ -208,6 +219,10 @@ jobs:
           fi
           if [ -z "${BENCH_CLOUD_CHECK_CONFIG:-}" ]; then
             echo "::error::e. cloud check: not configured: nothing tested (secret BENCH_CLOUD_CHECK_CONFIG is not set)"
+            exit 1
+          fi
+          if [ -z "${BENCH_TEST_START_UTC:-}" ]; then
+            echo "::error::e. cloud check: not configured: nothing tested (test start time not set by step d)"
             exit 1
           fi
           bash "$script"

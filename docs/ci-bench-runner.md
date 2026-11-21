@@ -42,14 +42,18 @@ Residual risk, two places:
 The job runs these steps in order. Each hardware step fails closed: if its input is missing
 it prints `not configured: nothing tested` and exits 1. Nothing is built on the Pi.
 
+**Scope of the bench round (owner decision, 21 Nov 2026):** the bench round tests the
+ESP32-to-app and ESP32-to-cloud communication only. Sensor values are not checked yet. The
+firmware is the normal build, with no simulated-sensor firmware.
+
 | Step | What it does | Input it needs | If missing |
 |---|---|---|---|
 | Runner smoke check | Host, arch, Node major, adb | none | fails |
 | a. Firmware flash | Reads the chip id (must be ESP32-C3), then writes `bench/firmware/image.bin` with esptool at `BENCH_FLASH_OFFSET` (`0x0`, merged image) to the USB port `BENCH_ESP_PORT` (`/dev/ttyACM0`) | `bench/firmware/image.bin` (prebuilt, not built on the Pi), a device at the port, `esptool` on the runner | fails, no flash |
-| b. Serial boot log | Reads the boot log for 20 s after a reset and asserts the first non-empty line of the expect file is in it | `bench/firmware/expect.txt` | fails |
-| c. BLE scan | `bluetoothctl` scan for 10 s; asserts a device whose name starts with the first non-empty line of the expect file is seen | `bench/ble/expect.txt`, `bluetoothctl` | fails |
-| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2) for the setup and profile flow | `bench/app/run_appium.sh`; secrets `BENCH_ANDROID_SERIAL` (phone id) and `BENCH_APP_TEST_ACCOUNT` (test account config); Appium 2.x on the runner | fails |
-| e. Cloud check | Runs `bench/cloud/check.sh` to read the device's readings from the EU project | `bench/cloud/check.sh`; secret `BENCH_CLOUD_CHECK_CONFIG` | fails |
+| b. Serial boot log | Reads the boot log for 20 s after a reset and asserts the first non-empty line of the expect file is in it. Boot line only. | `bench/firmware/expect.txt` | fails |
+| c. BLE scan | `bluetoothctl` scan for 10 s; asserts a device whose name starts with the first non-empty line of the expect file is seen. That is the only check. | `bench/ble/expect.txt`, `bluetoothctl` | fails |
+| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). The flow checks only the communication path: scan finds the device, connect, write the setup data, and the app shows the device as connected. It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh`; secrets `BENCH_ANDROID_SERIAL` (phone id) and `BENCH_APP_TEST_ACCOUNT` (test account config); Appium 2.x on the runner | fails |
+| e. Cloud check | Runs `bench/cloud/check.sh`. It checks only that the device communicated with the cloud: at least one row from this device exists in the EU project and was received after `BENCH_TEST_START_UTC`. It does not read, print or compare any reading value. | `bench/cloud/check.sh`; secret `BENCH_CLOUD_CHECK_CONFIG`; `BENCH_TEST_START_UTC` from step d | fails |
 | Bench E2E | Runs `bench/run_e2e.sh` | `bench/run_e2e.sh` | fails |
 
 Steps a to c need no secrets. Secrets are referenced by name only in the workflow; their values
