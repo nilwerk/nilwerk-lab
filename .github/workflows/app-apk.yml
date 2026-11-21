@@ -9,7 +9,7 @@
 # Both are set under Settings > Secrets and variables > Actions > Variables (variables, not secrets).
 # The job fails if either is unset.
 # Runtime rule: projects/plant-monitor/app/src/config.ts, function isConfigured(): an https URL (or a local http
-# URL) and a non-empty publishable key. The app itself refuses to run without both values.
+# URL) and a non-empty publishable key. Without both values the app starts in an unconfigured state, which is shown on screen.
 # The checks in this workflow are a build-time guard only. They do not replace that runtime rule.
 # Visibility: variables are not masked. The job log MAY show the public URL and key, because step environment
 # output depends on the runner's debug settings. Both are public client values by design, not secrets.
