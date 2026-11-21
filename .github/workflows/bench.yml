@@ -153,9 +153,14 @@ jobs:
           names="$(mktemp)"
           { echo "power on"; echo "scan on"; sleep 10; echo "scan off"; echo "quit"; } \
             | timeout 30 bluetoothctl > "$log" 2>&1 || true
-          # Take only the NAME field of each "Device <MAC> <Name>" line (the text after the MAC).
+          # Take only the NAME field of each device line, after the MAC. Accepted lines (any prompt
+          # or text before "Device" is ignored, and so is a [NEW] or [CHG] tag):
+          #   Device <MAC> <Name>
+          #   [NEW] Device <MAC> <Name>
+          #   [CHG] Device <MAC> Name: <name>      (the "Name: " label is dropped)
+          # [DEL] lines are skipped: a removed device is not a seen device.
           # Written to a file first, with no grep -q after a pipe (SIGPIPE and pipefail false FAIL).
-          sed -n -E 's/^.*Device [0-9A-Fa-f:]{17} (.*)$/\1/p' "$log" > "$names" || true
+          sed -n -E -e '/\[DEL\] Device /d' -e 's/^.*Device [0-9A-Fa-f:]{17} (Name: )?(.*)$/\2/p' "$log" > "$names" || true
           # The prefix must match the START of the name field. A MAC address or any other text
           # on the line never counts. "$prefix"* is a literal prefix in a case pattern.
           found=""
