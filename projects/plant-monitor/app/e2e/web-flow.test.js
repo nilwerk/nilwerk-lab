@@ -1,11 +1,11 @@
 // Simulator-level flow test for the Plant Monitor app in Expo web (mock build).
 // Runs in headless Chromium via Playwright against the static web export with EXPO_PUBLIC_MOCK_AUTH=1.
-// Covers: welcome -> sign-up with error -> sign-up success -> profile (+ mocked BLE scan) -> plant list -> plant detail.
+// Covers: welcome -> sign-up with error -> sign-up success -> profile (+ mocked BLE scan) -> plant list -> plant detail -> alerts list (4.A5).
 // MOCKS: auth, plants and readings are in-memory fixtures; the sensor setup is a fake BLE provisioning service.
 // NOT TESTED: real Bluetooth, the real sensor, the live Supabase backend. Screens say "MOCK" on every page (app.mockBanner).
 // Run: npm run test:web-flow   (from projects/plant-monitor/app). Screenshots go to WEB_FLOW_EVIDENCE_DIR
 // (default ~/sim-evidence/app), never into the repo. Build dir: WEB_FLOW_BUILD_DIR (default: a temp dir).
-// Requirements: FR-A01 (sign-up/sign-in/profile), FR-A03/FR-A04 (sensor setup, mock), FR-A06 (plant list and detail), FR-A07 (thresholds shown).
+// Requirements: FR-A01 (sign-up/sign-in/profile), FR-A03/FR-A04 (sensor setup, mock), FR-A06 (plant list and detail), FR-A07 (thresholds shown; alerts list from mock readings, push not built).
 'use strict';
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -117,5 +117,17 @@ test('mock build: welcome, sign-up, profile, mocked sensor setup, plant list and
     await page.getByText('Dry below 25 %, wet above 85 %').waitFor();
     await page.getByText(MOCK_BANNER).waitFor();
     await shot('05-plant-detail.png');
+  });
+
+  await t.test('alerts list (4.A5, FR-A07) is reached from the plant list and shows the mock alerts with the MOCK label', async () => {
+    await page.getByRole('button', { name: 'Go back' }).click(); // detail -> plant list
+    await page.getByRole('button', { name: 'View alerts' }).click();
+    await page.getByText('Alerts', { exact: true }).first().waitFor();
+    await page.getByText('Soil moisture 12.0 %, below the dry limit of 25 %.').waitFor(); // Cactus, mock reading
+    await page.getByText('Sensor battery 3.35 V, below 3.40 V.').waitFor(); // Fern, mock battery
+    await page.getByText(/^No report from the sensor for 5 h \d+ min\.$/).waitFor(); // Orchid, mock offline
+    await page.getByText('Push notifications are not built yet', { exact: false }).waitFor();
+    await page.getByText(MOCK_BANNER).waitFor();
+    await shot('06-alerts.png');
   });
 });

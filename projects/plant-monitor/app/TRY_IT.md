@@ -123,7 +123,7 @@ Set before `expo start` (names only; values come from Arsany and are never commi
 | Export (JSON / CSV) | **Fails against the live project.** The client is built (4.A9) and now also downloads the photos into the archive (4.A9b, A-107), but the `export` edge function is not deployed (4.B2c, PR #130) | README "4.A2 follow-up" |
 | Real sensor connection | **No.** Real BLE client written and mock-tested (4.A3b slice 1), never run on a phone or sensor | section 4 |
 | Real plant data from a device | **No.** v1 bench firmware only prints to the serial console; upload is not wired | [`../v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) |
-| Push alerts | Not built (alerts screens are task 4.A5; no push dispatch in the cloud) | `App.tsx` header, cloud README |
+| Push alerts | Not built. The alerts list (task 4.A5, reached from the plant list, mock readings) exists; no push dispatch in the app or the cloud | `src/plants/alerts.ts`, `AlertsScreen`, cloud README |
 | Premium dashboard (30 / 90-day history, trends) | Not built. The Premium sheet is text only; Premium is switched on by Nilwerk by hand (`profiles.is_premium`) | `PremiumScreen`, FR-P04 |
 | Care tips UI | Not built (the tips engine in `cloud/tips/` is a library, no screen, no endpoint) | cloud README |
 | MCP / AI access screens | Not built (no screen; MCP server is task 4.B5) | `docs/interfaces/mcp-tools.json` |
