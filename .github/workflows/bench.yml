@@ -16,10 +16,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: bench-runner
-  cancel-in-progress: false   # one bench job at a time on the Pi; queue, never kill a run mid-test
-
 jobs:
   bench:
     name: bench smoke and E2E
@@ -27,21 +23,44 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, bench]
     timeout-minutes: 60
+    # Job-level, not workflow-level: a branch dispatch must not be able to displace a queued
+    # nightly run. One bench job at a time on the Pi; queue, never kill a run mid-test.
+    concurrency:
+      group: bench-runner
+      cancel-in-progress: false
+    env:
+      # Node major the runner must provide. See docs/ci-bench-runner.md, "Node workaround".
+      EXPECTED_NODE_MAJOR: "20"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # Pinned to the full commit SHA of the actions/checkout v4.4.0 tag.
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Runner smoke check
         run: |
           echo "hostname: $(hostname)"
           echo "arch: $(uname -m)"
-          echo "node: $(node --version 2>/dev/null || echo 'not found')"
           echo "adb: $(command -v adb || true)"
+          if ! command -v node >/dev/null 2>&1; then
+            echo "::error::node not found on PATH; expected Node ${EXPECTED_NODE_MAJOR}.x (see docs/ci-bench-runner.md)"
+            exit 1
+          fi
+          node_version="$(node --version)"
+          node_major="${node_version#v}"
+          node_major="${node_major%%.*}"
+          echo "node: ${node_version}"
+          if [ "${node_major}" != "${EXPECTED_NODE_MAJOR}" ]; then
+            echo "::error::node major is ${node_major}, expected ${EXPECTED_NODE_MAJOR} (see docs/ci-bench-runner.md)"
+            exit 1
+          fi
 
       - name: Bench E2E
         run: |
           if [ -f bench/run_e2e.sh ]; then
             bash bench/run_e2e.sh
           else
-            echo "bench E2E not yet configured"
+            echo "::error::bench E2E not configured: nothing tested"
+            exit 1
           fi
