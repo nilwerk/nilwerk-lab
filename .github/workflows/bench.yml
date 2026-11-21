@@ -6,7 +6,7 @@ name: Bench (self-hosted)
 #   schedule           nightly on main
 #   workflow_dispatch  manual run, only from main or from agent/devops/bench-workflow (guard below)
 # NO pull_request, pull_request_target, push or issue_comment triggers, on purpose.
-# Owner decision (Arsany, 21 Nov): nothing else may run on the Pi. The branch allowance
+# Owner decision (the owner, 21 Nov): nothing else may run on the Pi. The branch allowance
 # is for the one PR that adds these steps. Remove it again when that PR is closed.
 # See docs/ci-bench-runner.md.
 

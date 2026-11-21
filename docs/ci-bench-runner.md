@@ -18,15 +18,21 @@ while untrusted code cannot reach it. So `bench.yml` allows only:
   or `refs/heads/agent/devops/bench-workflow`. Any other ref runs nothing.
 
 The branch `agent/devops/bench-workflow` is allowed by the owner's decision of 21 Nov 2026
-(Arsany): it is for the one PR that adds the hardware steps, and nothing else may run on the
+(the owner): it is for the one PR that adds the hardware steps, and nothing else may run on the
 Pi. Remove that branch from the guard when that PR is closed.
 
 Never add `pull_request`, `pull_request_target`, `push` or `issue_comment` to a bench
 workflow. Those let a pull request, a fork or a comment run code on the Pi.
 
-Residual risk: a manual run uses the workflow file on the chosen branch. Anyone who can push
-to `agent/devops/bench-workflow` can change what runs on the Pi, so only that branch's
-owner pushes to it.
+Residual risk, two places:
+
+- `main`: the nightly schedule runs the workflow file on `main`, so it also runs code on the Pi.
+  Anyone who can push to `main` controls what runs on the Pi, nightly and on a manual run
+  from `main`.
+- `agent/devops/bench-workflow`: a manual run uses the workflow file on that branch. Anyone who
+  can push to it can change what runs on the Pi, so only that branch's owner pushes to it.
+  This branch has NO branch protection today (checked on 21 Nov 2026: the branch protection
+  API returns 404, not protected). Protecting it is an open decision for the owner.
 
 ## Steps of the bench job
 The job runs these steps in order. Each hardware step fails closed: if its input is missing
