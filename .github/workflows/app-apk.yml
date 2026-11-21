@@ -3,8 +3,14 @@
 #
 # Runs ONLY on a GitHub-hosted runner (ubuntu-latest). It never runs on the self-hosted bench runner.
 # No secrets: the debug APK is signed with the debug key that Gradle generates on the runner.
-# The only build input is the repository VARIABLE SUPABASE_URL (a public value, not a secret).
-# Set it under Settings > Secrets and variables > Actions > Variables. The job fails if it is unset.
+# The build inputs are two repository VARIABLES, both PUBLIC client values that the app ships in the APK anyway:
+#   SUPABASE_URL              the project URL (https)
+#   SUPABASE_PUBLISHABLE_KEY  the publishable key (sb_publishable_...), never a secret or service-role key
+# Both are set under Settings > Secrets and variables > Actions > Variables (variables, not secrets).
+# The job fails if either is unset. The app counts as configured only when both are set (app.config.ts).
+# Visibility: variables are not masked, so both values can appear in the job log (the runner shows a step's
+# env block in debug output). That is expected, because both values are public by design.
+# No SECRET is ever in this workflow: no service-role or secret key, no password, no token.
 
 name: app-apk
 
@@ -56,7 +62,35 @@ jobs:
             https://*) ;;
             *) echo "::error::Repository variable SUPABASE_URL must start with https://. Build aborted."; exit 1 ;;
           esac
-          echo "SUPABASE_URL is set (value not printed)."
+          echo "SUPABASE_URL is set (a public client value; it can appear in the job log)."
+
+      - name: Check repository variable SUPABASE_PUBLISHABLE_KEY
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "${SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret; the sb_publishable_... key). Build aborted."
+            exit 1
+          fi
+          case "$SUPABASE_PUBLISHABLE_KEY" in
+            sb_secret_*)
+              echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a secret key (sb_secret_...). Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+              exit 1 ;;
+            sb_publishable_*) ;;
+            *)
+              # Legacy JWT-style keys: accept only a three-part JWT whose payload role is not service_role.
+              if ! printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | grep -Eq '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'; then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY must start with sb_publishable_ (or be a JWT-style publishable key). Build aborted. The value is not printed."
+                exit 1
+              fi
+              PAYLOAD=$(printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | cut -d. -f2 | tr '_-' '/+')
+              while [ $(( ${#PAYLOAD} % 4 )) -ne 0 ]; do PAYLOAD="${PAYLOAD}="; done
+              if printf '%s' "$PAYLOAD" | base64 -d 2>/dev/null | grep -q '"role" *: *"service_role"'; then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a service-role key. Use the publishable key. Build aborted. The value is not printed."
+                exit 1
+              fi ;;
+          esac
+          echo "SUPABASE_PUBLISHABLE_KEY is set (a public client value; it can appear in the job log)."
 
       - name: Set up Node
         # Node 22 (LTS), the same version the app job in ci.yml uses.
@@ -80,6 +114,7 @@ jobs:
         working-directory: projects/plant-monitor/app
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
           CI: "1"
         run: npx expo prebuild --platform android --no-install
 
@@ -87,6 +122,7 @@ jobs:
         working-directory: projects/plant-monitor/app/android
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
         run: ./gradlew assembleDebug
 
       - name: Name the artifact by commit
