@@ -1,0 +1,152 @@
+# Debug Android APK of the Plant Monitor app (projects/plant-monitor/app), uploaded as a build artifact
+# so the bench can install it on the Nexus 6P (owner approval 2026-11-21).
+#
+# Runs ONLY on a GitHub-hosted runner (ubuntu-latest). It never runs on the self-hosted bench runner.
+# No secrets: the debug APK is signed with the debug key that Gradle generates on the runner.
+# The build inputs are two repository VARIABLES, both PUBLIC client values that the app ships in the APK anyway:
+#   SUPABASE_URL              the project URL (https)
+#   SUPABASE_PUBLISHABLE_KEY  the publishable key (sb_publishable_...), never a secret or service-role key
+# Both are set under Settings > Secrets and variables > Actions > Variables (variables, not secrets).
+# The job fails if either is unset.
+# Runtime rule: projects/plant-monitor/app/src/config.ts, function isConfigured(): an https URL (or a local http
+# URL) and a non-empty publishable key. Without both values the app starts in an unconfigured state, which is shown on screen.
+# The checks in this workflow are a build-time guard only. They do not replace that runtime rule.
+# Visibility: variables are not masked. The job log MAY show the public URL and key, because step environment
+# output depends on the runner's debug settings. Both are public client values by design, not secrets.
+# No SECRET is ever in this workflow: no service-role or secret key, no password, no token.
+
+name: app-apk
+
+on:
+  pull_request:
+    paths:
+      - "projects/plant-monitor/app/**"
+      - ".github/workflows/app-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-debug-apk:
+    name: Android debug APK (GitHub-hosted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        # Pinned to the commit SHA of v4.4.0 (11d5960a326750d5838078e36cf38b85af677262).
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Fail closed - app folder and documented build command
+        run: |
+          set -euo pipefail
+          APP=projects/plant-monitor/app
+          if [ ! -f "$APP/package.json" ] || [ ! -f "$APP/package-lock.json" ] || [ ! -f "$APP/app.config.ts" ]; then
+            echo "::error::$APP is missing package.json, package-lock.json or app.config.ts. Build aborted."
+            exit 1
+          fi
+          if ! grep -q 'expo prebuild --no-install' "$APP/README.md"; then
+            echo "::error::$APP/README.md no longer documents 'npx expo prebuild --no-install'. Build aborted. Update the README and this workflow together."
+            exit 1
+          fi
+          echo "App folder and the documented build command (npx expo prebuild --no-install) are present."
+
+      - name: Check repository variable SUPABASE_URL
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+        run: |
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "::error::Repository variable SUPABASE_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret). Build aborted."
+            exit 1
+          fi
+          case "$SUPABASE_URL" in
+            https://*) ;;
+            *) echo "::error::Repository variable SUPABASE_URL must start with https://. Build aborted."; exit 1 ;;
+          esac
+          echo "SUPABASE_URL is set (a public client value; the job log MAY show it, depending on debug settings)."
+
+      - name: Check repository variable SUPABASE_PUBLISHABLE_KEY
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "${SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret; the sb_publishable_... key). Build aborted."
+            exit 1
+          fi
+          case "$SUPABASE_PUBLISHABLE_KEY" in
+            sb_secret_*)
+              echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a secret key (sb_secret_...). Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+              exit 1 ;;
+            sb_publishable_*) ;;
+            *)
+              # Legacy JWT-style keys: accept only a three-part JWT whose payload role is not service_role.
+              if ! printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | grep -Eq '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'; then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY must start with sb_publishable_ (or be a JWT-style publishable key). Build aborted. The value is not printed."
+                exit 1
+              fi
+              PAYLOAD=$(printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | cut -d. -f2 | tr '_-' '/+')
+              while [ $(( ${#PAYLOAD} % 4 )) -ne 0 ]; do PAYLOAD="${PAYLOAD}="; done
+              if ! DECODED=$(printf '%s' "$PAYLOAD" | base64 -d 2>/dev/null); then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY looks like a JWT, but its payload cannot be base64url-decoded. Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+                exit 1
+              fi
+              if ! ROLE=$(printf '%s' "$DECODED" | python3 -c 'import json,sys; p=json.load(sys.stdin); assert isinstance(p, dict); print(p.get("role", ""))' 2>/dev/null); then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY looks like a JWT, but its payload is not a JSON object. Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+                exit 1
+              fi
+              if [ "$ROLE" = "service_role" ]; then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a service-role key. Use the publishable key. Build aborted. The value is not printed."
+                exit 1
+              fi ;;
+          esac
+          echo "SUPABASE_PUBLISHABLE_KEY is set (a public client value; the job log MAY show it, depending on debug settings)."
+
+      - name: Set up Node
+        # Node 22 (LTS), the same version the app job in ci.yml uses.
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/plant-monitor/app/package-lock.json
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install app dependencies (lockfile)
+        working-directory: projects/plant-monitor/app
+        run: npm ci
+
+      - name: Generate the Android project (expo prebuild)
+        working-directory: projects/plant-monitor/app
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          CI: "1"
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build the debug APK (Gradle)
+        working-directory: projects/plant-monitor/app/android
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew assembleDebug
+
+      - name: Name the artifact by commit
+        id: meta
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: echo "short=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the debug APK
+        # Pinned to the commit SHA of actions/upload-artifact v4.6.2 (resolved with git ls-remote in this session).
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plant-monitor-app-debug-${{ steps.meta.outputs.short }}
+          path: projects/plant-monitor/app/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
