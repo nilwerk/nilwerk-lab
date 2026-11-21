@@ -1,0 +1,19 @@
+✔ 30-day aggregates of Basil: 14 readings in window, soil and battery mean/min/max, 2 events, trend (1.642267ms)
+✔ 90-day aggregates of Basil: 16 readings; first week empty so trend is null (0.187068ms)
+✔ watering threshold: a rise of exactly 10 and a rise across a 3 h gap are not events (strictly above, gap <= 2 h) (0.102263ms)
+✔ watering threshold: a rise of 10.5 is an event (0.112188ms)
+✔ one reading: mean = min = max, no events, trend null (0.235615ms)
+✔ plant with no readings: explicit zeros and nulls, no crash (0.137305ms)
+✔ empty readings list and empty plant list: no crash (0.116371ms)
+✔ gaps: a single week of readings with an empty first week gives a null trend; readings with unparseable time are dropped (0.088897ms)
+✔ battery-only reading: soil stays null, battery is reported (1.230974ms)
+✔ comparison: sorted by name, same numbers as the single-plant call, unknown plants' readings ignored (0.482243ms)
+✔ premium gate (FR-P04): free users get premium_required for 30 and 90 days; invalid windows are refused (0.212779ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 109.704863

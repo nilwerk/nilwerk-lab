@@ -322,11 +322,65 @@ paths:
         "405": { $ref: "#/components/responses/MethodNotAllowed" }
         "413": { description: "error: payload_too_large (body > 64 KiB)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
         "500": { $ref: "#/components/responses/Internal" }
+  /analytics:
+    get:
+      tags: [app]
+      summary: 30- or 90-day aggregates, trend, watering events and comparison for the user's plants (premium)
+      x-requirements: [FR-P01, FR-P04]
+      description: |
+        [proposed, not built] Contract for task 4.B4. Pure logic is built and tested in cloud/analytics/aggregate.ts (no endpoint yet, no edge function,
+        no migration; not deployed). The future function must call public.is_premium() first (FR-P04, ADR-008) and return 403 premium_required
+        before reading any reading. Readings are the caller's own rows only (RLS owner_id = auth.uid()); no parameter can name another user.
+        Per plant: readingCount (plausible samples in the window), soil percent and battery mV as mean/min/max (null when no usable sample),
+        wateringEvents (consecutive plausible soil samples at most 2 h apart whose rise is strictly above WATERING_RISE_PCT = 10, TO CONFIRM),
+        trend (mean of the last 7 days minus mean of the first 7 days of the window, soil percent points; null if either week is empty).
+        Plants are sorted by name. Plants with no readings are listed with zeros and nulls.
+      security: [{ userJwt: [] }]
+      parameters:
+        - { name: window, in: query, required: true, schema: { type: integer, enum: [30, 90] } }
+      responses:
+        "200":
+          description: Aggregates per plant, sorted by name
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [window_days, plants]
+                properties:
+                  window_days: { type: integer, enum: [30, 90] }
+                  plants:
+                    type: array
+                    items:
+                      type: object
+                      required: [plant_id, name, reading_count, soil_pct, battery_mv, watering_events, trend]
+                      properties:
+                        plant_id: { type: string, format: uuid }
+                        name: { type: string }
+                        reading_count: { type: integer, minimum: 0 }
+                        soil_pct: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/Stat" }] }
+                        battery_mv: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/Stat" }] }
+                        watering_events: { type: integer, minimum: 0 }
+                        trend:
+                          type: object
+                          required: [soil_change_pct, first_week_mean, last_week_mean]
+                          properties:
+                            soil_change_pct: { type: [number, "null"] }
+                            first_week_mean: { type: [number, "null"] }
+                            last_week_mean: { type: [number, "null"] }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/PremiumRequired" }
+        "500": { $ref: "#/components/responses/Internal" }
 components:
   securitySchemes:
     userJwt: { type: http, scheme: bearer, bearerFormat: "Supabase user JWT" }
     deviceToken: { type: http, scheme: bearer, bearerFormat: "256-bit hex device token (ADR-004)" }
   schemas:
+    Stat:
+      type: object
+      description: "mean, min, max of the plausible samples in the window (4.B4)"
+      required: [mean, min, max]
+      properties: { mean: { type: number }, min: { type: number }, max: { type: number } }
     DeviceConfig:
       type: object
       required: [sample_interval_s, report_interval_s, dry_pct, wet_pct, low_battery_mv]
