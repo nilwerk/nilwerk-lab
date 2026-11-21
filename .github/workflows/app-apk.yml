@@ -7,9 +7,12 @@
 #   SUPABASE_URL              the project URL (https)
 #   SUPABASE_PUBLISHABLE_KEY  the publishable key (sb_publishable_...), never a secret or service-role key
 # Both are set under Settings > Secrets and variables > Actions > Variables (variables, not secrets).
-# The job fails if either is unset. The app counts as configured only when both are set (app.config.ts).
-# Visibility: variables are not masked, so both values can appear in the job log (the runner shows a step's
-# env block in debug output). That is expected, because both values are public by design.
+# The job fails if either is unset.
+# Runtime rule: projects/plant-monitor/app/src/config.ts, function isConfigured(): an https URL (or a local http
+# URL) and a non-empty publishable key. The app itself refuses to run without both values.
+# The checks in this workflow are a build-time guard only. They do not replace that runtime rule.
+# Visibility: variables are not masked. The job log MAY show the public URL and key, because step environment
+# output depends on the runner's debug settings. Both are public client values by design, not secrets.
 # No SECRET is ever in this workflow: no service-role or secret key, no password, no token.
 
 name: app-apk
@@ -62,7 +65,7 @@ jobs:
             https://*) ;;
             *) echo "::error::Repository variable SUPABASE_URL must start with https://. Build aborted."; exit 1 ;;
           esac
-          echo "SUPABASE_URL is set (a public client value; it can appear in the job log)."
+          echo "SUPABASE_URL is set (a public client value; the job log MAY show it, depending on debug settings)."
 
       - name: Check repository variable SUPABASE_PUBLISHABLE_KEY
         env:
@@ -85,12 +88,20 @@ jobs:
               fi
               PAYLOAD=$(printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | cut -d. -f2 | tr '_-' '/+')
               while [ $(( ${#PAYLOAD} % 4 )) -ne 0 ]; do PAYLOAD="${PAYLOAD}="; done
-              if printf '%s' "$PAYLOAD" | base64 -d 2>/dev/null | grep -q '"role" *: *"service_role"'; then
+              if ! DECODED=$(printf '%s' "$PAYLOAD" | base64 -d 2>/dev/null); then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY looks like a JWT, but its payload cannot be base64url-decoded. Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+                exit 1
+              fi
+              if ! ROLE=$(printf '%s' "$DECODED" | python3 -c 'import json,sys; p=json.load(sys.stdin); assert isinstance(p, dict); print(p.get("role", ""))' 2>/dev/null); then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY looks like a JWT, but its payload is not a JSON object. Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+                exit 1
+              fi
+              if [ "$ROLE" = "service_role" ]; then
                 echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a service-role key. Use the publishable key. Build aborted. The value is not printed."
                 exit 1
               fi ;;
           esac
-          echo "SUPABASE_PUBLISHABLE_KEY is set (a public client value; it can appear in the job log)."
+          echo "SUPABASE_PUBLISHABLE_KEY is set (a public client value; the job log MAY show it, depending on debug settings)."
 
       - name: Set up Node
         # Node 22 (LTS), the same version the app job in ci.yml uses.
