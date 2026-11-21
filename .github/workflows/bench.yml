@@ -158,9 +158,14 @@ jobs:
           #   Device <MAC> <Name>
           #   [NEW] Device <MAC> <Name>
           #   [CHG] Device <MAC> Name: <name>      (the "Name: " label is dropped)
+          # Every other [CHG] line (RSSI, TxPower, UUIDs, ...) is a property, not a name, and is ignored.
           # [DEL] lines are skipped: a removed device is not a seen device.
           # Written to a file first, with no grep -q after a pipe (SIGPIPE and pipefail false FAIL).
-          sed -n -E -e '/\[DEL\] Device /d' -e 's/^.*Device [0-9A-Fa-f:]{17} (Name: )?(.*)$/\2/p' "$log" > "$names" || true
+          sed -n -E \
+            -e '/\[DEL\] Device /d' \
+            -e '/\[CHG\] Device /{ s/^.*\[CHG\] Device [0-9A-Fa-f:]{17} Name: (.*)$/\1/p; d; }' \
+            -e 's/^.*Device [0-9A-Fa-f:]{17} (.*)$/\1/p' \
+            "$log" > "$names" || true
           # The prefix must match the START of the name field. A MAC address or any other text
           # on the line never counts. "$prefix"* is a literal prefix in a case pattern.
           found=""
