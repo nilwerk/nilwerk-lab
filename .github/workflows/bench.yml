@@ -1,0 +1,47 @@
+name: Bench (self-hosted)
+
+# Runs on the bench Raspberry Pi (self-hosted runner, label `bench`).
+# Triggers are deliberately narrow: this runner is on a private repo and must never
+# execute code from pull requests, forks or pushed branches.
+#   schedule           nightly on main
+#   workflow_dispatch  manual run, only from the main branch (guard below)
+# NO pull_request, pull_request_target, push or issue_comment triggers, on purpose.
+# See docs/ci-bench-runner.md.
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC nightly
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench-runner
+  cancel-in-progress: false   # one bench job at a time on the Pi; queue, never kill a run mid-test
+
+jobs:
+  bench:
+    name: bench smoke and E2E
+    # Only main. A manual dispatch from any other branch runs nothing.
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, bench]
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runner smoke check
+        run: |
+          echo "hostname: $(hostname)"
+          echo "arch: $(uname -m)"
+          echo "node: $(node --version 2>/dev/null || echo 'not found')"
+          echo "adb: $(command -v adb || true)"
+
+      - name: Bench E2E
+        run: |
+          if [ -f bench/run_e2e.sh ]; then
+            bash bench/run_e2e.sh
+          else
+            echo "bench E2E not yet configured"
+          fi
