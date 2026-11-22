@@ -121,6 +121,9 @@ jobs:
           path: projects/plant-monitor/firmware/build/*.bin
           if-no-files-found: warn
       - name: ESP-IDF build (esp32c3, setup flow on, simulator off)
+        # Requirements traceability (checked against projects/plant-monitor/tests/acceptance-matrix.md): FR-D03 (BLE setup
+        # mode, line 20) and NFR-06 (security, line 53). This build step does not pass either one; it only proves the
+        # setup-flow image compiles and carries the setup-flow config.
         # Pinned SHA (see the header of this file). Separate build dir and settings file, so no stale sdkconfig is reused.
         # set -e first: the first failing line fails the step, so the upload below does not run on a bad build.
         uses: espressif/esp-idf-ci-action@9d38657f3d789ca759b2b37aaf5ceffbc42c4f0d # v1
