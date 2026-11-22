@@ -3,8 +3,9 @@ name: Bench (self-hosted)
 # Runs on the bench Raspberry Pi (self-hosted runner, label `bench`). Supersedes the HIL design in
 # projects/plant-monitor/docs/ci-firmware-in-the-loop.md (hil.yml, label esp32c3-bench, Environment gate).
 # This workflow has no Environment gate (owner declined it).
-# Triggers are deliberately narrow: this runner is on a private repo and must never
-# execute code from pull requests, forks or pushed branches.
+# Triggers are deliberately narrow: the repository is PUBLIC, so anyone can open a pull request or fork it.
+# Only users with write access can start a workflow_dispatch run, which is why manual dispatch is the only
+# trigger here. Code from pull requests, forks or pushed branches must never execute on this runner.
 #   workflow_dispatch  manual run only (owner decision, 22 Nov 2026: no nightly schedule),
 #                      only from main or from agent/devops/bench-workflow (guard below)
 # NO schedule, pull_request, pull_request_target, push or issue_comment triggers, on purpose.
