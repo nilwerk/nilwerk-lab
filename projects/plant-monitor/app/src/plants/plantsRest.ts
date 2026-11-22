@@ -11,12 +11,13 @@ const MAX_PAGES = 100;
 
 const root = (d: RestDeps) => d.baseUrl.replace(/\/+$/, '');
 
-async function call(d: RestDeps, path: string, init: { method?: string; body?: unknown; range?: [number, number] } = {}): Promise<{ status: number; json: unknown }> {
+export async function call(d: RestDeps, path: string, init: { method?: string; body?: unknown; range?: [number, number]; prefer?: string } = {}): Promise<{ status: number; json: unknown }> {
   const token = await d.getAccessToken().catch(() => null);
   if (!token) throw new PlantsError('unknown', 'not signed in');
   const headers: Record<string, string> = { Authorization: `Bearer ${token}`, apikey: d.publishableKey, Accept: 'application/json' };
   if (init.body !== undefined) headers['Content-Type'] = 'application/json';
   if (init.range) { headers['Range-Unit'] = 'items'; headers.Range = `${init.range[0]}-${init.range[1]}`; }
+  if (init.prefer) headers.Prefer = init.prefer; // e.g. return=representation, so a write answers with the row
   let res: Response;
   try {
     res = await (d.fetchImpl ?? fetch)(`${root(d)}${path}`, { method: init.method ?? 'GET', headers, body: init.body === undefined ? undefined : JSON.stringify(init.body) });

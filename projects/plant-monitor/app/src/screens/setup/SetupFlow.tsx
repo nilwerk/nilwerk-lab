@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ProvisioningError, type DiscoveredDevice, type LinkState, type PlantDetails, type ProvisioningErrorCode, type SetupServices, type WifiNetwork } from '../../provisioning/types';
 import { elapsedSeconds, formatClock, initialSetup, setupReducer } from './setupState';
-import { ConnectStep, DetailsStep, DoneStep, LinkErrorStep, LinkingStep, NameStep, PhotoStep, ReadyStep, WifiStep } from './SetupSteps';
+import { ConnectStep, DetailsStep, DoneStep, LinkedStep, LinkErrorStep, LinkingStep, MoveChoiceStep, NameStep, PhotoStep, ReadyStep, WifiStep } from './SetupSteps';
 
 const codeOf = (e: unknown): ProvisioningErrorCode => (e instanceof ProvisioningError ? e.code : 'unknown');
 
@@ -28,7 +28,16 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
   const [link, setLink] = useState<LinkState | null>(null);
   const [photoCancelled, setPhotoCancelled] = useState(false);
   const [saving, setSaving] = useState(false);
+  /** one save at a time: a second press while a save is in flight is ignored (no second p_move call) */
+  const inFlight = useRef(false);
+  /** the plant the sensor was on before a Move was offered (read in the already-linked branch): a failed Move is checked against it */
+  const priorPlant = useRef<string | null>(null);
   const [saveError, setSaveError] = useState(false);
+  /** N2: the sensor already has a plant; the details wait here until the user chooses. Nothing is written before that. */
+  const [pendingMove, setPendingMove] = useState<PlantDetails | null>(null);
+  /** after a failed save the device is re-read before anything else: 'linked' = the save may have committed (keep only, no move, no retry); 'unknown' = the re-read failed (keep only);
+   *  'notMoved' = a Move failed and the sensor is still on the plant it had before, so the new plant was not saved */
+  const [recheck, setRecheck] = useState<'linked' | 'unknown' | 'notMoved' | null>(null);
 
   const cancel = useCallback(() => { provisioning.disconnect().catch(() => undefined); onExit(); }, [provisioning, onExit]);
 
@@ -66,14 +75,38 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
     if (!alive.current) return;
     if (uri) dispatch({ type: 'photo', uri }); else setPhotoCancelled(true);
   };
-  const save = async (d: PlantDetails) => {
-    if (!s.deviceId) return;
-    setSaving(true); setSaveError(false);
-    try { await plants.createPlant(s.deviceId, d, s.photoUri); if (alive.current) dispatch({ type: 'saved', plantName: d.name, now: now() }); } catch { if (alive.current) setSaveError(true); }
+  const save = async (d: PlantDetails, moveFromCurrent = false) => {
+    if (!s.deviceId || inFlight.current) return;
+    inFlight.current = true;
+    setSaving(true); setSaveError(false); setRecheck(null);
+    try {
+      const r = await plants.createPlant(s.deviceId, d, s.photoUri, { moveFromCurrent });
+      if (!alive.current) return;
+      if (r.status === 'saved') dispatch({ type: 'saved', plantName: d.name, now: now() });
+      else {
+        // already linked: ask, do not move. Remember the current plant so a failed Move can be told apart from a Move that committed.
+        priorPlant.current = await plants.currentPlant(s.deviceId).catch(() => null);
+        if (alive.current) setPendingMove(d);
+      }
+    } catch {
+      if (alive.current) {
+        // the save may have committed although its answer was lost: re-read the device BEFORE the user can act again (busy until then)
+        setSaveError(true);
+        let cur: string | null | 'unknown';
+        try { cur = await plants.currentPlant(s.deviceId); } catch { cur = 'unknown'; }
+        if (alive.current) {
+          setPendingMove(null);
+          if (cur === 'unknown') setRecheck('unknown');
+          // on a plant now: keep only, never a second plant. A failed Move with no pre-read (priorPlant null) cannot be told from a committed one: 'unknown', never the 'linked' copy.
+          else if (cur !== null) setRecheck(!moveFromCurrent ? 'linked' : priorPlant.current === null ? 'unknown' : cur === priorPlant.current ? 'notMoved' : 'linked');
+        }
+      }
+    }
+    inFlight.current = false;
     if (alive.current) setSaving(false);
   };
 
-  const restart = () => { provisioning.disconnect().catch(() => undefined); setFound([]); setScanned(false); setReadyError(null); setConnectError(null); setPhotoCancelled(false); setSaveError(false); dispatch({ type: 'restart', now: now() }); };
+  const restart = () => { provisioning.disconnect().catch(() => undefined); setPendingMove(null); setRecheck(null); setFound([]); setScanned(false); setReadyError(null); setConnectError(null); setPhotoCancelled(false); setSaveError(false); dispatch({ type: 'restart', now: now() }); };
 
   switch (s.step) {
     case 'ready': return <ReadyStep time={time} scanning={scanning} scanned={scanned} found={found} error={readyError} onFind={find} onPick={(d) => { setConnectError(null); dispatch({ type: 'chooseDevice', deviceName: d.name }); }} onCancel={cancel} />;
@@ -82,8 +115,12 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
     case 'name': return <NameStep time={time} onSubmit={(name) => dispatch({ type: 'startLink', sensorName: name })} onCancel={cancel} />;
     case 'linking': return <LinkingStep time={time} wifiJoined={link === 'claiming' || link === 'claimed'} claimed={link === 'claimed'} />;
     case 'linkError': return <LinkErrorStep time={time} code={s.error ?? 'unknown'} ssid={s.ssid} onReenter={() => dispatch({ type: 'reenterWifi' })} onOther={() => dispatch({ type: 'chooseOtherWifi' })} onRetry={() => dispatch({ type: 'retryLink' })} onStartOver={restart} />;
-    case 'photo': return <PhotoStep time={time} cancelled={photoCancelled} onTake={() => pick(true)} onPick={() => pick(false)} onSkip={() => dispatch({ type: 'photo', uri: null })} />;
-    case 'details': return <DetailsStep time={time} busy={saving} error={saveError} onSave={save} onBack={() => dispatch({ type: 'backToPhoto' })} />;
+    case 'photo': return <PhotoStep time={time} cancelled={photoCancelled} onTake={() => pick(true)} onPick={() => pick(false)} supported={photos.supported !== false} onSkip={() => dispatch({ type: 'photo', uri: null })} />;
+    case 'details':
+      if (recheck) return <LinkedStep unknown={recheck === 'unknown'} notMoved={recheck === 'notMoved'} onLeave={onExit} />;
+      if (pendingMove) return <MoveChoiceStep time={time} busy={saving} onKeep={() => { if (!inFlight.current) onExit(); }} onMove={() => { void save(pendingMove, true); }} />;   // returns void: a press must not hand its in-flight promise to the caller
+      // Back is withdrawn while a save is in flight: the answer must land on the same attempt, and a Back during the save would leave it without the saved plant
+      return <DetailsStep time={time} busy={saving} error={saveError} onSave={(d) => save(d)} onBack={saving ? undefined : () => dispatch({ type: 'backToPhoto' })} />;
     case 'done': return <DoneStep plantName={s.plantName ?? ''} time={time} onDone={onExit} onAnother={restart} />;
   }
 }

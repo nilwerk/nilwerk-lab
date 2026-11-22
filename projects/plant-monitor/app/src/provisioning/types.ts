@@ -49,12 +49,19 @@ export interface PlantDetails { name: string; location: LocationType; area: stri
 
 export class PlantSetupError extends Error { constructor(message = 'plant_save_failed') { super(message); this.name = 'PlantSetupError'; } }
 
+/** saved: the plant and the device link were written in one call. already_linked: the sensor has a plant; NOTHING was written (no silent move). */
+export type PlantSaveResult = { status: 'saved'; plantId: string } | { status: 'already_linked' };
+
 export interface PlantSetupService {
-  /** Insert plants row, set devices.plant_id, upload the held photo (plant_images, bucket plant-photos) when given. Photo is optional (S14 "Skip"). */
-  createPlant(deviceId: string, details: PlantDetails, photoUri: string | null): Promise<{ plantId: string }>;
+  /** Insert the plant and point devices.plant_id at it, in ONE server call (all or nothing). Photo is refused in the real build (not dropped).
+   *  A sensor that already has a plant is only moved when moveFromCurrent is true; otherwise the answer is already_linked and nothing is written. */
+  createPlant(deviceId: string, details: PlantDetails, photoUri: string | null, opts?: { moveFromCurrent?: boolean }): Promise<PlantSaveResult>;
+  /** Read-only: the plant the sensor is on now (null = none). Used after a failed save, because the save may have committed. Throws if it cannot be read. */
+  currentPlant(deviceId: string): Promise<string | null>;
 }
 
 /** Camera / library. Real one (expo-image-picker) arrives with the dev build; null = user cancelled. */
-export interface PhotoSource { takePhoto(): Promise<string | null>; pickFromLibrary(): Promise<string | null> }
+/** supported=false: this build cannot take a photo yet; the photo step then offers only Skip (4.A4c). Default true. */
+export interface PhotoSource { takePhoto(): Promise<string | null>; pickFromLibrary(): Promise<string | null>; supported?: boolean }
 
 export interface SetupServices { provisioning: ProvisioningService; plants: PlantSetupService; photos: PhotoSource }

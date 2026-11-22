@@ -53,7 +53,8 @@ export function setupReducer(s: SetupState, a: SetupAction): SetupState {
     case 'restart': return initialSetup(a.now);
     case 'photo': return s.step === 'photo' ? { ...s, step: 'details', photoUri: a.uri } : s;
     case 'backToPhoto': return s.step === 'details' ? { ...s, step: 'photo' } : s;
-    case 'saved': return s.step === 'details' ? { ...s, step: 'done', plantName: a.plantName, finishedAt: a.now } : s;
+    // a late answer is never dropped: accepted from any step of the same attempt (deviceId set, not restarted, not already done)
+    case 'saved': return s.deviceId && s.step !== 'done' ? { ...s, step: 'done', plantName: a.plantName, finishedAt: a.now } : s;
     default: return s;
   }
 }

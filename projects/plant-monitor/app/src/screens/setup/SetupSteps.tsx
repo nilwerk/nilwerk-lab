@@ -147,20 +147,21 @@ export function LinkErrorStep({ time, code, ssid, onReenter, onOther, onRetry, o
   );
 }
 
-export function PhotoStep({ time, cancelled, onTake, onPick, onSkip }: { time: string; cancelled: boolean; onTake: () => void; onPick: () => void; onSkip: () => void }) {
+export function PhotoStep({ time, cancelled, supported = true, onTake, onPick, onSkip }: { time: string; cancelled: boolean; supported?: boolean; onTake: () => void; onPick: () => void; onSkip: () => void }) {
   return (
     <Screen title={t('setup.photo.title')}>
       <Progress n={4} time={time} />
       <Body>{t('setup.photo.body')}</Body>
-      {cancelled ? <Body muted>{t('setup.photo.cancelled')}</Body> : null}
-      <Button label={t('setup.photo.take')} onPress={onTake} />
-      <Button label={t('setup.photo.pick')} variant="secondary" onPress={onPick} />
+      {!supported ? <Body muted>{t('setup.photo.unsupported')}</Body> : null}
+      {supported && cancelled ? <Body muted>{t('setup.photo.cancelled')}</Body> : null}
+      {supported ? <Button label={t('setup.photo.take')} onPress={onTake} /> : null}
+      {supported ? <Button label={t('setup.photo.pick')} variant="secondary" onPress={onPick} /> : null}
       <Button label={t('setup.photo.skip')} variant="ghost" onPress={onSkip} />
     </Screen>
   );
 }
 
-export function DetailsStep({ time, busy, error, onSave, onBack }: { time: string; busy: boolean; error: boolean; onSave: (d: PlantDetails) => void; onBack: () => void }) {
+export function DetailsStep({ time, busy, error, onSave, onBack }: { time: string; busy: boolean; error: boolean; onSave: (d: PlantDetails) => void; onBack?: () => void }) {
   const [d, setD] = useState<PlantDetails>({ name: '', location: 'house', area: '', soil: 'potting', species: '', city: '' });
   const [shown, setShown] = useState(false);
   const set = <K extends keyof PlantDetails>(k: K, v: PlantDetails[K]) => setD((p) => ({ ...p, [k]: v }));
@@ -195,6 +196,32 @@ export function DoneStep({ plantName, time, onDone, onAnother }: { plantName: st
       <Body>{t('setup.done.time', { time })}</Body>
       <Button label={t('setup.done.seePlant')} onPress={onDone} />
       <Button label={t('setup.done.another')} variant="secondary" onPress={onAnother} />
+    </Screen>
+  );
+}
+
+/** FR-A03 / NFR-06 (N2): the sensor already has a plant. Nothing is written until the user picks one of the two choices. */
+export function MoveChoiceStep({ time, busy, onKeep, onMove }: { time: string; busy: boolean; onKeep: () => void; onMove: () => void }) {
+  return (
+    <Screen title={t('setup.move.title')}>
+      <Progress n={5} time={time} />
+      <Body>{t('setup.move.body')}</Body>
+      <Button label={t('setup.move.keep')} variant="secondary" disabled={busy} onPress={onKeep} />
+      <Body muted>{t('setup.move.keepHint')}</Body>
+      <Button label={t('setup.move.move')} disabled={busy} busy={busy} onPress={onMove} />
+      <Body muted>{t('setup.move.moveHint')}</Body>
+    </Screen>
+  );
+}
+
+/** After a failed save the device is re-read. Linked (or unreadable): keep only, no move and no retry, so a second plant cannot be created here. */
+export function LinkedStep({ unknown, notMoved = false, onLeave }: { unknown: boolean; notMoved?: boolean; onLeave: () => void }) {
+  const title = unknown ? t('setup.linked.unknownTitle') : notMoved ? t('setup.notMoved.title') : t('setup.linked.title');
+  const body = unknown ? t('setup.linked.unknownBody') : notMoved ? t('setup.notMoved.body') : t('setup.linked.body');
+  return (
+    <Screen title={title}>
+      <Body>{body}</Body>
+      <Button label={t('setup.linked.leave')} onPress={onLeave} />
     </Screen>
   );
 }

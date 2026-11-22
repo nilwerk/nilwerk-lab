@@ -1,7 +1,7 @@
 # Plant Monitor cloud backend (tasks 4.B1, 4.B2, 4.B3 slice 1)
 
 Supabase scaffold implementing the merged 2.4 contract. **Source of truth for the schema:**
-[`../docs/interfaces/db-schema.sql`](../docs/interfaces/db-schema.sql) (+ `openapi.yaml`). Migration 1 is a verbatim copy; `test.sh` fails on drift.
+[`../docs/interfaces/db-schema.sql`](../docs/interfaces/db-schema.sql) (+ `openapi.yaml`). Migration 1 is a verbatim copy of the 2.4 schema as applied; `test.sh` pins its sha256 and checks that the contract file equals migration 1 plus the 4.A4c migration.
 
 | Path | What |
 |---|---|
@@ -9,6 +9,7 @@ Supabase scaffold implementing the merged 2.4 contract. **Source of truth for th
 | `supabase/migrations/..01_core_schema.sql` | all 14 tables, RLS on every one, `delete_plant` RPC, `readings_hourly` roll-up, `apply_retention`, alert functions (FR-A08, FR-A06, FR-P01, FR-P04, NFR-06/07/13) |
 | `supabase/migrations/..02_schedules.sql` | pg_cron: offline scan 5 min, roll-up hourly, retention nightly (fails loudly without pg_cron; test.sh sets `nilwerk.allow_no_cron=on`) |
 | `supabase/migrations/..03_storage.sql` | private buckets `plant-photos`, `firmware`, owner-folder policy (FR-A05) |
+| `supabase/migrations/20261122000009_setup_save_plant_rpc.sql` | 4.A4c: `create_plant_and_link_device` RPC (setup "save plant", FR-A03/A04, NFR-06; ADR-017) and the plant check in `devices_update_own` (restates the clause of `..05`). Added as a new file because migration 1 is frozen |
 | `supabase/seed.sql` | local fake data: user A (free), user B (premium), one row per table |
 | `test.sh`, `test/` | CI-friendly tests (below) |
 
@@ -53,7 +54,7 @@ Premium feature (FR-P02, FR-P04, ADR-006). Pure TypeScript in `tips/`, no depend
 projects/plant-monitor/cloud/test.sh                  # starts a throw-away local PostgreSQL 15+, needs initdb/pg_ctl/psql
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres projects/plant-monitor/cloud/test.sh   # or an existing superuser server
 ```
-It checks: migration 1 == 2.4 schema file; RLS enabled on every table and user A cannot read, update, delete or forge
+It checks: migration 1 is frozen (sha256 pinned); `db-schema.sql` == migration 1 + `20261122000009` (pg_dump --schema-only, public schema); RLS enabled on every table and user A cannot read, update, delete or forge
 rows of user B on each table (`test/rls_isolation.sql`); retention/roll-up (`test/retention.sql`, A-028: raw ~3 months,
 hourly roll-up 12 months); the Architect's `db-schema.test.sql` on the migrated DB; the edge functions end to end against that DB (`test/functions/api.test.ts`: claim, hash-only storage, 96-sample batch, replay idempotency, token isolation A vs B, revoked/released tokens, API roles locked out of the functions); `test/openapi_check.py` (code == OpenAPI; needs PyYAML) and Node >= 22.6.
 `test/mutation.sh` is the mutation check: 17 one-line mutants of the token-hash, auth, claim and idempotency logic, each must make the tests fail (`NW_ONLY=api test.sh` is its quick mode). A stub `auth` schema and the roles
@@ -64,7 +65,7 @@ Needs Docker and the [Supabase CLI](https://supabase.com/docs/guides/cli): `cd p
 (applies migrations + seed; Studio on http://localhost:54323). **Not run in the agent session** (no Docker there).
 
 ## Migration rules
-- Migration 1 is the 2.4 schema as of 2026-11-07. **Once it is pushed to any real project it is frozen**: every later schema change is a NEW migration file (and an update to `docs/interfaces/db-schema.sql` so the contract stays current). From then on the drift guard in `test.sh` must compare the cumulative state (migrations applied in order vs. the schema file, e.g. via `pg_dump --schema-only` of both), not the byte copy of migration 1. Until the first push, migration 1 may still be re-copied.
+- Migration 1 is the 2.4 schema as of 2026-11-07. **Once it is pushed to any real project it is frozen**: every later schema change is a NEW migration file (and an update to `docs/interfaces/db-schema.sql` so the contract stays current). `test.sh` pins migration 1's sha256 (origin/main bytes). The contract check compares `db-schema.sql` with migration 1 plus the 4.A4c migration via `pg_dump --schema-only` of both (only those two: migrations 2-8 add objects the contract file does not list). A future change to the schema: new migration file, plus the same change in `db-schema.sql`, plus the guard's expected list if it adds a migration to the contract check.
 - `seed.sql` inserts into `auth.users(id, email)`: **unverified against real Supabase** (local test uses a stub table; the real table has more columns/triggers). Check with `supabase db reset` before relying on it.
 
 ## Production (not done here)
