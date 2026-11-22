@@ -7,12 +7,13 @@ name: Bench (self-hosted)
 # Only users with write access can start a workflow_dispatch run, which is why manual dispatch is the only
 # trigger here. Code from pull requests, forks or pushed branches must never execute on this runner.
 #   workflow_dispatch  manual run only (owner decision, 22 Nov 2026: no nightly schedule),
-#                      only from main or from agent/devops/bench-workflow (guard below)
+#                      only from main (guard below). No branch allowance.
 # NO schedule, pull_request, pull_request_target, push or issue_comment triggers, on purpose.
-# Owner decision (21 Nov): nothing else may run on the Pi. The branch allowance
-# is for the one PR that adds these steps. Remove it again when that PR is closed.
+# Owner decision (21 Nov): nothing else may run on the Pi. The former branch allowance
+# (for PR #156, now closed) was removed in the PR #162 fix round. Manual runs from main only.
 #
-# Order (owner instruction, 22 Nov 2026: build first, then install and test together):
+# Order (build first, then install and test together). OPEN owner decision: whether step 3 runs before
+# or after d and e. The order below is the current one and is awaiting the owner's decision.
 #   build-firmware   GitHub-hosted, no secrets. Builds the setup-flow firmware. Artifact: plant-monitor-firmware-setup.
 #   build-apk        GitHub-hosted, no secrets. Builds the Android debug APK. Artifact: plant-monitor-app-debug-<sha7>.
 #   bench            the Pi. Needs both builds. Downloads both artifacts from THIS run, then runs steps
@@ -237,8 +238,8 @@ jobs:
     name: bench smoke and E2E
     # Needs both builds of THIS run. If either build fails or is skipped, this job does not start.
     needs: [build-firmware, build-apk]
-    # Only main, plus the one PR branch for manual runs. Any other ref runs nothing.
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/devops/bench-workflow'
+    # Only main. Any other ref, including PR branches, runs nothing.
+    if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, bench]
     timeout-minutes: 60
     # Job-level only (22 Nov): steps 1 and 2 download this run's artifacts through the workflow token.
@@ -283,7 +284,8 @@ jobs:
           fi
 
       # Downloads and hardware steps. The downloads come first (they are the builds of this run), then a to c,
-      # then 4 (APK install), d, e, and 3 (provisioning, which runs after e as the owner ordered it).
+      # then 4 (APK install), d, e, and 3 (provisioning; its position relative to d and e is an OPEN owner
+      # decision, currently after e).
       # Each one fails closed: if its input is missing it prints "not configured: nothing tested" and exits 1.
       # Nothing is built on the Pi.
       # Scope (owner decision, 21 Nov): the bench round tests ESP32-to-app and ESP32-to-cloud

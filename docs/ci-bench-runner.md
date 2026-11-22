@@ -14,13 +14,13 @@ checks (the end-to-end bench setup) that GitHub-hosted runners cannot do.
 `bench.yml`, label `bench`, and **no Environment gate** (the owner declined it). `hil.yml` and `esp32c3-bench` are not used.
 
 **Label check:** the label in this doc and in `bench.yml` (`runs-on: [self-hosted, bench]`) is `bench`. The label on the
-Pi is confirmed (C1, closed): the runner `plant-bench-pi` is Idle with label `bench` (Pi setup comment on PR #156, 22 Nov 2026).
+Pi is confirmed: the runner `plant-bench-pi` is Idle with label `bench` (Pi setup comment on PR #156, 22 Nov 2026).
 
 **Requirements:** the bench round touches FR-D03, FR-A03, NFR-04, NFR-06 and NFR-07 (rows in
 `projects/plant-monitor/tests/acceptance-matrix.md`). It covers the communication path only and does not pass those
 rows. The mapping to steps is in the header of `bench.yml`.
 
-## Order of the workflow (owner instruction, 22 Nov 2026: build first, then install and test)
+## Order of the workflow (build first, then install and test; the position of step 3 is an OPEN owner decision)
 The workflow builds first and tests second. The jobs and steps run in this order:
 
 1. **`build-firmware`** (GitHub-hosted, `ubuntu-latest`, no secrets). Builds the setup-flow firmware with the same
@@ -65,8 +65,8 @@ Both downloads need the job permission `actions: read` (set on the bench job onl
 The runner executes whatever code a job checks out. The repository is **public** (`gh api repos/nilwerk/nilwerk-lab --jq .visibility` returns `public`, checked 22 Nov 2026), so anyone can open a pull request or fork it. That is safe only while untrusted code cannot reach the runner. Only users with write access can start a `workflow_dispatch` run, which is why manual dispatch is the only trigger. So `bench.yml` allows only:
 
 - `workflow_dispatch`: **manual runs only** (owner decision, 22 Nov 2026: manual trigger only). There is no schedule.
-  The bench job runs only when the ref is `refs/heads/main` or `refs/heads/agent/devops/bench-workflow`.
-  Any other ref runs nothing. The two build jobs run on the same manual runs.
+  The bench job runs only when the ref is `refs/heads/main`. There is no branch allowance: no PR branch
+  or other branch runs the bench job. Any other ref runs only the two build jobs.
 
 **Owner decision (accepted, option B): bench logs are not masked.** Run logs of this public repo are readable by anyone.
 They show BLE device names and device addresses (step c) and chip-id output (steps a and 3). Logs stay unmasked by design;
@@ -74,15 +74,14 @@ no masking is added.
 
 **Trigger the bench chain (after this PR is merged):** GitHub > **Actions** > **bench (self-hosted)** >
 **Run workflow** > branch **main** > Run. The workflow file is on `main` only after the merge, so before that
-the `main` branch is not offered; the PR branch is used only for the PR's own test runs (see below).
+the `main` branch is not offered. A PR branch never runs the bench job (see below).
 
 **Why no schedule:** if a schedule were added, it would run the workflow file on `main` every night, and
 the build jobs and steps 1, 2, a to e, 3 and E2E would then run unattended on the Pi with the bench secrets. That would be a new owner
 decision, not a config change.
 
-The branch `agent/devops/bench-workflow` is allowed by the owner's decision of 21 Nov 2026
-(the owner): it is for the one PR that adds the hardware steps, and nothing else may run on the
-Pi. Remove that branch from the guard when that PR is closed.
+The branch allowance for `agent/devops/bench-workflow` (PR #156, closed) is removed. The bench job runs
+only from `main`. Nothing else may run on the Pi.
 
 Never add `pull_request`, `pull_request_target`, `push` or `issue_comment` to a bench
 workflow. Those let a pull request, a fork or a comment run code on the Pi.
@@ -91,15 +90,10 @@ Residual risk, two places:
 
 - `main`: a manual run from `main` runs the workflow file on `main` on the Pi. Anyone who can push to `main`
   controls what runs on the Pi on that run.
-- `agent/devops/bench-workflow`: a manual run uses the workflow file on that branch. Anyone who
-  can push to it can change what runs on the Pi, so only that branch's owner pushes to it.
-  This branch has NO branch protection today (checked on 21 Nov 2026: the branch protection
-  API returns 404, not protected). Protecting it is an open decision for the owner.
-  A run from this branch or from `main` gets the bench secrets `BENCH_ANDROID_SERIAL`,
-  `BENCH_TEST_EMAIL`, `BENCH_TEST_EMAIL_PASSWORD`, `BENCH_CLOUD_CHECK_CONFIG`, `BENCH_BOARD_POP`, `BENCH_WIFI_SSID`
-  and `BENCH_WIFI_PASSWORD`, so whoever can change the workflow file on either ref can reach
-  them on the Pi. **Owner decision (22 Nov 2026): the bench branch can read these secrets.** The
-  owner accepted this for the bench round. Protecting the branch stays an open decision.
+- `agent/devops/bench-workflow`: removed from the guard. A manual run from this branch does not run the bench job,
+  so it does not get the bench secrets.
+- The bench secrets (`BENCH_ANDROID_SERIAL`, `BENCH_TEST_EMAIL`, `BENCH_TEST_EMAIL_PASSWORD`, `BENCH_CLOUD_CHECK_CONFIG`,
+  `BENCH_BOARD_POP`, `BENCH_WIFI_SSID`, `BENCH_WIFI_PASSWORD`) are read only by the bench job, which runs from `main` only.
 - The bench job reads the provisioning folder on the Pi (a local folder whose path is set on the Pi,
   or `BENCH_PROVISION_DIR`). It is local to the Pi and never leaves it. Owner decision, 22 Nov 2026.
 
@@ -128,9 +122,9 @@ firmware is the setup-flow build (`CONFIG_PLANT_SETUP_FLOW=y`, simulator off), b
 Steps 1 and 2 use the workflow token and the run's artifacts. Step 3 uses the repo variables. Steps 4, d and e use the repo secrets by name only; their values
 live in the repository's Actions secrets and are never written to the repo.
 
-**Provisioning order (owner instruction, 22 Nov 2026).** Step 3 runs after e, as the owner listed it. Steps d and e
-therefore test the board as flashed by step a, not the board with the provisioned NVS. The earlier order (3 before d)
-is replaced. Owner to confirm this order before the first real run.
+**Provisioning order (OPEN owner decision).** Step 3 currently runs after e. Whether step 3 runs before or after d and e
+is awaiting the owner's decision. With step 3 after e, steps d and e test the board as flashed by step a, not the board
+with the provisioned NVS. The earlier order (3 before d) is the alternative under review.
 
 **Version pins (fix round, 22 Nov 2026). Not run on the Pi, not run here.** esptool is pinned to **v5.x**: steps a, b and 3
 run `esptool version` and fail if the major is not 5, and steps a and 3 use the v5 command name `chip-id`. This was
@@ -166,7 +160,7 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 - Step 3 writes the NVS partition from the CSV at the offset of the `nvs` entry in the partition table binary. The
   flash plan (offsets and sizes) comes from the build. Check the offsets with Mira if the build layout changes.
 - The ESP-IDF NVS tool must be in the venv `$HOME/nvs-venv` of the runner user, at exactly 0.3.0 (step 3 fails otherwise).
-  **C4: pinned to 0.3.0, provisional; v5.4 check open.**
+  The pin to 0.3.0 is provisional; the v5.4 check is open.
 - The NVS offset and size are not set in this repo. Step 3 reads them from the `nvs` entry of the partition table binary in the build.
   Any fixed value (the ESP-IDF default table) is only a default and must be checked against the build's table.
 - Step a flashes the board as soon as both builds succeed. No `bench/` file gates that flash any more (the old gate was
@@ -203,18 +197,14 @@ After every runner update, check again:
 From `main`, this works only after the PR is merged (the workflow file is on `main` only then).
 1. Open the repository on GitHub and go to **Actions**.
 2. Pick **Bench (self-hosted)** in the left list.
-3. Click **Run workflow**, set the branch to **main** (or to `agent/devops/bench-workflow` for
-   the PR branch only), and confirm.
+3. Click **Run workflow**, set the branch to **main**, and confirm.
 4. The two build jobs run on GitHub-hosted runners. The bench job then runs on the runner `plant-bench-pi`.
-   A run from any other branch does nothing.
+   A run from any other branch starts the two build jobs only; the bench job does not run.
 
-Manual run from the PR branch, in the order the owner allowed it:
-1. Push the branch (fast-forward only) and check the head sha on GitHub.
-2. The builds need no inputs from the repo. The `bench/` inputs listed above must exist on the branch, or the
-   steps stop with `not configured: nothing tested`. Step a flashes the board before b stops, if the builds pass.
-3. Run the workflow from `agent/devops/bench-workflow` as above. Read each step's output.
-4. A green run from this branch proves only the steps that ran. A red run names the first step
-   that failed and the input it is missing.
+Manual runs from a PR branch do not run the bench job (no branch allowance). Such a run starts only the two
+GitHub-hosted build jobs. `build-apk` needs the repository variables `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`
+(Settings > Secrets and variables > Actions > Variables). They are variables, not secrets, and this doc records
+their names only. Without them `build-apk` fails closed. The bench job runs only after the PR is merged, from `main`.
 
 ## Current state
 - Not run in this session: the Pi, esptool, the NVS tool, the ESP-IDF build, the APK build, actionlint. This change was
