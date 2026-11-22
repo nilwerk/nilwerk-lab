@@ -121,6 +121,8 @@ jobs:
           path: projects/plant-monitor/firmware/build/*.bin
           if-no-files-found: warn
       - name: ESP-IDF build (esp32c3, setup flow on, simulator off)
+        # Fork PRs skip this step and the two after it (flash-file check, upload): setup packages are built and published for PRs from this repository only.
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         # Requirements traceability (checked against projects/plant-monitor/tests/acceptance-matrix.md): FR-D03 (BLE setup
         # mode, line 20) and NFR-06 (security, line 53). This build step does not pass either one; it only proves the
         # setup-flow image compiles and carries the setup-flow config.
@@ -141,6 +143,7 @@ jobs:
             if grep -q '^CONFIG_PLANT_SIM_MOCK_SENSORS=y' sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
             test -s build-setup/plant_monitor.bin
       - name: Check every flash file named in flasher_args.json
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         # The artifact holds every file esptool flashes (bootloader, partition table, app). The list comes from
         # flasher_args.json, so a missing or empty file, or an unsafe path, fails this step before the upload.
         id: files
@@ -166,6 +169,7 @@ jobs:
           echo "Flash files verified:"
           echo "$files"
       - name: Upload setup firmware artifact
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         uses: actions/upload-artifact@v4
         with:
           name: plant-monitor-firmware-setup
