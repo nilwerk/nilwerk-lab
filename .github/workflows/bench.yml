@@ -286,7 +286,8 @@ jobs:
       # Downloads and hardware steps, in the order the owner decided. The downloads come first (they are the builds
       # of this run), then a, b, c, 4 (APK install), 3 (provisioning, NVS last), d (app flow), e (cloud check), E2E.
       # Each one fails closed: if its input is missing it prints "not configured: nothing tested" and exits 1.
-      # Nothing is built on the Pi.
+      # The E2E test bundle (expo export, run by bench/run_e2e.sh) is built on the Pi only when the app's node_modules
+      # are installed on the runner. That is not yet the case.
       # Scope (owner decision, 21 Nov): the bench round tests ESP32-to-app and ESP32-to-cloud
       # communication only. Sensor values are not checked yet. The firmware is the setup-flow build
       # (CONFIG_PLANT_SETUP_FLOW=y, simulator off), built by the build-firmware job of this run.

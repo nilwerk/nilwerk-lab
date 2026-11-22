@@ -4,7 +4,8 @@
 # Purpose: open the Plant Monitor app on the bench phone through an Appium 2 server (UiAutomator2) and check that
 # the first screen title exists. Read-only on the phone: no tap, no typing, no sign-in, no device scan.
 # Session pattern: a W3C session with appium:automationName UiAutomator2 (the workflow sets APPIUM_AUTOMATION_NAME).
-# The repo has no existing Appium smoke test (grep for UiAutomator2 / appium finds only bench.yml), so no pattern is copied.
+# The repo has no existing Appium smoke test: grep for UiAutomator2 / appium matches only bench.yml,
+# docs/ci-bench-runner.md and this script itself, so no pattern is copied.
 #
 # Sources (paths relative to the repository root):
 #   projects/plant-monitor/app/app.config.ts:16               android.package, the app package id (read at run time)

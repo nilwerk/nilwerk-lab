@@ -42,7 +42,8 @@ The workflow builds first and tests second. The jobs and steps run in this order
    - e. Cloud check
    - Bench E2E
 
-Both build jobs run only on GitHub-hosted runners. Nothing is built on the Pi. If a build fails or is skipped, the
+Both build jobs run only on GitHub-hosted runners. The E2E test bundle (`expo export`, run by `bench/run_e2e.sh`) is built
+on the Pi only when the app's `node_modules` are installed on the runner; that is not yet the case. If a build fails or is skipped, the
 bench job does not start.
 
 **Step numbers.** The download steps are numbered in the order they run (1 firmware, 2 APK). The letters a to e and
@@ -99,7 +100,8 @@ Residual risk, two places:
 
 ## Steps of the bench job
 The job runs these steps in order. Each hardware step fails closed: if its input is missing
-it prints `not configured: nothing tested` and exits 1. Nothing is built on the Pi.
+it prints `not configured: nothing tested` and exits 1. The E2E test bundle is built on the Pi only when the app's
+`node_modules` are installed there; that is not yet the case.
 
 **Scope of the bench round (owner decision, 21 Nov 2026):** the bench round tests the
 ESP32-to-app and ESP32-to-cloud communication only. Sensor values are not checked yet. The

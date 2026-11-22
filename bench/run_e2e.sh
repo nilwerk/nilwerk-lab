@@ -7,7 +7,8 @@
 #
 # What that test is (read before relying on it): a MOCK web flow. Its header (lines 1-6) says it runs in headless Chromium
 # (Playwright) against the Expo web export with EXPO_PUBLIC_MOCK_AUTH=1; auth, plants, readings and BLE are fixtures.
-# It does not touch the bench board, the phone or the cloud. Its line 4 runs "npx expo export" (a build).
+# It does not touch the bench board, the phone or the cloud. The E2E runs "npm run test:web-flow"; that test
+#   runs "npx expo export" (a build) at projects/plant-monitor/app/e2e/web-flow.test.js:43.
 #
 # Fails closed with "E2E not defined: owner input needed" when:
 #   - projects/plant-monitor/app/package.json has no "test:web-flow" script, or
