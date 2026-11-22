@@ -354,6 +354,10 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          # Pi venv with the ESP-IDF NVS tool: ~/nvs-venv (package esp-idf-nvs-partition-gen 0.3.0, installed on the Pi).
+          # This step installs nothing. The pin is PROVISIONAL (ESP-IDF v5.4 constraints check open, see docs/ci-bench-runner.md).
+          nvs_venv="$HOME/nvs-venv"
+          nvs_pin="0.3.0"
           fail() { echo "::error::3. provisioning: $1"; exit 1; }
           hw_id="${BENCH_BOARD_HW_ID:-}"
           [ -n "$hw_id" ] || fail "not configured: nothing tested (repository variable BENCH_BOARD_HW_ID is not set)"
@@ -371,13 +375,16 @@ jobs:
           [ -e "$BENCH_ESP_PORT" ] || fail "not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
           esptool="$(command -v esptool.py || command -v esptool || true)"
           [ -n "$esptool" ] || fail "not configured: nothing tested (esptool not installed on the runner)"
-          if python3 -I -c 'import esp_idf_nvs_partition_gen' >/dev/null 2>&1; then
-            nvs_gen=(python3 -I -m esp_idf_nvs_partition_gen generate)
-          elif command -v nvs_partition_gen.py >/dev/null 2>&1; then
-            nvs_gen=(nvs_partition_gen.py generate)
-          else
-            fail "not configured: nothing tested (ESP-IDF NVS partition tool not installed on the runner)"
+          # NVS tool: esp-idf-nvs-partition-gen, exactly ${nvs_pin} (provisional), from the Pi venv.
+          # The venv bin goes first on PATH so that python3 is the venv's python. Any other version stops here.
+          [ -x "${nvs_venv}/bin/python3" ] || fail "not configured: nothing tested (ESP-IDF NVS tool venv not found at ${nvs_venv})"
+          export PATH="${nvs_venv}/bin:${PATH}"
+          nvs_ver="$(python3 -I -c 'import importlib.metadata as m; print(m.version("esp-idf-nvs-partition-gen"))' 2>/dev/null || true)"
+          if [ "$nvs_ver" != "$nvs_pin" ]; then
+            fail "NVS tool version is '${nvs_ver:-not installed}', expected exactly ${nvs_pin} (pinned, provisional)"
           fi
+          echo "3. provisioning: NVS tool esp-idf-nvs-partition-gen ${nvs_ver} (pinned ${nvs_pin}, provisional)"
+          nvs_gen=(python3 -I -m esp_idf_nvs_partition_gen generate)
           # Pinned: esptool v5.x only. The chip-id command below is the v5 spelling.
           esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
           [ "$esptool_major" = "5" ] || fail "esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"

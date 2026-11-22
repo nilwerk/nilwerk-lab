@@ -13,10 +13,8 @@ checks (the end-to-end bench setup) that GitHub-hosted runners cannot do.
 (option b: `hil.yml`, label `esp32c3-bench`, GitHub Environment `bench` as the approval gate). This design uses
 `bench.yml`, label `bench`, and **no Environment gate** (the owner declined it). `hil.yml` and `esp32c3-bench` are not used.
 
-**Label check:** the label in this doc and in `bench.yml` (`runs-on: [self-hosted, bench]`) is `bench`. The label
-set on the Pi itself was NOT checked from this session: the Actions runners API is refused through the session
-proxy (HTTP 403). Check it on GitHub (Settings > Actions > Runners > `plant-bench-pi` shows label `bench`) or on the Pi.
-**Open until checked.**
+**Label check:** the label in this doc and in `bench.yml` (`runs-on: [self-hosted, bench]`) is `bench`. The label on the
+Pi is confirmed (C1, closed): the runner `plant-bench-pi` is Idle with label `bench` (Pi setup comment on PR #156, 22 Nov 2026).
 
 **Requirements:** the bench round touches FR-D03, FR-A03, NFR-04, NFR-06 and NFR-07 (rows in
 `projects/plant-monitor/tests/acceptance-matrix.md`). It covers the communication path only and does not pass those
@@ -77,9 +75,9 @@ firmware is the normal build, with no simulated-sensor firmware.
 | c. BLE scan | `bluetoothctl` scan for 10 s; asserts that the first non-empty line of the expect file, with all whitespace removed, is the start of a device name seen in the scan. The expected name must have no spaces: all whitespace is removed from it before matching, and it matches the START of the device name, so a longer device name also matches (expected `Bench` matches `Bench Dev`). Only the name field is read. The accepted line forms are `Device <MAC> <Name>`, `[NEW] Device <MAC> <Name>` and `[CHG] Device <MAC> Name: <name>`. A prompt or other text before the tag or `Device` is ignored when the line is otherwise one of these forms. On a plain or `[NEW]` line everything after the MAC is the name, so text that looks like a property, such as `RSSI: -60`, is read as a name. This is a known limit: on success the run log prints the matched name (`c. BLE: device name '...' starts with prefix ...`), and on failure it prints the last 20 raw scan lines, so a wrong match can be seen by a person. Any other `[CHG]` line (RSSI, TxPower, UUIDs, ...) is ignored, `[DEL]` lines are skipped, and the MAC never matches. That is the only check. | `bench/ble/expect.txt`, `bluetoothctl` | fails |
 | 1. App APK | Downloads the newest successful `app-apk` artifact from `main` (`plant-monitor-app-debug-<sha>`, the run of `app-apk.yml`) with the workflow token. Saved to `bench-artifacts/app-apk/` in the runner workspace only. Not committed, not uploaded. | Job permission `actions: read`; a successful app-apk run on `main` | fails: `APK not found` |
 | 2. Firmware image | Downloads the artifact `plant-monitor-firmware-setup` from the newest successful run of `firmware-bench-image.yml` on `main`. The artifact is a folder: `build-setup/` with the `.bin` files and `flasher_args.json`. The whole folder is extracted to `bench-artifacts/firmware/build-setup/` (the path step 3 reads). Fails closed if `build-setup/flasher_args.json` is missing. Logs the commit sha of that firmware run (`2. firmware: ... commit <sha>`); step 1 logs the commit sha of the APK run, so both can be traced to commits. | Job permission `actions: read`; the workflow `firmware-bench-image.yml` (being added by Mira) with a successful run on `main` | fails: `firmware artifact not found` |
-| 3. Provisioning and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (`nw-c8da2986f470`, not a secret). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in `BENCH_PROVISION_DIR` (default `$HOME/nilwerk-secrets/provision-out`) and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Reads the flash plan from the step 2 build-setup folder before any write (lines 393-454): every file in `flash_files` of `flasher_args.json` with its listed offset, and the offset and size of the single partition named `nvs` in the partition table binary of the build. It stops before any write if that `nvs` entry is missing, duplicated, or has a zero offset or size, or if any `flash_files` file overlaps it (the `nvs` lookup is lines 435-445, the overlap check lines 446-448). It builds the NVS partition from the CSV in a 0700 temp dir with the size from that entry (lines 461-469), writes each `flash_files` file at its offset in offset order (lines 470-474), and writes the NVS partition last (lines 475-477). The temp dir is removed by an EXIT trap (line 392). The label and the CSV are never printed. The label is checked but not used by the flash. | Repo variable `BENCH_BOARD_HW_ID`; the provisioning folder on the Pi with both files at `0600`; the image from step 2; `esptool`; the ESP-IDF NVS partition tool | fails before any write (lines 357-391 and 393-458) |
+| 3. Provisioning and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (`nw-c8da2986f470`, not a secret). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in `BENCH_PROVISION_DIR` (default `$HOME/nilwerk-secrets/provision-out`) and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Checks that the NVS tool is exactly 0.3.0 in the Pi venv (provisional pin, lines 378-387). Reads the flash plan from the step 2 build-setup folder before any write (lines 400-461): every file in `flash_files` of `flasher_args.json` with its listed offset, and the offset and size of the single partition named `nvs` in the partition table binary of the build. It stops before any write if that `nvs` entry is missing, duplicated, or has a zero offset or size, or if any `flash_files` file overlaps it (the `nvs` lookup is lines 442-452, the overlap check lines 453-455). It builds the NVS partition from the CSV in a 0700 temp dir with the size from that entry (lines 468-476), writes each `flash_files` file at its offset in offset order (lines 477-481), and writes the NVS partition last (lines 482-484). The temp dir is removed by an EXIT trap (line 399). The label and the CSV are never printed. The label is checked but not used by the flash. | Repo variable `BENCH_BOARD_HW_ID`; the provisioning folder on the Pi with both files at `0600`; the image from step 2; `esptool`; the ESP-IDF NVS partition tool (0.3.0, provisional) | fails before any write (lines 357-398 and 400-465) |
 | 4. APK install | Checks that exactly one device with the serial in secret `BENCH_ANDROID_SERIAL` is attached in state `device`, then runs `adb -s <serial> install -r` with the APK from step 1. The serial is never printed. | Secret `BENCH_ANDROID_SERIAL`; the APK from step 1; `adb` | fails, no install |
-| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). The flow checks only the communication path: scan finds the device, connect, write the setup data, and the app shows the device as connected. It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh`; secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL` and `BENCH_TEST_EMAIL_PASSWORD` (test account, passed as environment variables only); Appium 2.x on the runner | fails closed if `BENCH_TEST_EMAIL` or `BENCH_TEST_EMAIL_PASSWORD` is not set (lines 522-529); also fails if `BENCH_ANDROID_SERIAL` is not set (lines 530-533) |
+| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). The flow checks only the communication path: scan finds the device, connect, write the setup data, and the app shows the device as connected. It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh`; secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL` and `BENCH_TEST_EMAIL_PASSWORD` (test account, passed as environment variables only); Appium 2.x on the runner | fails closed if `BENCH_TEST_EMAIL` or `BENCH_TEST_EMAIL_PASSWORD` is not set (lines 529-536); also fails if `BENCH_ANDROID_SERIAL` is not set (lines 537-540) |
 | e. Cloud check | Runs `bench/cloud/check.sh`. It checks only that the device communicated with the cloud: at least one row from this device exists in the EU project and was received after `BENCH_TEST_START_UTC`. It does not read, print or compare any reading value. | `bench/cloud/check.sh`; secret `BENCH_CLOUD_CHECK_CONFIG`; `BENCH_TEST_START_UTC` from step d | fails |
 | Bench E2E | Runs `bench/run_e2e.sh` | `bench/run_e2e.sh` | fails |
 
@@ -90,9 +88,11 @@ files are not in the repo yet and must come from the owner or the hardware work.
 **Version pins (fix round, 22 Nov 2026). Not run on the Pi, not run here.** esptool is pinned to **v5.x**: steps a, b and 3
 run `esptool version` and fail if the major is not 5, and steps a and 3 use the v5 command name `chip-id`. This was
 checked against the esptool 5.6.0 source on PyPI (`version` prints `5.6.0`; `chip-id` is the v5 command).
-The ESP-IDF NVS tool is **not pinned yet**. The PyPI package `esp-idf-nvs-partition-gen` has no 5.x release (0.3.0 is the
-latest seen on 22 Nov 2026), so "v5.x" for it must be defined by the owner or Mira: which ESP-IDF v5.x tree the tool
-comes from. **Open.** Step 3 calls it as `generate <csv> <bin> <size>`, the form the 0.3.0 package accepts.
+The ESP-IDF NVS tool is pinned to **esp-idf-nvs-partition-gen 0.3.0** from the Pi venv `~/nvs-venv` (`nvs_venv` and
+`nvs_pin` in `bench.yml` lines 359-360; version check lines 378-387). The pin is **PROVISIONAL**: it is not yet checked
+against the ESP-IDF v5.4 constraints file (the fetch failed from the Pi and from the Mac). The v5.4 check is open.
+Step 3 fails unless the installed version is exactly 0.3.0, installs nothing from the network, and calls the tool as
+`python3 -I -m esp_idf_nvs_partition_gen generate <csv> <bin> <size>`, the form the 0.3.0 package accepts.
 
 **Scratch folder:** `bench-artifacts/` (APK and firmware of steps 1 and 2) is git-ignored and is cleared at the
 start of every run.
@@ -103,8 +103,8 @@ run first, they test the bench image from `bench/firmware/`, not the provisioned
 
 **Secrets for step d:** `BENCH_TEST_EMAIL`, `BENCH_TEST_EMAIL_PASSWORD`, `BENCH_BOARD_POP`,
 `BENCH_WIFI_SSID` and `BENCH_WIFI_PASSWORD` are passed into the Appium step as environment variables
-only. Step d fails closed if `BENCH_TEST_EMAIL` or `BENCH_TEST_EMAIL_PASSWORD` is missing: both must be set (lines 522-529), and they are
-passed as environment variables only (lines 507-512), never echoed. The script `bench/app/run_appium.sh` must not
+only. Step d fails closed if `BENCH_TEST_EMAIL` or `BENCH_TEST_EMAIL_PASSWORD` is missing: both must be set (lines 529-536), and they are
+passed as environment variables only (lines 514-519), never echoed. The script `bench/app/run_appium.sh` must not
 echo them.
 
 **Job permission:** `permissions: actions: read` is set on the bench job only. The workflow-level
@@ -116,10 +116,11 @@ permissions stay `contents: read`.
 **Open for steps 1 to 4 (checked on 22 Nov 2026 with stubs only):**
 - Step 2 needs `.github/workflows/firmware-bench-image.yml` on `main` (Mira). Until it exists the step fails.
 - Each file from step 2 is written at the offset in its `flasher_args.json`. A file that overlaps the NVS partition
-  stops the run before any write (lines 446-448). NVS is written last (lines 475-477), so an earlier file cannot overwrite it.
+  stops the run before any write (lines 453-455). NVS is written last (lines 482-484), so an earlier file cannot overwrite it.
   Check the offsets with Mira if the build layout changes.
-- The ESP-IDF NVS tool must be on the Pi (`python3 -m esp_idf_nvs_partition_gen` or `nvs_partition_gen.py`).
-- The NVS offset and size are not set in this repo. Step 3 reads them from the `nvs` entry of the partition table binary in the build (lines 435-445).
+- The ESP-IDF NVS tool must be in the venv `$HOME/nvs-venv` of the runner user, at exactly 0.3.0 (step 3 fails otherwise).
+  **C4: pinned to 0.3.0, provisional; v5.4 check open.**
+- The NVS offset and size are not set in this repo. Step 3 reads them from the `nvs` entry of the partition table binary in the build (lines 442-452).
   Any fixed value (the ESP-IDF default table) is only a default and must be checked against the build's table.
 
 ## Node workaround
