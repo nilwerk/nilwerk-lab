@@ -66,11 +66,15 @@ jobs:
           command: |
             set -e
             rm -f sdkconfig.setup
-            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup" build size
-            grep -q '^CONFIG_PLANT_SETUP_FLOW=y' sdkconfig.setup
-            grep -q '^CONFIG_PLANT_BOARD_V1_SUPERMINI=y' sdkconfig.setup
-            grep -q '^CONFIG_BT_NIMBLE_ENABLED=y' sdkconfig.setup
-            if grep -q '^CONFIG_PLANT_SIM_MOCK_SENSORS=y' sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
+            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.bench-ci" build size
+            grep -q "^CONFIG_PLANT_SETUP_FLOW=y" sdkconfig.setup
+            grep -q "^CONFIG_PLANT_BOARD_V1_SUPERMINI=y" sdkconfig.setup
+            grep -q "^CONFIG_BT_NIMBLE_ENABLED=y" sdkconfig.setup
+            if grep -q "^CONFIG_PLANT_SIM_MOCK_SENSORS=y" sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
+            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci, last in the list).
+            # Double quotes only in this block: the action wraps the whole command in single quotes, so a single quote here ends that wrapper early.
+            if grep -q "^CONFIG_PLANT_BENCH_SLEEP_CYCLE=y" sdkconfig.setup; then echo "bench sleep cycle must be unset in the setup image (sdkconfig.defaults.bench-ci)"; exit 1; fi
+            grep -qxF "# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set" sdkconfig.setup || { echo "sdkconfig.setup lacks the line: # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set (bench-ci overlay not applied)"; exit 1; }
             test -s build-setup/plant_monitor.bin
       - name: Check every flash file named in flasher_args.json
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}

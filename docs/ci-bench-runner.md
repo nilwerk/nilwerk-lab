@@ -24,9 +24,10 @@ rows. The mapping to steps is in the header of `bench.yml`.
 The workflow builds first and tests second. The jobs and steps run in this order (step 3 before step b: owner option 1):
 
 1. **`build-firmware`** (GitHub-hosted, `ubuntu-latest`, no secrets). Builds the setup-flow firmware with the same
-   steps as the `firmware` job of `.github/workflows/ci.yml` for the setup image: the ESP-IDF action pinned to a full
-   commit SHA, `set -e`, `CONFIG_PLANT_SETUP_FLOW=y`, `CONFIG_PLANT_SIM_MOCK_SENSORS` off, and the `flasher_args.json`
-   file check. Uploads `plant-monitor-firmware-setup`.
+   steps as the `firmware` job of `.github/workflows/ci.yml` for the setup image, and the same overlay list
+   (`sdkconfig.defaults.bench-ci` last, so the bench image stays awake on USB): the ESP-IDF action pinned to a full
+   commit SHA, `set -e`, `CONFIG_PLANT_SETUP_FLOW=y`, `CONFIG_PLANT_SIM_MOCK_SENSORS` off, `CONFIG_PLANT_BENCH_SLEEP_CYCLE`
+   unset, and the `flasher_args.json` file check. Uploads `plant-monitor-firmware-setup`.
 2. **`build-apk`** (GitHub-hosted, `ubuntu-latest`, no secrets). Builds the Android debug APK with the steps of
    `.github/workflows/app-apk.yml`. Uploads `plant-monitor-app-debug-<sha7>`. The two build inputs are repository
    variables (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, public client values), not secrets.
@@ -114,7 +115,7 @@ firmware is the setup-flow build (`CONFIG_PLANT_SETUP_FLOW=y`, simulator off), b
 | 2. Download app APK, then check | Downloads `plant-monitor-app-debug-*` from the `build-apk` job of this run to `bench-artifacts/app-apk/`. The check step requires exactly one `.apk` there and sets `BENCH_APK_PATH`. Not committed, not uploaded. | Job permission `actions: read`; the `build-apk` job succeeded | the check step fails: `APK not found` |
 | a. Firmware flash | Reads the chip id (must be ESP32-C3). Then reads `flasher_args.json` from step 1 and writes every file in `flash_files` at its listed offset, in offset order, with esptool, to the USB port `BENCH_ESP_PORT` (`/dev/ttyACM0`). Offsets are not hard-coded. | the step 1 artifact (`flasher_args.json` and the files it lists); a device at the port; `esptool` v5 on the runner | fails, no flash |
 | 3. Provision and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (value `<board-hw-id>`, not a secret). Reads the provisioning folder from the repo variable `BENCH_PROVISION_DIR` (required, no default; fails if empty). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in that folder and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Checks that the NVS tool is exactly 0.3.0 in the Pi venv. Reads the flash plan from the step 1 build-setup folder before any write. It builds the NVS partition from the CSV in a 0700 temp dir, writes each `flash_files` file at its offset in offset order, and writes the NVS partition last. The CSV and label are never printed. The label is checked but not used by the flash. | Repo variables `BENCH_BOARD_HW_ID` and `BENCH_PROVISION_DIR`; the provisioning folder on the Pi with both files at `0600`; the artifact from step 1; `esptool`; the ESP-IDF NVS tool (0.3.0, provisional) | fails before any write |
-| b. Serial live stream | Runs after step 3 (board provisioned and running). **No reset** (no esptool run, no reset, no RTS/DTR toggle). Reads the live serial stream for 75 s, one full bench sleep cycle (five wake lines about 2 s apart, then 60 s deep sleep; owner decision, option 1), and asserts that the first line of the expect file that is not empty and not a `#` comment, `NWBENCH wake=`, is in it. That line is printed once per reading cycle (`main/main.c:141`). A board that is asleep for the whole window fails. | `bench/firmware/expect.txt` (created from the firmware sources; not yet run on hardware); a device at `/dev/ttyACM0` | fails, with "timeout, expected line not seen" |
+| b. Serial live stream | Runs after step 3 (board provisioned and running). **No reset** (no esptool run, no reset, no RTS/DTR toggle). Reads the live serial stream for 75 s (owner decision, option 1). The bench image stays awake on USB (see "Timing" below), so readings continue and a wake line is printed about every 2 s. Asserts that the first line of the expect file that is not empty and not a `#` comment, `NWBENCH wake=`, is in it. That line is printed once per reading cycle (`main/main.c:141`). A board that prints no wake line for the whole window fails. | `bench/firmware/expect.txt` (created from the firmware sources; not yet run on hardware); a device at `/dev/ttyACM0` | fails, with "timeout, expected line not seen" |
 | c. BLE scan | `bluetoothctl` scan for 10 s; asserts that the first line of the expect file that is not empty and not a `#` comment, with all whitespace removed, is the start of a device name seen in the scan. Only the name field is read, and the device address never matches. | `bench/ble/expect.txt` (created from the firmware sources: prefix `NW-`; the value `UNSET` stops the step), `bluetoothctl` | fails |
 | 4. Install app APK on the 6P | Checks that exactly one device with the device id in secret `BENCH_ANDROID_SERIAL` is attached in state `device`, then runs `adb -s <device-id> install -r` with the APK from step 2. The device id is never printed. | Secret `BENCH_ANDROID_SERIAL`; the APK from step 2; `adb` | fails, no install |
 | d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). **As written, the script only opens the app (package from `app.config.ts`) and checks that the first screen title (`app.name`) exists.** The device steps (scan, connect, write the setup data, connected) are not in the script yet (owner input). It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh` (created; device steps are an owner input); secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL` and `BENCH_TEST_EMAIL_PASSWORD` (test account, passed as environment variables only); Appium 2.x on the runner | fails closed if a secret or Appium 2.x is missing |
@@ -133,11 +134,16 @@ the board as flashed by step a alone.
 - Step b needs the board running after provisioning. It sends no reset (no esptool run, no RTS/DTR toggle). Do not add a
   reset to step b.
 - The wake line exists only once the unit is provisioned (`main/main.c:73-81` deep-sleeps an unprovisioned unit before any read).
-- Timing (not measured on hardware): the bench build sets `CONFIG_PLANT_BENCH_SLEEP_CYCLE=y` (`sdkconfig.defaults.v1`). After
-  a wake the app prints five wake lines, about 2 s apart (`main/main.c:127`, `:145`), then deep-sleeps 60 s (`:148`).
-  Step b starts a few seconds after step 3's reset and reads for 75 s (owner decision, option 1). The window is one full
-  sleep cycle: five wake lines about 2 s apart (about 10 s), then 60 s deep sleep, 70 s in all. Any read start therefore
-  reaches a wake line inside the window. No reset is added to step b. See "Open points".
+- Timing (not measured on hardware): the bench image is the one built by `build-firmware` in this workflow, with
+  `sdkconfig.defaults.bench-ci` listed last. That overlay unsets `CONFIG_PLANT_BENCH_SLEEP_CYCLE`, so the measurement
+  loop never ends (`main/main.c:37-41`): after a wake the app prints a `NWBENCH wake=` line about every 2 s
+  (`main/main.c:127`, `:145`) and never reaches the deep sleep at `:148-152`. The board stays on USB. The bench image
+  has no 60 s deep sleep.
+- Step b starts a few seconds after step 3's reset and reads for 75 s (owner decision, option 1). Wake lines keep
+  coming, so any read start reaches a wake line inside the window. No reset is added to step b. See "Open points".
+- Production (default) build: `main/Kconfig.projbuild:39-41` defaults the option to `y`, so that build still
+  deep-sleeps after five readings (`main/main.c:148-152`). The overlay is not part of the production build, the v1
+  build or the upload build.
 
 **Version pins (fix round, 22 Nov 2026). Not run on the Pi, not run here.** esptool is pinned to **v5.x**: steps a, b and 3
 run `esptool version` and fail if the major is not 5, and steps a and 3 use the v5 command name `chip-id`. This was
@@ -198,8 +204,8 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
   Any fixed value (the ESP-IDF default table) is only a default and must be checked against the build's table.
 - Step a flashes the board as soon as both builds succeed. No `bench/` file gates that flash any more (the old gate was
   `bench/firmware/image.bin`). Owner to confirm.
-- Step b timing: the window is 75 s (owner decision, option 1), one full sleep cycle of about 70 s (five wake lines about
-  2 s apart, then 60 s deep sleep). Not checked on hardware. Any change must not add a reset to step b.
+- Step b timing: the window is 75 s (owner decision, option 1). The bench image stays awake, so wake lines continue
+  through the window. Not checked on hardware. Any change must not add a reset to step b.
 - Step 3 and step b use the same port (`/dev/ttyACM0`). After a hard reset the USB port may re-enumerate; step b checks
   that the port exists when it starts. Not checked on hardware.
 
