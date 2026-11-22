@@ -12,12 +12,13 @@ name: Bench (self-hosted)
 # Owner decision (21 Nov): nothing else may run on the Pi. The former branch allowance
 # (for PR #156, now closed) was removed in the PR #162 fix round. Manual runs from main only.
 #
-# Order (build first, then install and test together). Decided by the owner: step 3 runs after 4 and before d and e.
+# Order (build first, then install and test together). Decided by the owner (option 1): step 3 (provisioning) runs
+# after a and before b, so the board is provisioned before the serial live-stream check. Step b needs the board running.
 #   build-firmware   GitHub-hosted, no secrets. Builds the setup-flow firmware. Artifact: plant-monitor-firmware-setup.
 #   build-apk        GitHub-hosted, no secrets. Builds the Android debug APK. Artifact: plant-monitor-app-debug-<sha7>.
 #   bench            the Pi. Needs both builds. Downloads both artifacts from THIS run, then runs steps
-#                    1 (firmware), 2 (APK), a (flash), b (serial boot log), c (BLE scan), 4 (APK install),
-#                    3 (provision and flash NVS), d (app flow), e (cloud check), E2E.
+#                    1 (firmware), 2 (APK), a (flash), 3 (provision and flash NVS), b (serial live stream, no reset),
+#                    c (BLE scan), 4 (APK install), d (app flow), e (cloud check), E2E.
 # The two build jobs never touch the Pi. Their steps are copied from ci.yml (firmware job, setup image)
 # and app-apk.yml (android-debug-apk job); they are not new builds.
 #
@@ -283,8 +284,8 @@ jobs:
             exit 1
           fi
 
-      # Downloads and hardware steps, in the order the owner decided. The downloads come first (they are the builds
-      # of this run), then a, b, c, 4 (APK install), 3 (provisioning, NVS last), d (app flow), e (cloud check), E2E.
+      # Downloads and hardware steps, in the order the owner decided (option 1). The downloads come first (they are the
+      # builds of this run), then a (flash), 3 (provisioning, NVS last), b (serial check), c, 4 (APK install), d, e, E2E.
       # Each one fails closed: if its input is missing it prints "not configured: nothing tested" and exits 1.
       # The E2E test bundle (expo export, run by bench/run_e2e.sh) is built on the Pi only when the app's node_modules
       # are installed on the runner. That is not yet the case.
@@ -396,126 +397,6 @@ jobs:
           rm -f "$plan"
           echo "a. firmware flash: setup firmware written to ${BENCH_ESP_PORT}"
 
-      - name: "b. Serial boot log check (20 s)"
-        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected boot line text).
-        env:
-          BENCH_ESP_PORT: /dev/ttyACM0
-        run: |
-          set -euo pipefail
-          expect="bench/firmware/expect.txt"
-          if [ ! -f "$expect" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
-            exit 1
-          fi
-          # Lines starting with # are the header comment of the file, not the expected text.
-          line="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
-          if [ -z "$line" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
-            exit 1
-          fi
-          esptool="$(command -v esptool.py || command -v esptool || true)"
-          if [ -z "$esptool" ] || [ ! -e "$BENCH_ESP_PORT" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (no esptool or no device at ${BENCH_ESP_PORT})"
-            exit 1
-          fi
-          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
-          if [ "$esptool_major" != "5" ]; then
-            echo "::error::b. serial check: esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
-            exit 1
-          fi
-          log="$(mktemp)"
-          stty -F "$BENCH_ESP_PORT" 115200 raw -echo
-          # Start the reader first, then reset the board, so the boot lines are captured.
-          timeout 20 cat "$BENCH_ESP_PORT" > "$log" &
-          reader=$!
-          sleep 1
-          "$esptool" --port "$BENCH_ESP_PORT" run
-          wait "$reader" || true   # timeout exits 124 after 20 s; that is the expected end
-          if grep -F -q -- "$line" "$log"; then
-            echo "b. serial: expected boot line seen: ${line}"
-          else
-            echo "::error::b. serial check failed: expected boot line not seen in 20 s: ${line}"
-            tail -n 20 "$log"
-            exit 1
-          fi
-
-      - name: "c. BLE scan (10 s)"
-        # Input: bench/ble/expect.txt (first line that is neither empty nor a # comment = device name prefix).
-        # Checks only that the device advertises its expected name prefix. No other check.
-        run: |
-          set -euo pipefail
-          expect="bench/ble/expect.txt"
-          if [ ! -f "$expect" ]; then
-            echo "::error::c. BLE check: not configured: nothing tested (missing ${expect})"
-            exit 1
-          fi
-          # Lines starting with # are the header comment of the file, not the expected name.
-          first="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
-          prefix="$(printf '%s' "$first" | tr -d '[:space:]')"
-          if [ -z "$prefix" ]; then
-            echo "::error::c. BLE check: not configured: nothing tested (${expect} is empty)"
-            exit 1
-          fi
-          if [ "$prefix" = "UNSET" ]; then
-            echo "::error::bench/ble/expect.txt has no expected name yet: owner input needed"
-            exit 1
-          fi
-          if ! command -v bluetoothctl >/dev/null 2>&1; then
-            echo "::error::c. BLE check: not configured: nothing tested (bluetoothctl not installed)"
-            exit 1
-          fi
-          log="$(mktemp)"
-          names="$(mktemp)"
-          { echo "power on"; echo "scan on"; sleep 10; echo "scan off"; echo "quit"; } \
-            | timeout 30 bluetoothctl > "$log" 2>&1 || true
-          # Take only the NAME field of each device line, after the MAC. Accepted lines (any prompt
-          # or text before "Device" is ignored, and so is a [NEW] or [CHG] tag):
-          #   Device <MAC> <Name>
-          #   [NEW] Device <MAC> <Name>
-          #   [CHG] Device <MAC> Name: <name>      (the "Name: " label is dropped)
-          # Every other [CHG] line (RSSI, TxPower, UUIDs, ...) is a property, not a name, and is ignored.
-          # [DEL] lines are skipped: a removed device is not a seen device.
-          # Written to a file first, with no grep -q after a pipe (SIGPIPE and pipefail false FAIL).
-          sed -n -E \
-            -e '/\[DEL\] Device /d' \
-            -e '/\[CHG\] Device /{ s/^.*\[CHG\] Device [0-9A-Fa-f:]{17} Name: (.*)$/\1/p; d; }' \
-            -e 's/^.*Device [0-9A-Fa-f:]{17} (.*)$/\1/p' \
-            "$log" > "$names" || true
-          # The prefix must match the START of the name field. A MAC address or any other text
-          # on the line never counts. "$prefix"* is a literal prefix in a case pattern.
-          found=""
-          while IFS= read -r name; do
-            case "$name" in
-              "$prefix"*) found="$name"; break ;;
-            esac
-          done < "$names"
-          if [ -n "$found" ]; then
-            echo "c. BLE: device name '${found}' starts with prefix '${prefix}' in 10 s scan"
-          else
-            echo "::error::c. BLE check failed: no device with name prefix '${prefix}' in 10 s scan"
-            tail -n 20 "$log"
-            exit 1
-          fi
-
-      - name: "4. Install app APK on the 6P (adb)"
-        # Input: the APK from step 2; secret BENCH_ANDROID_SERIAL (phone id, never printed).
-        env:
-          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
-        run: |
-          set -euo pipefail
-          fail() { echo "::error::4. APK install: $1"; exit 1; }
-          serial="${BENCH_ANDROID_SERIAL:-}"
-          [ -n "$serial" ] || fail "not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
-          apk="${BENCH_APK_PATH:-}"
-          [ -n "$apk" ] && [ -f "$apk" ] || fail "not configured: nothing tested (no APK from step 2)"
-          command -v adb >/dev/null 2>&1 || fail "not configured: nothing tested (adb not installed)"
-          adb start-server >/dev/null 2>&1 || true
-          # Count attached devices with the configured serial in state "device". The serial is not printed.
-          n="$(adb devices | awk -v s="$serial" 'NR>1 && $1==s && $2=="device" {n++} END {print n+0}')"
-          [ "$n" = "1" ] || fail "expected exactly one attached device with the configured serial in state device, found ${n}"
-          adb -s "$serial" install -r "$apk"
-          echo "4. APK installed on the configured device (serial not shown)"
-
       - name: "3. Provision and flash board (build-setup files, then NVS last)"
         # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, <board-hw-id>); repo variable BENCH_PROVISION_DIR
         # (required, no default: the provisioning folder on the Pi, set by the owner) with
@@ -525,6 +406,8 @@ jobs:
         # The NVS partition is built from the CSV and written LAST, at the offset of the partition
         # named nvs in the partition table binary of the build. No offset is fixed in this file.
         # The CSV and label are never printed. The label is checked, but the flash does not use it.
+        # Runs before step b. It does not read anything step b writes. esptool's default --after is hard_reset, so
+        # the last write (NVS) ends with a board reset and the board boots the provisioned image. Step b reads that boot.
         # The NVS CSV is built into a 0700 temp dir, removed by the EXIT trap.
         env:
           BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
@@ -663,6 +546,136 @@ jobs:
           echo "3. flash: writing nvs partition at ${nvs_off}"
           "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$nvs_off" "$nvs_bin" < /dev/null
           echo "3. provisioning: build-setup files and NVS written to ${BENCH_ESP_PORT}"
+
+      - name: "b. Serial live stream check (75 s, no reset)"
+        # Runs after step 3 (provisioning). No reset here: this step sends no esptool run, no reset and no RTS/DTR
+        # toggle. It reads the live USB serial stream for a 75 s window and passes only when the expected line appears.
+        # The line is "NWBENCH wake=", printed once per reading cycle by the bench app
+        # (main/main.c:141, about every 2 s plus sensor time).
+        # 75 s is one full bench sleep cycle: five wake lines about 2 s apart, then 60 s deep sleep (owner decision,
+        # option 1). Any read start therefore reaches a wake line inside the window. No reset is added.
+        # A board that is in its 60 s deep sleep for the whole window prints nothing: the step then fails closed.
+        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected line text).
+        env:
+          BENCH_ESP_PORT: /dev/ttyACM0
+        run: |
+          set -euo pipefail
+          window=75   # seconds of live stream to read (the step timeout): one full sleep cycle
+          expect="bench/firmware/expect.txt"
+          if [ ! -f "$expect" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
+            exit 1
+          fi
+          # Lines starting with # are the header comment of the file, not the expected text.
+          line="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
+          if [ -z "$line" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          esptool="$(command -v esptool.py || command -v esptool || true)"
+          if [ -z "$esptool" ] || [ ! -e "$BENCH_ESP_PORT" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (no esptool or no device at ${BENCH_ESP_PORT})"
+            exit 1
+          fi
+          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
+          if [ "$esptool_major" != "5" ]; then
+            echo "::error::b. serial check: esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
+            exit 1
+          fi
+          log="$(mktemp)"
+          stty -F "$BENCH_ESP_PORT" 115200 raw -echo
+          # Read the live stream for the window. timeout exits 124 when the window ends (the expected end);
+          # any other non-zero exit means the read itself failed.
+          rc=0
+          timeout "$window" cat "$BENCH_ESP_PORT" > "$log" || rc=$?
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
+            echo "::error::b. serial check failed: could not read ${BENCH_ESP_PORT} (cat exit ${rc}), nothing tested"
+            exit 1
+          fi
+          if grep -F -q -- "$line" "$log"; then
+            echo "b. serial: expected line seen in the live stream: ${line}"
+          else
+            echo "::error::b. serial check failed: timeout, expected line not seen in ${window} s of live stream (no reset sent): ${line}"
+            tail -n 20 "$log"
+            exit 1
+          fi
+
+      - name: "c. BLE scan (10 s)"
+        # Input: bench/ble/expect.txt (first line that is neither empty nor a # comment = device name prefix).
+        # Checks only that the device advertises its expected name prefix. No other check.
+        run: |
+          set -euo pipefail
+          expect="bench/ble/expect.txt"
+          if [ ! -f "$expect" ]; then
+            echo "::error::c. BLE check: not configured: nothing tested (missing ${expect})"
+            exit 1
+          fi
+          # Lines starting with # are the header comment of the file, not the expected name.
+          first="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
+          prefix="$(printf '%s' "$first" | tr -d '[:space:]')"
+          if [ -z "$prefix" ]; then
+            echo "::error::c. BLE check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          if [ "$prefix" = "UNSET" ]; then
+            echo "::error::bench/ble/expect.txt has no expected name yet: owner input needed"
+            exit 1
+          fi
+          if ! command -v bluetoothctl >/dev/null 2>&1; then
+            echo "::error::c. BLE check: not configured: nothing tested (bluetoothctl not installed)"
+            exit 1
+          fi
+          log="$(mktemp)"
+          names="$(mktemp)"
+          { echo "power on"; echo "scan on"; sleep 10; echo "scan off"; echo "quit"; } \
+            | timeout 30 bluetoothctl > "$log" 2>&1 || true
+          # Take only the NAME field of each device line, after the MAC. Accepted lines (any prompt
+          # or text before "Device" is ignored, and so is a [NEW] or [CHG] tag):
+          #   Device <MAC> <Name>
+          #   [NEW] Device <MAC> <Name>
+          #   [CHG] Device <MAC> Name: <name>      (the "Name: " label is dropped)
+          # Every other [CHG] line (RSSI, TxPower, UUIDs, ...) is a property, not a name, and is ignored.
+          # [DEL] lines are skipped: a removed device is not a seen device.
+          # Written to a file first, with no grep -q after a pipe (SIGPIPE and pipefail false FAIL).
+          sed -n -E \
+            -e '/\[DEL\] Device /d' \
+            -e '/\[CHG\] Device /{ s/^.*\[CHG\] Device [0-9A-Fa-f:]{17} Name: (.*)$/\1/p; d; }' \
+            -e 's/^.*Device [0-9A-Fa-f:]{17} (.*)$/\1/p' \
+            "$log" > "$names" || true
+          # The prefix must match the START of the name field. A MAC address or any other text
+          # on the line never counts. "$prefix"* is a literal prefix in a case pattern.
+          found=""
+          while IFS= read -r name; do
+            case "$name" in
+              "$prefix"*) found="$name"; break ;;
+            esac
+          done < "$names"
+          if [ -n "$found" ]; then
+            echo "c. BLE: device name '${found}' starts with prefix '${prefix}' in 10 s scan"
+          else
+            echo "::error::c. BLE check failed: no device with name prefix '${prefix}' in 10 s scan"
+            tail -n 20 "$log"
+            exit 1
+          fi
+
+      - name: "4. Install app APK on the 6P (adb)"
+        # Input: the APK from step 2; secret BENCH_ANDROID_SERIAL (phone id, never printed).
+        env:
+          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::4. APK install: $1"; exit 1; }
+          serial="${BENCH_ANDROID_SERIAL:-}"
+          [ -n "$serial" ] || fail "not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
+          apk="${BENCH_APK_PATH:-}"
+          [ -n "$apk" ] && [ -f "$apk" ] || fail "not configured: nothing tested (no APK from step 2)"
+          command -v adb >/dev/null 2>&1 || fail "not configured: nothing tested (adb not installed)"
+          adb start-server >/dev/null 2>&1 || true
+          # Count attached devices with the configured serial in state "device". The serial is not printed.
+          n="$(adb devices | awk -v s="$serial" 'NR>1 && $1==s && $2=="device" {n++} END {print n+0}')"
+          [ "$n" = "1" ] || fail "expected exactly one attached device with the configured serial in state device, found ${n}"
+          adb -s "$serial" install -r "$apk"
+          echo "4. APK installed on the configured device (serial not shown)"
 
       - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
         # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
