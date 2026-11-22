@@ -70,19 +70,27 @@ export function createFakeProvisioning(opts: FakeProvisioningOptions = {}) {
   return { service, state };
 }
 
-export function createFakePlants(opts: { failNext?: boolean; linked?: boolean } = {}) {
+export function createFakePlants(opts: { failNext?: boolean; linked?: boolean; commitThenLose?: boolean; unreadable?: boolean } = {}) {
   const created: { deviceId: string; details: PlantDetails; photoUri: string | null }[] = [];
   /** device ids whose sensor was moved from another plant (the user chose move) */
   const moved: string[] = [];
   const o = opts;
+  let linkedNow = false;   // a save committed on the fake "server"
   const service: PlantSetupService = {
+    async currentPlant() {
+      if (o.unreadable) throw new PlantSetupError();
+      return o.linked || linkedNow ? 'plant-current' : null;
+    },
     async createPlant(deviceId, details, photoUri, call) {
       if (o.failNext) { o.failNext = false; throw new PlantSetupError(); }
       const move = call?.moveFromCurrent === true;
-      if (o.linked && !move) return { status: 'already_linked' };   // the fake sensor has a plant: nothing is written
+      if ((o.linked || linkedNow) && !move) return { status: 'already_linked' };   // nothing is written
       created.push({ deviceId, details, photoUri });
       if (move && o.linked) moved.push(deviceId);
       if (move) o.linked = false;
+      linkedNow = true;
+      // the server committed, but the answer was lost on the way back
+      if (o.commitThenLose) { o.commitThenLose = false; throw new PlantSetupError(); }
       return { status: 'saved', plantId: `plant-${created.length}` };
     },
   };

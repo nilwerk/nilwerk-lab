@@ -205,7 +205,7 @@ describe('device setup flow', () => {
     await header('Take a photo');
   });
 
-  test('plant details: required fields are validated, a failed save says the sensor is not linked to the plant and can be retried', async () => {
+  test('plant details: required fields are validated, a failed save asks the user to check the plant list and can be retried', async () => {
     const { fake } = await mount();
     await toPhoto();
     await tap('Skip for now');
@@ -217,7 +217,7 @@ describe('device setup flow', () => {
     await fillDetails();
     fake.plants.options.failNext = true;
     await tap('Save plant');
-    expect(await screen.findByText(/The plant could not be saved, so your sensor is not linked to it/)).toBeTruthy();
+    expect(await screen.findByText(/The save could not be confirmed/)).toBeTruthy();
     await tap('Save plant');
     await header('All set!');
   });
@@ -248,6 +248,25 @@ describe('device setup flow', () => {
     await header('All set!');
     expect(fake.plants.created).toHaveLength(1);
     expect(fake.plants.moved).toEqual(['device-1']);
+  });
+
+  test('exact sequence (fake): Move commits, its answer is lost, the re-read shows the plant: keep only, no second plant', async () => {
+    const { fake, onExit } = await mount();
+    fake.plants.options.linked = true;
+    fake.plants.options.commitThenLose = true;
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    await header('This sensor already has a plant');
+    await tap('Move the sensor to the new plant');
+    expect(await header('Your sensor is already on a plant')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Move the sensor to the new plant' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save plant' })).toBeNull();
+    expect(fake.plants.created).toHaveLength(1);
+    await tap('Go to my plants');
+    expect(onExit).toHaveBeenCalled();
+    expect(fake.plants.created).toHaveLength(1);
   });
 
   test('add another sensor restarts at step 1; cancel exits and disconnects', async () => {

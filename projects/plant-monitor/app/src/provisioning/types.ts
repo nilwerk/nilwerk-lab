@@ -56,6 +56,8 @@ export interface PlantSetupService {
   /** Insert the plant and point devices.plant_id at it, in ONE server call (all or nothing). Photo is refused in the real build (not dropped).
    *  A sensor that already has a plant is only moved when moveFromCurrent is true; otherwise the answer is already_linked and nothing is written. */
   createPlant(deviceId: string, details: PlantDetails, photoUri: string | null, opts?: { moveFromCurrent?: boolean }): Promise<PlantSaveResult>;
+  /** Read-only: the plant the sensor is on now (null = none). Used after a failed save, because the save may have committed. Throws if it cannot be read. */
+  currentPlant(deviceId: string): Promise<string | null>;
 }
 
 /** Camera / library. Real one (expo-image-picker) arrives with the dev build; null = user cancelled. */

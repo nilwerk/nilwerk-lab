@@ -137,3 +137,29 @@ describe('unconfigured build and photo source', () => {
     expect(await noPhotoSource.pickFromLibrary()).toBeNull();
   });
 });
+
+describe('currentPlant: the re-read after a failed save (read-only)', () => {
+  test('returns the plant the sensor is on now, or null when it has none', async () => {
+    const PLANT_ID = '55555555-5555-4555-8555-555555555555';
+    expect(await mk(backend({ 'GET /rest/v1/devices': getDevice(PLANT_ID) })).currentPlant(DEVICE)).toBe(PLANT_ID);
+    expect(await mk(backend({ 'GET /rest/v1/devices': getDevice(null) })).currentPlant(DEVICE)).toBeNull();
+  });
+
+  test('an invisible device is an error, not "no plant"', async () => {
+    await expect(mk(backend({ 'GET /rest/v1/devices': () => res(200, []) })).currentPlant(DEVICE)).rejects.toMatchObject({ message: 'device_not_found' });
+  });
+
+  test('a lost answer after the RPC committed: the re-read sees the plant, and the RPC is not sent again', async () => {
+    const PLANT_ID = '55555555-5555-4555-8555-555555555555';
+    let committed = false;
+    const f = jest.fn(async (url: string, init: RequestInit) => {
+      if (init.method === 'GET') return getDevice(committed ? PLANT_ID : null)(url, init);
+      committed = true;
+      throw new TypeError('network down after commit');
+    });
+    const svc = mk(f);
+    await expect(svc.createPlant(DEVICE, details, null)).rejects.toBeInstanceOf(PlantSetupError);
+    expect(await svc.currentPlant(DEVICE)).toBe(PLANT_ID);
+    expect(f.mock.calls.filter((c) => String(c[0]) === RPC)).toHaveLength(1);
+  });
+});

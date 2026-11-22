@@ -20,9 +20,25 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** optional text: an empty field is stored as null, not as ''. */
 const opt = (s: string): string | null => (s.trim() === '' ? null : s.trim());
 
+/** GET the device row (RLS: own device only). An empty answer means the device is not visible, which is an error, not "no plant". */
+async function readCurrentPlant(rest: RestDeps, deviceId: string): Promise<string | null> {
+  try {
+    const dev = await call(rest, `/rest/v1/devices?select=plant_id&id=eq.${deviceId}`);
+    if (!Array.isArray(dev.json) || dev.json.length !== 1) throw new PlantSetupError('device_not_found');
+    return (dev.json[0] as { plant_id?: string | null }).plant_id ?? null;
+  } catch (e) {
+    if (e instanceof PlantSetupError) throw e;
+    throw new PlantSetupError();
+  }
+}
+
 export function createRealPlantSetup(d: RealPlantSetupDeps): PlantSetupService {
   const rest: RestDeps = { baseUrl: d.baseUrl, publishableKey: d.publishableKey, getAccessToken: d.getAccessToken, fetchImpl: d.fetchImpl };
   return {
+    async currentPlant(deviceId: string): Promise<string | null> {
+      if (!UUID.test(deviceId)) throw new PlantSetupError('device_not_found');
+      return readCurrentPlant(rest, deviceId);
+    },
     async createPlant(deviceId: string, details: PlantDetails, photoUri: string | null, opts: { moveFromCurrent?: boolean } = {}): Promise<PlantSaveResult> {
       if (photoUri !== null) throw new PlantSetupError('photo_unsupported');
       if (!UUID.test(deviceId)) throw new PlantSetupError('device_not_found');
@@ -30,16 +46,7 @@ export function createRealPlantSetup(d: RealPlantSetupDeps): PlantSetupService {
       if (!ownerId) throw new PlantSetupError('not_signed_in');
 
       // 1. read the sensor's current plant (RLS: only the owner's device is visible). Nothing is written yet.
-      let currentPlant: string | null;
-      try {
-        const dev = await call(rest, `/rest/v1/devices?select=plant_id&id=eq.${deviceId}`);
-        // an empty answer means the device is not visible (RLS), so it is not a silent "no plant"
-        if (!Array.isArray(dev.json) || dev.json.length !== 1) throw new PlantSetupError('device_not_found');
-        currentPlant = (dev.json[0] as { plant_id?: string | null }).plant_id ?? null;
-      } catch (e) {
-        if (e instanceof PlantSetupError) throw e;
-        throw new PlantSetupError();
-      }
+      const currentPlant = await readCurrentPlant(rest, deviceId);
       if (currentPlant !== null && !opts.moveFromCurrent) return { status: 'already_linked' };
 
       // 2. one server call: plant insert + device link in one transaction (create_plant_and_link_device, migration 1 / db-schema.sql).
@@ -64,6 +71,7 @@ export function createRealPlantSetup(d: RealPlantSetupDeps): PlantSetupService {
 /** Real build without a configured backend: saving says so; it never pretends. */
 export const unconfiguredPlantSetup: PlantSetupService = {
   async createPlant() { throw new PlantSetupError('not_configured'); },
+  async currentPlant() { throw new PlantSetupError('not_configured'); },
 };
 
 /** Real build: no photo source yet (expo-image-picker and the upload come later). supported=false makes the photo step offer only "Skip". */
