@@ -41,7 +41,7 @@ M = [
  ("nw_prov.c", "    else p->state = NW_PROV_S_ADVERTISING;                   /* a failed", "    else p->state = NW_PROV_S_SESSION;                   /* a failed", "failed handshake drops session"),
  ("nw_prov.c", "if (p->state != NW_PROV_S_SESSION || !p->have_wifi || !p->have_claim)", "if (p->state != NW_PROV_S_SESSION || !p->have_wifi)", "apply needs claim"),
  ("nw_prov.c", "if (!nw_prov_valid_ssid(ssid) || !nw_prov_valid_passphrase(passphrase)) return NW_PROV_ERR_BAD_REQUEST;", "", "wifi validation"),
- ("nw_prov.c", "(uint32_t)(now_ms - p->setup_started_ms) >= NW_PROV_SETUP_TIMEOUT_MS", "now_ms - p->setup_started_ms > NW_PROV_SETUP_TIMEOUT_MS", "deadline boundary"),
+ ("nw_prov.c", "(uint32_t)(now_ms - p->setup_started_ms) >= window", "now_ms - p->setup_started_ms > window", "deadline boundary"),
  ("nw_prov.c", "if ((p->state == NW_PROV_S_ADVERTISING || p->state == NW_PROV_S_SESSION) &&", "if ((p->state == NW_PROV_S_ADVERTISING || p->state == NW_PROV_S_SESSION || in_flight(p)) &&", "no timeout while in flight"),
  ("nw_prov.c", "    p->have_wifi = false;\n    wipe(p->pending.ssid", "    wipe(p->pending.ssid", "wifi retry needs new config"),
  ("nw_prov.c", "    wipe(p->pending.passphrase, sizeof p->pending.passphrase);\n    p->st = NW_PROV_ST_WIFI_FAILED;", "    p->st = NW_PROV_ST_WIFI_FAILED;", "failed password wiped"),

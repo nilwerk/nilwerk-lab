@@ -145,6 +145,9 @@ jobs:
             # Double quotes only in this block: the action wraps the whole command in single quotes, so a single quote here ends that wrapper early.
             if grep -q "^CONFIG_PLANT_BENCH_SLEEP_CYCLE=y" sdkconfig.setup; then echo "bench sleep cycle must be unset in the setup image (sdkconfig.defaults.bench-ci)"; exit 1; fi
             grep -qxF "# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set" sdkconfig.setup || { echo "sdkconfig.setup lacks the line: # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set (bench-ci overlay not applied)"; exit 1; }
+            # Bench CI image: BLE setup window on every cold start without BOOT (sdkconfig.defaults.bench-ci). Double quotes only.
+            grep -q "^CONFIG_PLANT_BENCH_AUTO_SETUP=y" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_AUTO_SETUP=y (bench-ci overlay not applied)"; exit 1; }
+            grep -q "^CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60 (bench-ci overlay not applied)"; exit 1; }
             test -s build-setup/plant_monitor.bin
       - name: Check every flash file named in flasher_args.json
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
