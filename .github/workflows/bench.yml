@@ -275,8 +275,11 @@ jobs:
           echo "1. app APK: ${art_name} (run ${run_id}, main, commit ${run_sha}) saved to the runner workspace"
 
       - name: "2. Download firmware image (plant-monitor-firmware-setup)"
-        # Input: artifact plant-monitor-firmware-setup from the newest successful run of
-        # firmware-bench-image.yml on main. The workflow is being added by Mira; until then this fails closed.
+        # Input: artifact plant-monitor-firmware-setup from a successful run of the CI workflow
+        # (.github/workflows/ci.yml, job firmware, step "Upload setup firmware artifact") on main.
+        # The newest successful main run that has the artifact is used. The step is uploaded only for
+        # pushes to main and same-repo PRs. Until that step is on main (PR #158) and a main run has run it,
+        # no run has the artifact and this step fails closed.
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -289,22 +292,35 @@ jobs:
             curl -sS -f -L -H "Authorization: Bearer ${GH_TOKEN}" \
               -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$@"
           }
-          runs="$(get "${api}/workflows/firmware-bench-image.yml/runs?branch=main&status=success&per_page=1")" \
-            || fail "firmware artifact not found (no successful firmware-bench-image.yml run on main, or the workflow does not exist yet)"
-          run_info="$(printf '%s' "$runs" | python3 -I -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"], r[0]["head_sha"]) if r else print("")')"
-          read -r run_id run_sha <<<"$run_info" || true
-          [ -n "$run_id" ] || fail "firmware artifact not found (no successful firmware-bench-image.yml run on main)"
-          [[ "$run_sha" =~ ^[0-9a-f]{40}$ ]] || fail "firmware run ${run_id} has no commit sha"
-          arts="$(get "${api}/runs/${run_id}/artifacts?per_page=100")" \
-            || fail "firmware artifact not found (artifact list failed for run ${run_id})"
-          art_id="$(printf '%s' "$arts" | python3 -I -c '
+          # Completed runs of ci.yml on main, then keep only successful ones, newest first (by created_at).
+          runs="$(get "${api}/workflows/ci.yml/runs?branch=main&status=completed&per_page=100")" \
+            || fail "firmware artifact not found (CI runs on main could not be listed)"
+          cands="$(printf '%s' "$runs" | python3 -I -c '
+          import json, sys
+          runs = [r for r in json.load(sys.stdin).get("workflow_runs", [])
+                  if r.get("conclusion") == "success" and r.get("head_branch") == "main"
+                  and r.get("id") and r.get("head_sha")]
+          runs.sort(key=lambda r: r.get("created_at", ""), reverse=True)
+          for r in runs:
+              print(r["id"], r["head_sha"])
+          ')"
+          [ -n "$cands" ] || fail "firmware artifact not found (no successful ci.yml run on main in the last 100 completed runs)"
+          run_id=""; run_sha=""; art_id=""
+          while read -r cand_id cand_sha; do
+            [[ "$cand_sha" =~ ^[0-9a-f]{40}$ ]] || continue
+            arts="$(get "${api}/runs/${cand_id}/artifacts?per_page=100")" \
+              || fail "firmware artifact not found (artifact list failed for CI run ${cand_id})"
+            art_id="$(printf '%s' "$arts" | python3 -I -c '
           import json, sys
           hits = [a for a in json.load(sys.stdin).get("artifacts", [])
                   if a.get("name") == "plant-monitor-firmware-setup" and not a.get("expired", False)]
           if hits:
               print(hits[0]["id"])
           ')"
-          [ -n "$art_id" ] || fail "firmware artifact not found (no plant-monitor-firmware-setup in run ${run_id})"
+            if [ -n "$art_id" ]; then run_id="$cand_id"; run_sha="$cand_sha"; break; fi
+          done <<<"$cands"
+          [ -n "$art_id" ] || fail "firmware artifact not found (no plant-monitor-firmware-setup in the last 100 completed ci.yml runs on main)"
+          [[ "$run_sha" =~ ^[0-9a-f]{40}$ ]] || fail "CI run ${run_id} has no commit sha"
           work="${GITHUB_WORKSPACE}/bench-artifacts/firmware"
           mkdir -p "$work"
           zip="$work/artifact.zip"
