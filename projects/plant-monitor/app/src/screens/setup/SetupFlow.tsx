@@ -106,8 +106,9 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
     case 'photo': return <PhotoStep time={time} cancelled={photoCancelled} onTake={() => pick(true)} onPick={() => pick(false)} supported={photos.supported !== false} onSkip={() => dispatch({ type: 'photo', uri: null })} />;
     case 'details':
       if (recheck) return <LinkedStep unknown={recheck === 'unknown'} onLeave={onExit} />;
-      if (pendingMove) return <MoveChoiceStep time={time} busy={saving} error={saveError} onKeep={onExit} onMove={() => save(pendingMove, true)} />;
-      return <DetailsStep time={time} busy={saving} error={saveError} onSave={(d) => save(d)} onBack={() => dispatch({ type: 'backToPhoto' })} />;
+      if (pendingMove) return <MoveChoiceStep time={time} busy={saving} onKeep={onExit} onMove={() => save(pendingMove, true)} />;
+      // Back is withdrawn while a save is in flight: the answer must land on the same attempt, and a Back during the save would leave it without the saved plant
+      return <DetailsStep time={time} busy={saving} error={saveError} onSave={(d) => save(d)} onBack={saving ? undefined : () => dispatch({ type: 'backToPhoto' })} />;
     case 'done': return <DoneStep plantName={s.plantName ?? ''} time={time} onDone={onExit} onAnother={restart} />;
   }
 }

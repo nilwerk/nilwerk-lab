@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SetupFlow } from '../screens/setup/SetupFlow';
+import { initialSetup, setupReducer } from '../screens/setup/setupState';
 import { createFakeSetup, FAKE_LABEL, FAKE_SENSOR, FAKE_WIFI, unavailableProvisioning } from '../provisioning/fakeProvisioning';
 
 const metrics = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } };
@@ -267,6 +268,33 @@ describe('device setup flow', () => {
     await tap('Go to my plants');
     expect(onExit).toHaveBeenCalled();
     expect(fake.plants.created).toHaveLength(1);
+  });
+
+  test('Back during an in-flight save: Back is withdrawn, the saved plant is shown, and no Move is offered', async () => {
+    const fake = createFakeSetup();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    const inner = fake.services.plants.createPlant;
+    fake.services.plants = { ...fake.services.plants, createPlant: async (...args) => { await gate; return inner(...args); } };
+    const { onExit } = await mount(fake);
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    release();
+    expect(await header('All set!')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Move the sensor to the new plant' })).toBeNull();
+    expect(fake.plants.created).toHaveLength(1);
+    expect(fake.plants.moved).toHaveLength(0);
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  test('a late saved answer is accepted from any step of the same attempt (never dropped), not after a restart', () => {
+    const base = { ...initialSetup(0), step: 'photo' as const, deviceId: 'device-1' };
+    const done = setupReducer(base, { type: 'saved', plantName: 'Basil', now: 5 });
+    expect(done).toMatchObject({ step: 'done', plantName: 'Basil', finishedAt: 5 });
+    expect(setupReducer(initialSetup(0), { type: 'saved', plantName: 'Basil', now: 5 }).step).toBe('ready');
   });
 
   test('add another sensor restarts at step 1; cancel exits and disconnects', async () => {

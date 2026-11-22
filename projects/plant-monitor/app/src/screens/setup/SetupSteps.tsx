@@ -161,7 +161,7 @@ export function PhotoStep({ time, cancelled, supported = true, onTake, onPick, o
   );
 }
 
-export function DetailsStep({ time, busy, error, onSave, onBack }: { time: string; busy: boolean; error: boolean; onSave: (d: PlantDetails) => void; onBack: () => void }) {
+export function DetailsStep({ time, busy, error, onSave, onBack }: { time: string; busy: boolean; error: boolean; onSave: (d: PlantDetails) => void; onBack?: () => void }) {
   const [d, setD] = useState<PlantDetails>({ name: '', location: 'house', area: '', soil: 'potting', species: '', city: '' });
   const [shown, setShown] = useState(false);
   const set = <K extends keyof PlantDetails>(k: K, v: PlantDetails[K]) => setD((p) => ({ ...p, [k]: v }));
@@ -201,7 +201,7 @@ export function DoneStep({ plantName, time, onDone, onAnother }: { plantName: st
 }
 
 /** FR-A03 / NFR-06 (N2): the sensor already has a plant. Nothing is written until the user picks one of the two choices. */
-export function MoveChoiceStep({ time, busy, error, onKeep, onMove }: { time: string; busy: boolean; error: boolean; onKeep: () => void; onMove: () => void }) {
+export function MoveChoiceStep({ time, busy, onKeep, onMove }: { time: string; busy: boolean; onKeep: () => void; onMove: () => void }) {
   return (
     <Screen title={t('setup.move.title')}>
       <Progress n={5} time={time} />
@@ -210,7 +210,6 @@ export function MoveChoiceStep({ time, busy, error, onKeep, onMove }: { time: st
       <Body muted>{t('setup.move.keepHint')}</Body>
       <Button label={t('setup.move.move')} disabled={busy} busy={busy} onPress={onMove} />
       <Body muted>{t('setup.move.moveHint')}</Body>
-      {error ? <Notice kind="error" text={t('setup.details.saveError')} /> : null}
     </Screen>
   );
 }
