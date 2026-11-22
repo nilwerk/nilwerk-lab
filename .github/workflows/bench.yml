@@ -291,20 +291,20 @@ jobs:
           echo "BENCH_FW_IMAGE_PATH=${fw}" >> "$GITHUB_ENV"
           echo "2. firmware: plant-monitor-firmware-setup (run ${run_id}, main) saved to the runner workspace"
 
-      - name: "3. Provision and flash board (NVS, then firmware image)"
+      - name: "3. Provision and flash board (build-setup files, then NVS last)"
         # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, nw-c8da2986f470); the folder
         # BENCH_PROVISION_DIR on the Pi (default $HOME/nilwerk-secrets/provision-out) with
-        # <hw_id>.nvs.csv and <hw_id>.label.txt, both mode 0600; the image from step 2.
+        # <hw_id>.nvs.csv and <hw_id>.label.txt, both mode 0600; the build-setup folder of the
+        # firmware artifact from step 2 (flasher_args.json and the .bin files it lists).
+        # Every file in flasher_args.json flash_files is written at its listed offset (none hard-coded).
+        # The NVS partition is built from the CSV and written LAST, at the offset of the partition
+        # named nvs in the partition table binary of the build. No offset is fixed in this file.
         # The CSV and label are never printed. The label is checked, but the flash does not use it.
         # The NVS CSV is built into a 0700 temp dir, removed by the EXIT trap.
-        # NVS offset and size are the ESP-IDF default partition table (nvs at 0x9000, 0x6000 long).
         env:
           BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
           BENCH_PROVISION_DIR: ${{ vars.BENCH_PROVISION_DIR }}
           BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
-          BENCH_FLASH_OFFSET: "0x0"        # offset of the merged full-flash image
-          BENCH_NVS_OFFSET: "0x9000"       # NVS partition offset, ESP-IDF default partition table
-          BENCH_NVS_SIZE: "0x6000"         # NVS partition size, ESP-IDF default partition table
         run: |
           set -euo pipefail
           umask 077
@@ -320,8 +320,8 @@ jobs:
             mode="$(stat -c %a "$f")"
             [ "$mode" = "600" ] || fail "not configured: nothing tested (provisioning file for board ${hw_id} has mode ${mode}, must be 0600)"
           done
-          fw="${BENCH_FW_IMAGE_PATH:-}"
-          [ -n "$fw" ] && [ -f "$fw" ] || fail "firmware artifact not found (step 2 did not provide an image)"
+          build="${GITHUB_WORKSPACE}/bench-artifacts/firmware/build-setup"
+          [ -f "${build}/flasher_args.json" ] || fail "firmware artifact not found (step 2 did not provide build-setup/flasher_args.json)"
           [ -e "$BENCH_ESP_PORT" ] || fail "not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
           esptool="$(command -v esptool.py || command -v esptool || true)"
           [ -n "$esptool" ] || fail "not configured: nothing tested (esptool not installed on the runner)"
@@ -341,18 +341,92 @@ jobs:
           work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/bench-prov.XXXXXX")"
           chmod 700 "$work"
           trap 'rm -rf "$work"' EXIT
+          # Plan first, nothing is written yet. The plan comes from flasher_args.json (files and offsets)
+          # and from the partition table binary of the build (offset and size of the nvs partition).
+          # Python reads only the build folder, never the CSV or the label. Errors go to plan.err only.
+          plan_rc=0
+          python3 -I - "$build" "$work" 2>"$work/plan.err" <<'PY' || plan_rc=$?
+          import json, os, struct, sys
+
+          def err(msg):
+              sys.stderr.write("ERR: " + msg + "\n")
+              sys.exit(2)
+
+          build = os.path.realpath(sys.argv[1])
+          work = sys.argv[2]
+          try:
+              with open(os.path.join(build, "flasher_args.json"), encoding="utf-8") as f:
+                  data = json.load(f)
+          except (OSError, ValueError):
+              err("flasher_args.json is missing or is not valid JSON")
+          ff = data.get("flash_files") if isinstance(data, dict) else None
+          if not isinstance(ff, dict) or not ff:
+              err("flasher_args.json has no flash_files map")
+          entries = []
+          for off_text, rel in ff.items():
+              try:
+                  off = int(str(off_text), 0)
+              except ValueError:
+                  err("flash_files has an offset that is not a number")
+              if off < 0 or not isinstance(rel, str) or not rel or os.path.isabs(rel) \
+                      or ".." in rel.split("/") or "\\" in rel:
+                  err("flash_files has a file path outside the build-setup folder")
+              path = os.path.realpath(os.path.join(build, rel))
+              if os.path.commonpath([build, path]) != build or not os.path.isfile(path) \
+                      or os.path.getsize(path) == 0:
+                  err("a file listed in flash_files is missing or empty in the artifact")
+              entries.append((off, path))
+          offsets = [o for o, _ in entries]
+          if len(set(offsets)) != len(offsets):
+              err("flash_files lists two files at the same offset")
+          pt = [p for _, p in entries if "partition-table" in os.path.basename(p)]
+          if len(pt) != 1:
+              err("flash_files must list exactly one partition table file")
+          raw = open(pt[0], "rb").read()
+          nvs = []
+          for i in range(0, len(raw) - 31, 32):
+              # 32-byte entries, magic 0xAA50. Anything else (end marker 0xEBEB, erased 0xFFFF) ends the table.
+              if raw[i:i + 2] != b"\xaa\x50":
+                  break
+              _typ, _sub, off, size, label = struct.unpack_from("<BBII16s", raw, i + 2)
+              if label.split(b"\x00", 1)[0] == b"nvs":
+                  nvs.append((off, size))
+          if len(nvs) != 1 or nvs[0][0] == 0 or nvs[0][1] == 0:
+              err("partition table has no single usable entry named nvs (no NVS offset)")
+          nvs_off, nvs_size = nvs[0]
+          for off, path in entries:
+              if off < nvs_off + nvs_size and nvs_off < off + os.path.getsize(path):
+                  err("the nvs partition overlaps a file listed in flash_files")
+          with open(os.path.join(work, "flash.tsv"), "w") as f:
+              for off, path in sorted(entries):
+                  f.write(f"{off:#x}\t{path}\n")
+          with open(os.path.join(work, "nvs.tsv"), "w") as f:
+              f.write(f"{nvs_off:#x}\t{nvs_size:#x}\n")
+          PY
+          if [ "$plan_rc" != "0" ]; then
+            msg="$(sed -n 's/^ERR: //p' "$work/plan.err" | head -n 1)"
+            fail "${msg:-cannot read the flash plan from build-setup (no offsets written)}"
+          fi
+          read -r nvs_off nvs_size < "$work/nvs.tsv"
+          echo "3. provisioning: flash plan read from build-setup: $(wc -l < "$work/flash.tsv") files, nvs at ${nvs_off}"
           cp "$csv" "$work/nvs.csv"
           chmod 600 "$work/nvs.csv"
           nvs_bin="$work/nvs.bin"
           # Tool output is kept in the temp dir and not printed: it may echo CSV lines on error.
-          if ! "${nvs_gen[@]}" "$work/nvs.csv" "$nvs_bin" "$BENCH_NVS_SIZE" >"$work/nvs-gen.log" 2>&1; then
+          if ! "${nvs_gen[@]}" "$work/nvs.csv" "$nvs_bin" "$nvs_size" >"$work/nvs-gen.log" 2>&1; then
             fail "NVS partition generation failed for board ${hw_id} (tool output withheld: it may contain provisioning data)"
           fi
           [ -s "$nvs_bin" ] || fail "NVS partition generation produced no file"
           echo "3. provisioning: NVS partition built for board ${hw_id} (contents not shown)"
-          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$BENCH_NVS_OFFSET" "$nvs_bin"
-          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$BENCH_FLASH_OFFSET" "$fw"
-          echo "3. provisioning: NVS and firmware image written to ${BENCH_ESP_PORT}"
+          # Every file from flash_files, in offset order, one write_flash call each.
+          while IFS=$'\t' read -r off path; do
+            echo "3. flash: writing $(basename "$path") at ${off}"
+            "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$off" "$path" < /dev/null
+          done < "$work/flash.tsv"
+          # The NVS partition is written last.
+          echo "3. flash: writing nvs partition at ${nvs_off}"
+          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$nvs_off" "$nvs_bin" < /dev/null
+          echo "3. provisioning: build-setup files and NVS written to ${BENCH_ESP_PORT}"
 
       - name: "4. Install app APK on the 6P (adb)"
         # Input: the APK from step 1; secret BENCH_ANDROID_SERIAL (phone id, never printed).
