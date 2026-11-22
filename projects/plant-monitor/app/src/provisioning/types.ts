@@ -55,6 +55,7 @@ export interface PlantSetupService {
 }
 
 /** Camera / library. Real one (expo-image-picker) arrives with the dev build; null = user cancelled. */
-export interface PhotoSource { takePhoto(): Promise<string | null>; pickFromLibrary(): Promise<string | null> }
+/** supported=false: this build cannot take a photo yet; the photo step then offers only Skip (4.A4c). Default true. */
+export interface PhotoSource { takePhoto(): Promise<string | null>; pickFromLibrary(): Promise<string | null>; supported?: boolean }
 
 export interface SetupServices { provisioning: ProvisioningService; plants: PlantSetupService; photos: PhotoSource }

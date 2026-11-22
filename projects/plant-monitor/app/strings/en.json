@@ -159,6 +159,7 @@
   "setup.photo.pick": "Choose from library",
   "setup.photo.skip": "Skip for now",
   "setup.photo.cancelled": "No photo was chosen.",
+  "setup.photo.unsupported": "Photos are not available in this version yet. The plant is saved without one.",
   "setup.details.title": "About your plant",
   "setup.details.name": "Plant name",
   "setup.details.location": "Where is it?",

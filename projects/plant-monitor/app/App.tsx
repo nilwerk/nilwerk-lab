@@ -36,6 +36,7 @@ import type { PlantDetail, PlantSummary, PlantsService } from './src/plants/type
 import { TabBar, type Tab } from './src/ui/TabBar';
 import { SetupFlow } from './src/screens/setup/SetupFlow';
 import { createFakeSetup, unavailableProvisioning } from './src/provisioning/fakeProvisioning';
+import { createRealPlantSetup, noPhotoSource, unconfiguredPlantSetup } from './src/provisioning/realPlantSetup';
 import { createBleProvisioning } from './src/provisioning/bleProvisioning';
 import { createEspAdapter } from './src/provisioning/espAdapter';
 import { createFetchClaimApi } from './src/provisioning/claimApi';
@@ -113,14 +114,19 @@ export default function App() {
   const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : isConfigured(cfg)
     ? createRealPlants({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken(), handOff: createFileHandOff(platformHandOffDeps) })
     : unconfiguredPlants()), [cfg, mock, service]);
-  // Mock build: fake sensor. Real build on a phone (iOS/Android, Supabase configured): real BLE (4.A3b slice 1, needs the dev build; in Expo Go the native
-  // library is missing and the first step says so). Web or unconfigured: "not available". Plant details and photo are still the fake services (later slice).
+  // Mock build: fake sensor and fake plant save. Real build on a phone (iOS/Android, Supabase configured): real BLE (4.A3b slice 1, needs the dev build; in Expo Go the native
+  // library is missing and the first step says so). Web or unconfigured: "not available". The plant itself is saved for real (4.A4c, plants row + devices.plant_id);
+  // photos are not in this slice (the photo step offers only Skip).
   const setup = useMemo<SetupServices>(() => {
     const fake = createFakeSetup().services;
     if (mock) return fake;
-    if (Platform.OS === 'web' || !isConfigured(cfg)) return { ...fake, provisioning: unavailableProvisioning() };
+    const plantSetup = isConfigured(cfg)
+      ? createRealPlantSetup({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken(), getUserId: async () => (await service.getSession())?.id ?? null })
+      : unconfiguredPlantSetup;
+    const base = { ...fake, plants: plantSetup, photos: noPhotoSource };
+    if (Platform.OS === 'web' || !isConfigured(cfg)) return { ...base, provisioning: unavailableProvisioning() };
     const claim = createFetchClaimApi({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() });
-    return { ...fake, provisioning: createBleProvisioning({ adapter: createEspAdapter(), claim }) };
+    return { ...base, provisioning: createBleProvisioning({ adapter: createEspAdapter(), claim }) };
   }, [mock, cfg, service]);
   const [fonts] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, Inter_400Regular, Inter_600SemiBold, JetBrainsMono_400Regular, JetBrainsMono_600SemiBold });
   if (!fonts) return null;

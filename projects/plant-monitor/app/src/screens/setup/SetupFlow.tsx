@@ -82,7 +82,7 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
     case 'name': return <NameStep time={time} onSubmit={(name) => dispatch({ type: 'startLink', sensorName: name })} onCancel={cancel} />;
     case 'linking': return <LinkingStep time={time} wifiJoined={link === 'claiming' || link === 'claimed'} claimed={link === 'claimed'} />;
     case 'linkError': return <LinkErrorStep time={time} code={s.error ?? 'unknown'} ssid={s.ssid} onReenter={() => dispatch({ type: 'reenterWifi' })} onOther={() => dispatch({ type: 'chooseOtherWifi' })} onRetry={() => dispatch({ type: 'retryLink' })} onStartOver={restart} />;
-    case 'photo': return <PhotoStep time={time} cancelled={photoCancelled} onTake={() => pick(true)} onPick={() => pick(false)} onSkip={() => dispatch({ type: 'photo', uri: null })} />;
+    case 'photo': return <PhotoStep time={time} cancelled={photoCancelled} onTake={() => pick(true)} onPick={() => pick(false)} supported={photos.supported !== false} onSkip={() => dispatch({ type: 'photo', uri: null })} />;
     case 'details': return <DetailsStep time={time} busy={saving} error={saveError} onSave={save} onBack={() => dispatch({ type: 'backToPhoto' })} />;
     case 'done': return <DoneStep plantName={s.plantName ?? ''} time={time} onDone={onExit} onAnother={restart} />;
   }

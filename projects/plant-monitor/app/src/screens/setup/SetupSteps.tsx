@@ -147,14 +147,15 @@ export function LinkErrorStep({ time, code, ssid, onReenter, onOther, onRetry, o
   );
 }
 
-export function PhotoStep({ time, cancelled, onTake, onPick, onSkip }: { time: string; cancelled: boolean; onTake: () => void; onPick: () => void; onSkip: () => void }) {
+export function PhotoStep({ time, cancelled, supported = true, onTake, onPick, onSkip }: { time: string; cancelled: boolean; supported?: boolean; onTake: () => void; onPick: () => void; onSkip: () => void }) {
   return (
     <Screen title={t('setup.photo.title')}>
       <Progress n={4} time={time} />
       <Body>{t('setup.photo.body')}</Body>
-      {cancelled ? <Body muted>{t('setup.photo.cancelled')}</Body> : null}
-      <Button label={t('setup.photo.take')} onPress={onTake} />
-      <Button label={t('setup.photo.pick')} variant="secondary" onPress={onPick} />
+      {!supported ? <Body muted>{t('setup.photo.unsupported')}</Body> : null}
+      {supported && cancelled ? <Body muted>{t('setup.photo.cancelled')}</Body> : null}
+      {supported ? <Button label={t('setup.photo.take')} onPress={onTake} /> : null}
+      {supported ? <Button label={t('setup.photo.pick')} variant="secondary" onPress={onPick} /> : null}
       <Button label={t('setup.photo.skip')} variant="ghost" onPress={onSkip} />
     </Screen>
   );
