@@ -5,7 +5,7 @@ name: Bench (self-hosted)
 # This workflow has no Environment gate (owner declined it).
 # Triggers are deliberately narrow: this runner is on a private repo and must never
 # execute code from pull requests, forks or pushed branches.
-#   workflow_dispatch  manual run only (owner decision A-new-1, 22 Nov 2026: no nightly schedule),
+#   workflow_dispatch  manual run only (owner decision, 22 Nov 2026: no nightly schedule),
 #                      only from main or from agent/devops/bench-workflow (guard below)
 # NO schedule, pull_request, pull_request_target, push or issue_comment triggers, on purpose.
 # Owner decision (21 Nov): nothing else may run on the Pi. The branch allowance
