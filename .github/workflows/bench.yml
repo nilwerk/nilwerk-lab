@@ -13,12 +13,13 @@ name: Bench (self-hosted)
 # (for PR #156, now closed) was removed in the PR #162 fix round. Manual runs from main only.
 #
 # Order (build first, then install and test together). Decided by the owner (option 1): step 3 (provisioning) runs
-# after a and before b, so the board is provisioned before the serial live-stream check. Step b needs the board running.
+# after a. Step c (BLE scan) runs before step b (serial live-stream check): the bench image's BLE setup window is 60 s
+# from the reset (sdkconfig.defaults.bench-ci), so c must run inside it. Step b reads the wake lines after c.
 #   build-firmware   GitHub-hosted, no secrets. Builds the setup-flow firmware. Artifact: plant-monitor-firmware-setup.
 #   build-apk        GitHub-hosted, no secrets. Builds the Android debug APK. Artifact: plant-monitor-app-debug-<sha7>.
 #   bench            the Pi. Needs both builds. Downloads both artifacts from THIS run, then runs steps
-#                    1 (firmware), 2 (APK), a (flash), 3 (provision and flash NVS), b (serial live stream, no reset),
-#                    c (BLE scan), 4 (APK install), d (app flow), e (cloud check), E2E.
+#                    1 (firmware), 2 (APK), a (flash), 3 (provision and flash NVS), c (BLE scan),
+#                    b (serial live stream, no reset), 4 (APK install), d (app flow), e (cloud check), E2E.
 # The two build jobs never touch the Pi. Their steps are copied from ci.yml (firmware job, setup image)
 # and app-apk.yml (android-debug-apk job); they are not new builds.
 #
@@ -77,6 +78,7 @@ jobs:
             grep -qxF "# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set" sdkconfig.setup || { echo "sdkconfig.setup lacks the line: # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set (bench-ci overlay not applied)"; exit 1; }
             # Bench CI image: BLE setup window on every cold start without BOOT (sdkconfig.defaults.bench-ci). Double quotes only.
             grep -q "^CONFIG_PLANT_BENCH_AUTO_SETUP=y" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_AUTO_SETUP=y (bench-ci overlay not applied)"; exit 1; }
+            grep -q "^CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60 (bench-ci overlay not applied)"; exit 1; }
             test -s build-setup/plant_monitor.bin
       - name: Check every flash file named in flasher_args.json
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
@@ -291,7 +293,7 @@ jobs:
           fi
 
       # Downloads and hardware steps, in the order the owner decided (option 1). The downloads come first (they are the
-      # builds of this run), then a (flash), 3 (provisioning, NVS last), b (serial check), c, 4 (APK install), d, e, E2E.
+      # builds of this run), then a (flash), 3 (provisioning, NVS last), c (BLE scan), b (serial check), 4 (APK install), d, e, E2E.
       # Each one fails closed: if its input is missing it prints "not configured: nothing tested" and exits 1.
       # The E2E test bundle (expo export, run by bench/run_e2e.sh) is built on the Pi only when the app's node_modules
       # are installed on the runner. That is not yet the case.
@@ -412,8 +414,9 @@ jobs:
         # The NVS partition is built from the CSV and written LAST, at the offset of the partition
         # named nvs in the partition table binary of the build. No offset is fixed in this file.
         # The CSV and label are never printed. The label is checked, but the flash does not use it.
-        # Runs before step b. It does not read anything step b writes. esptool's default --after is hard_reset, so
-        # the last write (NVS) ends with a board reset and the board boots the provisioned image. Step b reads that boot.
+        # Runs before steps c and b. It does not read anything they write. esptool's default --after is hard_reset, so
+        # the last write (NVS) ends with a board reset and the board boots the provisioned image. Steps c and b use that
+        # boot. Step c must finish inside the bench setup window (60 s), which opens at that reset.
         # The NVS CSV is built into a 0700 temp dir, removed by the EXIT trap.
         env:
           BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
@@ -553,60 +556,10 @@ jobs:
           "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$nvs_off" "$nvs_bin" < /dev/null
           echo "3. provisioning: build-setup files and NVS written to ${BENCH_ESP_PORT}"
 
-      - name: "b. Serial live stream check (75 s, no reset)"
-        # Runs after step 3 (provisioning). No reset here: this step sends no esptool run, no reset and no RTS/DTR
-        # toggle. It reads the live USB serial stream for a 75 s window and passes only when the expected line appears.
-        # The line is "NWBENCH wake=", printed once per reading cycle by the bench app
-        # (main/main.c:141, about every 2 s plus sensor time).
-        # 75 s is one full bench sleep cycle: five wake lines about 2 s apart, then 60 s deep sleep (owner decision,
-        # option 1). Any read start therefore reaches a wake line inside the window. No reset is added.
-        # A board that is in its 60 s deep sleep for the whole window prints nothing: the step then fails closed.
-        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected line text).
-        env:
-          BENCH_ESP_PORT: /dev/ttyACM0
-        run: |
-          set -euo pipefail
-          window=75   # seconds of live stream to read (the step timeout): one full sleep cycle
-          expect="bench/firmware/expect.txt"
-          if [ ! -f "$expect" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
-            exit 1
-          fi
-          # Lines starting with # are the header comment of the file, not the expected text.
-          line="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
-          if [ -z "$line" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
-            exit 1
-          fi
-          esptool="$(command -v esptool.py || command -v esptool || true)"
-          if [ -z "$esptool" ] || [ ! -e "$BENCH_ESP_PORT" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (no esptool or no device at ${BENCH_ESP_PORT})"
-            exit 1
-          fi
-          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
-          if [ "$esptool_major" != "5" ]; then
-            echo "::error::b. serial check: esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
-            exit 1
-          fi
-          log="$(mktemp)"
-          stty -F "$BENCH_ESP_PORT" 115200 raw -echo
-          # Read the live stream for the window. timeout exits 124 when the window ends (the expected end);
-          # any other non-zero exit means the read itself failed.
-          rc=0
-          timeout "$window" cat "$BENCH_ESP_PORT" > "$log" || rc=$?
-          if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
-            echo "::error::b. serial check failed: could not read ${BENCH_ESP_PORT} (cat exit ${rc}), nothing tested"
-            exit 1
-          fi
-          if grep -F -q -- "$line" "$log"; then
-            echo "b. serial: expected line seen in the live stream: ${line}"
-          else
-            echo "::error::b. serial check failed: timeout, expected line not seen in ${window} s of live stream (no reset sent): ${line}"
-            tail -n 20 "$log"
-            exit 1
-          fi
-
-      - name: "c. BLE scan (10 s)"
+      - name: "c. BLE scan (10 s), runs before b"
+        # Runs after step 3 and before step b. The bench image opens its BLE setup window on every cold start, and that window
+        # is 60 s (CONFIG_PLANT_BENCH_SETUP_WINDOW_S, sdkconfig.defaults.bench-ci). BLE advertises only inside it, so this scan
+        # must end inside it: it starts a few seconds after the reset of step 3 and takes about 15 s (see docs/ci-bench-runner.md).
         # Input: bench/ble/expect.txt (first line that is neither empty nor a # comment = device name prefix).
         # Checks only that the device advertises its expected name prefix. No other check.
         run: |
@@ -660,6 +613,60 @@ jobs:
             echo "c. BLE: device name '${found}' starts with prefix '${prefix}' in 10 s scan"
           else
             echo "::error::c. BLE check failed: no device with name prefix '${prefix}' in 10 s scan"
+            tail -n 20 "$log"
+            exit 1
+          fi
+
+      - name: "b. Serial live stream check (75 s, no reset), runs after c"
+        # Runs after step c. No reset here: this step sends no esptool run, no reset and no RTS/DTR
+        # toggle. It reads the live USB serial stream for a 75 s window and passes only when the expected line appears.
+        # The line is "NWBENCH wake=", printed by the measurement loop of the bench app (main/main.c, the printf with
+        # "NWBENCH wake=", about every 2 s plus sensor time).
+        # The bench image never deep-sleeps (CONFIG_PLANT_BENCH_SLEEP_CYCLE is unset), so the wake lines start when the
+        # 60 s setup window closes (about 60 s after the reset) and keep coming. Step b starts about 15 to 25 s after the
+        # reset, so its 75 s window ends about 90 to 100 s after the reset and contains wake lines. No reset is added.
+        # A board that prints no wake line for the whole window fails closed.
+        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected line text).
+        env:
+          BENCH_ESP_PORT: /dev/ttyACM0
+        run: |
+          set -euo pipefail
+          window=75   # seconds of live stream to read (the step timeout): one full sleep cycle
+          expect="bench/firmware/expect.txt"
+          if [ ! -f "$expect" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
+            exit 1
+          fi
+          # Lines starting with # are the header comment of the file, not the expected text.
+          line="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
+          if [ -z "$line" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          esptool="$(command -v esptool.py || command -v esptool || true)"
+          if [ -z "$esptool" ] || [ ! -e "$BENCH_ESP_PORT" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (no esptool or no device at ${BENCH_ESP_PORT})"
+            exit 1
+          fi
+          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
+          if [ "$esptool_major" != "5" ]; then
+            echo "::error::b. serial check: esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
+            exit 1
+          fi
+          log="$(mktemp)"
+          stty -F "$BENCH_ESP_PORT" 115200 raw -echo
+          # Read the live stream for the window. timeout exits 124 when the window ends (the expected end);
+          # any other non-zero exit means the read itself failed.
+          rc=0
+          timeout "$window" cat "$BENCH_ESP_PORT" > "$log" || rc=$?
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
+            echo "::error::b. serial check failed: could not read ${BENCH_ESP_PORT} (cat exit ${rc}), nothing tested"
+            exit 1
+          fi
+          if grep -F -q -- "$line" "$log"; then
+            echo "b. serial: expected line seen in the live stream: ${line}"
+          else
+            echo "::error::b. serial check failed: timeout, expected line not seen in ${window} s of live stream (no reset sent): ${line}"
             tail -n 20 "$log"
             exit 1
           fi

@@ -182,8 +182,9 @@ void nw_prov_tick(nw_prov_t *p, uint32_t now_ms)
 {
     /* The 300 s window is not enforced while a Wi-Fi join or claim call is in flight (they have their own timeouts);
      * it is checked again as soon as that attempt fails. */
+    uint32_t window = p->setup_window_ms ? p->setup_window_ms : NW_PROV_SETUP_TIMEOUT_MS;   /* bench CI image only sets setup_window_ms */
     if ((p->state == NW_PROV_S_ADVERTISING || p->state == NW_PROV_S_SESSION) &&
-        (uint32_t)(now_ms - p->setup_started_ms) >= NW_PROV_SETUP_TIMEOUT_MS)
+        (uint32_t)(now_ms - p->setup_started_ms) >= window)
         end_setup(p, NW_PROV_S_CLOSED);
 }
 
