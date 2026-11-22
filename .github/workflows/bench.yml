@@ -7,10 +7,20 @@ name: Bench (self-hosted)
 # Only users with write access can start a workflow_dispatch run, which is why manual dispatch is the only
 # trigger here. Code from pull requests, forks or pushed branches must never execute on this runner.
 #   workflow_dispatch  manual run only (owner decision, 22 Nov 2026: no nightly schedule),
-#                      only from main or from agent/devops/bench-workflow (guard below)
+#                      only from main (guard below). No branch allowance.
 # NO schedule, pull_request, pull_request_target, push or issue_comment triggers, on purpose.
-# Owner decision (21 Nov): nothing else may run on the Pi. The branch allowance
-# is for the one PR that adds these steps. Remove it again when that PR is closed.
+# Owner decision (21 Nov): nothing else may run on the Pi. The former branch allowance
+# (for PR #156, now closed) was removed in the PR #162 fix round. Manual runs from main only.
+#
+# Order (build first, then install and test together). Decided by the owner: step 3 runs after 4 and before d and e.
+#   build-firmware   GitHub-hosted, no secrets. Builds the setup-flow firmware. Artifact: plant-monitor-firmware-setup.
+#   build-apk        GitHub-hosted, no secrets. Builds the Android debug APK. Artifact: plant-monitor-app-debug-<sha7>.
+#   bench            the Pi. Needs both builds. Downloads both artifacts from THIS run, then runs steps
+#                    1 (firmware), 2 (APK), a (flash), b (serial boot log), c (BLE scan), 4 (APK install),
+#                    3 (provision and flash NVS), d (app flow), e (cloud check), E2E.
+# The two build jobs never touch the Pi. Their steps are copied from ci.yml (firmware job, setup image)
+# and app-apk.yml (android-debug-apk job); they are not new builds.
+#
 # Requirements the bench round touches (rows in projects/plant-monitor/tests/acceptance-matrix.md).
 # Each line says only what the named step checks. The rows are not passed by this workflow.
 #   FR-D03  partial: step c finds the device by name; step d writes the setup data and checks only that
@@ -35,13 +45,204 @@ permissions:
   contents: read
 
 jobs:
+  build-firmware:
+    name: build setup firmware (GitHub-hosted)
+    runs-on: ubuntu-latest
+    # No secrets. The steps below are copied from the firmware job of ci.yml (setup image only).
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: ESP-IDF build (esp32c3, setup flow on, simulator off)
+        # Copied from ci.yml (job firmware). Pinned SHA: see the header of ci.yml. The firmware owner re-checks the pin.
+        # set -e first: the first failing line fails the step, so the upload below does not run on a bad build.
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: espressif/esp-idf-ci-action@9d38657f3d789ca759b2b37aaf5ceffbc42c4f0d # v1
+        with:
+          esp_idf_version: v5.4
+          target: esp32c3
+          path: projects/plant-monitor/firmware
+          command: |
+            set -e
+            rm -f sdkconfig.setup
+            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup" build size
+            grep -q '^CONFIG_PLANT_SETUP_FLOW=y' sdkconfig.setup
+            grep -q '^CONFIG_PLANT_BOARD_V1_SUPERMINI=y' sdkconfig.setup
+            grep -q '^CONFIG_BT_NIMBLE_ENABLED=y' sdkconfig.setup
+            if grep -q '^CONFIG_PLANT_SIM_MOCK_SENSORS=y' sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
+            test -s build-setup/plant_monitor.bin
+      - name: Check every flash file named in flasher_args.json
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        # Copied from ci.yml (job firmware). The artifact holds every file esptool flashes (bootloader, partition table,
+        # app). The list comes from flasher_args.json, so a missing or empty file, or an unsafe path, fails this step.
+        id: files
+        working-directory: projects/plant-monitor/firmware/build-setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s flasher_args.json
+          files=$(jq -r '.flash_files[]' flasher_args.json)
+          test -n "$files"
+          for f in $files; do
+            case "$f" in
+              /*|*..*) echo "unsafe path in flasher_args.json: $f"; exit 1 ;;
+            esac
+            test -s "$f" || { echo "missing or empty flash file named in flasher_args.json: $f"; exit 1; }
+          done
+          {
+            echo "paths<<PATHS_EOF"
+            echo "projects/plant-monitor/firmware/build-setup/flasher_args.json"
+            for f in $files; do echo "projects/plant-monitor/firmware/build-setup/$f"; done
+            echo "PATHS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Flash files verified:"
+          echo "$files"
+      - name: Upload setup firmware artifact
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: plant-monitor-firmware-setup
+          # Exactly the flash files named in flasher_args.json, plus that file, so the artifact root is the build-setup
+          # folder (flasher_args.json at the root). No sdkconfig, no logs, no NVS files (NVS is written per unit at the bench).
+          path: ${{ steps.files.outputs.paths }}
+          if-no-files-found: error
+
+  build-apk:
+    name: Android debug APK (GitHub-hosted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # No secrets: the debug APK is signed with the debug key Gradle generates on the runner. The two inputs are
+    # repository VARIABLES (public client values), not secrets. The steps below are copied from app-apk.yml.
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        # Pinned to the commit SHA of v4.4.0 (11d5960a326750d5838078e36cf38b85af677262).
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Fail closed - app folder and documented build command
+        run: |
+          set -euo pipefail
+          APP=projects/plant-monitor/app
+          if [ ! -f "$APP/package.json" ] || [ ! -f "$APP/package-lock.json" ] || [ ! -f "$APP/app.config.ts" ]; then
+            echo "::error::$APP is missing package.json, package-lock.json or app.config.ts. Build aborted."
+            exit 1
+          fi
+          if ! grep -q 'expo prebuild --no-install' "$APP/README.md"; then
+            echo "::error::$APP/README.md no longer documents 'npx expo prebuild --no-install'. Build aborted. Update the README and this workflow together."
+            exit 1
+          fi
+          echo "App folder and the documented build command (npx expo prebuild --no-install) are present."
+
+      - name: Check repository variable SUPABASE_URL
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+        run: |
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "::error::Repository variable SUPABASE_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret). Build aborted."
+            exit 1
+          fi
+          case "$SUPABASE_URL" in
+            https://*) ;;
+            *) echo "::error::Repository variable SUPABASE_URL must start with https://. Build aborted."; exit 1 ;;
+          esac
+          echo "SUPABASE_URL is set (a public client value; the job log MAY show it, depending on debug settings)."
+
+      - name: Check repository variable SUPABASE_PUBLISHABLE_KEY
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "${SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret; the sb_publishable_... key). Build aborted."
+            exit 1
+          fi
+          case "$SUPABASE_PUBLISHABLE_KEY" in
+            sb_secret_*)
+              echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a secret key (sb_secret_...). Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+              exit 1 ;;
+            sb_publishable_*) ;;
+            *)
+              # Legacy JWT-style keys: accept only a three-part JWT whose payload role is not service_role.
+              if ! printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | grep -Eq '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'; then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY must start with sb_publishable_ (or be a JWT-style publishable key). Build aborted. The value is not printed."
+                exit 1
+              fi
+              PAYLOAD=$(printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | cut -d. -f2 | tr '_-' '/+')
+              while [ $(( ${#PAYLOAD} % 4 )) -ne 0 ]; do PAYLOAD="${PAYLOAD}="; done
+              if ! DECODED=$(printf '%s' "$PAYLOAD" | base64 -d 2>/dev/null); then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY looks like a JWT, but its payload cannot be base64url-decoded. Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+                exit 1
+              fi
+              if ! ROLE=$(printf '%s' "$DECODED" | python3 -c 'import json,sys; p=json.load(sys.stdin); assert isinstance(p, dict); print(p.get("role", ""))' 2>/dev/null); then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY looks like a JWT, but its payload is not a JSON object. Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+                exit 1
+              fi
+              if [ "$ROLE" = "service_role" ]; then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a service-role key. Use the publishable key. Build aborted. The value is not printed."
+                exit 1
+              fi ;;
+          esac
+          echo "SUPABASE_PUBLISHABLE_KEY is set (a public client value; the job log MAY show it, depending on debug settings)."
+
+      - name: Set up Node
+        # Node 22 (LTS), the same version the app job in ci.yml uses.
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/plant-monitor/app/package-lock.json
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install app dependencies (lockfile)
+        working-directory: projects/plant-monitor/app
+        run: npm ci
+
+      - name: Generate the Android project (expo prebuild)
+        working-directory: projects/plant-monitor/app
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          CI: "1"
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build the debug APK (Gradle)
+        working-directory: projects/plant-monitor/app/android
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew assembleDebug
+
+      - name: Name the artifact by commit
+        id: meta
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: echo "short=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the debug APK
+        # Pinned to the commit SHA of actions/upload-artifact v4.6.2 (copied from app-apk.yml).
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plant-monitor-app-debug-${{ steps.meta.outputs.short }}
+          path: projects/plant-monitor/app/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
   bench:
     name: bench smoke and E2E
-    # Only main, plus the one PR branch for manual runs. Any other ref runs nothing.
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/devops/bench-workflow'
+    # Needs both builds of THIS run. If either build fails or is skipped, this job does not start.
+    needs: [build-firmware, build-apk]
+    # Only main. Any other ref, including PR branches, runs nothing.
+    if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, bench]
     timeout-minutes: 60
-    # Job-level only (22 Nov): steps 1 and 2 read CI artifacts through the workflow token.
+    # Job-level only (22 Nov): steps 1 and 2 download this run's artifacts through the workflow token.
     # The workflow-level permissions above stay contents: read.
     permissions:
       contents: read
@@ -61,7 +262,7 @@ jobs:
           persist-credentials: false
 
       - name: Clear bench-artifacts from earlier runs
-        # Steps 1 and 2 write the APK and the firmware into bench-artifacts/ in the workspace.
+        # Steps 1 and 2 download the firmware and the APK into bench-artifacts/ in the workspace.
         run: rm -rf -- "${GITHUB_WORKSPACE}/bench-artifacts"
 
       - name: Runner smoke check
@@ -82,21 +283,63 @@ jobs:
             exit 1
           fi
 
-      # Hardware steps a-e, in this order. Each one fails closed: if its input is missing it
-      # prints "not configured: nothing tested" and exits 1. Nothing is built on the Pi.
+      # Downloads and hardware steps, in the order the owner decided. The downloads come first (they are the builds
+      # of this run), then a, b, c, 4 (APK install), 3 (provisioning, NVS last), d (app flow), e (cloud check), E2E.
+      # Each one fails closed: if its input is missing it prints "not configured: nothing tested" and exits 1.
+      # The E2E test bundle (expo export, run by bench/run_e2e.sh) is built on the Pi only when the app's node_modules
+      # are installed on the runner. That is not yet the case.
       # Scope (owner decision, 21 Nov): the bench round tests ESP32-to-app and ESP32-to-cloud
-      # communication only. Sensor values are not checked yet, and the firmware is the normal build.
+      # communication only. Sensor values are not checked yet. The firmware is the setup-flow build
+      # (CONFIG_PLANT_SETUP_FLOW=y, simulator off), built by the build-firmware job of this run.
 
-      - name: "a. Firmware flash (ESP32-C3 over USB)"
-        # Input: bench/firmware/image.bin (a prebuilt, merged full-flash image). No file, no flash.
-        env:
-          BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
-          BENCH_FLASH_OFFSET: "0x0"        # offset of a merged full-flash image
+      - name: "1. Download firmware image (build-firmware of this run)"
+        # Input: artifact plant-monitor-firmware-setup from the build-firmware job of THIS run (run-id is this run;
+        # older runs are never searched). The artifact root is the build-setup folder: flasher_args.json and the .bin
+        # files it lists sit at the root (upload-artifact v4 roots the artifact at the common ancestor of the uploaded
+        # paths). Extracted to bench-artifacts/firmware/build-setup/. Steps a and 3 read it from there.
+        # Needs the job permission actions: read, through the workflow token. Nothing is uploaded.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: plant-monitor-firmware-setup
+          path: bench-artifacts/firmware/build-setup
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: "2. Download app APK (build-apk of this run)"
+        # Input: artifact plant-monitor-app-debug-<sha7> from the build-apk job of THIS run (same run-id rule as step 1).
+        # Downloaded into bench-artifacts/app-apk/. The next run step checks that exactly one APK is there.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: plant-monitor-app-debug-*
+          merge-multiple: true
+          path: bench-artifacts/app-apk
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: "2. Check app APK (one APK from build-apk of this run)"
         run: |
           set -euo pipefail
-          image="bench/firmware/image.bin"
-          if [ ! -f "$image" ]; then
-            echo "::error::a. firmware flash: not configured: nothing tested (missing ${image})"
+          fail() { echo "::error::2. app APK: $1"; exit 1; }
+          work="${GITHUB_WORKSPACE}/bench-artifacts/app-apk"
+          apks=()
+          while IFS= read -r -d '' f; do apks+=("$f"); done < <(find "$work" -type f -name '*.apk' -print0 2>/dev/null)
+          [ "${#apks[@]}" = "1" ] || fail "not found: expected one APK from the build-apk job of this run, found ${#apks[@]}"
+          apk="${apks[0]}"
+          [ -s "$apk" ] || fail "APK file is empty"
+          echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
+          echo "2. app APK: saved to the runner workspace from run ${GITHUB_RUN_ID} (commit ${GITHUB_SHA})"
+
+      - name: "a. Firmware flash (ESP32-C3 over USB)"
+        # Input: the setup firmware from step 1 (bench-artifacts/firmware/build-setup: flasher_args.json and the files it
+        # lists). The artifact has no merged image, so every file in flash_files is written at its listed offset, in
+        # offset order (the same rule as step 3). No offset is hard-coded. No file, no flash.
+        env:
+          BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
+        run: |
+          set -euo pipefail
+          build="${GITHUB_WORKSPACE}/bench-artifacts/firmware/build-setup"
+          if [ ! -f "${build}/flasher_args.json" ]; then
+            echo "::error::a. firmware flash: not configured: nothing tested (missing ${build}/flasher_args.json from step 1)"
             exit 1
           fi
           esptool="$(command -v esptool.py || command -v esptool || true)"
@@ -121,10 +364,40 @@ jobs:
             echo "::error::a. firmware flash: chip is not an ESP32-C3, not flashing"
             exit 1
           fi
-          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$BENCH_FLASH_OFFSET" "$image"
+          # Flash plan, read before any write. Same rules as step 3: each path inside the build-setup folder,
+          # the file present and not empty, offsets as numbers, written in offset order.
+          plan="$(mktemp)"
+          python3 -I - "$build" > "$plan" <<'PY' || { rm -f "$plan"; echo "::error::a. firmware flash: flash plan could not be read from flasher_args.json (reason above)"; exit 1; }
+          import json, os, sys
+          build = os.path.realpath(sys.argv[1])
+          with open(os.path.join(build, "flasher_args.json"), encoding="utf-8") as f:
+              data = json.load(f)
+          ff = data.get("flash_files") if isinstance(data, dict) else None
+          if not isinstance(ff, dict) or not ff:
+              sys.exit("flasher_args.json has no flash_files map")
+          rows = []
+          for off_text, rel in ff.items():
+              off = int(str(off_text), 0)
+              if off < 0 or not isinstance(rel, str) or not rel or os.path.isabs(rel) \
+                      or ".." in rel.split("/") or "\\" in rel:
+                  sys.exit("flash_files has a file path outside the build-setup folder")
+              path = os.path.realpath(os.path.join(build, rel))
+              if os.path.commonpath([build, path]) != build or not os.path.isfile(path) \
+                      or os.path.getsize(path) == 0:
+                  sys.exit("a file listed in flash_files is missing or empty: " + rel)
+              rows.append((off, path))
+          for off, path in sorted(rows):
+              print(f"{off:#x}\t{path}")
+          PY
+          while IFS=$'\t' read -r off path; do
+            echo "a. flash: writing $(basename "$path") at ${off}"
+            "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$off" "$path" < /dev/null
+          done < "$plan"
+          rm -f "$plan"
+          echo "a. firmware flash: setup firmware written to ${BENCH_ESP_PORT}"
 
       - name: "b. Serial boot log check (20 s)"
-        # Inputs: bench/firmware/expect.txt (first non-empty line = expected boot line text).
+        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected boot line text).
         env:
           BENCH_ESP_PORT: /dev/ttyACM0
         run: |
@@ -134,7 +407,8 @@ jobs:
             echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
             exit 1
           fi
-          line="$(grep -m1 -E '[^[:space:]]' "$expect" || true)"
+          # Lines starting with # are the header comment of the file, not the expected text.
+          line="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
           if [ -z "$line" ]; then
             echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
             exit 1
@@ -166,7 +440,7 @@ jobs:
           fi
 
       - name: "c. BLE scan (10 s)"
-        # Input: bench/ble/expect.txt (first non-empty line = device name prefix).
+        # Input: bench/ble/expect.txt (first line that is neither empty nor a # comment = device name prefix).
         # Checks only that the device advertises its expected name prefix. No other check.
         run: |
           set -euo pipefail
@@ -175,9 +449,15 @@ jobs:
             echo "::error::c. BLE check: not configured: nothing tested (missing ${expect})"
             exit 1
           fi
-          prefix="$(grep -m1 -E '[^[:space:]]' "$expect" | tr -d '[:space:]' || true)"
+          # Lines starting with # are the header comment of the file, not the expected name.
+          first="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
+          prefix="$(printf '%s' "$first" | tr -d '[:space:]')"
           if [ -z "$prefix" ]; then
             echo "::error::c. BLE check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          if [ "$prefix" = "UNSET" ]; then
+            echo "::error::bench/ble/expect.txt has no expected name yet: owner input needed"
             exit 1
           fi
           if ! command -v bluetoothctl >/dev/null 2>&1; then
@@ -217,151 +497,30 @@ jobs:
             exit 1
           fi
 
-      # Setup steps 1 to 4 (owner decision, 22 Nov 2026, full automation). They run after a to c and
-      # before d, so the board that d and e test is the provisioned one. Each one fails closed with a
-      # clear message when its input is missing. Nothing is built on the Pi.
-      # Scratch files for steps 1 and 2 go to bench-artifacts/ in the runner workspace (not committed).
-
-      - name: "1. Download app APK (newest successful app-apk run on main)"
-        # Input: artifact plant-monitor-app-debug-<sha> from the newest successful run of app-apk on main.
-        # Needs the job permission actions: read, through the workflow token. Nothing is uploaded.
+      - name: "4. Install app APK on the 6P (adb)"
+        # Input: the APK from step 2; secret BENCH_ANDROID_SERIAL (phone id, never printed).
         env:
-          GH_TOKEN: ${{ github.token }}
+          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
         run: |
           set -euo pipefail
-          fail() { echo "::error::1. app APK: $1"; exit 1; }
-          [ -n "${GH_TOKEN:-}" ] || fail "not configured: nothing tested (no workflow token)"
-          command -v python3 >/dev/null 2>&1 || fail "not configured: nothing tested (python3 not installed)"
-          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions"
-          get() {
-            curl -sS -f -L -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$@"
-          }
-          runs="$(get "${api}/workflows/app-apk.yml/runs?branch=main&status=success&per_page=1")" \
-            || fail "APK not found: no successful app-apk run on main (API call failed)"
-          run_info="$(printf '%s' "$runs" | python3 -I -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"], r[0]["head_sha"]) if r else print("")')"
-          read -r run_id run_sha <<<"$run_info" || true
-          [ -n "$run_id" ] || fail "APK not found: no successful app-apk run on main"
-          [[ "$run_sha" =~ ^[0-9a-f]{40}$ ]] || fail "app-apk run ${run_id} has no commit sha"
-          arts="$(get "${api}/runs/${run_id}/artifacts?per_page=100")" \
-            || fail "APK not found: artifact list failed for run ${run_id}"
-          pick="$(printf '%s' "$arts" | python3 -I -c '
-          import json, sys
-          live = [a for a in json.load(sys.stdin).get("artifacts", [])
-                  if a.get("name", "").startswith("plant-monitor-app-debug-") and not a.get("expired", False)]
-          live.sort(key=lambda a: a.get("created_at", ""), reverse=True)
-          if live:
-              print(live[0]["id"], live[0]["name"])
-          ')"
-          [ -n "$pick" ] || fail "APK not found: no plant-monitor-app-debug-* artifact in run ${run_id}"
-          art_id="${pick%% *}"
-          art_name="${pick#* }"
-          work="${GITHUB_WORKSPACE}/bench-artifacts/app-apk"
-          mkdir -p "$work"
-          zip="$work/artifact.zip"
-          get "${api}/artifacts/${art_id}/zip" -o "$zip" || fail "APK download failed for ${art_name}"
-          python3 -I - "$zip" "$work" <<'PY'
-          import os, sys, zipfile
-          zf = zipfile.ZipFile(sys.argv[1])
-          apks = [n for n in zf.namelist() if n.lower().endswith(".apk") and "/" not in n]
-          if len(apks) != 1:
-              sys.exit(f"expected one APK in the artifact, found {len(apks)}")
-          zf.extract(apks[0], sys.argv[2])
-          os.replace(os.path.join(sys.argv[2], apks[0]), os.path.join(sys.argv[2], "app-debug.apk"))
-          PY
-          rm -f "$zip"
-          apk="${work}/app-debug.apk"
-          [ -s "$apk" ] || fail "APK extraction produced no file"
-          echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
-          echo "1. app APK: ${art_name} (run ${run_id}, main, commit ${run_sha}) saved to the runner workspace"
-
-      - name: "2. Download firmware image (plant-monitor-firmware-setup)"
-        # Input: artifact plant-monitor-firmware-setup from a successful run of the CI workflow
-        # (.github/workflows/ci.yml, job firmware, step "Upload setup firmware artifact") on main.
-        # The newest successful main run that has the artifact is used. The step is uploaded only for
-        # pushes to main and same-repo PRs. Until that step is on main (PR #158) and a main run has run it,
-        # no run has the artifact and this step fails closed.
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          fail() { echo "::error::2. firmware: $1"; exit 1; }
-          [ -n "${GH_TOKEN:-}" ] || fail "not configured: nothing tested (no workflow token)"
-          command -v python3 >/dev/null 2>&1 || fail "not configured: nothing tested (python3 not installed)"
-          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions"
-          get() {
-            curl -sS -f -L -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$@"
-          }
-          # Completed runs of ci.yml on main, then keep only successful ones, newest first (by created_at).
-          runs="$(get "${api}/workflows/ci.yml/runs?branch=main&status=completed&per_page=100")" \
-            || fail "firmware artifact not found (CI runs on main could not be listed)"
-          cands="$(printf '%s' "$runs" | python3 -I -c '
-          import json, sys
-          runs = [r for r in json.load(sys.stdin).get("workflow_runs", [])
-                  if r.get("conclusion") == "success" and r.get("head_branch") == "main"
-                  and r.get("id") and r.get("head_sha")]
-          runs.sort(key=lambda r: r.get("created_at", ""), reverse=True)
-          for r in runs:
-              print(r["id"], r["head_sha"])
-          ')"
-          [ -n "$cands" ] || fail "firmware artifact not found (no successful ci.yml run on main in the last 100 completed runs)"
-          run_id=""; run_sha=""; art_id=""
-          while read -r cand_id cand_sha; do
-            [[ "$cand_sha" =~ ^[0-9a-f]{40}$ ]] || continue
-            arts="$(get "${api}/runs/${cand_id}/artifacts?per_page=100")" \
-              || fail "firmware artifact not found (artifact list failed for CI run ${cand_id})"
-            art_id="$(printf '%s' "$arts" | python3 -I -c '
-          import json, sys
-          hits = [a for a in json.load(sys.stdin).get("artifacts", [])
-                  if a.get("name") == "plant-monitor-firmware-setup" and not a.get("expired", False)]
-          if hits:
-              print(hits[0]["id"])
-          ')"
-            if [ -n "$art_id" ]; then run_id="$cand_id"; run_sha="$cand_sha"; break; fi
-          done <<<"$cands"
-          [ -n "$art_id" ] || fail "firmware artifact not found (no plant-monitor-firmware-setup in the last 100 completed ci.yml runs on main)"
-          [[ "$run_sha" =~ ^[0-9a-f]{40}$ ]] || fail "CI run ${run_id} has no commit sha"
-          work="${GITHUB_WORKSPACE}/bench-artifacts/firmware"
-          mkdir -p "$work"
-          zip="$work/artifact.zip"
-          get "${api}/artifacts/${art_id}/zip" -o "$zip" || fail "firmware artifact download failed (run ${run_id})"
-          # The artifact root is the contents of the build-setup folder: flasher_args.json and the .bin files
-          # it lists sit at the root of the zip (upload-artifact v4 roots the artifact at the common ancestor of
-          # the uploaded paths), with no build-setup/ folder inside it. flash_files paths are relative to that root.
-          # The root is extracted to bench-artifacts/firmware/build-setup/ (step 3 reads it from there).
-          rm -rf "${work}/build-setup"
-          python3 -I - "$zip" "$work" <<'PY' || { rm -f "$zip"; fail "firmware artifact rejected (reason above; expected the build-setup folder contents at the artifact root)"; }
-          import os, sys, zipfile
-          zf = zipfile.ZipFile(sys.argv[1])
-          members = [n for n in zf.namelist() if not n.endswith("/")]
-          if "flasher_args.json" not in members:
-              if any(n.startswith("build-setup/") for n in members):
-                  sys.exit("artifact has a build-setup/ folder: expected the build-setup folder contents at the artifact root, not inside a build-setup/ folder")
-              sys.exit("flasher_args.json is missing from the artifact root")
-          root = os.path.realpath(os.path.join(sys.argv[2], "build-setup"))
-          for name in members:
-              rel = name
-              if not rel or rel.startswith("/") or ".." in rel.split("/") or "\\" in rel:
-                  sys.exit("artifact contains a file path outside the artifact root")
-              dest = os.path.realpath(os.path.join(root, rel))
-              if os.path.commonpath([root, dest]) != root:
-                  sys.exit("artifact contains a file path outside the artifact root")
-              os.makedirs(os.path.dirname(dest), exist_ok=True)
-              with zf.open(name) as src, open(dest, "wb") as out:
-                  out.write(src.read())
-          PY
-          rm -f "$zip"
-          build="${work}/build-setup"
-          [ -s "${build}/flasher_args.json" ] || fail "flasher_args.json was not extracted"
-          echo "BENCH_FW_BUILD_DIR=${build}" >> "$GITHUB_ENV"
-          echo "2. firmware: plant-monitor-firmware-setup (run ${run_id}, main, commit ${run_sha}) saved to the runner workspace"
+          fail() { echo "::error::4. APK install: $1"; exit 1; }
+          serial="${BENCH_ANDROID_SERIAL:-}"
+          [ -n "$serial" ] || fail "not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
+          apk="${BENCH_APK_PATH:-}"
+          [ -n "$apk" ] && [ -f "$apk" ] || fail "not configured: nothing tested (no APK from step 2)"
+          command -v adb >/dev/null 2>&1 || fail "not configured: nothing tested (adb not installed)"
+          adb start-server >/dev/null 2>&1 || true
+          # Count attached devices with the configured serial in state "device". The serial is not printed.
+          n="$(adb devices | awk -v s="$serial" 'NR>1 && $1==s && $2=="device" {n++} END {print n+0}')"
+          [ "$n" = "1" ] || fail "expected exactly one attached device with the configured serial in state device, found ${n}"
+          adb -s "$serial" install -r "$apk"
+          echo "4. APK installed on the configured device (serial not shown)"
 
       - name: "3. Provision and flash board (build-setup files, then NVS last)"
-        # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, nw-c8da2986f470); the folder
-        # BENCH_PROVISION_DIR on the Pi (default $HOME/nilwerk-secrets/provision-out) with
+        # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, <board-hw-id>); repo variable BENCH_PROVISION_DIR
+        # (required, no default: the provisioning folder on the Pi, set by the owner) with
         # <hw_id>.nvs.csv and <hw_id>.label.txt, both mode 0600; the build-setup folder of the
-        # firmware artifact from step 2 (flasher_args.json and the .bin files it lists).
+        # firmware artifact from step 1 (flasher_args.json and the .bin files it lists).
         # Every file in flasher_args.json flash_files is written at its listed offset (none hard-coded).
         # The NVS partition is built from the CSV and written LAST, at the offset of the partition
         # named nvs in the partition table binary of the build. No offset is fixed in this file.
@@ -382,7 +541,8 @@ jobs:
           hw_id="${BENCH_BOARD_HW_ID:-}"
           [ -n "$hw_id" ] || fail "not configured: nothing tested (repository variable BENCH_BOARD_HW_ID is not set)"
           [[ "$hw_id" =~ ^[A-Za-z0-9_-]+$ ]] || fail "not configured: nothing tested (BENCH_BOARD_HW_ID has characters that are not allowed)"
-          prov_dir="${BENCH_PROVISION_DIR:-$HOME/nilwerk-secrets/provision-out}"
+          prov_dir="${BENCH_PROVISION_DIR:-}"
+          [ -n "$prov_dir" ] || fail "not configured: nothing tested (repository variable BENCH_PROVISION_DIR is not set; it is required and names the provisioning folder on the Pi)"
           csv="${prov_dir}/${hw_id}.nvs.csv"
           label="${prov_dir}/${hw_id}.label.txt"
           for f in "$csv" "$label"; do
@@ -391,7 +551,7 @@ jobs:
             [ "$mode" = "600" ] || fail "not configured: nothing tested (provisioning file for board ${hw_id} has mode ${mode}, must be 0600)"
           done
           build="${GITHUB_WORKSPACE}/bench-artifacts/firmware/build-setup"
-          [ -f "${build}/flasher_args.json" ] || fail "firmware artifact not found (step 2 did not provide build-setup/flasher_args.json)"
+          [ -f "${build}/flasher_args.json" ] || fail "firmware artifact not found (step 1 did not provide build-setup/flasher_args.json)"
           [ -e "$BENCH_ESP_PORT" ] || fail "not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
           esptool="$(command -v esptool.py || command -v esptool || true)"
           [ -n "$esptool" ] || fail "not configured: nothing tested (esptool not installed on the runner)"
@@ -504,28 +664,11 @@ jobs:
           "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$nvs_off" "$nvs_bin" < /dev/null
           echo "3. provisioning: build-setup files and NVS written to ${BENCH_ESP_PORT}"
 
-      - name: "4. Install app APK on the 6P (adb)"
-        # Input: the APK from step 1; secret BENCH_ANDROID_SERIAL (phone id, never printed).
-        env:
-          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
-        run: |
-          set -euo pipefail
-          fail() { echo "::error::4. APK install: $1"; exit 1; }
-          serial="${BENCH_ANDROID_SERIAL:-}"
-          [ -n "$serial" ] || fail "not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
-          apk="${BENCH_APK_PATH:-}"
-          [ -n "$apk" ] && [ -f "$apk" ] || fail "not configured: nothing tested (no APK from step 1)"
-          command -v adb >/dev/null 2>&1 || fail "not configured: nothing tested (adb not installed)"
-          adb start-server >/dev/null 2>&1 || true
-          # Count attached devices with the configured serial in state "device". The serial is not printed.
-          n="$(adb devices | awk -v s="$serial" 'NR>1 && $1==s && $2=="device" {n++} END {print n+0}')"
-          [ "$n" = "1" ] || fail "expected exactly one attached device with the configured serial in state device, found ${n}"
-          adb -s "$serial" install -r "$apk"
-          echo "4. APK installed on the configured device (serial not shown)"
-
       - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
         # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
         # BENCH_TEST_EMAIL and BENCH_TEST_EMAIL_PASSWORD (test account). Values are never in the repo.
+        # The script as written opens the app and checks the first screen title only. The device steps
+        # (scan, connect, setup data, connected) are not in it yet (owner input).
         # Scope: communication path only. The flow scans and finds the device, connects, writes
         # the setup data, and checks that the app shows the device as connected. It asserts no
         # reading of any kind.
@@ -578,6 +721,8 @@ jobs:
         # (set by step d). It must not read, print or compare any reading value.
         env:
           BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
+          # Device identity (the board's hw_id, nw-<12 hex>), a repository variable (name only here).
+          BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
         run: |
           set -euo pipefail
           script="bench/cloud/check.sh"
