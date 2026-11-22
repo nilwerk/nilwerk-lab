@@ -10,14 +10,19 @@ name: Bench (self-hosted)
 # NO schedule, pull_request, pull_request_target, push or issue_comment triggers, on purpose.
 # Owner decision (21 Nov): nothing else may run on the Pi. The branch allowance
 # is for the one PR that adds these steps. Remove it again when that PR is closed.
-# Requirements the bench round touches (rows in projects/plant-monitor/tests/acceptance-matrix.md):
-#   FR-D03  BLE setup mode and claim: steps c and d (device found by name, setup data written).
-#   FR-A03  setup flow (device, Wi-Fi, name, photo, plant): step d, the app flow.
-#   NFR-04  data in app within 2 min of upload: step e only shows that a row reached the cloud
-#           after the test start. Latency is not measured here.
-#   NFR-06  per-device credentials, user isolation, no secrets in the repo: secrets are used by
-#           name only, and no reading value is printed or compared.
-#   NFR-07  EU hosting, export and delete: step e checks the EU project only.
+# Requirements the bench round touches (rows in projects/plant-monitor/tests/acceptance-matrix.md).
+# Each line says only what the named step checks. The rows are not passed by this workflow.
+#   FR-D03  partial: step c finds the device by name; step d writes the setup data and checks only that
+#           the app shows the device as connected. Not checked: that the device is claimed by, or
+#           appears in, the user's account.
+#   FR-A03  partial: step d only (scan, connect, write setup data, connected). Not checked: the rest
+#           of the setup flow.
+#   NFR-04  step e only shows that a row reached the cloud after the test start. Latency is not measured here.
+#   NFR-06  partial, step e only: one row from this device reached the cloud. Not checked: per-device
+#           credentials and user isolation. Secrets are used by name only and no reading value is printed.
+#   NFR-07  not checked here: step e checks one row in the project named by BENCH_CLOUD_CHECK_CONFIG, which
+#           the step comment calls the EU project. The workflow does not verify the region or hosting,
+#           and tests no export or delete.
 # The bench round checks ESP32-to-app and ESP32-to-cloud communication only. This workflow alone
 # passes none of these rows.
 # See docs/ci-bench-runner.md.
@@ -233,13 +238,13 @@ jobs:
           }
           runs="$(get "${api}/workflows/app-apk.yml/runs?branch=main&status=success&per_page=1")" \
             || fail "APK not found: no successful app-apk run on main (API call failed)"
-          run_info="$(printf '%s' "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"], r[0]["head_sha"]) if r else print("")')"
+          run_info="$(printf '%s' "$runs" | python3 -I -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"], r[0]["head_sha"]) if r else print("")')"
           read -r run_id run_sha <<<"$run_info" || true
           [ -n "$run_id" ] || fail "APK not found: no successful app-apk run on main"
           [[ "$run_sha" =~ ^[0-9a-f]{40}$ ]] || fail "app-apk run ${run_id} has no commit sha"
           arts="$(get "${api}/runs/${run_id}/artifacts?per_page=100")" \
             || fail "APK not found: artifact list failed for run ${run_id}"
-          pick="$(printf '%s' "$arts" | python3 -c '
+          pick="$(printf '%s' "$arts" | python3 -I -c '
           import json, sys
           live = [a for a in json.load(sys.stdin).get("artifacts", [])
                   if a.get("name", "").startswith("plant-monitor-app-debug-") and not a.get("expired", False)]
@@ -254,7 +259,7 @@ jobs:
           mkdir -p "$work"
           zip="$work/artifact.zip"
           get "${api}/artifacts/${art_id}/zip" -o "$zip" || fail "APK download failed for ${art_name}"
-          python3 - "$zip" "$work" <<'PY'
+          python3 -I - "$zip" "$work" <<'PY'
           import os, sys, zipfile
           zf = zipfile.ZipFile(sys.argv[1])
           apks = [n for n in zf.namelist() if n.lower().endswith(".apk") and "/" not in n]
@@ -286,13 +291,13 @@ jobs:
           }
           runs="$(get "${api}/workflows/firmware-bench-image.yml/runs?branch=main&status=success&per_page=1")" \
             || fail "firmware artifact not found (no successful firmware-bench-image.yml run on main, or the workflow does not exist yet)"
-          run_info="$(printf '%s' "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"], r[0]["head_sha"]) if r else print("")')"
+          run_info="$(printf '%s' "$runs" | python3 -I -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"], r[0]["head_sha"]) if r else print("")')"
           read -r run_id run_sha <<<"$run_info" || true
           [ -n "$run_id" ] || fail "firmware artifact not found (no successful firmware-bench-image.yml run on main)"
           [[ "$run_sha" =~ ^[0-9a-f]{40}$ ]] || fail "firmware run ${run_id} has no commit sha"
           arts="$(get "${api}/runs/${run_id}/artifacts?per_page=100")" \
             || fail "firmware artifact not found (artifact list failed for run ${run_id})"
-          art_id="$(printf '%s' "$arts" | python3 -c '
+          art_id="$(printf '%s' "$arts" | python3 -I -c '
           import json, sys
           hits = [a for a in json.load(sys.stdin).get("artifacts", [])
                   if a.get("name") == "plant-monitor-firmware-setup" and not a.get("expired", False)]
@@ -307,7 +312,7 @@ jobs:
           # The artifact is a folder: build-setup/ with the .bin files and flasher_args.json.
           # The whole folder is extracted to bench-artifacts/firmware/build-setup/ (step 3 reads it).
           rm -rf "${work}/build-setup"
-          python3 - "$zip" "$work" <<'PY' || { rm -f "$zip"; fail "firmware artifact is not a build-setup folder with flasher_args.json"; }
+          python3 -I - "$zip" "$work" <<'PY' || { rm -f "$zip"; fail "firmware artifact is not a build-setup folder with flasher_args.json"; }
           import os, sys, zipfile
           prefix = "build-setup/"
           zf = zipfile.ZipFile(sys.argv[1])
