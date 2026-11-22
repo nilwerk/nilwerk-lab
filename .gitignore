@@ -29,3 +29,6 @@ sdkconfig.setup.old
 build-sim-qemu/
 sdkconfig.sim-qemu
 sdkconfig.sim-qemu.old
+
+# Bench app flow output, written on the Pi per run: never commit
+bench/app/result.json
