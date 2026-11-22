@@ -144,6 +144,7 @@ describe('setup save in the real build', () => {
     await header('About your plant');
     await fillAndSave();
     await header('This sensor already has a plant');
+    expect(screen.getByRole('button', { name: MOVE })).toBeTruthy();   // positive control
     await tap(MOVE);
     expect(await header('Your sensor is already on a plant')).toBeTruthy();
     expect(screen.queryByRole('button', { name: MOVE })).toBeNull();

@@ -260,6 +260,7 @@ describe('device setup flow', () => {
     await fillDetails();
     await tap('Save plant');
     await header('This sensor already has a plant');
+    expect(screen.getByRole('button', { name: 'Move the sensor to the new plant' })).toBeTruthy();   // positive control
     await tap('Move the sensor to the new plant');
     expect(await header('Your sensor is already on a plant')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Move the sensor to the new plant' })).toBeNull();
@@ -280,8 +281,10 @@ describe('device setup flow', () => {
     await toPhoto();
     await tap('Skip for now');
     await fillDetails();
+    // positive control first: the Back control is found by its rendered name ("Go back"), so the negative check below is not vacuous
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeTruthy();
     await tap('Save plant');
-    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
     release();
     expect(await header('All set!')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Move the sensor to the new plant' })).toBeNull();
