@@ -276,19 +276,32 @@ jobs:
           mkdir -p "$work"
           zip="$work/artifact.zip"
           get "${api}/artifacts/${art_id}/zip" -o "$zip" || fail "firmware artifact download failed (run ${run_id})"
-          python3 - "$zip" "$work" <<'PY'
+          # The artifact is a folder: build-setup/ with the .bin files and flasher_args.json.
+          # The whole folder is extracted to bench-artifacts/firmware/build-setup/ (step 3 reads it).
+          rm -rf "${work}/build-setup"
+          python3 - "$zip" "$work" <<'PY' || { rm -f "$zip"; fail "firmware artifact is not a build-setup folder with flasher_args.json"; }
           import os, sys, zipfile
+          prefix = "build-setup/"
           zf = zipfile.ZipFile(sys.argv[1])
-          bins = [n for n in zf.namelist() if n.lower().endswith(".bin") and "/" not in n]
-          if len(bins) != 1:
-              sys.exit(f"expected one .bin image in the artifact, found {len(bins)}")
-          zf.extract(bins[0], sys.argv[2])
-          os.replace(os.path.join(sys.argv[2], bins[0]), os.path.join(sys.argv[2], "firmware.bin"))
+          members = [n for n in zf.namelist() if n.startswith(prefix) and not n.endswith("/")]
+          if prefix + "flasher_args.json" not in members:
+              sys.exit("build-setup/flasher_args.json is missing from the artifact")
+          root = os.path.realpath(os.path.join(sys.argv[2], "build-setup"))
+          for name in members:
+              rel = name[len(prefix):]
+              if not rel or rel.startswith("/") or ".." in rel.split("/") or "\\" in rel:
+                  sys.exit("artifact contains a file path outside build-setup/")
+              dest = os.path.realpath(os.path.join(root, rel))
+              if os.path.commonpath([root, dest]) != root:
+                  sys.exit("artifact contains a file path outside build-setup/")
+              os.makedirs(os.path.dirname(dest), exist_ok=True)
+              with zf.open(name) as src, open(dest, "wb") as out:
+                  out.write(src.read())
           PY
           rm -f "$zip"
-          fw="${work}/firmware.bin"
-          [ -s "$fw" ] || fail "firmware extraction produced no file"
-          echo "BENCH_FW_IMAGE_PATH=${fw}" >> "$GITHUB_ENV"
+          build="${work}/build-setup"
+          [ -s "${build}/flasher_args.json" ] || fail "flasher_args.json was not extracted"
+          echo "BENCH_FW_BUILD_DIR=${build}" >> "$GITHUB_ENV"
           echo "2. firmware: plant-monitor-firmware-setup (run ${run_id}, main) saved to the runner workspace"
 
       - name: "3. Provision and flash board (build-setup files, then NVS last)"
@@ -449,13 +462,14 @@ jobs:
 
       - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
         # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
-        # BENCH_APP_TEST_ACCOUNT (test account config). Values are never in the repo.
+        # BENCH_TEST_EMAIL and BENCH_TEST_EMAIL_PASSWORD (test account). Values are never in the repo.
         # Scope: communication path only. The flow scans and finds the device, connects, writes
         # the setup data, and checks that the app shows the device as connected. It asserts no
         # reading of any kind.
         env:
           BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
-          BENCH_APP_TEST_ACCOUNT: ${{ secrets.BENCH_APP_TEST_ACCOUNT }}
+          BENCH_TEST_EMAIL: ${{ secrets.BENCH_TEST_EMAIL }}
+          BENCH_TEST_EMAIL_PASSWORD: ${{ secrets.BENCH_TEST_EMAIL_PASSWORD }}
           # PoP and Wi-Fi go to the Appium script as environment variables only. Never echo them.
           BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
           BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
@@ -469,8 +483,12 @@ jobs:
             echo "::error::d. app flow: not configured: nothing tested (missing ${script})"
             exit 1
           fi
-          if [ -z "${BENCH_APP_TEST_ACCOUNT:-}" ]; then
-            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_APP_TEST_ACCOUNT is not set)"
+          if [ -z "${BENCH_TEST_EMAIL:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_TEST_EMAIL is not set)"
+            exit 1
+          fi
+          if [ -z "${BENCH_TEST_EMAIL_PASSWORD:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_TEST_EMAIL_PASSWORD is not set)"
             exit 1
           fi
           if [ -z "${BENCH_ANDROID_SERIAL:-}" ]; then
