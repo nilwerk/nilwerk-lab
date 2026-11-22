@@ -3,17 +3,38 @@ name: Firmware bench image (setup flow)
 # Builds the NORMAL plant-monitor image for the bench: real sensor drivers
 # (CONFIG_PLANT_SIM_MOCK_SENSORS stays off) with the BLE setup flow on
 # (CONFIG_PLANT_SETUP_FLOW=y). Runs on GitHub-hosted runners only, never on
-# the bench runner. No secrets, URLs, keys or Wi-Fi values are used here.
+# the bench runner.
+#
+# Requirements: FR-D03 (BLE setup mode), FR-D09 (BLE active only in setup mode),
+# NFR-06 (no secrets in repo; per-device creds). Sources:
+# projects/plant-monitor/tests/acceptance-matrix.md lines 20 and 53,
+# projects/plant-monitor/docs/architecture.md line 303.
+#
+# Secrets: this workflow uses none. The image contains the placeholder
+# CONFIG_PLANT_API_BASE_URL default https://api.invalid (main/Kconfig.projbuild:53).
+# The real API URL is set only in the git-ignored local config (Kconfig help,
+# A-082), so it is never built into this image.
 #
 # Config = sdkconfig.defaults + sdkconfig.defaults.v1 + sdkconfig.defaults.setup
 # (the procedure tests/procedures/4.F2b-sec2-provisioning.md section 1 names
 # this build; the setup overlay is listed last so it wins).
+#
+# Pinning convention for THIS file: every third-party action is pinned to a
+# full commit SHA, with the tag or branch it was resolved from in a trailing
+# comment. .github/workflows/ci.yml uses tags (@v4, @v1) and is not changed here.
+#
+# Why a separate workflow and not a step in ci.yml: not done this round. ci.yml
+# is shared by every workstream, and the public-artifact question (see the PR
+# body, "Needs a decision") is open with Arsany. Folding an artifact upload into
+# ci.yml would apply that open question to every firmware PR.
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - 'projects/plant-monitor/firmware/**'
+      # This file: so a change to the workflow exercises it on its own PR.
+      - '.github/workflows/firmware-bench-image.yml'
 
 permissions:
   contents: read
@@ -28,16 +49,18 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: ESP-IDF build (setup flow on, simulator off)
-        # Fail closed: the action exits non-zero when the build or any check below fails,
-        # and the later steps (upload) do not run.
+        # Fail closed: `set -e` makes the first failing line stop the command, so a
+        # build or check failure fails this step and the later steps (upload) do not run.
+        # Without it, bash -c would exit with only the status of the last line.
         # Separate build dir and settings file so no stale sdkconfig is reused
         # (SDKCONFIG_DEFAULTS only seeds a NEW sdkconfig).
-        uses: espressif/esp-idf-ci-action@9d38657f3d789ca759b2b37aaf5ceffbc42c4f0d # v1 branch head, verified with git ls-remote
+        uses: espressif/esp-idf-ci-action@9d38657f3d789ca759b2b37aaf5ceffbc42c4f0d # v1 branch head
         with:
           esp_idf_version: v5.4
           target: esp32c3
           path: projects/plant-monitor/firmware
           command: |
+            set -e
             rm -f sdkconfig.setup
             idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup" build size
             grep -q '^CONFIG_PLANT_SETUP_FLOW=y' sdkconfig.setup
@@ -46,12 +69,38 @@ jobs:
             if grep -q '^CONFIG_PLANT_SIM_MOCK_SENSORS=y' sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
             test -s build-setup/plant_monitor.bin
 
+      - name: Check every flash file named in flasher_args.json
+        # The artifact must hold every file esptool flashes (bootloader, partition table, app),
+        # not only the app. The list comes from flasher_args.json itself, so a file it names
+        # that is missing or empty fails this step before upload.
+        id: files
+        working-directory: projects/plant-monitor/firmware/build-setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s flasher_args.json
+          files=$(jq -r '.flash_files[]' flasher_args.json)
+          test -n "$files"
+          for f in $files; do
+            case "$f" in
+              /*|*..*) echo "unsafe path in flasher_args.json: $f"; exit 1 ;;
+            esac
+            test -s "$f" || { echo "missing or empty flash file named in flasher_args.json: $f"; exit 1; }
+          done
+          {
+            echo "paths<<PATHS_EOF"
+            echo "projects/plant-monitor/firmware/build-setup/flasher_args.json"
+            for f in $files; do echo "projects/plant-monitor/firmware/build-setup/$f"; done
+            echo "PATHS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Flash files verified:"
+          echo "$files"
+
       - name: Upload setup firmware artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: plant-monitor-firmware-setup
-          # Binaries plus the flash-offset file esptool needs. No sdkconfig, no logs, no NVS files.
-          path: |
-            projects/plant-monitor/firmware/build-setup/*.bin
-            projects/plant-monitor/firmware/build-setup/flasher_args.json
+          # Exactly the flash files named in flasher_args.json, plus that file. No sdkconfig,
+          # no logs, no NVS files (NVS is written per unit at the bench, not built here).
+          path: ${{ steps.files.outputs.paths }}
           if-no-files-found: error
