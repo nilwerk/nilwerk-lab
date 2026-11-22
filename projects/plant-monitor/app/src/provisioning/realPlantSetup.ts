@@ -1,11 +1,11 @@
-// Real PlantSetupService (4.A4c, minimum for the bench test): the setup flow's "save plant" writes the plants row and points the device at it.
+// Real PlantSetupService (4.A4c): the setup flow's "save plant" reads the sensor's current plant, then calls create_plant_and_link_device
+// (one atomic RPC: plant insert + devices.plant_id link, or neither). A sensor that already has a plant is not moved without an explicit choice.
 // Communication: PostgREST with the user's JWT, the same client as plants/plantsRest.ts (no second Supabase client, no new backend).
-// Contract: plants insert (docs/interfaces/db-schema.sql L82 plants_all_own: owner_id must be auth.uid()); devices.plant_id update
-// (migration 20261108000005_devices_plant_check.sql: the plant must be the caller's; db-schema.sql L109 is the older clause without it).
+// Contract: docs/interfaces/db-schema.sql create_plant_and_link_device (also in migration 20261107000001, byte-identical copy).
 // Photos are NOT saved here: a photo is refused, never dropped silently. The real build offers no photo (noPhotoSource.supported = false).
 // NOT run against a live backend (no project in this session).
 import { call, type RestDeps } from '../plants/plantsRest';
-import { PlantSetupError, type PhotoSource, type PlantDetails, type PlantSetupService } from './types';
+import { PlantSetupError, type PhotoSource, type PlantDetails, type PlantSaveResult, type PlantSetupService } from './types';
 
 export interface RealPlantSetupDeps {
   baseUrl: string;
@@ -23,36 +23,40 @@ const opt = (s: string): string | null => (s.trim() === '' ? null : s.trim());
 export function createRealPlantSetup(d: RealPlantSetupDeps): PlantSetupService {
   const rest: RestDeps = { baseUrl: d.baseUrl, publishableKey: d.publishableKey, getAccessToken: d.getAccessToken, fetchImpl: d.fetchImpl };
   return {
-    async createPlant(deviceId: string, details: PlantDetails, photoUri: string | null): Promise<{ plantId: string }> {
+    async createPlant(deviceId: string, details: PlantDetails, photoUri: string | null, opts: { moveFromCurrent?: boolean } = {}): Promise<PlantSaveResult> {
       if (photoUri !== null) throw new PlantSetupError('photo_unsupported');
       if (!UUID.test(deviceId)) throw new PlantSetupError('device_not_found');
       const ownerId = await d.getUserId().catch(() => null);
       if (!ownerId) throw new PlantSetupError('not_signed_in');
 
-      let plantId: string;
+      // 1. read the sensor's current plant (RLS: only the owner's device is visible). Nothing is written yet.
+      let currentPlant: string | null;
       try {
-        const ins = await call(rest, '/rest/v1/plants', {
-          method: 'POST',
-          body: { owner_id: ownerId, name: details.name.trim(), location_type: details.location, area: opt(details.area), soil_type: details.soil, species: opt(details.species), city: opt(details.city) },
-          prefer: 'return=representation',
-        });
-        const row = Array.isArray(ins.json) ? (ins.json[0] as { id?: unknown } | undefined) : undefined;
-        if (typeof row?.id !== 'string' || !UUID.test(row.id)) throw new PlantSetupError();
-        plantId = row.id;
-      } catch {
+        const dev = await call(rest, `/rest/v1/devices?select=plant_id&id=eq.${deviceId}`);
+        // an empty answer means the device is not visible (RLS), so it is not a silent "no plant"
+        if (!Array.isArray(dev.json) || dev.json.length !== 1) throw new PlantSetupError('device_not_found');
+        currentPlant = (dev.json[0] as { plant_id?: string | null }).plant_id ?? null;
+      } catch (e) {
+        if (e instanceof PlantSetupError) throw e;
         throw new PlantSetupError();
       }
+      if (currentPlant !== null && !opts.moveFromCurrent) return { status: 'already_linked' };
 
+      // 2. one server call: plant insert + device link in one transaction (create_plant_and_link_device, migration 1 / db-schema.sql).
+      //    If the link fails the server rolls the insert back too, so no orphan plant is left behind.
       try {
-        // PostgREST answers 200 with [] when RLS hides the device, so an empty answer is a failed link, not a success
-        const link = await call(rest, `/rest/v1/devices?id=eq.${deviceId}`, { method: 'PATCH', body: { plant_id: plantId }, prefer: 'return=representation' });
-        if (!Array.isArray(link.json) || link.json.length !== 1) throw new PlantSetupError();
+        const r = await call(rest, '/rest/v1/rpc/create_plant_and_link_device', {
+          method: 'POST',
+          body: {
+            p_device: deviceId, p_name: details.name.trim(), p_location_type: details.location, p_area: opt(details.area),
+            p_soil_type: details.soil, p_species: opt(details.species), p_city: opt(details.city), p_move: currentPlant !== null,
+          },
+        });
+        if (typeof r.json !== 'string' || !UUID.test(r.json)) throw new PlantSetupError();
+        return { status: 'saved', plantId: r.json };
       } catch {
-        // do not leave a plant without its sensor behind; if this clean-up fails too, the plant row stays (see the PR)
-        await call(rest, `/rest/v1/plants?id=eq.${plantId}`, { method: 'DELETE' }).catch(() => undefined);
         throw new PlantSetupError();
       }
-      return { plantId };
     },
   };
 }

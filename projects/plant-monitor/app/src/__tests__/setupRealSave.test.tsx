@@ -1,6 +1,6 @@
 // Device setup screens driven into the REAL plant save (4.A4c): SetupFlow -> createRealPlantSetup -> fake fetch. Photo step offers only Skip.
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, fireEvent } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SetupFlow } from '../screens/setup/SetupFlow';
 import { createFakeSetup, FAKE_LABEL, FAKE_SENSOR, FAKE_WIFI } from '../provisioning/fakeProvisioning';
@@ -15,18 +15,21 @@ const PLANT = '33333333-3333-4333-8333-333333333333';
 const UNSAVED = 'The plant could not be saved, so your sensor is not linked to it. Please try again.';
 
 const res = (status: number, body: unknown) => ({ status, json: async () => body }) as unknown as Response;
+const OTHER = '44444444-4444-4444-8444-444444444444';
 
-/** fake sensor link that answers with a uuid device id, as the real claim does (the fake's own id is not a uuid) */
-function servicesWith(patchAnswer: () => Response) {
+/** the fake sensor link returns a uuid device id, as the real claim does; the plant service talks to a fake fetch.
+ *  devicePlant: what GET devices shows (null = no plant yet); rpc: answer of create_plant_and_link_device. */
+function servicesWith(opts: { devicePlant?: string | null | 'hidden'; rpc?: () => Response }) {
   const fake = createFakeSetup();
   const provisioning = { ...fake.services.provisioning, provision: async (req: Parameters<typeof fake.services.provisioning.provision>[0], on: Parameters<typeof fake.services.provisioning.provision>[1]) => {
     await fake.services.provisioning.provision(req, on);
     return { deviceId: DEVICE, hwId: FAKE_SENSOR.hwId };
   } };
   const fetchImpl = jest.fn(async (url: string, init: RequestInit) => {
-    if (init.method === 'POST' && url.endsWith('/rest/v1/plants')) return res(201, [{ id: PLANT }]);
-    if (init.method === 'PATCH' && url.includes('/rest/v1/devices')) return patchAnswer();
-    if (init.method === 'DELETE') return res(204, null);
+    if ((init.method ?? 'GET') === 'GET' && url.includes('/rest/v1/devices')) {
+      return opts.devicePlant === 'hidden' ? res(200, []) : res(200, [{ plant_id: opts.devicePlant ?? null }]);
+    }
+    if (init.method === 'POST' && url.endsWith('/rest/v1/rpc/create_plant_and_link_device')) return opts.rpc ? opts.rpc() : res(200, PLANT);
     throw new Error(`unexpected ${init.method} ${url}`);
   });
   const plants = createRealPlantSetup({ baseUrl: BASE, publishableKey: 'k', getAccessToken: async () => 'jwt', getUserId: async () => USER, fetchImpl: fetchImpl as unknown as typeof fetch });
@@ -35,7 +38,9 @@ function servicesWith(patchAnswer: () => Response) {
 }
 
 const mount = async (services: SetupServices) => {
-  await render(<SafeAreaProvider initialMetrics={metrics}><SetupFlow services={services} onExit={jest.fn()} now={() => 0} /></SafeAreaProvider>);
+  const onExit = jest.fn();
+  await render(<SafeAreaProvider initialMetrics={metrics}><SetupFlow services={services} onExit={onExit} now={() => 0} /></SafeAreaProvider>);
+  return { onExit };
 };
 const type = async (label: string, text: string) => fireEvent.changeText(await screen.findByLabelText(label), text);
 const tap = async (label: string | RegExp) => fireEvent.press(await screen.findByRole('button', { name: label }));
@@ -66,8 +71,8 @@ async function fillAndSave() {
 }
 
 describe('setup save in the real build', () => {
-  test('photo step offers only Skip and says why; the saved plant is written to the cloud and linked to the sensor', async () => {
-    const { services, fetchImpl } = servicesWith(() => res(200, [{ id: DEVICE, plant_id: PLANT }]));
+  test('photo step offers only Skip and says why; the plant is saved in one call and linked to the sensor', async () => {
+    const { services, fetchImpl } = servicesWith({ devicePlant: null });
     await mount(services);
     await toPhoto();
     expect(screen.queryByRole('button', { name: 'Take photo' })).toBeNull();
@@ -77,15 +82,13 @@ describe('setup save in the real build', () => {
     await header('About your plant');
     await fillAndSave();
     expect(await header('All set!')).toBeTruthy();
-    const ins = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(JSON.parse(String(ins[1].body))).toMatchObject({ owner_id: USER, name: 'Basil', location_type: 'balcony', soil_type: 'garden', city: 'Berlin' });
-    const link = fetchImpl.mock.calls[1] as unknown as [string, RequestInit];
-    expect(link[0]).toBe(`${BASE}/rest/v1/devices?id=eq.${DEVICE}`);
-    expect(JSON.parse(String(link[1].body))).toEqual({ plant_id: PLANT });
+    const rpc = fetchImpl.mock.calls.find((c) => String(c[0]).endsWith('/rpc/create_plant_and_link_device')) as unknown as [string, RequestInit];
+    expect(JSON.parse(String(rpc[1].body))).toMatchObject({ p_device: DEVICE, p_name: 'Basil', p_location_type: 'balcony', p_soil_type: 'garden', p_city: 'Berlin', p_move: false });
+    expect(fetchImpl.mock.calls.some((c) => (c[1] as RequestInit).method === 'PATCH')).toBe(false);
   });
 
-  test('when the sensor link is not visible, the screen says the plant was not saved (no "All set!")', async () => {
-    const { services } = servicesWith(() => res(200, []));
+  test('when the sensor is not visible, the screen says the plant was not saved (no "All set!")', async () => {
+    const { services } = servicesWith({ devicePlant: 'hidden' });
     await mount(services);
     await toPhoto();
     await tap('Skip for now');
@@ -93,6 +96,44 @@ describe('setup save in the real build', () => {
     await fillAndSave();
     expect(await screen.findByText(UNSAVED)).toBeTruthy();
     expect(screen.queryByRole('header', { name: 'All set!' })).toBeNull();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save plant' })).toBeTruthy());
+  });
+
+  test('the RPC fails: the screen says the plant was not saved, and no plant is left behind (one statement)', async () => {
+    const { services, fetchImpl } = servicesWith({ devicePlant: null, rpc: () => res(403, { code: '42501' }) });
+    await mount(services);
+    await toPhoto();
+    await tap('Skip for now');
+    await header('About your plant');
+    await fillAndSave();
+    expect(await screen.findByText(UNSAVED)).toBeTruthy();
+    expect(fetchImpl.mock.calls.filter((c) => (c[1] as RequestInit).method === 'POST')).toHaveLength(1);
+  });
+
+  test('sensor already on a plant: the user is asked, nothing is written, and "keep" leaves without saving', async () => {
+    const { services, fetchImpl } = servicesWith({ devicePlant: OTHER });
+    const { onExit } = await mount(services);
+    await toPhoto();
+    await tap('Skip for now');
+    await header('About your plant');
+    await fillAndSave();
+    expect(await header('This sensor already has a plant')).toBeTruthy();
+    expect(fetchImpl.mock.calls.some((c) => (c[1] as RequestInit).method === 'POST')).toBe(false);
+    await tap('Keep the sensor on its current plant');
+    expect(onExit).toHaveBeenCalled();
+    expect(fetchImpl.mock.calls.some((c) => (c[1] as RequestInit).method === 'POST')).toBe(false);
+  });
+
+  test('sensor already on a plant: "move" saves the new plant and moves the link (p_move true)', async () => {
+    const { services, fetchImpl } = servicesWith({ devicePlant: OTHER });
+    await mount(services);
+    await toPhoto();
+    await tap('Skip for now');
+    await header('About your plant');
+    await fillAndSave();
+    await header('This sensor already has a plant');
+    await tap('Move the sensor to the new plant');
+    expect(await header('All set!')).toBeTruthy();
+    const rpc = fetchImpl.mock.calls.find((c) => String(c[0]).endsWith('/rpc/create_plant_and_link_device')) as unknown as [string, RequestInit];
+    expect(JSON.parse(String(rpc[1].body))).toMatchObject({ p_move: true });
   });
 });

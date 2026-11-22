@@ -1,4 +1,4 @@
-// Real PlantSetupService (4.A4c): plants insert + devices.plant_id link, through a fake fetch. No network, no backend.
+// Real PlantSetupService (4.A4c): read the sensor's plant, then one RPC (plant insert + device link, atomic). Through a fake fetch. No network, no backend.
 import { createRealPlantSetup, noPhotoSource, unconfiguredPlantSetup } from '../provisioning/realPlantSetup';
 import { PlantSetupError, type PlantDetails } from '../provisioning/types';
 
@@ -20,8 +20,6 @@ const backend = (routes: Record<string, Route>) => jest.fn(async (url: string, i
   if (!r) throw new Error(`unexpected call ${key}`);
   return r(url, init);
 });
-const okInsert: Route = () => res(201, [{ id: PLANT, owner_id: USER, name: 'Basil' }]);
-const okLink: Route = () => res(200, [{ id: DEVICE, plant_id: PLANT }]);
 const mk = (fetchImpl: jest.Mock, o: { token?: string | null; userId?: string | null } = {}) => createRealPlantSetup({
   baseUrl: `${BASE}/`, publishableKey: KEY,
   getAccessToken: async () => (o.token === undefined ? TOKEN : o.token),
@@ -30,61 +28,75 @@ const mk = (fetchImpl: jest.Mock, o: { token?: string | null; userId?: string | 
 });
 const bodyOf = (call: unknown[]) => JSON.parse(String((call[1] as RequestInit).body));
 
-describe('createPlant: happy path', () => {
-  test('inserts the plant as the signed-in owner, then links the device to it, and returns the new id', async () => {
-    const f = backend({ 'POST /rest/v1/plants': okInsert, [`PATCH /rest/v1/devices`]: okLink });
-    const { plantId } = await mk(f).createPlant(DEVICE, details, null);
-    expect(plantId).toBe(PLANT);
+const RPC = `${BASE}/rest/v1/rpc/create_plant_and_link_device`;
+const DEVICE_ROW = (plant: string | null) => res(200, [{ plant_id: plant }]);
+const getDevice = (plant: string | null): Route => () => DEVICE_ROW(plant);
+const rpcOk: Route = () => res(200, PLANT);
+const isRpc = (c: unknown[]) => String(c[0]) === RPC;
+const rpcBody = (f: jest.Mock) => bodyOf(f.mock.calls.find(isRpc) as unknown[]);
+
+describe('createPlant: happy path (one atomic RPC after a read)', () => {
+  test('reads the sensor, then calls create_plant_and_link_device once with the owner-trimmed fields', async () => {
+    const f = backend({ [`GET /rest/v1/devices`]: getDevice(null), 'POST /rest/v1/rpc/create_plant_and_link_device': rpcOk });
+    const out = await mk(f).createPlant(DEVICE, details, null);
+    expect(out).toEqual({ status: 'saved', plantId: PLANT });
     expect(f).toHaveBeenCalledTimes(2);
-    const [insUrl, insInit] = f.mock.calls[0] as [string, RequestInit];
-    expect(insUrl).toBe(`${BASE}/rest/v1/plants`);
-    expect(insInit.headers).toMatchObject({ apikey: KEY, Authorization: `Bearer ${TOKEN}`, Prefer: 'return=representation' });
-    expect(bodyOf(f.mock.calls[0])).toEqual({ owner_id: USER, name: 'Basil', location_type: 'balcony', area: 'Kitchen window', soil_type: 'garden', species: null, city: 'Berlin' });
-    const [linkUrl, linkInit] = f.mock.calls[1] as [string, RequestInit];
-    expect(linkUrl).toBe(`${BASE}/rest/v1/devices?id=eq.${DEVICE}`);
-    expect(linkInit.method).toBe('PATCH');
-    expect(bodyOf(f.mock.calls[1])).toEqual({ plant_id: PLANT });
+    const [getUrl] = f.mock.calls[0] as [string, RequestInit];
+    expect(getUrl).toBe(`${BASE}/rest/v1/devices?select=plant_id&id=eq.${DEVICE}`);
+    const [rpcUrl, rpcInit] = f.mock.calls[1] as [string, RequestInit];
+    expect(rpcUrl).toBe(RPC);
+    expect(rpcInit.method).toBe('POST');
+    expect(rpcInit.headers).toMatchObject({ apikey: KEY, Authorization: `Bearer ${TOKEN}` });
+    expect(rpcBody(f)).toEqual({ p_device: DEVICE, p_name: 'Basil', p_location_type: 'balcony', p_area: 'Kitchen window', p_soil_type: 'garden', p_species: null, p_city: 'Berlin', p_move: false });
   });
 
   test('an empty area stays null, not an empty string', async () => {
-    const f = backend({ 'POST /rest/v1/plants': okInsert, 'PATCH /rest/v1/devices': okLink });
+    const f = backend({ 'GET /rest/v1/devices': getDevice(null), 'POST /rest/v1/rpc/create_plant_and_link_device': rpcOk });
     await mk(f).createPlant(DEVICE, { ...details, area: '  ' }, null);
-    expect(bodyOf(f.mock.calls[0]).area).toBeNull();
+    expect(rpcBody(f).p_area).toBeNull();
+  });
+});
+
+describe('createPlant: a sensor that already has a plant is never moved silently', () => {
+  test('returns already_linked and writes nothing (no RPC, no PATCH)', async () => {
+    const OTHER = '44444444-4444-4444-8444-444444444444';
+    const f = backend({ 'GET /rest/v1/devices': getDevice(OTHER) });
+    await expect(mk(f).createPlant(DEVICE, details, null)).resolves.toEqual({ status: 'already_linked' });
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(f.mock.calls.some(isRpc)).toBe(false);
+  });
+
+  test('with moveFromCurrent: calls the RPC with p_move true (the user chose to move)', async () => {
+    const OTHER = '44444444-4444-4444-8444-444444444444';
+    const f = backend({ 'GET /rest/v1/devices': getDevice(OTHER), 'POST /rest/v1/rpc/create_plant_and_link_device': rpcOk });
+    await expect(mk(f).createPlant(DEVICE, details, null, { moveFromCurrent: true })).resolves.toEqual({ status: 'saved', plantId: PLANT });
+    expect(rpcBody(f).p_move).toBe(true);
   });
 });
 
 describe('createPlant: failures never report a saved plant', () => {
-  test('plant insert refused (403): throws, and the device is not touched', async () => {
-    const f = backend({ 'POST /rest/v1/plants': () => res(403, { code: '42501' }) });
-    await expect(mk(f).createPlant(DEVICE, details, null)).rejects.toBeInstanceOf(PlantSetupError);
-    expect(f).toHaveBeenCalledTimes(1);
+  test('device not visible under RLS (GET answers []): throws, no RPC', async () => {
+    const f = backend({ 'GET /rest/v1/devices': () => res(200, []) });
+    await expect(mk(f).createPlant(DEVICE, details, null)).rejects.toMatchObject({ message: 'device_not_found' });
+    expect(f.mock.calls.some(isRpc)).toBe(false);
   });
 
-  test('insert answers without an id: throws, nothing linked', async () => {
-    const f = backend({ 'POST /rest/v1/plants': () => res(201, []) });
+  test('RPC refused (403): throws; one statement, so there is nothing to clean up', async () => {
+    const f = backend({ 'GET /rest/v1/devices': getDevice(null), 'POST /rest/v1/rpc/create_plant_and_link_device': () => res(403, { code: '42501' }) });
     await expect(mk(f).createPlant(DEVICE, details, null)).rejects.toBeInstanceOf(PlantSetupError);
-    expect(f).toHaveBeenCalledTimes(1);
+    expect(f).toHaveBeenCalledTimes(2);
   });
 
-  test('device not visible under RLS (PATCH answers []): throws and removes the new plant again', async () => {
-    const f = backend({ 'POST /rest/v1/plants': okInsert, 'PATCH /rest/v1/devices': () => res(200, []), 'DELETE /rest/v1/plants': () => res(204, null) });
-    await expect(mk(f).createPlant(DEVICE, details, null)).rejects.toBeInstanceOf(PlantSetupError);
-    const del = f.mock.calls.find((c) => (c[1] as RequestInit).method === 'DELETE');
-    expect(del?.[0]).toBe(`${BASE}/rest/v1/plants?id=eq.${PLANT}`);
-  });
-
-  test('link fails with a network error: throws and still tries the clean-up', async () => {
+  test('RPC network error: throws', async () => {
     const f = jest.fn(async (url: string, init: RequestInit) => {
-      if (init.method === 'PATCH') throw new TypeError('network down');
-      if (init.method === 'DELETE') return res(204, null);
-      return res(201, [{ id: PLANT }]);
+      if (init.method === 'GET') return DEVICE_ROW(null);
+      throw new TypeError('network down');
     });
     await expect(mk(f).createPlant(DEVICE, details, null)).rejects.toBeInstanceOf(PlantSetupError);
-    expect(f.mock.calls.some((c) => (c[1] as RequestInit).method === 'DELETE')).toBe(true);
   });
 
-  test('clean-up also fails: still throws PlantSetupError (the orphan is a known gap, see the PR)', async () => {
-    const f = backend({ 'POST /rest/v1/plants': okInsert, 'PATCH /rest/v1/devices': () => res(500, {}), 'DELETE /rest/v1/plants': () => res(500, {}) });
+  test('RPC answers something that is not a plant id: throws', async () => {
+    const f = backend({ 'GET /rest/v1/devices': getDevice(null), 'POST /rest/v1/rpc/create_plant_and_link_device': () => res(200, { id: PLANT }) });
     await expect(mk(f).createPlant(DEVICE, details, null)).rejects.toBeInstanceOf(PlantSetupError);
   });
 });

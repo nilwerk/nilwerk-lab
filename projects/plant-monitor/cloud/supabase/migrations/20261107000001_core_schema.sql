@@ -474,6 +474,28 @@ end $$;
 revoke all on function public.delete_plant(uuid) from public, anon;
 grant execute on function public.delete_plant(uuid) to authenticated;
 
+-- Setup "save plant" (4.A4c, FR-A03, FR-A04, NFR-06, FR-A08): one call inserts the plant AND points the device at it, or does neither.
+-- Runs as one transaction: if the device link fails, the plant insert is rolled back too (no orphan plant).
+-- A device that already has a plant is NOT moved unless p_move is true (no silent move; P0005 otherwise).
+-- security definer: RLS does not apply inside, so the owner checks are explicit (device owned by auth.uid(); the new plant is the caller's).
+create or replace function public.create_plant_and_link_device(
+  p_device uuid, p_name text, p_location_type text, p_area text, p_soil_type text, p_species text, p_city text, p_move boolean default false
+) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_current uuid; v_plant uuid;
+begin
+  if v_uid is null then raise exception 'not authenticated' using errcode = '28000'; end if;
+  select plant_id into v_current from public.devices where id = p_device and owner_id = v_uid for update;
+  if not found then raise exception 'device not found' using errcode = 'P0002'; end if;   -- same answer for unknown and foreign devices
+  if v_current is not null and not p_move then raise exception 'device already has a plant' using errcode = 'P0005'; end if;
+  insert into public.plants (owner_id, name, location_type, area, soil_type, species, city)
+    values (v_uid, p_name, p_location_type, p_area, p_soil_type, p_species, p_city) returning id into v_plant;
+  update public.devices set plant_id = v_plant where id = p_device and owner_id = v_uid;
+  return v_plant;
+end $$;
+revoke all on function public.create_plant_and_link_device(uuid, text, text, text, text, text, text, boolean) from public, anon;
+grant execute on function public.create_plant_and_link_device(uuid, text, text, text, text, text, text, boolean) to authenticated;
+
 -- Retention (NFR-13, A-028): raw readings ~3 months, hourly roll-up 12 months. Replaces purge_old_readings().
 -- raw_months is the single knob (default 3). Order matters: complete hours are rolled up FIRST, then raw rows
 -- older than the cut-off are deleted, so no data is lost between the two steps. Idempotent (upsert).

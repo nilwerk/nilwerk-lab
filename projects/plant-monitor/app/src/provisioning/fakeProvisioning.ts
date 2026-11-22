@@ -70,17 +70,23 @@ export function createFakeProvisioning(opts: FakeProvisioningOptions = {}) {
   return { service, state };
 }
 
-export function createFakePlants(opts: { failNext?: boolean } = {}) {
+export function createFakePlants(opts: { failNext?: boolean; linked?: boolean } = {}) {
   const created: { deviceId: string; details: PlantDetails; photoUri: string | null }[] = [];
+  /** device ids whose sensor was moved from another plant (the user chose move) */
+  const moved: string[] = [];
   const o = opts;
   const service: PlantSetupService = {
-    async createPlant(deviceId, details, photoUri) {
+    async createPlant(deviceId, details, photoUri, call) {
       if (o.failNext) { o.failNext = false; throw new PlantSetupError(); }
+      const move = call?.moveFromCurrent === true;
+      if (o.linked && !move) return { status: 'already_linked' };   // the fake sensor has a plant: nothing is written
       created.push({ deviceId, details, photoUri });
-      return { plantId: `plant-${created.length}` };
+      if (move && o.linked) moved.push(deviceId);
+      if (move) o.linked = false;
+      return { status: 'saved', plantId: `plant-${created.length}` };
     },
   };
-  return { service, created, options: o };
+  return { service, created, moved, options: o };
 }
 
 export function createFakePhotos(result: string | null = 'file:///fake/basil.jpg'): PhotoSource & { calls: string[] } {

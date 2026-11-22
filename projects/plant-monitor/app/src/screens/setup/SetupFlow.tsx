@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ProvisioningError, type DiscoveredDevice, type LinkState, type PlantDetails, type ProvisioningErrorCode, type SetupServices, type WifiNetwork } from '../../provisioning/types';
 import { elapsedSeconds, formatClock, initialSetup, setupReducer } from './setupState';
-import { ConnectStep, DetailsStep, DoneStep, LinkErrorStep, LinkingStep, NameStep, PhotoStep, ReadyStep, WifiStep } from './SetupSteps';
+import { ConnectStep, DetailsStep, DoneStep, LinkErrorStep, LinkingStep, MoveChoiceStep, NameStep, PhotoStep, ReadyStep, WifiStep } from './SetupSteps';
 
 const codeOf = (e: unknown): ProvisioningErrorCode => (e instanceof ProvisioningError ? e.code : 'unknown');
 
@@ -29,6 +29,8 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
   const [photoCancelled, setPhotoCancelled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  /** N2: the sensor already has a plant; the details wait here until the user chooses. Nothing is written before that. */
+  const [pendingMove, setPendingMove] = useState<PlantDetails | null>(null);
 
   const cancel = useCallback(() => { provisioning.disconnect().catch(() => undefined); onExit(); }, [provisioning, onExit]);
 
@@ -66,14 +68,19 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
     if (!alive.current) return;
     if (uri) dispatch({ type: 'photo', uri }); else setPhotoCancelled(true);
   };
-  const save = async (d: PlantDetails) => {
+  const save = async (d: PlantDetails, moveFromCurrent = false) => {
     if (!s.deviceId) return;
     setSaving(true); setSaveError(false);
-    try { await plants.createPlant(s.deviceId, d, s.photoUri); if (alive.current) dispatch({ type: 'saved', plantName: d.name, now: now() }); } catch { if (alive.current) setSaveError(true); }
+    try {
+      const r = await plants.createPlant(s.deviceId, d, s.photoUri, { moveFromCurrent });
+      if (!alive.current) return;
+      if (r.status === 'saved') dispatch({ type: 'saved', plantName: d.name, now: now() });
+      else setPendingMove(d);   // already linked: ask, do not move
+    } catch { if (alive.current) setSaveError(true); }
     if (alive.current) setSaving(false);
   };
 
-  const restart = () => { provisioning.disconnect().catch(() => undefined); setFound([]); setScanned(false); setReadyError(null); setConnectError(null); setPhotoCancelled(false); setSaveError(false); dispatch({ type: 'restart', now: now() }); };
+  const restart = () => { provisioning.disconnect().catch(() => undefined); setPendingMove(null); setFound([]); setScanned(false); setReadyError(null); setConnectError(null); setPhotoCancelled(false); setSaveError(false); dispatch({ type: 'restart', now: now() }); };
 
   switch (s.step) {
     case 'ready': return <ReadyStep time={time} scanning={scanning} scanned={scanned} found={found} error={readyError} onFind={find} onPick={(d) => { setConnectError(null); dispatch({ type: 'chooseDevice', deviceName: d.name }); }} onCancel={cancel} />;
@@ -83,7 +90,9 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
     case 'linking': return <LinkingStep time={time} wifiJoined={link === 'claiming' || link === 'claimed'} claimed={link === 'claimed'} />;
     case 'linkError': return <LinkErrorStep time={time} code={s.error ?? 'unknown'} ssid={s.ssid} onReenter={() => dispatch({ type: 'reenterWifi' })} onOther={() => dispatch({ type: 'chooseOtherWifi' })} onRetry={() => dispatch({ type: 'retryLink' })} onStartOver={restart} />;
     case 'photo': return <PhotoStep time={time} cancelled={photoCancelled} onTake={() => pick(true)} onPick={() => pick(false)} supported={photos.supported !== false} onSkip={() => dispatch({ type: 'photo', uri: null })} />;
-    case 'details': return <DetailsStep time={time} busy={saving} error={saveError} onSave={save} onBack={() => dispatch({ type: 'backToPhoto' })} />;
+    case 'details':
+      if (pendingMove) return <MoveChoiceStep time={time} busy={saving} error={saveError} onKeep={onExit} onMove={() => save(pendingMove, true)} />;
+      return <DetailsStep time={time} busy={saving} error={saveError} onSave={(d) => save(d)} onBack={() => dispatch({ type: 'backToPhoto' })} />;
     case 'done': return <DoneStep plantName={s.plantName ?? ''} time={time} onDone={onExit} onAnother={restart} />;
   }
 }

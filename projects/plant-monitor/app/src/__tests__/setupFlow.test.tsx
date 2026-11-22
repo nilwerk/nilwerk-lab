@@ -222,6 +222,34 @@ describe('device setup flow', () => {
     await header('All set!');
   });
 
+  test('a sensor that already has a plant is not moved silently: the user chooses keep (leave, nothing saved) or move', async () => {
+    const { fake, onExit } = await mount();
+    fake.plants.options.linked = true;
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    expect(await header('This sensor already has a plant')).toBeTruthy();
+    expect(fake.plants.created).toHaveLength(0);
+    await tap('Keep the sensor on its current plant');
+    expect(onExit).toHaveBeenCalled();
+    expect(fake.plants.created).toHaveLength(0);
+  });
+
+  test('a sensor that already has a plant: choosing move saves the plant and moves the link', async () => {
+    const { fake } = await mount();
+    fake.plants.options.linked = true;
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    await header('This sensor already has a plant');
+    await tap('Move the sensor to the new plant');
+    await header('All set!');
+    expect(fake.plants.created).toHaveLength(1);
+    expect(fake.plants.moved).toEqual(['device-1']);
+  });
+
   test('add another sensor restarts at step 1; cancel exits and disconnects', async () => {
     const { onExit } = await mount();
     await toPhoto();

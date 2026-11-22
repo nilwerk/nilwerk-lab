@@ -131,6 +131,26 @@ do $$ begin
 end $$;
 reset role;
 
+-- 2b. setup save (4.A4c, N1/N2): create_plant_and_link_device is one atomic call and never moves a sensor silently
+set role authenticated;
+set request.uid = :'A';
+do $$ declare n int; nid uuid; begin
+  begin perform public.create_plant_and_link_device('20000000-0000-0000-0000-00000000000b', 'X', 'house', null, 'potting', null, null, false);
+    raise exception 'A linked a plant to the B device';
+  exception when sqlstate 'P0002' then null; end;
+  select count(*) into n from public.plants where name = 'X'; if n <> 0 then raise exception 'plant X inserted for a foreign device'; end if;
+  begin perform public.create_plant_and_link_device('20000000-0000-0000-0000-00000000000a', 'Y', 'house', null, 'potting', null, null, false);
+    raise exception 'A moved its sensor without asking';
+  exception when sqlstate 'P0005' then null; end;
+  select count(*) into n from public.plants where name = 'Y'; if n <> 0 then raise exception 'plant Y inserted on a refused move'; end if;
+  nid := public.create_plant_and_link_device('20000000-0000-0000-0000-00000000000a', 'Z', 'balcony', 'Sill', 'sand', null, 'Berlin', true);
+  select count(*) into n from public.devices where id = '20000000-0000-0000-0000-00000000000a' and plant_id = nid; if n <> 1 then raise exception 'confirmed move did not link the device'; end if;
+  select count(*) into n from public.plants where id = nid and owner_id = '00000000-0000-0000-0000-00000000000a'; if n <> 1 then raise exception 'new plant not owned by A'; end if;
+  select count(*) into n from public.plants where id = '10000000-0000-0000-0000-00000000000a'; if n <> 1 then raise exception 'confirmed move deleted the old plant'; end if;
+  raise notice 'contract ok  create_plant_and_link_device: foreign device refused, silent move refused, confirmed move links and keeps the old plant';
+end $$;
+reset role;
+
 -- 3. B's data is untouched after all of the above
 do $$ declare n int; begin
   select count(*) into n from public.plants where owner_id = '00000000-0000-0000-0000-00000000000b'; if n <> 1 then raise exception 'B plant changed'; end if;
