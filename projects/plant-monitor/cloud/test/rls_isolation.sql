@@ -117,7 +117,8 @@ do $$ declare n int; begin
   begin
     update public.devices set plant_id = '10000000-0000-0000-0000-00000000000b' where id = '20000000-0000-0000-0000-00000000000a';
     raise exception 'A pointed its device at B plant';
-  exception when insufficient_privilege then null; end;   -- 42501 new row violates row-level security policy
+  exception when insufficient_privilege then null;   -- 42501 new row violates row-level security policy
+    when unique_violation then raise exception 'A pointed its device at B plant (the policy did not refuse it; only the unique key did)'; end;
   update public.devices set plant_id = null where id = '20000000-0000-0000-0000-00000000000a'; get diagnostics n = row_count;
   if n <> 1 then raise exception 'A cannot clear its own plant link (%)', n; end if;
   update public.devices set plant_id = '10000000-0000-0000-0000-00000000000a' where id = '20000000-0000-0000-0000-00000000000a'; get diagnostics n = row_count;
