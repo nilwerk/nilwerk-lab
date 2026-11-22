@@ -138,6 +138,13 @@ the board as flashed by step a alone.
   Step b starts a few seconds after step 3's reset and reads for 75 s (owner decision, option 1). The window is one full
   sleep cycle: five wake lines about 2 s apart (about 10 s), then 60 s deep sleep, 70 s in all. Any read start therefore
   reaches a wake line inside the window. No reset is added to step b. See "Open points".
+- This sleep cycle is what the bench runner's own image (`.github/workflows/bench.yml`, build-firmware, line 69) does
+  today: that build lists no bench-ci overlay. The CI setup image in `.github/workflows/ci.yml` (artifact
+  `plant-monitor-firmware-setup`) is different: it lists `sdkconfig.defaults.bench-ci` last, which unsets
+  `CONFIG_PLANT_BENCH_SLEEP_CYCLE` (`main/main.c:37-41`), so that board stays awake on USB with no deep sleep in the
+  measurement loop. A board flashed from the ci.yml image produces wake lines without the 60 s sleep. Step b does not
+  use that image. Production (default) build: `main/Kconfig.projbuild:39-41` defaults the option to `y`, so it also
+  deep-sleeps after five readings (`main/main.c:148-152`); the bench-ci overlay is not part of it.
 
 **Version pins (fix round, 22 Nov 2026). Not run on the Pi, not run here.** esptool is pinned to **v5.x**: steps a, b and 3
 run `esptool version` and fail if the major is not 5, and steps a and 3 use the v5 command name `chip-id`. This was

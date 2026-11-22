@@ -1,0 +1,9 @@
+# Bench CI image only: the setup image built by ci.yml job firmware (build-setup). Listed LAST in SDKCONFIG_DEFAULTS, so it wins.
+# Effect: the board stays awake on USB. The bench measurement loop never deep-sleeps.
+# Why UNSET and not "=n": the loop sleeps only when the option is defined (main/main.c:37-41):
+#   defined     -> CYCLES_BEFORE_SLEEP 5, then the deep sleep at main/main.c:148-152 (60 s timer)
+#   not defined -> CYCLES_BEFORE_SLEEP 0x7fffffff, the loop never ends and the sleep call is never reached
+# Kconfig default is y (main/Kconfig.projbuild:39-41), and sdkconfig.defaults.v1:9 sets y, so this file must UNSET it.
+# Not changed here: the setup-flow deep sleep with no timer for a closed, never-provisioned unit (main/main.c:73-81).
+# The default build, the v1 build and the upload build do not list this file.
+# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set
