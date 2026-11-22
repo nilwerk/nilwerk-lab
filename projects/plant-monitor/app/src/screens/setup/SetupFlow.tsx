@@ -28,6 +28,8 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
   const [link, setLink] = useState<LinkState | null>(null);
   const [photoCancelled, setPhotoCancelled] = useState(false);
   const [saving, setSaving] = useState(false);
+  /** one save at a time: a second press while a save is in flight is ignored (no second p_move call) */
+  const inFlight = useRef(false);
   const [saveError, setSaveError] = useState(false);
   /** N2: the sensor already has a plant; the details wait here until the user chooses. Nothing is written before that. */
   const [pendingMove, setPendingMove] = useState<PlantDetails | null>(null);
@@ -71,7 +73,8 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
     if (uri) dispatch({ type: 'photo', uri }); else setPhotoCancelled(true);
   };
   const save = async (d: PlantDetails, moveFromCurrent = false) => {
-    if (!s.deviceId) return;
+    if (!s.deviceId || inFlight.current) return;
+    inFlight.current = true;
     setSaving(true); setSaveError(false); setRecheck(null);
     try {
       const r = await plants.createPlant(s.deviceId, d, s.photoUri, { moveFromCurrent });
@@ -91,6 +94,7 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
         }
       }
     }
+    inFlight.current = false;
     if (alive.current) setSaving(false);
   };
 
@@ -106,7 +110,7 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
     case 'photo': return <PhotoStep time={time} cancelled={photoCancelled} onTake={() => pick(true)} onPick={() => pick(false)} supported={photos.supported !== false} onSkip={() => dispatch({ type: 'photo', uri: null })} />;
     case 'details':
       if (recheck) return <LinkedStep unknown={recheck === 'unknown'} onLeave={onExit} />;
-      if (pendingMove) return <MoveChoiceStep time={time} busy={saving} onKeep={onExit} onMove={() => save(pendingMove, true)} />;
+      if (pendingMove) return <MoveChoiceStep time={time} busy={saving} onKeep={() => { if (!inFlight.current) onExit(); }} onMove={() => { void save(pendingMove, true); }} />;   // returns void: a press must not hand its in-flight promise to the caller
       // Back is withdrawn while a save is in flight: the answer must land on the same attempt, and a Back during the save would leave it without the saved plant
       return <DetailsStep time={time} busy={saving} error={saveError} onSave={(d) => save(d)} onBack={saving ? undefined : () => dispatch({ type: 'backToPhoto' })} />;
     case 'done': return <DoneStep plantName={s.plantName ?? ''} time={time} onDone={onExit} onAnother={restart} />;

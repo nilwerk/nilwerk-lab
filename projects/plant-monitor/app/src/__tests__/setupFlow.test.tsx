@@ -311,4 +311,38 @@ describe('device setup flow', () => {
     await tap('Go back');
     expect(onExit).toHaveBeenCalled();
   });
+
+  test('while a Move save is in flight: Keep, Move and Back are not tappable, and exactly one p_move call is made', async () => {
+    const fake = createFakeSetup();
+    fake.plants.options.linked = true;
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    const moveCalls: string[] = [];
+    const inner = fake.services.plants.createPlant;
+    fake.services.plants = { ...fake.services.plants, createPlant: async (deviceId, details, photoUri, call) => {
+      if (call?.moveFromCurrent) { moveCalls.push(deviceId); await gate; }   // controllable promise: the move stays in flight until released
+      return inner(deviceId, details, photoUri, call);
+    } };
+    const { onExit } = await mount(fake);
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    await header('This sensor already has a plant');
+    // not awaited: the press returns the in-flight save, which only settles after release()
+    fireEvent.press(await screen.findByRole('button', { name: 'Move the sensor to the new plant' }));
+    // in flight: Back is not offered, and pressing Keep or Move must neither start a second move nor leave the flow
+    expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
+    fireEvent.press(screen.getByRole('button', { name: 'Move the sensor to the new plant' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Keep the sensor on its current plant' }));
+    expect(moveCalls).toHaveLength(1);
+    expect(onExit).not.toHaveBeenCalled();
+    await act(async () => { release(); });   // settle the in-flight save inside act
+    expect(await header('All set!')).toBeTruthy();
+    expect(moveCalls).toHaveLength(1);   // exactly one p_move call
+    expect(fake.plants.created).toHaveLength(1);
+    expect(fake.plants.moved).toEqual(['device-1']);
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
 });
