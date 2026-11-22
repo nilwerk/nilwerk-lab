@@ -86,6 +86,13 @@ async function fillAndSave() {
 }
 
 describe('setup save in the real build', () => {
+  // cold-start warm-up (not a test, not a hang): the first render of the setup tree on a cold module cache takes about 3.5 s here,
+  // and that cost must not land inside the first test's 5 s budget. The hook has its own explicit budget; the test timeout is unchanged.
+  beforeAll(async () => {
+    const { services } = servicesWith({ devicePlant: null });
+    const { unmount } = await render(<SafeAreaProvider initialMetrics={metrics}><SetupFlow services={services} onExit={jest.fn()} now={() => 0} /></SafeAreaProvider>);
+    unmount();
+  }, 30000);
   test('photo step offers only Skip and says why; the plant is saved in one call and linked to the sensor', async () => {
     const { services, fetchImpl } = servicesWith({ devicePlant: null });
     await mount(services);
