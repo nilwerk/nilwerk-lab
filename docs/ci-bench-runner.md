@@ -173,7 +173,8 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 - `bench/cloud/check.sh`: the owner sets `BENCH_CLOUD_CHECK_CONFIG` as the JSON object `{url, secret_key}` and approves
   that the check uses the secret key for one read (the key bypasses row-level security).
 - `bench/run_e2e.sh`: whether the mock web flow is the bench E2E. The flow runs `expo export` (a build) and needs the
-  app's dependencies and Chromium on the Pi; the Pi does not build (see the header of `bench.yml`).
+  app's dependencies and Chromium on the Pi. The export is built on the Pi only once the dependencies are installed there,
+  and that is not yet the case (see the header of `bench.yml`).
 - The provisioning files for the board on the Pi (step 3), in the folder named by `BENCH_PROVISION_DIR`.
 - No longer needed: `bench/firmware/image.bin`. The firmware now comes from the `build-firmware` job of the same run.
 

@@ -12,13 +12,15 @@
 #
 # Fails closed with "E2E not defined: owner input needed" when:
 #   - projects/plant-monitor/app/package.json has no "test:web-flow" script, or
-#   - the app's dependencies are not installed on the runner (projects/plant-monitor/app/node_modules). The bench job
-#     does not build or install on the Pi (see bench.yml header), so this script does not install them.
+#   - the app's dependencies are not installed on the runner (projects/plant-monitor/app/node_modules). This script
+#     does not install them. The E2E test bundle is built on the Pi only when the app's node_modules are installed on
+#     the runner (not yet the case). Step 3 generates the NVS partition binary on the Pi.
 #
 # Still an owner input (not in the repo):
 #   - whether the MOCK web flow is the bench E2E. If not, the owner names the real end-to-end test;
 #   - install of the app dependencies and Chromium on the Pi (not done by this script);
-#   - the export build that the test runs on the Pi (conflicts with "nothing is built on the Pi" unless the owner allows it).
+#   - the export build that the test runs on the Pi: it happens only once the app's node_modules are installed there,
+#     which the owner must approve, because the bench.yml header says nothing else may run on the Pi.
 set -euo pipefail
 
 fail() { echo "::error::E2E not defined: owner input needed ($1)"; exit 1; }
