@@ -1,18 +1,28 @@
 name: Bench (self-hosted)
 
-# Runs on the bench Raspberry Pi (self-hosted runner, label `bench`).
+# Runs on the bench Raspberry Pi (self-hosted runner, label `bench`). Supersedes the HIL design in
+# projects/plant-monitor/docs/ci-firmware-in-the-loop.md (hil.yml, label esp32c3-bench, Environment gate).
+# This workflow has no Environment gate (owner declined it).
 # Triggers are deliberately narrow: this runner is on a private repo and must never
 # execute code from pull requests, forks or pushed branches.
-#   schedule           nightly on main
-#   workflow_dispatch  manual run, only from main or from agent/devops/bench-workflow (guard below)
-# NO pull_request, pull_request_target, push or issue_comment triggers, on purpose.
-# Owner decision (the owner, 21 Nov): nothing else may run on the Pi. The branch allowance
+#   workflow_dispatch  manual run only (owner decision A-new-1, 22 Nov 2026: no nightly schedule),
+#                      only from main or from agent/devops/bench-workflow (guard below)
+# NO schedule, pull_request, pull_request_target, push or issue_comment triggers, on purpose.
+# Owner decision (21 Nov): nothing else may run on the Pi. The branch allowance
 # is for the one PR that adds these steps. Remove it again when that PR is closed.
+# Requirements the bench round touches (rows in projects/plant-monitor/tests/acceptance-matrix.md):
+#   FR-D03  BLE setup mode and claim: steps c and d (device found by name, setup data written).
+#   FR-A03  setup flow (device, Wi-Fi, name, photo, plant): step d, the app flow.
+#   NFR-04  data in app within 2 min of upload: step e only shows that a row reached the cloud
+#           after the test start. Latency is not measured here.
+#   NFR-06  per-device credentials, user isolation, no secrets in the repo: secrets are used by
+#           name only, and no reading value is printed or compared.
+#   NFR-07  EU hosting, export and delete: step e checks the EU project only.
+# The bench round checks ESP32-to-app and ESP32-to-cloud communication only. This workflow alone
+# passes none of these rows.
 # See docs/ci-bench-runner.md.
 
 on:
-  schedule:
-    - cron: "0 2 * * *"   # 02:00 UTC nightly
   workflow_dispatch:
 
 permissions:
@@ -30,8 +40,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    # Job-level, not workflow-level: a branch dispatch must not be able to displace a queued
-    # nightly run. One bench job at a time on the Pi; queue, never kill a run mid-test.
+    # Job-level. One bench job at a time on the Pi: a queued run waits, a running one is never killed mid-test.
     concurrency:
       group: bench-runner
       cancel-in-progress: false
@@ -44,6 +53,10 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+
+      - name: Clear bench-artifacts from earlier runs
+        # Steps 1 and 2 write the APK and the firmware into bench-artifacts/ in the workspace.
+        run: rm -rf -- "${GITHUB_WORKSPACE}/bench-artifacts"
 
       - name: Runner smoke check
         run: |
@@ -89,8 +102,14 @@ jobs:
             echo "::error::a. firmware flash: not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
             exit 1
           fi
+          # Pinned: esptool v5.x only. The chip-id command below is the v5 spelling.
+          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
+          if [ "$esptool_major" != "5" ]; then
+            echo "::error::a. firmware flash: esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
+            exit 1
+          fi
           # Read the chip id first. Stop unless it is an ESP32-C3.
-          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip_id 2>&1)"
+          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip-id 2>&1)"
           echo "$chip_out"
           if ! grep -q "ESP32-C3" <<<"$chip_out"; then
             echo "::error::a. firmware flash: chip is not an ESP32-C3, not flashing"
@@ -117,6 +136,11 @@ jobs:
           esptool="$(command -v esptool.py || command -v esptool || true)"
           if [ -z "$esptool" ] || [ ! -e "$BENCH_ESP_PORT" ]; then
             echo "::error::b. serial check: not configured: nothing tested (no esptool or no device at ${BENCH_ESP_PORT})"
+            exit 1
+          fi
+          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
+          if [ "$esptool_major" != "5" ]; then
+            echo "::error::b. serial check: esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
             exit 1
           fi
           log="$(mktemp)"
@@ -209,8 +233,10 @@ jobs:
           }
           runs="$(get "${api}/workflows/app-apk.yml/runs?branch=main&status=success&per_page=1")" \
             || fail "APK not found: no successful app-apk run on main (API call failed)"
-          run_id="$(printf '%s' "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"] if r else "")')"
+          run_info="$(printf '%s' "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"], r[0]["head_sha"]) if r else print("")')"
+          read -r run_id run_sha <<<"$run_info" || true
           [ -n "$run_id" ] || fail "APK not found: no successful app-apk run on main"
+          [[ "$run_sha" =~ ^[0-9a-f]{40}$ ]] || fail "app-apk run ${run_id} has no commit sha"
           arts="$(get "${api}/runs/${run_id}/artifacts?per_page=100")" \
             || fail "APK not found: artifact list failed for run ${run_id}"
           pick="$(printf '%s' "$arts" | python3 -c '
@@ -241,7 +267,7 @@ jobs:
           apk="${work}/app-debug.apk"
           [ -s "$apk" ] || fail "APK extraction produced no file"
           echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
-          echo "1. app APK: ${art_name} (run ${run_id}, main) saved to the runner workspace"
+          echo "1. app APK: ${art_name} (run ${run_id}, main, commit ${run_sha}) saved to the runner workspace"
 
       - name: "2. Download firmware image (plant-monitor-firmware-setup)"
         # Input: artifact plant-monitor-firmware-setup from the newest successful run of
@@ -260,8 +286,10 @@ jobs:
           }
           runs="$(get "${api}/workflows/firmware-bench-image.yml/runs?branch=main&status=success&per_page=1")" \
             || fail "firmware artifact not found (no successful firmware-bench-image.yml run on main, or the workflow does not exist yet)"
-          run_id="$(printf '%s' "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"] if r else "")')"
+          run_info="$(printf '%s' "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"], r[0]["head_sha"]) if r else print("")')"
+          read -r run_id run_sha <<<"$run_info" || true
           [ -n "$run_id" ] || fail "firmware artifact not found (no successful firmware-bench-image.yml run on main)"
+          [[ "$run_sha" =~ ^[0-9a-f]{40}$ ]] || fail "firmware run ${run_id} has no commit sha"
           arts="$(get "${api}/runs/${run_id}/artifacts?per_page=100")" \
             || fail "firmware artifact not found (artifact list failed for run ${run_id})"
           art_id="$(printf '%s' "$arts" | python3 -c '
@@ -302,7 +330,7 @@ jobs:
           build="${work}/build-setup"
           [ -s "${build}/flasher_args.json" ] || fail "flasher_args.json was not extracted"
           echo "BENCH_FW_BUILD_DIR=${build}" >> "$GITHUB_ENV"
-          echo "2. firmware: plant-monitor-firmware-setup (run ${run_id}, main) saved to the runner workspace"
+          echo "2. firmware: plant-monitor-firmware-setup (run ${run_id}, main, commit ${run_sha}) saved to the runner workspace"
 
       - name: "3. Provision and flash board (build-setup files, then NVS last)"
         # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, nw-c8da2986f470); the folder
@@ -345,8 +373,11 @@ jobs:
           else
             fail "not configured: nothing tested (ESP-IDF NVS partition tool not installed on the runner)"
           fi
+          # Pinned: esptool v5.x only. The chip-id command below is the v5 spelling.
+          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
+          [ "$esptool_major" = "5" ] || fail "esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
           # Read the chip id first. Stop unless it is an ESP32-C3.
-          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip_id 2>&1 || true)"
+          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip-id 2>&1 || true)"
           echo "$chip_out"
           if ! grep -q "ESP32-C3" <<<"$chip_out"; then
             fail "chip is not an ESP32-C3, not flashing"

@@ -9,13 +9,34 @@ checks (the end-to-end bench setup) that GitHub-hosted runners cannot do.
 - Hardware: 32-bit Raspberry Pi (`armv7l`)
 - Workflow: `.github/workflows/bench.yml`
 
+**Supersedes** the hardware-in-the-loop design in `projects/plant-monitor/docs/ci-firmware-in-the-loop.md`
+(option b: `hil.yml`, label `esp32c3-bench`, GitHub Environment `bench` as the approval gate). This design uses
+`bench.yml`, label `bench`, and **no Environment gate** (the owner declined it). `hil.yml` and `esp32c3-bench` are not used.
+
+**Label check:** the label in this doc and in `bench.yml` (`runs-on: [self-hosted, bench]`) is `bench`. The label
+set on the Pi itself was NOT checked from this session: the Actions runners API is refused through the session
+proxy (HTTP 403). Check it on GitHub (Settings > Actions > Runners > `plant-bench-pi` shows label `bench`) or on the Pi.
+**Open until checked.**
+
+**Requirements:** the bench round touches FR-D03, FR-A03, NFR-04, NFR-06 and NFR-07 (rows in
+`projects/plant-monitor/tests/acceptance-matrix.md`). It covers the communication path only and does not pass those
+rows. The mapping to steps is in the header of `bench.yml`.
+
 ## Trigger rules and why
 The runner executes whatever code a job checks out. On a private repo that is safe only
 while untrusted code cannot reach it. So `bench.yml` allows only:
 
-- `schedule`: nightly at 02:00 UTC, on `main`.
-- `workflow_dispatch`: manual runs. The job runs only when the ref is `refs/heads/main`
-  or `refs/heads/agent/devops/bench-workflow`. Any other ref runs nothing.
+- `workflow_dispatch`: **manual runs only** (owner decision A-new-1, 22 Nov 2026). There is no schedule.
+  The job runs only when the ref is `refs/heads/main` or `refs/heads/agent/devops/bench-workflow`.
+  Any other ref runs nothing.
+
+**Trigger the bench chain (after this PR is merged):** GitHub > **Actions** > **bench (self-hosted)** >
+**Run workflow** > branch **main** > Run. The workflow file is on `main` only after the merge, so before that
+the `main` branch is not offered; the PR branch is used only for the PR's own test runs (see below).
+
+**Why no schedule:** if a schedule were added, it would run the workflow file on `main` every night, and
+steps 1 to 4, d and e would then run unattended on the Pi with the bench secrets. That would be a new owner
+decision, not a config change.
 
 The branch `agent/devops/bench-workflow` is allowed by the owner's decision of 21 Nov 2026
 (the owner): it is for the one PR that adds the hardware steps, and nothing else may run on the
@@ -26,9 +47,8 @@ workflow. Those let a pull request, a fork or a comment run code on the Pi.
 
 Residual risk, two places:
 
-- `main`: the nightly schedule runs the workflow file on `main`, so it also runs code on the Pi.
-  Anyone who can push to `main` controls what runs on the Pi, nightly and on a manual run
-  from `main`.
+- `main`: a manual run from `main` runs the workflow file on `main` on the Pi. Anyone who can push to `main`
+  controls what runs on the Pi on that run.
 - `agent/devops/bench-workflow`: a manual run uses the workflow file on that branch. Anyone who
   can push to it can change what runs on the Pi, so only that branch's owner pushes to it.
   This branch has NO branch protection today (checked on 21 Nov 2026: the branch protection
@@ -56,7 +76,7 @@ firmware is the normal build, with no simulated-sensor firmware.
 | b. Serial boot log | Reads the boot log for 20 s after a reset and asserts the first non-empty line of the expect file is in it. Boot line only. | `bench/firmware/expect.txt` | fails |
 | c. BLE scan | `bluetoothctl` scan for 10 s; asserts that the first non-empty line of the expect file, with all whitespace removed, is the start of a device name seen in the scan. The expected name must have no spaces: all whitespace is removed from it before matching, and it matches the START of the device name, so a longer device name also matches (expected `Bench` matches `Bench Dev`). Only the name field is read. The accepted line forms are `Device <MAC> <Name>`, `[NEW] Device <MAC> <Name>` and `[CHG] Device <MAC> Name: <name>`. A prompt or other text before the tag or `Device` is ignored when the line is otherwise one of these forms. On a plain or `[NEW]` line everything after the MAC is the name, so text that looks like a property, such as `RSSI: -60`, is read as a name. This is a known limit: on success the run log prints the matched name (`c. BLE: device name '...' starts with prefix ...`), and on failure it prints the last 20 raw scan lines, so a wrong match can be seen by a person. Any other `[CHG]` line (RSSI, TxPower, UUIDs, ...) is ignored, `[DEL]` lines are skipped, and the MAC never matches. That is the only check. | `bench/ble/expect.txt`, `bluetoothctl` | fails |
 | 1. App APK | Downloads the newest successful `app-apk` artifact from `main` (`plant-monitor-app-debug-<sha>`, the run of `app-apk.yml`) with the workflow token. Saved to `bench-artifacts/app-apk/` in the runner workspace only. Not committed, not uploaded. | Job permission `actions: read`; a successful app-apk run on `main` | fails: `APK not found` |
-| 2. Firmware image | Downloads the artifact `plant-monitor-firmware-setup` from the newest successful run of `firmware-bench-image.yml` on `main`. The artifact is a folder: `build-setup/` with the `.bin` files and `flasher_args.json`. The whole folder is extracted to `bench-artifacts/firmware/build-setup/` (the path step 3 reads). Fails closed if `build-setup/flasher_args.json` is missing. | Job permission `actions: read`; the workflow `firmware-bench-image.yml` (being added by Mira) with a successful run on `main` | fails: `firmware artifact not found` |
+| 2. Firmware image | Downloads the artifact `plant-monitor-firmware-setup` from the newest successful run of `firmware-bench-image.yml` on `main`. The artifact is a folder: `build-setup/` with the `.bin` files and `flasher_args.json`. The whole folder is extracted to `bench-artifacts/firmware/build-setup/` (the path step 3 reads). Fails closed if `build-setup/flasher_args.json` is missing. Logs the commit sha of that firmware run (`2. firmware: ... commit <sha>`); step 1 logs the commit sha of the APK run, so both can be traced to commits. | Job permission `actions: read`; the workflow `firmware-bench-image.yml` (being added by Mira) with a successful run on `main` | fails: `firmware artifact not found` |
 | 3. Provisioning and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (`nw-c8da2986f470`, not a secret). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in `BENCH_PROVISION_DIR` (default `$HOME/nilwerk-secrets/provision-out`) and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Reads the flash plan from the step 2 build-setup folder before any write (lines 357-422): every file in `flash_files` of `flasher_args.json` with its listed offset, and the offset and size of the single partition named `nvs` in the partition table binary of the build. It stops before any write if that `nvs` entry is missing, duplicated, or has a zero offset or size, or if any `flash_files` file overlaps it (lines 407-412). It builds the NVS partition from the CSV in a 0700 temp dir with the size from that entry (lines 425-433), writes each `flash_files` file at its offset in offset order (lines 434-438), and writes the NVS partition last (lines 439-441). The temp dir is removed by an EXIT trap (line 356). The label and the CSV are never printed. The label is checked but not used by the flash. | Repo variable `BENCH_BOARD_HW_ID`; the provisioning folder on the Pi with both files at `0600`; the image from step 2; `esptool`; the ESP-IDF NVS partition tool | fails before any write (lines 326-353 and 407-422) |
 | 4. APK install | Checks that exactly one device with the serial in secret `BENCH_ANDROID_SERIAL` is attached in state `device`, then runs `adb -s <serial> install -r` with the APK from step 1. The serial is never printed. | Secret `BENCH_ANDROID_SERIAL`; the APK from step 1; `adb` | fails, no install |
 | d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). The flow checks only the communication path: scan finds the device, connect, write the setup data, and the app shows the device as connected. It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh`; secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL` and `BENCH_TEST_EMAIL_PASSWORD` (test account, passed as environment variables only); Appium 2.x on the runner | fails closed if `BENCH_TEST_EMAIL` or `BENCH_TEST_EMAIL_PASSWORD` is not set (lines 486-493); also fails if `BENCH_ANDROID_SERIAL` is not set (lines 494-497) |
@@ -66,6 +86,16 @@ firmware is the normal build, with no simulated-sensor firmware.
 Steps a to c need no secrets. Steps 1 to 4 and d use the secrets by name only; their values
 live in the repository's Actions secrets and are never written to the repo. The `bench/` input
 files are not in the repo yet and must come from the owner or the hardware work.
+
+**Version pins (fix round, 22 Nov 2026). Not run on the Pi, not run here.** esptool is pinned to **v5.x**: steps a, b and 3
+run `esptool version` and fail if the major is not 5, and steps a and 3 use the v5 command name `chip-id`. This was
+checked against the esptool 5.6.0 source on PyPI (`version` prints `5.6.0`; `chip-id` is the v5 command).
+The ESP-IDF NVS tool is **not pinned yet**. The PyPI package `esp-idf-nvs-partition-gen` has no 5.x release (0.3.0 is the
+latest seen on 22 Nov 2026), so "v5.x" for it must be defined by the owner or Mira: which ESP-IDF v5.x tree the tool
+comes from. **Open.** Step 3 calls it as `generate <csv> <bin> <size>`, the form the 0.3.0 package accepts.
+
+**Scratch folder:** `bench-artifacts/` (APK and firmware of steps 1 and 2) is git-ignored and is cleared at the
+start of every run.
 
 Order (22 Nov 2026): smoke check, a, b, c, then steps 1 to 4 (download, provision and flash,
 install the APK), then d and e. The provisioned board is the one that d and e test. Because a to c
@@ -120,6 +150,7 @@ After every runner update, check again:
 4. Start the service and run **Bench (self-hosted)** manually from `main`. The smoke step must pass.
 
 ## Triggering a manual run
+From `main`, this works only after the PR is merged (the workflow file is on `main` only then).
 1. Open the repository on GitHub and go to **Actions**.
 2. Pick **Bench (self-hosted)** in the left list.
 3. Click **Run workflow**, set the branch to **main** (or to `agent/devops/bench-workflow` for
@@ -135,6 +166,8 @@ Manual run from the PR branch, in the order the owner allowed it:
    that failed and the input it is missing.
 
 ## Current state
+- Not run in this session: the Pi, esptool, the NVS tool, actionlint. This doc change and the workflow edit were
+  checked only by a YAML parse and a shell syntax check of the edited run blocks.
 - The smoke step (host, architecture, Node, adb) runs and FAILS if Node is missing or is not
   major 20.
 - Steps a to e and steps 1 to 4 fail closed until their inputs exist (see the table above). Today none of the
