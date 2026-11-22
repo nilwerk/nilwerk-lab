@@ -1,5 +1,5 @@
 # bench/firmware/expect.txt: expected serial line for bench step b ("b. Serial live stream check").
-# Step b reads the live serial stream for 20 s with NO reset, and checks that the first line that is neither
+# Step b reads the live serial stream for 75 s with NO reset, and checks that the first line that is neither
 # empty nor a # comment appears in it. Only the first such line is checked.
 # Purpose of this file: the line text, taken from the firmware sources. No value is invented.
 # Sources (projects/plant-monitor/firmware):

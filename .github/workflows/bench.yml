@@ -547,18 +547,20 @@ jobs:
           "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$nvs_off" "$nvs_bin" < /dev/null
           echo "3. provisioning: build-setup files and NVS written to ${BENCH_ESP_PORT}"
 
-      - name: "b. Serial live stream check (20 s, no reset)"
+      - name: "b. Serial live stream check (75 s, no reset)"
         # Runs after step 3 (provisioning). No reset here: this step sends no esptool run, no reset and no RTS/DTR
-        # toggle. It reads the live USB serial stream for a 20 s window and passes only when the expected line appears.
+        # toggle. It reads the live USB serial stream for a 75 s window and passes only when the expected line appears.
         # The line is "NWBENCH wake=", printed once per reading cycle by the bench app
         # (main/main.c:141, about every 2 s plus sensor time).
+        # 75 s is one full bench sleep cycle: five wake lines about 2 s apart, then 60 s deep sleep (owner decision,
+        # option 1). Any read start therefore reaches a wake line inside the window. No reset is added.
         # A board that is in its 60 s deep sleep for the whole window prints nothing: the step then fails closed.
         # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected line text).
         env:
           BENCH_ESP_PORT: /dev/ttyACM0
         run: |
           set -euo pipefail
-          window=20   # seconds of live stream to read (the step timeout)
+          window=75   # seconds of live stream to read (the step timeout): one full sleep cycle
           expect="bench/firmware/expect.txt"
           if [ ! -f "$expect" ]; then
             echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
