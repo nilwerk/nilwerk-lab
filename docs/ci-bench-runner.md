@@ -71,7 +71,7 @@ firmware is the normal build, with no simulated-sensor firmware.
 
 | Step | What it does | Input it needs | If missing |
 |---|---|---|---|
-| Runner smoke check | Host, arch, Node major, adb | none | fails |
+| Runner smoke check | Host, arch, Node major, adb | none | Node missing or wrong major: fails. adb: printed only, not checked |
 | a. Firmware flash | Reads the chip id (must be ESP32-C3), then writes `bench/firmware/image.bin` with esptool at `BENCH_FLASH_OFFSET` (`0x0`, merged image) to the USB port `BENCH_ESP_PORT` (`/dev/ttyACM0`) | `bench/firmware/image.bin` (prebuilt, not built on the Pi), a device at the port, `esptool` on the runner | fails, no flash |
 | b. Serial boot log | Reads the boot log for 20 s after a reset and asserts the first non-empty line of the expect file is in it. Boot line only. | `bench/firmware/expect.txt` | fails |
 | c. BLE scan | `bluetoothctl` scan for 10 s; asserts that the first non-empty line of the expect file, with all whitespace removed, is the start of a device name seen in the scan. The expected name must have no spaces: all whitespace is removed from it before matching, and it matches the START of the device name, so a longer device name also matches (expected `Bench` matches `Bench Dev`). Only the name field is read. The accepted line forms are `Device <MAC> <Name>`, `[NEW] Device <MAC> <Name>` and `[CHG] Device <MAC> Name: <name>`. A prompt or other text before the tag or `Device` is ignored when the line is otherwise one of these forms. On a plain or `[NEW]` line everything after the MAC is the name, so text that looks like a property, such as `RSSI: -60`, is read as a name. This is a known limit: on success the run log prints the matched name (`c. BLE: device name '...' starts with prefix ...`), and on failure it prints the last 20 raw scan lines, so a wrong match can be seen by a person. Any other `[CHG]` line (RSSI, TxPower, UUIDs, ...) is ignored, `[DEL]` lines are skipped, and the MAC never matches. That is the only check. | `bench/ble/expect.txt`, `bluetoothctl` | fails |
@@ -83,7 +83,7 @@ firmware is the normal build, with no simulated-sensor firmware.
 | e. Cloud check | Runs `bench/cloud/check.sh`. It checks only that the device communicated with the cloud: at least one row from this device exists in the EU project and was received after `BENCH_TEST_START_UTC`. It does not read, print or compare any reading value. | `bench/cloud/check.sh`; secret `BENCH_CLOUD_CHECK_CONFIG`; `BENCH_TEST_START_UTC` from step d | fails |
 | Bench E2E | Runs `bench/run_e2e.sh` | `bench/run_e2e.sh` | fails |
 
-Steps a to c need no secrets. Steps 1 to 4 and d use the secrets by name only; their values
+Steps a to c need no secrets. Steps 1 to 3 use only the workflow token and repo variables. Steps 4, d and e use the repo secrets by name only; their values
 live in the repository's Actions secrets and are never written to the repo. The `bench/` input
 files are not in the repo yet and must come from the owner or the hardware work.
 

@@ -371,8 +371,8 @@ jobs:
           [ -e "$BENCH_ESP_PORT" ] || fail "not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
           esptool="$(command -v esptool.py || command -v esptool || true)"
           [ -n "$esptool" ] || fail "not configured: nothing tested (esptool not installed on the runner)"
-          if python3 -c 'import esp_idf_nvs_partition_gen' >/dev/null 2>&1; then
-            nvs_gen=(python3 -m esp_idf_nvs_partition_gen generate)
+          if python3 -I -c 'import esp_idf_nvs_partition_gen' >/dev/null 2>&1; then
+            nvs_gen=(python3 -I -m esp_idf_nvs_partition_gen generate)
           elif command -v nvs_partition_gen.py >/dev/null 2>&1; then
             nvs_gen=(nvs_partition_gen.py generate)
           else
