@@ -29,3 +29,6 @@ sdkconfig.setup.old
 build-sim-qemu/
 sdkconfig.sim-qemu
 sdkconfig.sim-qemu.old
+
+# Bench CI scratch: APK and firmware downloaded by bench.yml steps 1 and 2. Never commit.
+bench-artifacts/
