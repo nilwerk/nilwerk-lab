@@ -20,7 +20,7 @@ Pi is confirmed: the runner `plant-bench-pi` is Idle with label `bench` (Pi setu
 `projects/plant-monitor/tests/acceptance-matrix.md`). It covers the communication path only and does not pass those
 rows. The mapping to steps is in the header of `bench.yml`.
 
-## Order of the workflow (build first, then install and test; the position of step 3 is an OPEN owner decision)
+## Order of the workflow (build first, then install and test; decided by the owner)
 The workflow builds first and tests second. The jobs and steps run in this order:
 
 1. **`build-firmware`** (GitHub-hosted, `ubuntu-latest`, no secrets). Builds the setup-flow firmware with the same
@@ -37,16 +37,16 @@ The workflow builds first and tests second. The jobs and steps run in this order
    - b. Serial boot log check
    - c. BLE scan
    - 4. Install app APK on the 6P (adb)
+   - 3. Provision and flash board (NVS last)
    - d. App flow on phone
    - e. Cloud check
-   - 3. Provision and flash board (NVS last)
    - Bench E2E
 
 Both build jobs run only on GitHub-hosted runners. Nothing is built on the Pi. If a build fails or is skipped, the
 bench job does not start.
 
 **Step numbers.** The download steps are numbered in the order they run (1 firmware, 2 APK). The letters a to e and
-the numbers 3 and 4 keep their earlier names. Step 3 runs after e (see "Provisioning order" below).
+the numbers 3 and 4 keep their names. Step 3 runs after 4 and before d and e (see "Provisioning order" below).
 
 ## Artifacts and where each comes from
 
@@ -94,8 +94,8 @@ Residual risk, two places:
   so it does not get the bench secrets.
 - The bench secrets (`BENCH_ANDROID_SERIAL`, `BENCH_TEST_EMAIL`, `BENCH_TEST_EMAIL_PASSWORD`, `BENCH_CLOUD_CHECK_CONFIG`,
   `BENCH_BOARD_POP`, `BENCH_WIFI_SSID`, `BENCH_WIFI_PASSWORD`) are read only by the bench job, which runs from `main` only.
-- The bench job reads the provisioning folder on the Pi (a local folder whose path is set on the Pi,
-  or `BENCH_PROVISION_DIR`). It is local to the Pi and never leaves it. Owner decision, 22 Nov 2026.
+- The bench job reads the provisioning folder from the repository variable `BENCH_PROVISION_DIR` (required; the
+  workflow has no default). The folder is local to the Pi and its files never leave it. Owner decision, 22 Nov 2026.
 
 ## Steps of the bench job
 The job runs these steps in order. Each hardware step fails closed: if its input is missing
@@ -111,20 +111,20 @@ firmware is the setup-flow build (`CONFIG_PLANT_SETUP_FLOW=y`, simulator off), b
 | 1. Download firmware image | Downloads `plant-monitor-firmware-setup` from the `build-firmware` job of this run (`run-id` = this run) to `bench-artifacts/firmware/build-setup/`. The artifact root is that folder. | Job permission `actions: read`; the `build-firmware` job succeeded | the download step fails (artifact not found) |
 | 2. Download app APK, then check | Downloads `plant-monitor-app-debug-*` from the `build-apk` job of this run to `bench-artifacts/app-apk/`. The check step requires exactly one `.apk` there and sets `BENCH_APK_PATH`. Not committed, not uploaded. | Job permission `actions: read`; the `build-apk` job succeeded | the check step fails: `APK not found` |
 | a. Firmware flash | Reads the chip id (must be ESP32-C3). Then reads `flasher_args.json` from step 1 and writes every file in `flash_files` at its listed offset, in offset order, with esptool, to the USB port `BENCH_ESP_PORT` (`/dev/ttyACM0`). Offsets are not hard-coded. | the step 1 artifact (`flasher_args.json` and the files it lists); a device at the port; `esptool` v5 on the runner | fails, no flash |
-| b. Serial boot log | Reads the boot log for 20 s after a reset and asserts the first non-empty line of the expect file is in it. Boot line only. | `bench/firmware/expect.txt` (owner input) | fails |
-| c. BLE scan | `bluetoothctl` scan for 10 s; asserts that the first non-empty line of the expect file, with all whitespace removed, is the start of a device name seen in the scan. Only the name field is read, and the device address never matches. | `bench/ble/expect.txt` (owner input), `bluetoothctl` | fails |
+| b. Serial boot log | Reads the boot log for 20 s after a reset and asserts that the first line of the expect file that is not empty and not a `#` comment is in it. Boot line only. | `bench/firmware/expect.txt` (created from the firmware sources; not yet run on hardware) | fails |
+| c. BLE scan | `bluetoothctl` scan for 10 s; asserts that the first line of the expect file that is not empty and not a `#` comment, with all whitespace removed, is the start of a device name seen in the scan. Only the name field is read, and the device address never matches. | `bench/ble/expect.txt` (created from the firmware sources: prefix `NW-`; the value `UNSET` stops the step), `bluetoothctl` | fails |
 | 4. Install app APK on the 6P | Checks that exactly one device with the device id in secret `BENCH_ANDROID_SERIAL` is attached in state `device`, then runs `adb -s <device-id> install -r` with the APK from step 2. The device id is never printed. | Secret `BENCH_ANDROID_SERIAL`; the APK from step 2; `adb` | fails, no install |
-| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). The flow checks only the communication path: scan finds the device, connect, write the setup data, and the app shows the device as connected. It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh` (owner input); secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL` and `BENCH_TEST_EMAIL_PASSWORD` (test account, passed as environment variables only); Appium 2.x on the runner | fails closed if a secret or Appium 2.x is missing |
-| e. Cloud check | Runs `bench/cloud/check.sh`. It checks only that the device communicated with the cloud: at least one row from this device exists in the EU project and was received after `BENCH_TEST_START_UTC`. It does not read, print or compare any reading value. | `bench/cloud/check.sh` (owner input); secret `BENCH_CLOUD_CHECK_CONFIG`; `BENCH_TEST_START_UTC` from step d | fails |
-| 3. Provision and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (value `<board-hw-id>`, not a secret). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in `BENCH_PROVISION_DIR` and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Checks that the NVS tool is exactly 0.3.0 in the Pi venv. Reads the flash plan from the step 1 build-setup folder before any write. It builds the NVS partition from the CSV in a 0700 temp dir, writes each `flash_files` file at its offset in offset order, and writes the NVS partition last. The CSV and label are never printed. The label is checked but not used by the flash. | Repo variable `BENCH_BOARD_HW_ID`; the provisioning folder on the Pi with both files at `0600`; the artifact from step 1; `esptool`; the ESP-IDF NVS tool (0.3.0, provisional) | fails before any write |
-| Bench E2E | Runs `bench/run_e2e.sh` | `bench/run_e2e.sh` (owner input) | fails |
+| 3. Provision and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (value `<board-hw-id>`, not a secret). Reads the provisioning folder from the repo variable `BENCH_PROVISION_DIR` (required, no default; fails if empty). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in that folder and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Checks that the NVS tool is exactly 0.3.0 in the Pi venv. Reads the flash plan from the step 1 build-setup folder before any write. It builds the NVS partition from the CSV in a 0700 temp dir, writes each `flash_files` file at its offset in offset order, and writes the NVS partition last. The CSV and label are never printed. The label is checked but not used by the flash. | Repo variables `BENCH_BOARD_HW_ID` and `BENCH_PROVISION_DIR`; the provisioning folder on the Pi with both files at `0600`; the artifact from step 1; `esptool`; the ESP-IDF NVS tool (0.3.0, provisional) | fails before any write |
+| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). **As written, the script only opens the app (package from `app.config.ts`) and checks that the first screen title (`app.name`) exists.** The device steps (scan, connect, write the setup data, connected) are not in the script yet (owner input). It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh` (created; device steps are an owner input); secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL` and `BENCH_TEST_EMAIL_PASSWORD` (test account, passed as environment variables only); Appium 2.x on the runner | fails closed if a secret or Appium 2.x is missing |
+| e. Cloud check | Runs `bench/cloud/check.sh`. It checks only that the device communicated with the cloud: at least one row from this device exists in the EU project and was received after `BENCH_TEST_START_UTC`. It does not read, print or compare any reading value. | `bench/cloud/check.sh` (created; one read of `public.readings` with the secret key, read-only); secret `BENCH_CLOUD_CHECK_CONFIG` (JSON `{url, secret_key}`, owner input); repository variable `BENCH_BOARD_HW_ID`; `BENCH_TEST_START_UTC` from step d | fails |
+| Bench E2E | Runs `bench/run_e2e.sh` | `bench/run_e2e.sh` (created; runs `npm run test:web-flow`, a mock web flow, when the app's `node_modules` exist on the runner) | fails |
 
 Steps 1 and 2 use the workflow token and the run's artifacts. Step 3 uses the repo variables. Steps 4, d and e use the repo secrets by name only; their values
 live in the repository's Actions secrets and are never written to the repo.
 
-**Provisioning order (OPEN owner decision).** Step 3 currently runs after e. Whether step 3 runs before or after d and e
-is awaiting the owner's decision. With step 3 after e, steps d and e test the board as flashed by step a, not the board
-with the provisioned NVS. The earlier order (3 before d) is the alternative under review.
+**Provisioning order (decided by the owner).** Step 3 runs after 4 and before d and e. Steps d and e therefore test the
+board as provisioned by step 3 (the build-setup files rewritten, then the NVS partition written last), not the board as
+flashed by step a alone.
 
 **Version pins (fix round, 22 Nov 2026). Not run on the Pi, not run here.** esptool is pinned to **v5.x**: steps a, b and 3
 run `esptool version` and fail if the major is not 5, and steps a and 3 use the v5 command name `chip-id`. This was
@@ -147,13 +147,32 @@ echo them.
 **Job permission:** `permissions: actions: read` is set on the bench job only (the download steps need it). The
 workflow-level permissions stay `contents: read`. The two build jobs have `contents: read` only.
 
-**Repository variables** (not secrets, set by the owner, not by this PR): `BENCH_BOARD_HW_ID`
-(value `<board-hw-id>`) and optionally `BENCH_PROVISION_DIR`.
+**Repository variables** (not secrets, set by the owner, not by this PR):
+- `BENCH_BOARD_HW_ID` (value `<board-hw-id>`): the board's hw_id. Used by step 3 and by step e.
+- `BENCH_PROVISION_DIR`: **required**, no default. The folder on the Pi that holds the provisioning files of step 3
+  (`<hw_id>.nvs.csv` and `<hw_id>.label.txt`, mode `0600`). The workflow fails closed if it is empty. Its value is
+  not written in this repo.
 
-**Owner inputs still needed (not in the repo, not added by this PR):**
-- `bench/firmware/expect.txt` (step b), `bench/ble/expect.txt` (step c), `bench/app/run_appium.sh` (step d),
-  `bench/cloud/check.sh` (step e), `bench/run_e2e.sh` (E2E).
-- The provisioning files for the board on the Pi (step 3), in the provisioning folder set on the Pi.
+**Inputs created by this change (from the repo sources, see the header of each file):**
+- `bench/firmware/expect.txt` (step b): `NWBENCH start board=`, from `projects/plant-monitor/firmware/main/main.c:105`.
+- `bench/ble/expect.txt` (step c): `NW-`, the advertised name prefix, from `nw_prov_proto.c:58-69`. The value `UNSET`
+  makes step c fail with "bench/ble/expect.txt has no expected name yet: owner input needed".
+- `bench/app/run_appium.sh` (step d): opens the package from `app.config.ts` and checks the first screen title
+  (`app.name`). It fails with "screen expectation missing: owner or app owner input needed" if the title is not readable.
+- `bench/cloud/check.sh` (step e): one read-only GET of `public.readings` for the bench device. It fails with
+  "cloud check not defined: owner input needed" if `BENCH_CLOUD_CHECK_CONFIG` is not the JSON form in its header.
+- `bench/run_e2e.sh` (E2E): runs `npm run test:web-flow` (a mock web flow). It fails with
+  "E2E not defined: owner input needed" if the script or the app's `node_modules` is missing.
+- The expect files begin with a `#` header. Steps b and c skip `#` lines.
+
+**Owner inputs still needed (not in the repo):**
+- `bench/app/run_appium.sh`: the device steps (scan, connect, write setup data, connected) and the test-account
+  sign-in are not in the script. The app owner confirms the first screen title.
+- `bench/cloud/check.sh`: the owner sets `BENCH_CLOUD_CHECK_CONFIG` as the JSON object `{url, secret_key}` and approves
+  that the check uses the secret key for one read (the key bypasses row-level security).
+- `bench/run_e2e.sh`: whether the mock web flow is the bench E2E. The flow runs `expo export` (a build) and needs the
+  app's dependencies and Chromium on the Pi; the Pi does not build (see the header of `bench.yml`).
+- The provisioning files for the board on the Pi (step 3), in the folder named by `BENCH_PROVISION_DIR`.
 - No longer needed: `bench/firmware/image.bin`. The firmware now comes from the `build-firmware` job of the same run.
 
 **Open points (checked on 22 Nov 2026 by reading the workflow only):**
@@ -211,8 +230,9 @@ their names only. Without them `build-apk` fails closed. The bench job runs only
   checked only by a YAML parse, a needs-graph check and a shell syntax check of the run blocks.
 - The smoke step (host, architecture, Node, adb) runs and FAILS if Node is missing or is not
   major 20.
-- Steps a to e, 3 and E2E fail closed until their inputs exist (see the table above). The `bench/` inputs
-  for steps b to e and E2E are not in the repo, so a manual run stops at step b with
-  `not configured: nothing tested`, after step a has flashed the board (see "Open points").
+- Steps a to e, 3 and E2E fail closed until their inputs exist (see the table above). The `bench/` inputs are
+  created by this change (see "Inputs created by this change"); the owner inputs listed above remain. A step that
+  lacks an input stops with `not configured: nothing tested` or the owner-input message named in its row.
+- Step a flashes the board before the serial and BLE checks run (see "Open points").
 - The E2E step FAILS with "bench E2E not configured: nothing tested" until `bench/run_e2e.sh`
   exists on `main`. A green run therefore always means something was tested.

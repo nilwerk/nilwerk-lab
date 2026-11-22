@@ -12,12 +12,12 @@ name: Bench (self-hosted)
 # Owner decision (21 Nov): nothing else may run on the Pi. The former branch allowance
 # (for PR #156, now closed) was removed in the PR #162 fix round. Manual runs from main only.
 #
-# Order (build first, then install and test together). OPEN owner decision: whether step 3 runs before
-# or after d and e. The order below is the current one and is awaiting the owner's decision.
+# Order (build first, then install and test together). Decided by the owner: step 3 runs after 4 and before d and e.
 #   build-firmware   GitHub-hosted, no secrets. Builds the setup-flow firmware. Artifact: plant-monitor-firmware-setup.
 #   build-apk        GitHub-hosted, no secrets. Builds the Android debug APK. Artifact: plant-monitor-app-debug-<sha7>.
 #   bench            the Pi. Needs both builds. Downloads both artifacts from THIS run, then runs steps
-#                    1 (firmware), 2 (APK), a, b, c, 4 (APK install), d, e, 3 (provision and flash NVS), E2E.
+#                    1 (firmware), 2 (APK), a (flash), b (serial boot log), c (BLE scan), 4 (APK install),
+#                    3 (provision and flash NVS), d (app flow), e (cloud check), E2E.
 # The two build jobs never touch the Pi. Their steps are copied from ci.yml (firmware job, setup image)
 # and app-apk.yml (android-debug-apk job); they are not new builds.
 #
@@ -283,9 +283,8 @@ jobs:
             exit 1
           fi
 
-      # Downloads and hardware steps. The downloads come first (they are the builds of this run), then a to c,
-      # then 4 (APK install), d, e, and 3 (provisioning; its position relative to d and e is an OPEN owner
-      # decision, currently after e).
+      # Downloads and hardware steps, in the order the owner decided. The downloads come first (they are the builds
+      # of this run), then a, b, c, 4 (APK install), 3 (provisioning, NVS last), d (app flow), e (cloud check), E2E.
       # Each one fails closed: if its input is missing it prints "not configured: nothing tested" and exits 1.
       # Nothing is built on the Pi.
       # Scope (owner decision, 21 Nov): the bench round tests ESP32-to-app and ESP32-to-cloud
@@ -397,7 +396,7 @@ jobs:
           echo "a. firmware flash: setup firmware written to ${BENCH_ESP_PORT}"
 
       - name: "b. Serial boot log check (20 s)"
-        # Inputs: bench/firmware/expect.txt (first non-empty line = expected boot line text).
+        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected boot line text).
         env:
           BENCH_ESP_PORT: /dev/ttyACM0
         run: |
@@ -407,7 +406,8 @@ jobs:
             echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
             exit 1
           fi
-          line="$(grep -m1 -E '[^[:space:]]' "$expect" || true)"
+          # Lines starting with # are the header comment of the file, not the expected text.
+          line="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
           if [ -z "$line" ]; then
             echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
             exit 1
@@ -439,7 +439,7 @@ jobs:
           fi
 
       - name: "c. BLE scan (10 s)"
-        # Input: bench/ble/expect.txt (first non-empty line = device name prefix).
+        # Input: bench/ble/expect.txt (first line that is neither empty nor a # comment = device name prefix).
         # Checks only that the device advertises its expected name prefix. No other check.
         run: |
           set -euo pipefail
@@ -448,9 +448,15 @@ jobs:
             echo "::error::c. BLE check: not configured: nothing tested (missing ${expect})"
             exit 1
           fi
-          prefix="$(grep -m1 -E '[^[:space:]]' "$expect" | tr -d '[:space:]' || true)"
+          # Lines starting with # are the header comment of the file, not the expected name.
+          first="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
+          prefix="$(printf '%s' "$first" | tr -d '[:space:]')"
           if [ -z "$prefix" ]; then
             echo "::error::c. BLE check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          if [ "$prefix" = "UNSET" ]; then
+            echo "::error::bench/ble/expect.txt has no expected name yet: owner input needed"
             exit 1
           fi
           if ! command -v bluetoothctl >/dev/null 2>&1; then
@@ -509,81 +515,9 @@ jobs:
           adb -s "$serial" install -r "$apk"
           echo "4. APK installed on the configured device (serial not shown)"
 
-      - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
-        # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
-        # BENCH_TEST_EMAIL and BENCH_TEST_EMAIL_PASSWORD (test account). Values are never in the repo.
-        # Scope: communication path only. The flow scans and finds the device, connects, writes
-        # the setup data, and checks that the app shows the device as connected. It asserts no
-        # reading of any kind.
-        env:
-          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
-          BENCH_TEST_EMAIL: ${{ secrets.BENCH_TEST_EMAIL }}
-          BENCH_TEST_EMAIL_PASSWORD: ${{ secrets.BENCH_TEST_EMAIL_PASSWORD }}
-          # PoP and Wi-Fi go to the Appium script as environment variables only. Never echo them.
-          BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
-          BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
-          BENCH_WIFI_PASSWORD: ${{ secrets.BENCH_WIFI_PASSWORD }}
-          APPIUM_PLATFORM_NAME: Android
-          APPIUM_AUTOMATION_NAME: UiAutomator2
-        run: |
-          set -euo pipefail
-          script="bench/app/run_appium.sh"
-          if [ ! -f "$script" ]; then
-            echo "::error::d. app flow: not configured: nothing tested (missing ${script})"
-            exit 1
-          fi
-          if [ -z "${BENCH_TEST_EMAIL:-}" ]; then
-            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_TEST_EMAIL is not set)"
-            exit 1
-          fi
-          if [ -z "${BENCH_TEST_EMAIL_PASSWORD:-}" ]; then
-            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_TEST_EMAIL_PASSWORD is not set)"
-            exit 1
-          fi
-          if [ -z "${BENCH_ANDROID_SERIAL:-}" ]; then
-            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
-            exit 1
-          fi
-          if ! command -v appium >/dev/null 2>&1; then
-            echo "::error::d. app flow: not configured: nothing tested (appium not installed)"
-            exit 1
-          fi
-          appium_major="$(appium --version 2>/dev/null | cut -d. -f1)"
-          if [ "$appium_major" != "2" ]; then
-            echo "::error::d. app flow: not configured: nothing tested (Appium 2.x required, found major '${appium_major}')"
-            exit 1
-          fi
-          # Test start time (UTC), read by step e to find rows received after the test started.
-          echo "BENCH_TEST_START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
-          bash "$script"
-
-      - name: "e. Cloud check (EU project, communication only)"
-        # Input: bench/cloud/check.sh; secret BENCH_CLOUD_CHECK_CONFIG (config for the EU project).
-        # Scope: checks only that the device communicated with the cloud, i.e. at least one row
-        # from this device exists in the EU project and was received after BENCH_TEST_START_UTC
-        # (set by step d). It must not read, print or compare any reading value.
-        env:
-          BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
-        run: |
-          set -euo pipefail
-          script="bench/cloud/check.sh"
-          if [ ! -f "$script" ]; then
-            echo "::error::e. cloud check: not configured: nothing tested (missing ${script})"
-            exit 1
-          fi
-          if [ -z "${BENCH_CLOUD_CHECK_CONFIG:-}" ]; then
-            echo "::error::e. cloud check: not configured: nothing tested (secret BENCH_CLOUD_CHECK_CONFIG is not set)"
-            exit 1
-          fi
-          if [ -z "${BENCH_TEST_START_UTC:-}" ]; then
-            echo "::error::e. cloud check: not configured: nothing tested (test start time not set by step d)"
-            exit 1
-          fi
-          bash "$script"
-
       - name: "3. Provision and flash board (build-setup files, then NVS last)"
-        # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, <board-hw-id>); the folder
-        # BENCH_PROVISION_DIR on the Pi (the default folder is set in the run block below) with
+        # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, <board-hw-id>); repo variable BENCH_PROVISION_DIR
+        # (required, no default: the provisioning folder on the Pi, set by the owner) with
         # <hw_id>.nvs.csv and <hw_id>.label.txt, both mode 0600; the build-setup folder of the
         # firmware artifact from step 1 (flasher_args.json and the .bin files it lists).
         # Every file in flasher_args.json flash_files is written at its listed offset (none hard-coded).
@@ -606,7 +540,8 @@ jobs:
           hw_id="${BENCH_BOARD_HW_ID:-}"
           [ -n "$hw_id" ] || fail "not configured: nothing tested (repository variable BENCH_BOARD_HW_ID is not set)"
           [[ "$hw_id" =~ ^[A-Za-z0-9_-]+$ ]] || fail "not configured: nothing tested (BENCH_BOARD_HW_ID has characters that are not allowed)"
-          prov_dir="${BENCH_PROVISION_DIR:-$HOME/nilwerk-secrets/provision-out}"
+          prov_dir="${BENCH_PROVISION_DIR:-}"
+          [ -n "$prov_dir" ] || fail "not configured: nothing tested (repository variable BENCH_PROVISION_DIR is not set; it is required and names the provisioning folder on the Pi)"
           csv="${prov_dir}/${hw_id}.nvs.csv"
           label="${prov_dir}/${hw_id}.label.txt"
           for f in "$csv" "$label"; do
@@ -727,6 +662,82 @@ jobs:
           echo "3. flash: writing nvs partition at ${nvs_off}"
           "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$nvs_off" "$nvs_bin" < /dev/null
           echo "3. provisioning: build-setup files and NVS written to ${BENCH_ESP_PORT}"
+
+      - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
+        # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
+        # BENCH_TEST_EMAIL and BENCH_TEST_EMAIL_PASSWORD (test account). Values are never in the repo.
+        # The script as written opens the app and checks the first screen title only. The device steps
+        # (scan, connect, setup data, connected) are not in it yet (owner input).
+        # Scope: communication path only. The flow scans and finds the device, connects, writes
+        # the setup data, and checks that the app shows the device as connected. It asserts no
+        # reading of any kind.
+        env:
+          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
+          BENCH_TEST_EMAIL: ${{ secrets.BENCH_TEST_EMAIL }}
+          BENCH_TEST_EMAIL_PASSWORD: ${{ secrets.BENCH_TEST_EMAIL_PASSWORD }}
+          # PoP and Wi-Fi go to the Appium script as environment variables only. Never echo them.
+          BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
+          BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
+          BENCH_WIFI_PASSWORD: ${{ secrets.BENCH_WIFI_PASSWORD }}
+          APPIUM_PLATFORM_NAME: Android
+          APPIUM_AUTOMATION_NAME: UiAutomator2
+        run: |
+          set -euo pipefail
+          script="bench/app/run_appium.sh"
+          if [ ! -f "$script" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (missing ${script})"
+            exit 1
+          fi
+          if [ -z "${BENCH_TEST_EMAIL:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_TEST_EMAIL is not set)"
+            exit 1
+          fi
+          if [ -z "${BENCH_TEST_EMAIL_PASSWORD:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_TEST_EMAIL_PASSWORD is not set)"
+            exit 1
+          fi
+          if [ -z "${BENCH_ANDROID_SERIAL:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
+            exit 1
+          fi
+          if ! command -v appium >/dev/null 2>&1; then
+            echo "::error::d. app flow: not configured: nothing tested (appium not installed)"
+            exit 1
+          fi
+          appium_major="$(appium --version 2>/dev/null | cut -d. -f1)"
+          if [ "$appium_major" != "2" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (Appium 2.x required, found major '${appium_major}')"
+            exit 1
+          fi
+          # Test start time (UTC), read by step e to find rows received after the test started.
+          echo "BENCH_TEST_START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          bash "$script"
+
+      - name: "e. Cloud check (EU project, communication only)"
+        # Input: bench/cloud/check.sh; secret BENCH_CLOUD_CHECK_CONFIG (config for the EU project).
+        # Scope: checks only that the device communicated with the cloud, i.e. at least one row
+        # from this device exists in the EU project and was received after BENCH_TEST_START_UTC
+        # (set by step d). It must not read, print or compare any reading value.
+        env:
+          BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
+          # Device identity (the board's hw_id, nw-<12 hex>), a repository variable (name only here).
+          BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
+        run: |
+          set -euo pipefail
+          script="bench/cloud/check.sh"
+          if [ ! -f "$script" ]; then
+            echo "::error::e. cloud check: not configured: nothing tested (missing ${script})"
+            exit 1
+          fi
+          if [ -z "${BENCH_CLOUD_CHECK_CONFIG:-}" ]; then
+            echo "::error::e. cloud check: not configured: nothing tested (secret BENCH_CLOUD_CHECK_CONFIG is not set)"
+            exit 1
+          fi
+          if [ -z "${BENCH_TEST_START_UTC:-}" ]; then
+            echo "::error::e. cloud check: not configured: nothing tested (test start time not set by step d)"
+            exit 1
+          fi
+          bash "$script"
 
       - name: Bench E2E
         run: |

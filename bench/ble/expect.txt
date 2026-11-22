@@ -1,0 +1,10 @@
+# bench/ble/expect.txt: expected BLE device name prefix for bench step c ("c. BLE scan").
+# Step c reads the first line that is neither empty nor a # comment and checks that a device name seen in
+# the 10 s scan starts with it. The value UNSET stops step c with the owner-input message.
+# Purpose of this file: the advertised-name prefix, taken from the firmware sources. No device name is written here.
+# Sources (projects/plant-monitor/firmware):
+#   components/provisioning/src/nw_prov_proto.c:58-69  nw_prov_adv_name(): memcpy(out, "NW-", 3), then the last 6 hex of hw_id.
+#   components/provisioning/include/nw_prov_proto.h:23  NW_PROV_ADV_NAME_LEN 9 ("NW-" + 6 hex).
+#   components/provisioning/src/nw_prov_idf.c:201-204  the name is passed to wifi_prov_mgr_start_provisioning() (BLE advertising).
+# Owner input: none for the prefix. Step c still needs the Pi's bluetoothctl and a powered board.
+NW-
