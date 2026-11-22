@@ -7,3 +7,5 @@
 # Not changed here: the setup-flow deep sleep with no timer for a closed, never-provisioned unit (main/main.c:73-81).
 # The default build, the v1 build and the upload build do not list this file.
 # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set
+# BLE setup window on every cold start, without BOOT (bench image only; owner sign-off needed). See main/Kconfig.projbuild.
+CONFIG_PLANT_BENCH_AUTO_SETUP=y

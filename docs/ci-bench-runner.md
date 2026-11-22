@@ -141,6 +141,28 @@ the board as flashed by step a alone.
   has no 60 s deep sleep.
 - Step b starts a few seconds after step 3's reset and reads for 75 s (owner decision, option 1). Wake lines keep
   coming, so any read start reaches a wake line inside the window. No reset is added to step b. See "Open points".
+- **BLE on every cold start, bench image only (owner sign-off needed).** `sdkconfig.defaults.bench-ci` sets
+  `CONFIG_PLANT_BENCH_AUTO_SETUP=y` (`main/Kconfig.projbuild`, `depends on PLANT_SETUP_FLOW`). On that image each cold start
+  (not a deep-sleep wake) passes the setup request to `nw_setup_run` as if BOOT were held for 3 s
+  (`main/main.c`, `button_held_ms_after_cold_start`). BLE then advertises the `NW-` name for the existing 300 s setup window
+  (`NW_PROV_SETUP_TIMEOUT_MS`, `components/provisioning/include/nw_prov.h:16`), with no button press, so step c can scan after step 3.
+  The window is not changed: 300 s covers step b (75 s) and step c (10 s) with room for the start delays, and reusing the
+  existing constant means the 300 s contract in `nw_prov.h` and its host test (`test/host/test_prov.c:366`) do not change.
+  This opens BLE setup without the button on that image only. A provisioned unit can enter setup there too, because the
+  bench flag passes the setup request that `nw_prov_boot` (`components/provisioning/src/nw_prov.c:61-63`) would otherwise refuse
+  without a button. PoP is unchanged: the security-2 salt and verifier must be in NVS, or BLE stays off (`nw_prov_idf.c`, `start_ble`).
+  Production, v1 and upload builds do not set the flag: they still need BOOT held on a cold start, and a provisioned unit
+  still refuses setup without it (`nw_prov.c:61-63`).
+- **Step b and step c conflict under the current code (not solved by the window).** `nw_setup_run` blocks the boot until
+  setup ends (`components/provisioning/src/nw_prov_idf.c:239-245`). The measurement loop that prints the `NWBENCH wake=` line
+  starts only after it returns (`main/main.c`, `app_main`, the setup call at `:81`; the wake printf is at `main/main.c:148`). Setup end stops BLE
+  (`components/provisioning/src/nw_prov.c:24-29`). So BLE advertising and wake lines never overlap in one boot: wake lines
+  start when the window closes. Step b needs a wake line within about 75 s of reset (a window of about 75 s or less);
+  step c needs BLE after step b, about 80 s or later (a window of about 90 s or more). No single window passes both.
+  With the 300 s window, step b fails with "timeout, expected line not seen" and step c is not reached. Options for the
+  owner (none is implemented): (1) run step c before step b, with a bench-only window of about 60 s; this needs a
+  bench-only timeout in `nw_prov_tick`, which changes the 300 s contract in `nw_prov.h`, and an order change in this file and `bench.yml`;
+  (2) let the bench loop run while BLE advertises (setup in its own task, bench only); a larger change to the provisioning flow.
 - Production (default) build: `main/Kconfig.projbuild:39-41` defaults the option to `y`, so that build still
   deep-sleeps after five readings (`main/main.c:148-152`). The overlay is not part of the production build, the v1
   build or the upload build.

@@ -56,6 +56,13 @@ static void fmt_x(char *dst, size_t n, long v, int decimals)
 static uint32_t button_held_ms_after_cold_start(void)
 {
     if (esp_reset_reason() == ESP_RST_DEEPSLEEP) return 0;
+#ifdef CONFIG_PLANT_BENCH_AUTO_SETUP
+    /* Bench CI image only (sdkconfig.defaults.bench-ci): every cold start is a setup request, as if BOOT were held for the setup window.
+     * NW_PROV_BUTTON_SETUP_MS (3 s) is below NW_PROV_BUTTON_RESET_MS, so the stored record is kept. nw_prov_boot still refuses setup
+     * for a provisioned unit unless this value is passed, and start_ble still needs the security-2 verifier (no verifier: no advertising). */
+    printf("NWSETUP bench auto setup: setup window opens on this cold start (bench image only)\n");
+    return NW_PROV_BUTTON_SETUP_MS;
+#endif
     gpio_config_t io = {.pin_bit_mask = 1ULL << NW_PIN_BUTTON, .mode = GPIO_MODE_INPUT};   /* external pull-up R5 on the custom board; dev kit has one too */
     gpio_config(&io);
     printf("NWSETUP press window: hold BOOT now for 3 s = setup, 10 s = factory reset\n");
