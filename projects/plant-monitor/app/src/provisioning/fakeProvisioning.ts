@@ -79,7 +79,8 @@ export function createFakePlants(opts: { failNext?: boolean; linked?: boolean; c
   const service: PlantSetupService = {
     async currentPlant() {
       if (o.unreadable) throw new PlantSetupError();
-      return o.linked || linkedNow ? 'plant-current' : null;
+      if (linkedNow) return `plant-${created.length}`;   // the plant a committed save linked (ids differ, so a move is visible)
+      return o.linked ? 'plant-current' : null;
     },
     async createPlant(deviceId, details, photoUri, call) {
       if (o.failNext) { o.failNext = false; throw new PlantSetupError(); }

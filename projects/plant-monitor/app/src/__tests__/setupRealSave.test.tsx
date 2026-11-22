@@ -183,4 +183,24 @@ describe('setup save in the real build', () => {
     const rpc = fetchImpl.mock.calls.find((c) => String(c[0]).endsWith('/rpc/create_plant_and_link_device')) as unknown as [string, RequestInit];
     expect(JSON.parse(String(rpc[1].body))).toMatchObject({ p_move: true });
   });
+
+  test('Move fails and nothing was committed: the copy says the new plant was not saved and the sensor stays on its current plant', async () => {
+    const { services, rpcCalls } = servicesWith({ devicePlant: OTHER, rpc: () => res(500, { message: 'server error' }) });
+    const { onExit } = await mount(services);
+    await toPhoto();
+    await tap('Skip for now');
+    await header('About your plant');
+    await fillAndSave();
+    await header('This sensor already has a plant');
+    await tap(MOVE);
+    expect(await header('The new plant was not saved')).toBeTruthy();
+    expect(screen.getByText('The sensor stays on its current plant. The plant you just entered was not saved. Check your plant list.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Save plant' })).toBeNull();
+    expect(screen.queryByRole('button', { name: MOVE })).toBeNull();
+    expect(rpcCalls).toHaveLength(1);
+    expect(JSON.parse(String(rpcCalls[0].body))).toMatchObject({ p_move: true });
+    await tap('Go to my plants');
+    expect(onExit).toHaveBeenCalled();
+    expect(rpcCalls).toHaveLength(1);
+  });
 });

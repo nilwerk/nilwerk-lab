@@ -179,6 +179,8 @@
   "setup.linked.body": "Your sensor is already on a plant. Check your plant list.",
   "setup.linked.unknownTitle": "The save could not be confirmed",
   "setup.linked.unknownBody": "Check your plant list. The plant may already be saved there.",
+  "setup.notMoved.title": "The new plant was not saved",
+  "setup.notMoved.body": "The sensor stays on its current plant. The plant you just entered was not saved. Check your plant list.",
   "setup.linked.leave": "Go to my plants",
   "setup.location.house": "House",
   "setup.location.balcony": "Balcony",

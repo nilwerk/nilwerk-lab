@@ -215,10 +215,12 @@ export function MoveChoiceStep({ time, busy, onKeep, onMove }: { time: string; b
 }
 
 /** After a failed save the device is re-read. Linked (or unreadable): keep only, no move and no retry, so a second plant cannot be created here. */
-export function LinkedStep({ unknown, onLeave }: { unknown: boolean; onLeave: () => void }) {
+export function LinkedStep({ unknown, notMoved = false, onLeave }: { unknown: boolean; notMoved?: boolean; onLeave: () => void }) {
+  const title = unknown ? t('setup.linked.unknownTitle') : notMoved ? t('setup.notMoved.title') : t('setup.linked.title');
+  const body = unknown ? t('setup.linked.unknownBody') : notMoved ? t('setup.notMoved.body') : t('setup.linked.body');
   return (
-    <Screen title={unknown ? t('setup.linked.unknownTitle') : t('setup.linked.title')}>
-      <Body>{unknown ? t('setup.linked.unknownBody') : t('setup.linked.body')}</Body>
+    <Screen title={title}>
+      <Body>{body}</Body>
       <Button label={t('setup.linked.leave')} onPress={onLeave} />
     </Screen>
   );

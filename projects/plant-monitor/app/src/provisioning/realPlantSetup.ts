@@ -1,4 +1,5 @@
-// Real PlantSetupService (4.A4c): the setup flow's "save plant" reads the sensor's current plant, then calls create_plant_and_link_device
+// Real PlantSetupService (4.A4c, FR-A03 setup saves the plant, FR-A04 plant fields written, NFR-06 writes limited to the owner; ADR-017):
+// the setup flow's "save plant" reads the sensor's current plant, then calls create_plant_and_link_device
 // (one atomic RPC: plant insert + devices.plant_id link, or neither). A sensor that already has a plant is not moved without an explicit choice.
 // Communication: PostgREST with the user's JWT, the same client as plants/plantsRest.ts (no second Supabase client, no new backend).
 // Contract: docs/interfaces/db-schema.sql create_plant_and_link_device (also in migration 20261107000001, byte-identical copy).

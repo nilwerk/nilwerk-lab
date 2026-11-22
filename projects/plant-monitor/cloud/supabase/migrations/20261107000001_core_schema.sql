@@ -474,7 +474,7 @@ end $$;
 revoke all on function public.delete_plant(uuid) from public, anon;
 grant execute on function public.delete_plant(uuid) to authenticated;
 
--- Setup "save plant" (4.A4c, FR-A03, FR-A04, NFR-06, FR-A08): one call inserts the plant AND points the device at it, or does neither.
+-- Setup "save plant" (4.A4c, FR-A03, FR-A04, NFR-06; ADR-017): one call inserts the plant AND points the device at it, or does neither.
 -- Runs as one transaction: if the device link fails, the plant insert is rolled back too (no orphan plant).
 -- A device that already has a plant is NOT moved unless p_move is true (no silent move; P0005 otherwise).
 -- security definer: RLS does not apply inside, so the owner checks are explicit (device owned by auth.uid(); the new plant is the caller's).
