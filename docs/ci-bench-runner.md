@@ -34,9 +34,12 @@ Residual risk, two places:
   This branch has NO branch protection today (checked on 21 Nov 2026: the branch protection
   API returns 404, not protected). Protecting it is an open decision for the owner.
   A run from this branch or from `main` gets the bench secrets `BENCH_ANDROID_SERIAL`,
-  `BENCH_APP_TEST_ACCOUNT` and `BENCH_CLOUD_CHECK_CONFIG`, so whoever can change the workflow
-  file on either ref can reach them on the Pi. These secrets are the reason the bench branch
-  needs protection (open decision for the owner).
+  `BENCH_APP_TEST_ACCOUNT`, `BENCH_CLOUD_CHECK_CONFIG`, `BENCH_BOARD_POP`, `BENCH_WIFI_SSID`
+  and `BENCH_WIFI_PASSWORD`, so whoever can change the workflow file on either ref can reach
+  them on the Pi. **Owner decision (22 Nov 2026): the bench branch can read these secrets.** The
+  owner accepted this for the bench round. Protecting the branch stays an open decision.
+- The bench job reads the provisioning folder on the Pi (`$HOME/nilwerk-secrets/provision-out/`,
+  or `BENCH_PROVISION_DIR`). It is local to the Pi and never leaves it. Owner decision, 22 Nov 2026.
 
 ## Steps of the bench job
 The job runs these steps in order. Each hardware step fails closed: if its input is missing
@@ -52,13 +55,38 @@ firmware is the normal build, with no simulated-sensor firmware.
 | a. Firmware flash | Reads the chip id (must be ESP32-C3), then writes `bench/firmware/image.bin` with esptool at `BENCH_FLASH_OFFSET` (`0x0`, merged image) to the USB port `BENCH_ESP_PORT` (`/dev/ttyACM0`) | `bench/firmware/image.bin` (prebuilt, not built on the Pi), a device at the port, `esptool` on the runner | fails, no flash |
 | b. Serial boot log | Reads the boot log for 20 s after a reset and asserts the first non-empty line of the expect file is in it. Boot line only. | `bench/firmware/expect.txt` | fails |
 | c. BLE scan | `bluetoothctl` scan for 10 s; asserts that the first non-empty line of the expect file, with all whitespace removed, is the start of a device name seen in the scan. The expected name must have no spaces: all whitespace is removed from it before matching, and it matches the START of the device name, so a longer device name also matches (expected `Bench` matches `Bench Dev`). Only the name field is read. The accepted line forms are `Device <MAC> <Name>`, `[NEW] Device <MAC> <Name>` and `[CHG] Device <MAC> Name: <name>`. A prompt or other text before the tag or `Device` is ignored when the line is otherwise one of these forms. On a plain or `[NEW]` line everything after the MAC is the name, so text that looks like a property, such as `RSSI: -60`, is read as a name. This is a known limit: on success the run log prints the matched name (`c. BLE: device name '...' starts with prefix ...`), and on failure it prints the last 20 raw scan lines, so a wrong match can be seen by a person. Any other `[CHG]` line (RSSI, TxPower, UUIDs, ...) is ignored, `[DEL]` lines are skipped, and the MAC never matches. That is the only check. | `bench/ble/expect.txt`, `bluetoothctl` | fails |
+| 1. App APK | Downloads the newest successful `app-apk` artifact from `main` (`plant-monitor-app-debug-<sha>`, the run of `app-apk.yml`) with the workflow token. Saved to `bench-artifacts/app-apk/` in the runner workspace only. Not committed, not uploaded. | Job permission `actions: read`; a successful app-apk run on `main` | fails: `APK not found` |
+| 2. Firmware image | Downloads the artifact `plant-monitor-firmware-setup` from the newest successful run of `firmware-bench-image.yml` on `main`. Expects exactly one `.bin` file in it. Saved to `bench-artifacts/firmware/`. | Job permission `actions: read`; the workflow `firmware-bench-image.yml` (being added by Mira) with a successful run on `main` | fails: `firmware artifact not found` |
+| 3. Provisioning and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (`nw-c8da2986f470`, not a secret). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in `BENCH_PROVISION_DIR` (default `$HOME/nilwerk-secrets/provision-out`) and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Builds the NVS partition in a 0700 temp dir (ESP-IDF NVS tool, offset `0x9000`, size `0x6000`, ESP-IDF default partition table), flashes it, then flashes the image from step 2 at `0x0`. The temp dir is removed by an EXIT trap. The label and the CSV are never printed. The label is checked but not used by the flash. | Repo variable `BENCH_BOARD_HW_ID`; the provisioning folder on the Pi with both files at `0600`; the image from step 2; `esptool`; the ESP-IDF NVS partition tool | fails before any write |
+| 4. APK install | Checks that exactly one device with the serial in secret `BENCH_ANDROID_SERIAL` is attached in state `device`, then runs `adb -s <serial> install -r` with the APK from step 1. The serial is never printed. | Secret `BENCH_ANDROID_SERIAL`; the APK from step 1; `adb` | fails, no install |
 | d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). The flow checks only the communication path: scan finds the device, connect, write the setup data, and the app shows the device as connected. It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh`; secrets `BENCH_ANDROID_SERIAL` (phone id) and `BENCH_APP_TEST_ACCOUNT` (test account config); Appium 2.x on the runner | fails |
 | e. Cloud check | Runs `bench/cloud/check.sh`. It checks only that the device communicated with the cloud: at least one row from this device exists in the EU project and was received after `BENCH_TEST_START_UTC`. It does not read, print or compare any reading value. | `bench/cloud/check.sh`; secret `BENCH_CLOUD_CHECK_CONFIG`; `BENCH_TEST_START_UTC` from step d | fails |
 | Bench E2E | Runs `bench/run_e2e.sh` | `bench/run_e2e.sh` | fails |
 
-Steps a to c need no secrets. Secrets are referenced by name only in the workflow; their values
+Steps a to c need no secrets. Steps 1 to 4 and d use the secrets by name only; their values
 live in the repository's Actions secrets and are never written to the repo. The `bench/` input
 files are not in the repo yet and must come from the owner or the hardware work.
+
+Order (22 Nov 2026): smoke check, a, b, c, then steps 1 to 4 (download, provision and flash,
+install the APK), then d and e. The provisioned board is the one that d and e test. Because a to c
+run first, they test the bench image from `bench/firmware/`, not the provisioned board.
+
+**Secrets for step d:** `BENCH_BOARD_POP`, `BENCH_WIFI_SSID` and `BENCH_WIFI_PASSWORD` are passed
+into the Appium step as environment variables only. The script `bench/app/run_appium.sh` must not
+echo them.
+
+**Job permission:** `permissions: actions: read` is set on the bench job only. The workflow-level
+permissions stay `contents: read`.
+
+**Repository variables** (not secrets, set by the owner, not by this PR): `BENCH_BOARD_HW_ID`
+(`nw-c8da2986f470`) and optionally `BENCH_PROVISION_DIR` (default `$HOME/nilwerk-secrets/provision-out`).
+
+**Open for steps 1 to 4 (checked on 22 Nov 2026 with stubs only):**
+- Step 2 needs `.github/workflows/firmware-bench-image.yml` on `main` (Mira). Until it exists the step fails.
+- The image from step 2 must be a merged full-flash image, or the NVS written in step 3 is overwritten
+  by the image at `0x0`. The order (NVS, then image) follows the owner's decision; check it with Mira.
+- The ESP-IDF NVS tool must be on the Pi (`python3 -m esp_idf_nvs_partition_gen` or `nvs_partition_gen.py`).
+- The NVS offset and size assume the ESP-IDF default partition table. Check them against the firmware's `partitions.csv`.
 
 ## Node workaround
 This is a workaround, not the intended setup.
@@ -105,8 +133,9 @@ Manual run from the PR branch, in the order the owner allowed it:
 ## Current state
 - The smoke step (host, architecture, Node, adb) runs and FAILS if Node is missing or is not
   major 20.
-- Steps a to e fail closed until their inputs exist (see the table above). Today none of the
+- Steps a to e and steps 1 to 4 fail closed until their inputs exist (see the table above). Today none of the
   `bench/` inputs are in the repo, so a manual run stops at step a with
-  `not configured: nothing tested`.
+  `not configured: nothing tested`. Steps 1 to 4 need the CI artifacts and the repo variable
+  `BENCH_BOARD_HW_ID` as described above.
 - The E2E step FAILS with "bench E2E not configured: nothing tested" until `bench/run_e2e.sh`
   exists on `main`. A green run therefore always means something was tested.

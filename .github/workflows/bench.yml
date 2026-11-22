@@ -25,6 +25,11 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/devops/bench-workflow'
     runs-on: [self-hosted, bench]
     timeout-minutes: 60
+    # Job-level only (22 Nov): steps 1 and 2 read CI artifacts through the workflow token.
+    # The workflow-level permissions above stay contents: read.
+    permissions:
+      contents: read
+      actions: read
     # Job-level, not workflow-level: a branch dispatch must not be able to displace a queued
     # nightly run. One bench job at a time on the Pi; queue, never kill a run mid-test.
     concurrency:
@@ -182,6 +187,192 @@ jobs:
             exit 1
           fi
 
+      # Setup steps 1 to 4 (owner decision, 22 Nov 2026, full automation). They run after a to c and
+      # before d, so the board that d and e test is the provisioned one. Each one fails closed with a
+      # clear message when its input is missing. Nothing is built on the Pi.
+      # Scratch files for steps 1 and 2 go to bench-artifacts/ in the runner workspace (not committed).
+
+      - name: "1. Download app APK (newest successful app-apk run on main)"
+        # Input: artifact plant-monitor-app-debug-<sha> from the newest successful run of app-apk on main.
+        # Needs the job permission actions: read, through the workflow token. Nothing is uploaded.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::1. app APK: $1"; exit 1; }
+          [ -n "${GH_TOKEN:-}" ] || fail "not configured: nothing tested (no workflow token)"
+          command -v python3 >/dev/null 2>&1 || fail "not configured: nothing tested (python3 not installed)"
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions"
+          get() {
+            curl -sS -f -L -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$@"
+          }
+          runs="$(get "${api}/workflows/app-apk.yml/runs?branch=main&status=success&per_page=1")" \
+            || fail "APK not found: no successful app-apk run on main (API call failed)"
+          run_id="$(printf '%s' "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"] if r else "")')"
+          [ -n "$run_id" ] || fail "APK not found: no successful app-apk run on main"
+          arts="$(get "${api}/runs/${run_id}/artifacts?per_page=100")" \
+            || fail "APK not found: artifact list failed for run ${run_id}"
+          pick="$(printf '%s' "$arts" | python3 -c '
+          import json, sys
+          live = [a for a in json.load(sys.stdin).get("artifacts", [])
+                  if a.get("name", "").startswith("plant-monitor-app-debug-") and not a.get("expired", False)]
+          live.sort(key=lambda a: a.get("created_at", ""), reverse=True)
+          if live:
+              print(live[0]["id"], live[0]["name"])
+          ')"
+          [ -n "$pick" ] || fail "APK not found: no plant-monitor-app-debug-* artifact in run ${run_id}"
+          art_id="${pick%% *}"
+          art_name="${pick#* }"
+          work="${GITHUB_WORKSPACE}/bench-artifacts/app-apk"
+          mkdir -p "$work"
+          zip="$work/artifact.zip"
+          get "${api}/artifacts/${art_id}/zip" -o "$zip" || fail "APK download failed for ${art_name}"
+          python3 - "$zip" "$work" <<'PY'
+          import os, sys, zipfile
+          zf = zipfile.ZipFile(sys.argv[1])
+          apks = [n for n in zf.namelist() if n.lower().endswith(".apk") and "/" not in n]
+          if len(apks) != 1:
+              sys.exit(f"expected one APK in the artifact, found {len(apks)}")
+          zf.extract(apks[0], sys.argv[2])
+          os.replace(os.path.join(sys.argv[2], apks[0]), os.path.join(sys.argv[2], "app-debug.apk"))
+          PY
+          rm -f "$zip"
+          apk="${work}/app-debug.apk"
+          [ -s "$apk" ] || fail "APK extraction produced no file"
+          echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
+          echo "1. app APK: ${art_name} (run ${run_id}, main) saved to the runner workspace"
+
+      - name: "2. Download firmware image (plant-monitor-firmware-setup)"
+        # Input: artifact plant-monitor-firmware-setup from the newest successful run of
+        # firmware-bench-image.yml on main. The workflow is being added by Mira; until then this fails closed.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::2. firmware: $1"; exit 1; }
+          [ -n "${GH_TOKEN:-}" ] || fail "not configured: nothing tested (no workflow token)"
+          command -v python3 >/dev/null 2>&1 || fail "not configured: nothing tested (python3 not installed)"
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions"
+          get() {
+            curl -sS -f -L -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$@"
+          }
+          runs="$(get "${api}/workflows/firmware-bench-image.yml/runs?branch=main&status=success&per_page=1")" \
+            || fail "firmware artifact not found (no successful firmware-bench-image.yml run on main, or the workflow does not exist yet)"
+          run_id="$(printf '%s' "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin).get("workflow_runs", []); print(r[0]["id"] if r else "")')"
+          [ -n "$run_id" ] || fail "firmware artifact not found (no successful firmware-bench-image.yml run on main)"
+          arts="$(get "${api}/runs/${run_id}/artifacts?per_page=100")" \
+            || fail "firmware artifact not found (artifact list failed for run ${run_id})"
+          art_id="$(printf '%s' "$arts" | python3 -c '
+          import json, sys
+          hits = [a for a in json.load(sys.stdin).get("artifacts", [])
+                  if a.get("name") == "plant-monitor-firmware-setup" and not a.get("expired", False)]
+          if hits:
+              print(hits[0]["id"])
+          ')"
+          [ -n "$art_id" ] || fail "firmware artifact not found (no plant-monitor-firmware-setup in run ${run_id})"
+          work="${GITHUB_WORKSPACE}/bench-artifacts/firmware"
+          mkdir -p "$work"
+          zip="$work/artifact.zip"
+          get "${api}/artifacts/${art_id}/zip" -o "$zip" || fail "firmware artifact download failed (run ${run_id})"
+          python3 - "$zip" "$work" <<'PY'
+          import os, sys, zipfile
+          zf = zipfile.ZipFile(sys.argv[1])
+          bins = [n for n in zf.namelist() if n.lower().endswith(".bin") and "/" not in n]
+          if len(bins) != 1:
+              sys.exit(f"expected one .bin image in the artifact, found {len(bins)}")
+          zf.extract(bins[0], sys.argv[2])
+          os.replace(os.path.join(sys.argv[2], bins[0]), os.path.join(sys.argv[2], "firmware.bin"))
+          PY
+          rm -f "$zip"
+          fw="${work}/firmware.bin"
+          [ -s "$fw" ] || fail "firmware extraction produced no file"
+          echo "BENCH_FW_IMAGE_PATH=${fw}" >> "$GITHUB_ENV"
+          echo "2. firmware: plant-monitor-firmware-setup (run ${run_id}, main) saved to the runner workspace"
+
+      - name: "3. Provision and flash board (NVS, then firmware image)"
+        # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, nw-c8da2986f470); the folder
+        # BENCH_PROVISION_DIR on the Pi (default $HOME/nilwerk-secrets/provision-out) with
+        # <hw_id>.nvs.csv and <hw_id>.label.txt, both mode 0600; the image from step 2.
+        # The CSV and label are never printed. The label is checked, but the flash does not use it.
+        # The NVS CSV is built into a 0700 temp dir, removed by the EXIT trap.
+        # NVS offset and size are the ESP-IDF default partition table (nvs at 0x9000, 0x6000 long).
+        env:
+          BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
+          BENCH_PROVISION_DIR: ${{ vars.BENCH_PROVISION_DIR }}
+          BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
+          BENCH_FLASH_OFFSET: "0x0"        # offset of the merged full-flash image
+          BENCH_NVS_OFFSET: "0x9000"       # NVS partition offset, ESP-IDF default partition table
+          BENCH_NVS_SIZE: "0x6000"         # NVS partition size, ESP-IDF default partition table
+        run: |
+          set -euo pipefail
+          umask 077
+          fail() { echo "::error::3. provisioning: $1"; exit 1; }
+          hw_id="${BENCH_BOARD_HW_ID:-}"
+          [ -n "$hw_id" ] || fail "not configured: nothing tested (repository variable BENCH_BOARD_HW_ID is not set)"
+          [[ "$hw_id" =~ ^[A-Za-z0-9_-]+$ ]] || fail "not configured: nothing tested (BENCH_BOARD_HW_ID has characters that are not allowed)"
+          prov_dir="${BENCH_PROVISION_DIR:-$HOME/nilwerk-secrets/provision-out}"
+          csv="${prov_dir}/${hw_id}.nvs.csv"
+          label="${prov_dir}/${hw_id}.label.txt"
+          for f in "$csv" "$label"; do
+            [ -f "$f" ] || fail "not configured: nothing tested (provisioning file for board ${hw_id} is missing in the provisioning folder)"
+            mode="$(stat -c %a "$f")"
+            [ "$mode" = "600" ] || fail "not configured: nothing tested (provisioning file for board ${hw_id} has mode ${mode}, must be 0600)"
+          done
+          fw="${BENCH_FW_IMAGE_PATH:-}"
+          [ -n "$fw" ] && [ -f "$fw" ] || fail "firmware artifact not found (step 2 did not provide an image)"
+          [ -e "$BENCH_ESP_PORT" ] || fail "not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
+          esptool="$(command -v esptool.py || command -v esptool || true)"
+          [ -n "$esptool" ] || fail "not configured: nothing tested (esptool not installed on the runner)"
+          if python3 -c 'import esp_idf_nvs_partition_gen' >/dev/null 2>&1; then
+            nvs_gen=(python3 -m esp_idf_nvs_partition_gen generate)
+          elif command -v nvs_partition_gen.py >/dev/null 2>&1; then
+            nvs_gen=(nvs_partition_gen.py generate)
+          else
+            fail "not configured: nothing tested (ESP-IDF NVS partition tool not installed on the runner)"
+          fi
+          # Read the chip id first. Stop unless it is an ESP32-C3.
+          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip_id 2>&1 || true)"
+          echo "$chip_out"
+          if ! grep -q "ESP32-C3" <<<"$chip_out"; then
+            fail "chip is not an ESP32-C3, not flashing"
+          fi
+          work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/bench-prov.XXXXXX")"
+          chmod 700 "$work"
+          trap 'rm -rf "$work"' EXIT
+          cp "$csv" "$work/nvs.csv"
+          chmod 600 "$work/nvs.csv"
+          nvs_bin="$work/nvs.bin"
+          # Tool output is kept in the temp dir and not printed: it may echo CSV lines on error.
+          if ! "${nvs_gen[@]}" "$work/nvs.csv" "$nvs_bin" "$BENCH_NVS_SIZE" >"$work/nvs-gen.log" 2>&1; then
+            fail "NVS partition generation failed for board ${hw_id} (tool output withheld: it may contain provisioning data)"
+          fi
+          [ -s "$nvs_bin" ] || fail "NVS partition generation produced no file"
+          echo "3. provisioning: NVS partition built for board ${hw_id} (contents not shown)"
+          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$BENCH_NVS_OFFSET" "$nvs_bin"
+          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$BENCH_FLASH_OFFSET" "$fw"
+          echo "3. provisioning: NVS and firmware image written to ${BENCH_ESP_PORT}"
+
+      - name: "4. Install app APK on the 6P (adb)"
+        # Input: the APK from step 1; secret BENCH_ANDROID_SERIAL (phone id, never printed).
+        env:
+          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::4. APK install: $1"; exit 1; }
+          serial="${BENCH_ANDROID_SERIAL:-}"
+          [ -n "$serial" ] || fail "not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
+          apk="${BENCH_APK_PATH:-}"
+          [ -n "$apk" ] && [ -f "$apk" ] || fail "not configured: nothing tested (no APK from step 1)"
+          command -v adb >/dev/null 2>&1 || fail "not configured: nothing tested (adb not installed)"
+          adb start-server >/dev/null 2>&1 || true
+          # Count attached devices with the configured serial in state "device". The serial is not printed.
+          n="$(adb devices | awk -v s="$serial" 'NR>1 && $1==s && $2=="device" {n++} END {print n+0}')"
+          [ "$n" = "1" ] || fail "expected exactly one attached device with the configured serial in state device, found ${n}"
+          adb -s "$serial" install -r "$apk"
+          echo "4. APK installed on the configured device (serial not shown)"
+
       - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
         # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
         # BENCH_APP_TEST_ACCOUNT (test account config). Values are never in the repo.
@@ -191,6 +382,10 @@ jobs:
         env:
           BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
           BENCH_APP_TEST_ACCOUNT: ${{ secrets.BENCH_APP_TEST_ACCOUNT }}
+          # PoP and Wi-Fi go to the Appium script as environment variables only. Never echo them.
+          BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
+          BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
+          BENCH_WIFI_PASSWORD: ${{ secrets.BENCH_WIFI_PASSWORD }}
           APPIUM_PLATFORM_NAME: Android
           APPIUM_AUTOMATION_NAME: UiAutomator2
         run: |
