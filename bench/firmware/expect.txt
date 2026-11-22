@@ -1,10 +1,11 @@
-# bench/firmware/expect.txt: expected serial boot line for bench step b ("b. Serial boot log check").
-# Step b reads the first line that is neither empty nor a # comment, and checks that it appears in the
-# 20 s serial log after a reset. Only the first such line is checked.
-# Purpose of this file: the boot-line text, taken from the firmware sources. No value is invented.
+# bench/firmware/expect.txt: expected serial line for bench step b ("b. Serial live stream check").
+# Step b reads the live serial stream for 20 s with NO reset, and checks that the first line that is neither
+# empty nor a # comment appears in it. Only the first such line is checked.
+# Purpose of this file: the line text, taken from the firmware sources. No value is invented.
 # Sources (projects/plant-monitor/firmware):
-#   main/main.c:105   ESP_LOGI "NWBENCH start board=%s wake=%d ..." (each boot that does not end in setup sleep). USED BELOW.
-#   main/main.c:61    printf "NWSETUP press window: ..." (cold start in the setup build only). Not used.
-#   components/provisioning/src/nw_prov_idf.c:234  ESP_LOGI "NWSETUP boot: %s ..." (setup decision). Not used.
+#   main/main.c:141   printf "NWBENCH wake=%d i=%d ..." once per reading cycle (loop main/main.c:127, 2 s delay main/main.c:145). USED BELOW.
+#   main/main.c:105   ESP_LOGI "NWBENCH start board=%s ..." (boot). Not used: a board asleep for the whole window prints no boot line.
+#   The wake line is printed only by the bench app (not the CONFIG_PLANT_UPLOAD build) and, with the setup flow on,
+#   only once the unit is provisioned (an unprovisioned unit deep-sleeps before any read: main/main.c:73-81).
 # Owner input: none for this line. It is not yet confirmed on hardware (no bench run has happened).
-NWBENCH start board=
+NWBENCH wake=

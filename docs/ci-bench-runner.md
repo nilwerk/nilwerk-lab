@@ -34,7 +34,7 @@ The workflow builds first and tests second. The jobs and steps run in this order
    - 1. Download firmware image (the `build-firmware` artifact of this run)
    - 2. Download app APK (the `build-apk` artifact of this run), then a check that exactly one APK is there
    - a. Firmware flash
-   - b. Serial boot log check
+   - b. Serial live stream check (no reset)
    - c. BLE scan
    - 4. Install app APK on the 6P (adb)
    - 3. Provision and flash board (NVS last)
@@ -113,7 +113,7 @@ firmware is the setup-flow build (`CONFIG_PLANT_SETUP_FLOW=y`, simulator off), b
 | 1. Download firmware image | Downloads `plant-monitor-firmware-setup` from the `build-firmware` job of this run (`run-id` = this run) to `bench-artifacts/firmware/build-setup/`. The artifact root is that folder. | Job permission `actions: read`; the `build-firmware` job succeeded | the download step fails (artifact not found) |
 | 2. Download app APK, then check | Downloads `plant-monitor-app-debug-*` from the `build-apk` job of this run to `bench-artifacts/app-apk/`. The check step requires exactly one `.apk` there and sets `BENCH_APK_PATH`. Not committed, not uploaded. | Job permission `actions: read`; the `build-apk` job succeeded | the check step fails: `APK not found` |
 | a. Firmware flash | Reads the chip id (must be ESP32-C3). Then reads `flasher_args.json` from step 1 and writes every file in `flash_files` at its listed offset, in offset order, with esptool, to the USB port `BENCH_ESP_PORT` (`/dev/ttyACM0`). Offsets are not hard-coded. | the step 1 artifact (`flasher_args.json` and the files it lists); a device at the port; `esptool` v5 on the runner | fails, no flash |
-| b. Serial boot log | Reads the boot log for 20 s after a reset and asserts that the first line of the expect file that is not empty and not a `#` comment is in it. Boot line only. | `bench/firmware/expect.txt` (created from the firmware sources; not yet run on hardware) | fails |
+| b. Serial live stream | **No reset** (no esptool run, no reset, no RTS/DTR toggle). Reads the live serial stream for 20 s and asserts that the first line of the expect file that is not empty and not a `#` comment, `NWBENCH wake=`, is in it. That line is printed once per reading cycle (`main/main.c:141`). A board that is asleep for the whole window fails. | `bench/firmware/expect.txt` (created from the firmware sources; not yet run on hardware); a device at `/dev/ttyACM0` | fails, with "timeout, expected line not seen" |
 | c. BLE scan | `bluetoothctl` scan for 10 s; asserts that the first line of the expect file that is not empty and not a `#` comment, with all whitespace removed, is the start of a device name seen in the scan. Only the name field is read, and the device address never matches. | `bench/ble/expect.txt` (created from the firmware sources: prefix `NW-`; the value `UNSET` stops the step), `bluetoothctl` | fails |
 | 4. Install app APK on the 6P | Checks that exactly one device with the device id in secret `BENCH_ANDROID_SERIAL` is attached in state `device`, then runs `adb -s <device-id> install -r` with the APK from step 2. The device id is never printed. | Secret `BENCH_ANDROID_SERIAL`; the APK from step 2; `adb` | fails, no install |
 | 3. Provision and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (value `<board-hw-id>`, not a secret). Reads the provisioning folder from the repo variable `BENCH_PROVISION_DIR` (required, no default; fails if empty). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in that folder and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Checks that the NVS tool is exactly 0.3.0 in the Pi venv. Reads the flash plan from the step 1 build-setup folder before any write. It builds the NVS partition from the CSV in a 0700 temp dir, writes each `flash_files` file at its offset in offset order, and writes the NVS partition last. The CSV and label are never printed. The label is checked but not used by the flash. | Repo variables `BENCH_BOARD_HW_ID` and `BENCH_PROVISION_DIR`; the provisioning folder on the Pi with both files at `0600`; the artifact from step 1; `esptool`; the ESP-IDF NVS tool (0.3.0, provisional) | fails before any write |
@@ -156,7 +156,7 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
   not written in this repo.
 
 **Inputs created by this change (from the repo sources, see the header of each file):**
-- `bench/firmware/expect.txt` (step b): `NWBENCH start board=`, from `projects/plant-monitor/firmware/main/main.c:105`.
+- `bench/firmware/expect.txt` (step b): `NWBENCH wake=`, from `projects/plant-monitor/firmware/main/main.c:141` (printed once per reading cycle; step b sends no reset).
 - `bench/ble/expect.txt` (step c): `NW-`, the advertised name prefix, from `nw_prov_proto.c:58-69`. The value `UNSET`
   makes step c fail with "bench/ble/expect.txt has no expected name yet: owner input needed".
 - `bench/app/run_appium.sh` (step d): opens the package from `app.config.ts` and checks the first screen title

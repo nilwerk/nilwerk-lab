@@ -16,7 +16,7 @@ name: Bench (self-hosted)
 #   build-firmware   GitHub-hosted, no secrets. Builds the setup-flow firmware. Artifact: plant-monitor-firmware-setup.
 #   build-apk        GitHub-hosted, no secrets. Builds the Android debug APK. Artifact: plant-monitor-app-debug-<sha7>.
 #   bench            the Pi. Needs both builds. Downloads both artifacts from THIS run, then runs steps
-#                    1 (firmware), 2 (APK), a (flash), b (serial boot log), c (BLE scan), 4 (APK install),
+#                    1 (firmware), 2 (APK), a (flash), b (serial live stream, no reset), c (BLE scan), 4 (APK install),
 #                    3 (provision and flash NVS), d (app flow), e (cloud check), E2E.
 # The two build jobs never touch the Pi. Their steps are copied from ci.yml (firmware job, setup image)
 # and app-apk.yml (android-debug-apk job); they are not new builds.
@@ -396,12 +396,17 @@ jobs:
           rm -f "$plan"
           echo "a. firmware flash: setup firmware written to ${BENCH_ESP_PORT}"
 
-      - name: "b. Serial boot log check (20 s)"
-        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected boot line text).
+      - name: "b. Serial live stream check (20 s, no reset)"
+        # No reset: this step sends no esptool run, no reset and no RTS/DTR toggle. It reads the live USB serial
+        # stream for a 20 s window and passes only when the expected line appears. The line is "NWBENCH wake=",
+        # printed once per reading cycle by the bench app (main/main.c:141, about every 2 s plus sensor time).
+        # A board that is in its 60 s deep sleep for the whole window prints nothing: the step then fails closed.
+        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected line text).
         env:
           BENCH_ESP_PORT: /dev/ttyACM0
         run: |
           set -euo pipefail
+          window=20   # seconds of live stream to read (the step timeout)
           expect="bench/firmware/expect.txt"
           if [ ! -f "$expect" ]; then
             echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
@@ -425,16 +430,18 @@ jobs:
           fi
           log="$(mktemp)"
           stty -F "$BENCH_ESP_PORT" 115200 raw -echo
-          # Start the reader first, then reset the board, so the boot lines are captured.
-          timeout 20 cat "$BENCH_ESP_PORT" > "$log" &
-          reader=$!
-          sleep 1
-          "$esptool" --port "$BENCH_ESP_PORT" run
-          wait "$reader" || true   # timeout exits 124 after 20 s; that is the expected end
+          # Read the live stream for the window. timeout exits 124 when the window ends (the expected end);
+          # any other non-zero exit means the read itself failed.
+          rc=0
+          timeout "$window" cat "$BENCH_ESP_PORT" > "$log" || rc=$?
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
+            echo "::error::b. serial check failed: could not read ${BENCH_ESP_PORT} (cat exit ${rc}), nothing tested"
+            exit 1
+          fi
           if grep -F -q -- "$line" "$log"; then
-            echo "b. serial: expected boot line seen: ${line}"
+            echo "b. serial: expected line seen in the live stream: ${line}"
           else
-            echo "::error::b. serial check failed: expected boot line not seen in 20 s: ${line}"
+            echo "::error::b. serial check failed: timeout, expected line not seen in ${window} s of live stream (no reset sent): ${line}"
             tail -n 20 "$log"
             exit 1
           fi
