@@ -2,7 +2,7 @@
 // the setup flow's "save plant" reads the sensor's current plant, then calls create_plant_and_link_device
 // (one atomic RPC: plant insert + devices.plant_id link, or neither). A sensor that already has a plant is not moved without an explicit choice.
 // Communication: PostgREST with the user's JWT, the same client as plants/plantsRest.ts (no second Supabase client, no new backend).
-// Contract: docs/interfaces/db-schema.sql create_plant_and_link_device (also in migration 20261107000001, byte-identical copy).
+// Contract: docs/interfaces/db-schema.sql create_plant_and_link_device (migration 20261122000009_setup_save_plant_rpc.sql).
 // Photos are NOT saved here: a photo is refused, never dropped silently. The real build offers no photo (noPhotoSource.supported = false).
 // NOT run against a live backend (no project in this session).
 import { call, type RestDeps } from '../plants/plantsRest';
@@ -50,7 +50,7 @@ export function createRealPlantSetup(d: RealPlantSetupDeps): PlantSetupService {
       const currentPlant = await readCurrentPlant(rest, deviceId);
       if (currentPlant !== null && !opts.moveFromCurrent) return { status: 'already_linked' };
 
-      // 2. one server call: plant insert + device link in one transaction (create_plant_and_link_device, migration 1 / db-schema.sql).
+      // 2. one server call: plant insert + device link in one transaction (create_plant_and_link_device, migration 20261122000009 / db-schema.sql).
       //    If the link fails the server rolls the insert back too, so no orphan plant is left behind.
       try {
         const r = await call(rest, '/rest/v1/rpc/create_plant_and_link_device', {
