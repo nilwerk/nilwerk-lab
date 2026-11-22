@@ -152,6 +152,25 @@ do $$ declare n int; nid uuid; begin
 end $$;
 reset role;
 
+-- 2c. the device link must not reach a foreign plant even when no device uses that plant (ADR-017, RLS-1).
+-- Plant C is owned by B and unlinked; the unique key on devices.plant_id would hide the hole for B's own plant, so this uses C.
+reset role;
+insert into public.plants (id, owner_id, name, location_type, soil_type) values ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000b', 'Unlinked B', 'house', 'potting');
+set role authenticated;
+set request.uid = :'A';
+do $$ begin
+  begin
+    update public.devices set plant_id = '10000000-0000-0000-0000-00000000000c' where id = '20000000-0000-0000-0000-00000000000a';
+    raise exception 'A pointed its device at an unlinked B plant';
+  exception when insufficient_privilege then null; end;   -- 42501: the policy's plant ownership check
+end $$;
+reset role;
+delete from public.plants where id = '10000000-0000-0000-0000-00000000000c';
+do $$ declare n int; begin
+  select count(*) into n from public.devices where id = '20000000-0000-0000-0000-00000000000a' and plant_id = '10000000-0000-0000-0000-00000000000c'; if n <> 0 then raise exception 'foreign plant linked'; end if;
+  raise notice 'RLS ok    A cannot link its device to an unlinked foreign plant (devices_update_own plant check)';
+end $$;
+
 -- 3. B's data is untouched after all of the above
 do $$ declare n int; begin
   select count(*) into n from public.plants where owner_id = '00000000-0000-0000-0000-00000000000b'; if n <> 1 then raise exception 'B plant changed'; end if;
