@@ -205,7 +205,7 @@ describe('device setup flow', () => {
     await header('Take a photo');
   });
 
-  test('plant details: required fields are validated, a failed save keeps the sensor linked and can be retried', async () => {
+  test('plant details: required fields are validated, a failed save says the sensor is not linked to the plant and can be retried', async () => {
     const { fake } = await mount();
     await toPhoto();
     await tap('Skip for now');
@@ -217,7 +217,7 @@ describe('device setup flow', () => {
     await fillDetails();
     fake.plants.options.failNext = true;
     await tap('Save plant');
-    expect(await screen.findByText(/Your sensor is linked/)).toBeTruthy();
+    expect(await screen.findByText(/The plant could not be saved, so your sensor is not linked to it/)).toBeTruthy();
     await tap('Save plant');
     await header('All set!');
   });

@@ -106,7 +106,10 @@ create index devices_owner_idx on public.devices(owner_id);
 alter table public.devices enable row level security;
 create policy devices_select_own on public.devices for select using (owner_id = auth.uid());
 -- Users rename / assign a plant via the update policy; protected columns are guarded by a trigger.
-create policy devices_update_own on public.devices for update using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+create policy devices_update_own on public.devices for update
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid()
+    and (plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid())));
 create or replace function public.devices_guard() returns trigger
 language plpgsql as $$
 begin

@@ -12,7 +12,7 @@ const BASE = 'https://proj.example.test';
 const USER = '11111111-1111-4111-8111-111111111111';
 const DEVICE = '22222222-2222-4222-8222-222222222222';
 const PLANT = '33333333-3333-4333-8333-333333333333';
-const UNSAVED = 'The plant could not be saved. Your sensor is linked. Please try again.';
+const UNSAVED = 'The plant could not be saved, so your sensor is not linked to it. Please try again.';
 
 const res = (status: number, body: unknown) => ({ status, json: async () => body }) as unknown as Response;
 

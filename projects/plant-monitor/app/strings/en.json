@@ -168,7 +168,7 @@
   "setup.details.species": "Species (optional)",
   "setup.details.city": "City",
   "setup.details.save": "Save plant",
-  "setup.details.saveError": "The plant could not be saved. Your sensor is linked. Please try again.",
+  "setup.details.saveError": "The plant could not be saved, so your sensor is not linked to it. Please try again.",
   "setup.location.house": "House",
   "setup.location.balcony": "Balcony",
   "setup.location.garden": "Garden",
