@@ -31,3 +31,15 @@ FR-A03 (the setup flow's plant step saves the plant and the sensor link), FR-A04
 - A confirmed move leaves the old plant without a sensor; its readings stay with it.
 - Any later change to these two blocks must be made in `db-schema.sql` and migration 1 together.
 - Traceability: `docs/traceability.md` row for FR-A03 / FR-A04 / NFR-06 (task 4.A4c) cites this ADR.
+
+## Migration check
+Recorded for the owner's decision (C6). Not decided here; the status of this ADR is unchanged.
+- **Edit in place.** Migration `cloud/supabase/migrations/20261107000001_core_schema.sql` was edited in place for the RPC and the `devices_update_own` clause (Decision 3).
+- **Rule.** `cloud/README.md` "Migration rules" (line 67): migration 1 is frozen once it is pushed to any real project; later changes are new migration files.
+- **Owner statement, not verified.** Arsany, 2026-11-22: no environment has applied migration 1. No Supabase credentials were available in this session, so no project was checked.
+- **Conflicting record to resolve.** `cloud/README.md` line 72 says the Lead deployed "the 6 migrations" to the project `nilwerk-cloud` after the 2026-11-16 deploy and that pushing migrations is done. If migration 1 is among them, the in-place edit changed an applied migration, and the repo file and the live schema differ.
+- **Check on each Supabase project (nilwerk-cloud and any other), read-only:**
+  1. Applied migration list: `select version, name from supabase_migrations.schema_migrations order by version;` (or the Supabase MCP `list_migrations`). Is `20261107000001` listed? Compare the full list with the 8 files in `cloud/supabase/migrations/`.
+  2. If `20261107000001` is applied: `select polname, pg_get_expr(polwithcheck, polrelid) from pg_policy where polname = 'devices_update_own';` and `select proname from pg_proc where proname = 'create_plant_and_link_device';`. Compare with the file; record any difference.
+  3. Record the project ref, the date and the result. Never record keys.
+- **Decision paths for the owner (with Theo).** (a) No environment applied migration 1: keep the in-place edit and record the check result. (b) Any environment applied it: Decision 4 applies. The change goes into a new migration (pattern of `20261108000005`), migration 1 returns to its applied bytes, and the drift guard in `cloud/test.sh` is updated with it.

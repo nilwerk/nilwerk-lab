@@ -97,7 +97,8 @@ export function SetupFlow({ services, onExit, now = Date.now }: { services: Setu
         if (alive.current) {
           setPendingMove(null);
           if (cur === 'unknown') setRecheck('unknown');
-          else if (cur !== null) setRecheck(moveFromCurrent && priorPlant.current !== null && cur === priorPlant.current ? 'notMoved' : 'linked');   // on a plant now: keep only, never a second plant
+          // on a plant now: keep only, never a second plant. A failed Move with no pre-read (priorPlant null) cannot be told from a committed one: 'unknown', never the 'linked' copy.
+          else if (cur !== null) setRecheck(!moveFromCurrent ? 'linked' : priorPlant.current === null ? 'unknown' : cur === priorPlant.current ? 'notMoved' : 'linked');
         }
       }
     }

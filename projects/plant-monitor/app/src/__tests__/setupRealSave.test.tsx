@@ -22,16 +22,19 @@ const OTHER = '44444444-4444-4444-8444-444444444444';
  *  devicePlant: what GET devices shows before any save ('hidden' = RLS hides the device).
  *  rpc: answer of create_plant_and_link_device. commitThenLose: the RPC commits on the server, but its answer is lost (network error);
  *  after that, GET devices shows postPlant (the plant the sensor is now on). */
-function servicesWith(opts: { devicePlant?: string | null | 'hidden'; rpc?: () => Response; commitThenLose?: boolean; postPlant?: string | null }) {
+function servicesWith(opts: { devicePlant?: string | null | 'hidden'; rpc?: () => Response; commitThenLose?: boolean; postPlant?: string | null; failGet?: number }) {
   const fake = createFakeSetup();
   const provisioning = { ...fake.services.provisioning, provision: async (req: Parameters<typeof fake.services.provisioning.provision>[0], on: Parameters<typeof fake.services.provisioning.provision>[1]) => {
     await fake.services.provisioning.provision(req, on);
     return { deviceId: DEVICE, hwId: FAKE_SENSOR.hwId };
   } };
   let committed = false;
+  let gets = 0;
   const rpcCalls: RequestInit[] = [];
   const fetchImpl = jest.fn(async (url: string, init: RequestInit) => {
     if ((init.method ?? 'GET') === 'GET' && url.includes('/rest/v1/devices')) {
+      gets += 1;
+      if (gets === opts.failGet) return res(500, { message: 'read failed' });   // the Nth device read fails (1-based)
       if (committed) return res(200, [{ plant_id: opts.postPlant ?? null }]);
       return opts.devicePlant === 'hidden' ? res(200, []) : res(200, [{ plant_id: opts.devicePlant ?? null }]);
     }
@@ -199,6 +202,28 @@ describe('setup save in the real build', () => {
     expect(screen.queryByRole('button', { name: MOVE })).toBeNull();
     expect(rpcCalls).toHaveLength(1);
     expect(JSON.parse(String(rpcCalls[0].body))).toMatchObject({ p_move: true });
+    await tap('Go to my plants');
+    expect(onExit).toHaveBeenCalled();
+    expect(rpcCalls).toHaveLength(1);
+  });
+
+  test('pre-read fails and Move fails: the copy is the unknown one (save could not be confirmed), never "already on a plant"', async () => {
+    // device reads: 1 = first save (already_linked), 2 = pre-read in SetupFlow (fails), 3 = Move's own check, 4 = re-read after the failed Move
+    const { services, rpcCalls } = servicesWith({ devicePlant: OTHER, failGet: 2, rpc: () => res(500, { message: 'server error' }) });
+    const { onExit } = await mount(services);
+    await toPhoto();
+    await tap('Skip for now');
+    await header('About your plant');
+    await fillAndSave();
+    await header('This sensor already has a plant');
+    await tap(MOVE);
+    expect(await header('The save could not be confirmed')).toBeTruthy();
+    expect(screen.getByText('Check your plant list. The plant may already be saved there.')).toBeTruthy();
+    expect(screen.queryByText('Your sensor is already on a plant')).toBeNull();
+    expect(screen.queryByText('The new plant was not saved')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save plant' })).toBeNull();
+    expect(screen.queryByRole('button', { name: MOVE })).toBeNull();
+    expect(rpcCalls).toHaveLength(1);
     await tap('Go to my plants');
     expect(onExit).toHaveBeenCalled();
     expect(rpcCalls).toHaveLength(1);
