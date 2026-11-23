@@ -1,8 +1,10 @@
-# Debug Android APK of the Plant Monitor app (projects/plant-monitor/app), uploaded as a build artifact
+# Android APK of the Plant Monitor app (projects/plant-monitor/app), uploaded as a build artifact
 # so the bench can install it on the Nexus 6P (owner approval 2026-11-21).
+# Variant: release build (assembleRelease) with the JavaScript bundle inside, so the app starts without a Metro
+# server, and launches MainActivity, not the dev launcher (bench decision, 23 Nov 2026). Artifact name unchanged.
 #
 # Runs ONLY on a GitHub-hosted runner (ubuntu-latest). It never runs on the self-hosted bench runner.
-# No secrets: the debug APK is signed with the debug key that Gradle generates on the runner.
+# No secrets: the APK is signed with the debug key that the generated template uses (no release key in the repo).
 # The build inputs are two repository VARIABLES, both PUBLIC client values that the app ships in the APK anyway:
 #   SUPABASE_URL              the project URL (https)
 #   SUPABASE_PUBLISHABLE_KEY  the publishable key (sb_publishable_...), never a secret or service-role key
@@ -129,12 +131,50 @@ jobs:
           CI: "1"
         run: npx expo prebuild --platform android --no-install
 
-      - name: Build the debug APK (Gradle)
+      - name: Build the release APK with the JavaScript bundle (Gradle)
+        # assembleRelease, not assembleDebug: a debug build loads JavaScript from a Metro server, and the bench has
+        # none (bench decision, 23 Nov 2026). A release build embeds the bundle. expo-dev-launcher's Android code and
+        # manifest entry exist only in its debug source set, so the dev launcher is not compiled into this APK.
+        # Signing: the generated template's release config (the debug key). The next step checks the signature is valid.
         working-directory: projects/plant-monitor/app/android
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
+
+      - name: Check the bundled release APK (fail closed)
+        # Fails the job unless the APK is a valid zip with the JavaScript bundle inside, its signature verifies,
+        # its package is de.nilwerk.plantmonitor, MainActivity is the only launcher activity, and the manifest has
+        # no DevLauncherActivity. Reads the build output only; no secret is used or printed.
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::APK check: $1"; exit 1; }
+          shopt -s nullglob
+          apks=(projects/plant-monitor/app/android/app/build/outputs/apk/release/*.apk)
+          [ "${#apks[@]}" = "1" ] || fail "expected one release APK, found ${#apks[@]}"
+          apk="${apks[0]}"
+          unzip -tq "$apk" >/dev/null 2>&1 || fail "the release APK is not a valid zip archive"
+          listing="$(mktemp)"
+          unzip -l "$apk" > "$listing"
+          grep -q ' assets/index.android.bundle$' "$listing" || fail "the JavaScript bundle (assets/index.android.bundle) is not inside the APK"
+          aapt2=""
+          apksigner=""
+          for root in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"; do
+            [ -n "$root" ] && [ -d "$root/build-tools" ] || continue
+            [ -n "$aapt2" ] || aapt2="$(find "$root/build-tools" -mindepth 2 -maxdepth 2 -name aapt2 -type f 2>/dev/null | sort -V | tail -n 1)"
+            [ -n "$apksigner" ] || apksigner="$(find "$root/build-tools" -mindepth 2 -maxdepth 2 -name apksigner -type f 2>/dev/null | sort -V | tail -n 1)"
+          done
+          [ -n "$aapt2" ] && [ -n "$apksigner" ] || fail "aapt2 or apksigner not found under ANDROID_HOME or ANDROID_SDK_ROOT (build-tools)"
+          "$apksigner" verify "$apk" >/dev/null 2>&1 || fail "the APK signature does not verify"
+          badging="$("$aapt2" dump badging "$apk")" || fail "aapt2 dump badging failed"
+          grep -q "^package: name='de.nilwerk.plantmonitor'" <<<"$badging" || fail "the package is not de.nilwerk.plantmonitor"
+          launchers="$(sed -n "s/^launchable-activity: name='\([^']*\)'.*/\1/p" <<<"$badging")"
+          [ "$launchers" = "de.nilwerk.plantmonitor.MainActivity" ] || fail "the launcher activity is '${launchers:-none}', expected de.nilwerk.plantmonitor.MainActivity"
+          dump="$(mktemp)"
+          "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" > "$dump" 2>&1 || fail "aapt2 dump xmltree failed"
+          if grep -q 'DevLauncherActivity' "$dump"; then fail "the manifest contains DevLauncherActivity (dev launcher, not usable on the bench)"; fi
+          echo "APK check passed: JavaScript bundle inside, signature valid, package de.nilwerk.plantmonitor, launcher de.nilwerk.plantmonitor.MainActivity, no DevLauncherActivity."
 
       - name: Name the artifact by commit
         id: meta
@@ -142,11 +182,12 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: echo "short=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
-      - name: Upload the debug APK
+      - name: Upload the APK
         # Pinned to the commit SHA of actions/upload-artifact v4.6.2 (resolved with git ls-remote in this session).
+        # The artifact name is kept (bench and TEAM docs use it); its content is the release variant built above.
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: plant-monitor-app-debug-${{ steps.meta.outputs.short }}
-          path: projects/plant-monitor/app/android/app/build/outputs/apk/debug/*.apk
+          path: projects/plant-monitor/app/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14
