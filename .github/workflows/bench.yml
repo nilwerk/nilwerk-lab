@@ -71,16 +71,15 @@ jobs:
             echo "::error::Repository variable SUPABASE_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret). Bench build aborted."
             exit 1
           fi
-          base="${SUPABASE_URL%/}"
-          case "$base" in
-            https://*) ;;
-            *) echo "::error::Repository variable SUPABASE_URL must start with https://. Bench build aborted. The value is not printed."; exit 1 ;;
-          esac
-          # Host only (https://<project-ref>.supabase.co). A path, a space or a quote would break the config line, so it fails here.
-          if ! printf '%s' "$base" | grep -Eq '^https://[A-Za-z0-9.-]+$'; then
-            echo "::error::Repository variable SUPABASE_URL must be the project URL only (https://<project-ref>.supabase.co, no path, no trailing slash). Bench build aborted. The value is not printed."
+          # Checked exactly as set: no trailing slash is removed first, so a slash fails here.
+          # Bash regex, not grep: grep matches per line, so a value with a newline could pass and break the config line.
+          # Host only: https://<project-ref>.supabase.co, nothing after it. The host must end in .supabase.co.
+          re='^https://[a-z0-9-]+\.supabase\.co$'
+          if ! [[ "$SUPABASE_URL" =~ $re ]]; then
+            echo "::error::Repository variable SUPABASE_URL must be https://<project-ref>.supabase.co (host ending in .supabase.co, no path, no trailing slash). Bench build aborted. The value is not printed."
             exit 1
           fi
+          base="$SUPABASE_URL"
           umask 077
           printf 'CONFIG_PLANT_API_BASE_URL="%s/functions/v1"\n' "$base" > projects/plant-monitor/firmware/sdkconfig.defaults.local
           test -s projects/plant-monitor/firmware/sdkconfig.defaults.local
@@ -97,12 +96,13 @@ jobs:
           command: |
             set -e
             rm -f sdkconfig.setup
-            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.local;sdkconfig.defaults.bench-ci" build size
+            # sdkconfig.defaults.local is LAST, so its CONFIG_PLANT_API_BASE_URL overrides any earlier file (bench-ci included).
+            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.bench-ci;sdkconfig.defaults.local" build size
             grep -q "^CONFIG_PLANT_SETUP_FLOW=y" sdkconfig.setup
             grep -q "^CONFIG_PLANT_BOARD_V1_SUPERMINI=y" sdkconfig.setup
             grep -q "^CONFIG_BT_NIMBLE_ENABLED=y" sdkconfig.setup
             if grep -q "^CONFIG_PLANT_SIM_MOCK_SENSORS=y" sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
-            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci, last in the list).
+            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci).
             # Double quotes only in this block: the action wraps the whole command in single quotes, so a single quote here ends that wrapper early.
             if grep -q "^CONFIG_PLANT_BENCH_SLEEP_CYCLE=y" sdkconfig.setup; then echo "bench sleep cycle must be unset in the setup image (sdkconfig.defaults.bench-ci)"; exit 1; fi
             grep -qxF "# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set" sdkconfig.setup || { echo "sdkconfig.setup lacks the line: # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set (bench-ci overlay not applied)"; exit 1; }
@@ -394,6 +394,11 @@ jobs:
       # Node major the runner must provide. See docs/ci-bench-runner.md, "Node workaround".
       EXPECTED_NODE_MAJOR: "20"
     steps:
+      - name: Record job start (for the wait limit in step e)
+        # The job timeout (timeout-minutes: 60) counts from the job start. This is the first step, so its time is the start
+        # that step e uses to check that its wait fits. Written to GITHUB_ENV for this run only.
+        run: echo "BENCH_JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Checkout
         # Pinned to the full commit SHA of the actions/checkout v4.4.0 tag.
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -919,6 +924,10 @@ jobs:
         # (set by step d). It must not read, print or compare any reading value.
         # Wait: repository variable BENCH_FIRST_READING_WAIT_S (60 to 3600 seconds, no default). The step sleeps that long
         # before its one read, so the first upload of the 1-minute bench build can reach the cloud. Missing or out of range fails.
+        # LIMIT: 60 to 3600 s is the allowed range, but the wait is NOT the whole job budget. The job timeout is timeout-minutes 60
+        # (3600 s, counted from the job start), and steps 1 to d run before this step. The step fails closed, before sleeping, when
+        # elapsed-since-job-start + wait + 900 s reserve (for bench/cloud/check.sh and Bench E2E, which run after the wait)
+        # would exceed 3600 s. A longer wait needs the owner to set a longer timeout-minutes on the bench job.
         env:
           BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
           # Device identity (the board's hw_id, nw-<12 hex>), a repository variable (name only here).
@@ -948,7 +957,22 @@ jobs:
             echo "::error::e. cloud check: BENCH_FIRST_READING_WAIT_S must be a whole number of seconds from 60 to 3600 (out of range or not a number; value not printed)"
             exit 1
           fi
-          echo "e. cloud check: waiting ${wait_s} s for the first reading (BENCH_FIRST_READING_WAIT_S)"
+          # Job budget check (fail closed, nothing slept if it does not fit). 3600 = timeout-minutes 60 of the bench job.
+          # 900 = reserve for check.sh and Bench E2E after the wait (an assumption, not measured; the owner may tune it).
+          job_budget_s=3600
+          reserve_s=900
+          start="${BENCH_JOB_START_EPOCH:-}"
+          if ! [[ "$start" =~ ^[0-9]+$ ]]; then
+            echo "::error::e. cloud check: job start time not recorded (first step of the job); nothing tested"
+            exit 1
+          fi
+          elapsed_s=$(( $(date +%s) - start ))
+          max_wait_s=$(( job_budget_s - elapsed_s - reserve_s ))
+          if [ "$wait_s" -gt "$max_wait_s" ]; then
+            echo "::error::e. cloud check: wait of ${wait_s} s does not fit the 60 min job timeout: ${elapsed_s} s already used, ${reserve_s} s reserved for the check and E2E, so the largest wait now is ${max_wait_s} s. Nothing tested. Lower BENCH_FIRST_READING_WAIT_S, or the owner sets a longer timeout-minutes on the bench job."
+            exit 1
+          fi
+          echo "e. cloud check: waiting ${wait_s} s for the first reading (BENCH_FIRST_READING_WAIT_S); largest wait that fits now is ${max_wait_s} s"
           sleep "$wait_s"
           bash "$script"
 
