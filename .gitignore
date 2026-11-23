@@ -30,5 +30,8 @@ build-sim-qemu/
 sdkconfig.sim-qemu
 sdkconfig.sim-qemu.old
 
+# Bench app flow output, written on the Pi per run: never commit
+bench/app/result.json
+
 # Bench CI scratch: APK and firmware downloaded by bench.yml steps 1 and 2. Never commit.
 bench-artifacts/
