@@ -580,14 +580,21 @@ jobs:
             echo "::error::bench/ble/expect.txt has no expected name yet: owner input needed"
             exit 1
           fi
-          if ! command -v bluetoothctl >/dev/null 2>&1; then
-            echo "::error::c. BLE check: not configured: nothing tested (bluetoothctl not installed)"
+          if ! command -v hcitool >/dev/null 2>&1; then
+            echo "::error::c. BLE check: not configured: nothing tested (hcitool not installed)"
             exit 1
           fi
           log="$(mktemp)"
           names="$(mktemp)"
-          { echo "power on"; echo "scan on"; sleep 10; echo "scan off"; echo "quit"; } \
-            | timeout 30 bluetoothctl > "$log" 2>&1 || true
+          # hcitool lescan prints one "<MAC> <Name>" line per advertisement ("(unknown)" when there is no name).
+          # bluetoothctl did not list an NW- advertisement that hcitool sees on the bench, so the check uses hcitool.
+          # The runner user needs HCI access (setcap on hcitool, or a sudo rule). A permission error fails the step below.
+          timeout 10 hcitool lescan --duplicates > "$log" 2>&1 || true
+          if grep -q "Operation not permitted" "$log"; then
+            echo "::error::c. BLE check: hcitool has no HCI permission for the runner user (setcap or sudo rule needed)"
+            cat "$log"
+            exit 1
+          fi
           # Take only the NAME field of each device line, after the MAC. Accepted lines (any prompt
           # or text before "Device" is ignored, and so is a [NEW] or [CHG] tag):
           #   Device <MAC> <Name>
@@ -596,11 +603,7 @@ jobs:
           # Every other [CHG] line (RSSI, TxPower, UUIDs, ...) is a property, not a name, and is ignored.
           # [DEL] lines are skipped: a removed device is not a seen device.
           # Written to a file first, with no grep -q after a pipe (SIGPIPE and pipefail false FAIL).
-          sed -n -E \
-            -e '/\[DEL\] Device /d' \
-            -e '/\[CHG\] Device /{ s/^.*\[CHG\] Device [0-9A-Fa-f:]{17} Name: (.*)$/\1/p; d; }' \
-            -e 's/^.*Device [0-9A-Fa-f:]{17} (.*)$/\1/p' \
-            "$log" > "$names" || true
+          sed -n -E 's/^[0-9A-Fa-f:]{17} (.*)$/\1/p' "$log" > "$names" || true
           # The prefix must match the START of the name field. A MAC address or any other text
           # on the line never counts. "$prefix"* is a literal prefix in a case pattern.
           found=""
