@@ -26,6 +26,8 @@ import { PlantDetailScreen } from './src/screens/PlantDetailScreen';
 import { PlantRemovedScreen, RemovePlantScreen, type RemoveOutcome } from './src/screens/RemovePlantScreen';
 import { PlantGalleryScreen } from './src/screens/PlantGalleryScreen';
 import { AlertsScreen } from './src/screens/AlertsScreen';
+import { PremiumDashboardScreen } from './src/screens/PremiumDashboardScreen';
+import { createAnalyticsClient, unconfiguredAnalytics, type AnalyticsService } from './src/analytics/analyticsApi';
 import { PlantsProvider } from './src/plants/PlantsContext';
 import { createFakePlants } from './src/plants/fakePlants';
 import { unconfiguredPlants } from './src/plants/unconfiguredPlants';
@@ -42,7 +44,7 @@ import { createEspAdapter } from './src/provisioning/espAdapter';
 import { createFetchClaimApi } from './src/provisioning/claimApi';
 import type { SetupServices } from './src/provisioning/types';
 
-type Route = 'welcome' | AuthMode | 'plants' | 'alerts' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium';
+type Route = 'welcome' | AuthMode | 'plants' | 'alerts' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium' | 'dashboard';
 type Removed = RemoveOutcome;
 
 /** Service used when no Supabase config is present: every call reports "not configured" instead of crashing. */
@@ -51,7 +53,7 @@ function unconfiguredAuth(): AuthService {
   return { getSession: async () => null, onChange: () => () => undefined, signUp: no, signIn: no, signOut: no, getProfile: no, updateDisplayName: no, deleteAccount: no, getAccessToken: async () => null };
 }
 
-export function Root({ contactEmail, banner, setup }: { contactEmail: string; banner?: string; setup: SetupServices }) {
+export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnalytics }: { contactEmail: string; banner?: string; setup: SetupServices; analytics?: AnalyticsService }) {
   const { state } = useAuth();
   const th = useTheme();
   const [route, setRoute] = useState<Route>('welcome');
@@ -78,6 +80,8 @@ export function Root({ contactEmail, banner, setup }: { contactEmail: string; ba
     screen = <DeleteAccountScreen onCancel={() => setRoute('profile')} />;
   } else if (route === 'setup') {
     screen = <SetupFlow services={setup} onExit={() => setRoute('profile')} />;
+  } else if (route === 'dashboard') {
+    screen = <PremiumDashboardScreen analytics={analytics} onBack={() => setRoute('profile')} onPremium={() => setRoute('premium')} />;
   } else if (route === 'premium') {
     screen = <PremiumScreen contactEmail={contactEmail} onBack={() => setRoute('profile')} />;
   } else if (route === 'plant' && plantId) {
@@ -91,7 +95,7 @@ export function Root({ contactEmail, banner, setup }: { contactEmail: string; ba
   } else if (route === 'removed' && removed) {
     screen = <PlantRemovedScreen {...removed} onDone={() => { setRemoved(null); setRoute('plants'); }} />;
   } else if (route === 'profile') {
-    screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} onAddSensor={() => setRoute('setup')} />;
+    screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} onAddSensor={() => setRoute('setup')} onDashboard={() => setRoute('dashboard')} />;
   } else if (route === 'alerts') {
     screen = <AlertsScreen onBack={() => setRoute('plants')} />;
   } else {
@@ -128,6 +132,10 @@ export default function App() {
     const claim = createFetchClaimApi({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() });
     return { ...base, provisioning: createBleProvisioning({ adapter: createEspAdapter(), claim }) };
   }, [mock, cfg, service]);
+  // 4.A6: premium analytics client (proposed endpoint, not deployed); mock build and unconfigured builds report not_configured and fetch nothing.
+  const analytics = useMemo<AnalyticsService>(() => (!mock && isConfigured(cfg)
+    ? createAnalyticsClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
+    : unconfiguredAnalytics), [cfg, mock, service]);
   const [fonts] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, Inter_400Regular, Inter_600SemiBold, JetBrainsMono_400Regular, JetBrainsMono_600SemiBold });
   if (!fonts) return null;
   return (
@@ -135,7 +143,7 @@ export default function App() {
     <AuthProvider service={service}>
       <PlantsProvider service={plants}>
         <StatusBar style="auto" />
-        <Root contactEmail={cfg.contactEmail} banner={mock ? t('app.mockBanner') : undefined} setup={setup} />
+        <Root contactEmail={cfg.contactEmail} banner={mock ? t('app.mockBanner') : undefined} setup={setup} analytics={analytics} />
       </PlantsProvider>
     </AuthProvider>
     </SafeAreaProvider>
