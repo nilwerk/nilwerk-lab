@@ -50,3 +50,5 @@ verify_jwt = false
 verify_jwt = false   # 4.B2b DELETE /account: the function verifies the user JWT itself (auth.getUser), FR-A01, NFR-07
 [functions.export]
 verify_jwt = false   # 4.B2c GET /export: the function verifies the user JWT itself (auth.getUser), NFR-07, FR-A01
+[functions.mcp]
+verify_jwt = false   # 4.B5 MCP server: the bearer is the user's API key (nwk_...), checked in the function against api_keys (FR-P03, NFR-06)

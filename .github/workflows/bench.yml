@@ -1,32 +1,262 @@
 name: Bench (self-hosted)
 
-# Runs on the bench Raspberry Pi (self-hosted runner, label `bench`).
-# Triggers are deliberately narrow: this runner is on a private repo and must never
-# execute code from pull requests, forks or pushed branches.
-#   schedule           nightly on main
-#   workflow_dispatch  manual run, only from main or from agent/devops/bench-workflow (guard below)
-# NO pull_request, pull_request_target, push or issue_comment triggers, on purpose.
-# Owner decision (the owner, 21 Nov): nothing else may run on the Pi. The branch allowance
-# is for the one PR that adds these steps. Remove it again when that PR is closed.
+# Runs on the bench Raspberry Pi (self-hosted runner, label `bench`). Supersedes the HIL design in
+# projects/plant-monitor/docs/ci-firmware-in-the-loop.md (hil.yml, label esp32c3-bench, Environment gate).
+# This workflow has no Environment gate (owner declined it).
+# Triggers are deliberately narrow: the repository is PUBLIC, so anyone can open a pull request or fork it.
+# Only users with write access can start a workflow_dispatch run, which is why manual dispatch is the only
+# trigger here. Code from pull requests, forks or pushed branches must never execute on this runner.
+#   workflow_dispatch  manual run only (owner decision, 22 Nov 2026: no nightly schedule),
+#                      only from main (guard below). No branch allowance.
+# NO schedule, pull_request, pull_request_target, push or issue_comment triggers, on purpose.
+# Owner decision (21 Nov): nothing else may run on the Pi. The former branch allowance
+# (for PR #156, now closed) was removed in the PR #162 fix round. Manual runs from main only.
+#
+# Order (build first, then install and test together). Decided by the owner (option 1): step 3 (provisioning) runs
+# after a. Step c (BLE scan) runs before step b (serial live-stream check): the bench image's BLE setup window is 60 s
+# from the reset (sdkconfig.defaults.bench-ci), so c must run inside it. Step b reads the wake lines after c.
+#   build-firmware   GitHub-hosted, no secrets. Builds the setup-flow firmware. Artifact: plant-monitor-firmware-setup.
+#   build-apk        GitHub-hosted, no secrets. Builds the Android debug APK. Artifact: plant-monitor-app-debug-<sha7>.
+#   bench            the Pi. Needs both builds. Downloads both artifacts from THIS run, then runs steps
+#                    1 (firmware), 2 (APK), a (flash), 3 (provision and flash NVS), c (BLE scan),
+#                    b (serial live stream, no reset), 4 (APK install), d (app flow), e (cloud check), E2E.
+# The two build jobs never touch the Pi. Their steps are copied from ci.yml (firmware job, setup image)
+# and app-apk.yml (android-debug-apk job); they are not new builds.
+#
+# Requirements the bench round touches (rows in projects/plant-monitor/tests/acceptance-matrix.md).
+# Each line says only what the named step checks. The rows are not passed by this workflow.
+#   FR-D03  partial: step c finds the device by name; step d writes the setup data and checks only that
+#           the app shows the device as connected. Not checked: that the device is claimed by, or
+#           appears in, the user's account.
+#   FR-A03  partial: step d only (scan, connect, write setup data, connected). Not checked: the rest
+#           of the setup flow.
+#   NFR-04  step e only shows that a row reached the cloud after the test start. Latency is not measured here.
+#   NFR-06  partial, step e only: one row from this device reached the cloud. Not checked: per-device
+#           credentials and user isolation. Secrets are used by name only and no reading value is printed.
+#   NFR-07  not checked here: step e checks one row in the project named by BENCH_CLOUD_CHECK_CONFIG, which
+#           the step comment calls the EU project. The workflow does not verify the region or hosting,
+#           and tests no export or delete.
+# The bench round checks ESP32-to-app and ESP32-to-cloud communication only. This workflow alone
+# passes none of these rows.
 # See docs/ci-bench-runner.md.
 
 on:
-  schedule:
-    - cron: "0 2 * * *"   # 02:00 UTC nightly
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  build-firmware:
+    name: build setup firmware (GitHub-hosted)
+    runs-on: ubuntu-latest
+    # No secrets. The steps below are copied from the firmware job of ci.yml (setup image only).
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: ESP-IDF build (esp32c3, setup flow on, simulator off)
+        # Copied from ci.yml (job firmware). Pinned SHA: see the header of ci.yml. The firmware owner re-checks the pin.
+        # set -e first: the first failing line fails the step, so the upload below does not run on a bad build.
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: espressif/esp-idf-ci-action@9d38657f3d789ca759b2b37aaf5ceffbc42c4f0d # v1
+        with:
+          esp_idf_version: v5.4
+          target: esp32c3
+          path: projects/plant-monitor/firmware
+          command: |
+            set -e
+            rm -f sdkconfig.setup
+            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.bench-ci" build size
+            grep -q "^CONFIG_PLANT_SETUP_FLOW=y" sdkconfig.setup
+            grep -q "^CONFIG_PLANT_BOARD_V1_SUPERMINI=y" sdkconfig.setup
+            grep -q "^CONFIG_BT_NIMBLE_ENABLED=y" sdkconfig.setup
+            if grep -q "^CONFIG_PLANT_SIM_MOCK_SENSORS=y" sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
+            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci, last in the list).
+            # Double quotes only in this block: the action wraps the whole command in single quotes, so a single quote here ends that wrapper early.
+            if grep -q "^CONFIG_PLANT_BENCH_SLEEP_CYCLE=y" sdkconfig.setup; then echo "bench sleep cycle must be unset in the setup image (sdkconfig.defaults.bench-ci)"; exit 1; fi
+            grep -qxF "# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set" sdkconfig.setup || { echo "sdkconfig.setup lacks the line: # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set (bench-ci overlay not applied)"; exit 1; }
+            # Bench CI image: BLE setup window on every cold start without BOOT (sdkconfig.defaults.bench-ci). Double quotes only.
+            grep -q "^CONFIG_PLANT_BENCH_AUTO_SETUP=y" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_AUTO_SETUP=y (bench-ci overlay not applied)"; exit 1; }
+            grep -q "^CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60 (bench-ci overlay not applied)"; exit 1; }
+            test -s build-setup/plant_monitor.bin
+      - name: Check every flash file named in flasher_args.json
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        # Copied from ci.yml (job firmware). The artifact holds every file esptool flashes (bootloader, partition table,
+        # app). The list comes from flasher_args.json, so a missing or empty file, or an unsafe path, fails this step.
+        id: files
+        working-directory: projects/plant-monitor/firmware/build-setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s flasher_args.json
+          files=$(jq -r '.flash_files[]' flasher_args.json)
+          test -n "$files"
+          for f in $files; do
+            case "$f" in
+              /*|*..*) echo "unsafe path in flasher_args.json: $f"; exit 1 ;;
+            esac
+            test -s "$f" || { echo "missing or empty flash file named in flasher_args.json: $f"; exit 1; }
+          done
+          {
+            echo "paths<<PATHS_EOF"
+            echo "projects/plant-monitor/firmware/build-setup/flasher_args.json"
+            for f in $files; do echo "projects/plant-monitor/firmware/build-setup/$f"; done
+            echo "PATHS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Flash files verified:"
+          echo "$files"
+      - name: Upload setup firmware artifact
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: plant-monitor-firmware-setup
+          # Exactly the flash files named in flasher_args.json, plus that file, so the artifact root is the build-setup
+          # folder (flasher_args.json at the root). No sdkconfig, no logs, no NVS files (NVS is written per unit at the bench).
+          path: ${{ steps.files.outputs.paths }}
+          if-no-files-found: error
+
+  build-apk:
+    name: Android debug APK (GitHub-hosted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # No secrets: the debug APK is signed with the debug key Gradle generates on the runner. The two inputs are
+    # repository VARIABLES (public client values), not secrets. The steps below are copied from app-apk.yml.
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        # Pinned to the commit SHA of v4.4.0 (11d5960a326750d5838078e36cf38b85af677262).
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Fail closed - app folder and documented build command
+        run: |
+          set -euo pipefail
+          APP=projects/plant-monitor/app
+          if [ ! -f "$APP/package.json" ] || [ ! -f "$APP/package-lock.json" ] || [ ! -f "$APP/app.config.ts" ]; then
+            echo "::error::$APP is missing package.json, package-lock.json or app.config.ts. Build aborted."
+            exit 1
+          fi
+          if ! grep -q 'expo prebuild --no-install' "$APP/README.md"; then
+            echo "::error::$APP/README.md no longer documents 'npx expo prebuild --no-install'. Build aborted. Update the README and this workflow together."
+            exit 1
+          fi
+          echo "App folder and the documented build command (npx expo prebuild --no-install) are present."
+
+      - name: Check repository variable SUPABASE_URL
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+        run: |
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "::error::Repository variable SUPABASE_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret). Build aborted."
+            exit 1
+          fi
+          case "$SUPABASE_URL" in
+            https://*) ;;
+            *) echo "::error::Repository variable SUPABASE_URL must start with https://. Build aborted."; exit 1 ;;
+          esac
+          echo "SUPABASE_URL is set (a public client value; the job log MAY show it, depending on debug settings)."
+
+      - name: Check repository variable SUPABASE_PUBLISHABLE_KEY
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "${SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret; the sb_publishable_... key). Build aborted."
+            exit 1
+          fi
+          case "$SUPABASE_PUBLISHABLE_KEY" in
+            sb_secret_*)
+              echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a secret key (sb_secret_...). Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+              exit 1 ;;
+            sb_publishable_*) ;;
+            *)
+              # Legacy JWT-style keys: accept only a three-part JWT whose payload role is not service_role.
+              if ! printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | grep -Eq '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'; then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY must start with sb_publishable_ (or be a JWT-style publishable key). Build aborted. The value is not printed."
+                exit 1
+              fi
+              PAYLOAD=$(printf '%s' "$SUPABASE_PUBLISHABLE_KEY" | cut -d. -f2 | tr '_-' '/+')
+              while [ $(( ${#PAYLOAD} % 4 )) -ne 0 ]; do PAYLOAD="${PAYLOAD}="; done
+              if ! DECODED=$(printf '%s' "$PAYLOAD" | base64 -d 2>/dev/null); then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY looks like a JWT, but its payload cannot be base64url-decoded. Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+                exit 1
+              fi
+              if ! ROLE=$(printf '%s' "$DECODED" | python3 -c 'import json,sys; p=json.load(sys.stdin); assert isinstance(p, dict); print(p.get("role", ""))' 2>/dev/null); then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY looks like a JWT, but its payload is not a JSON object. Use the publishable key (sb_publishable_...). Build aborted. The value is not printed."
+                exit 1
+              fi
+              if [ "$ROLE" = "service_role" ]; then
+                echo "::error::Repository variable SUPABASE_PUBLISHABLE_KEY holds a service-role key. Use the publishable key. Build aborted. The value is not printed."
+                exit 1
+              fi ;;
+          esac
+          echo "SUPABASE_PUBLISHABLE_KEY is set (a public client value; the job log MAY show it, depending on debug settings)."
+
+      - name: Set up Node
+        # Node 22 (LTS), the same version the app job in ci.yml uses.
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/plant-monitor/app/package-lock.json
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install app dependencies (lockfile)
+        working-directory: projects/plant-monitor/app
+        run: npm ci
+
+      - name: Generate the Android project (expo prebuild)
+        working-directory: projects/plant-monitor/app
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          CI: "1"
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build the debug APK (Gradle)
+        working-directory: projects/plant-monitor/app/android
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew assembleDebug
+
+      - name: Name the artifact by commit
+        id: meta
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: echo "short=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the debug APK
+        # Pinned to the commit SHA of actions/upload-artifact v4.6.2 (copied from app-apk.yml).
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plant-monitor-app-debug-${{ steps.meta.outputs.short }}
+          path: projects/plant-monitor/app/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
   bench:
     name: bench smoke and E2E
-    # Only main, plus the one PR branch for manual runs. Any other ref runs nothing.
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/devops/bench-workflow'
+    # Needs both builds of THIS run. If either build fails or is skipped, this job does not start.
+    needs: [build-firmware, build-apk]
+    # Only main. Any other ref, including PR branches, runs nothing.
+    if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, bench]
     timeout-minutes: 60
-    # Job-level, not workflow-level: a branch dispatch must not be able to displace a queued
-    # nightly run. One bench job at a time on the Pi; queue, never kill a run mid-test.
+    # Job-level only (22 Nov): steps 1 and 2 download this run's artifacts through the workflow token.
+    # The workflow-level permissions above stay contents: read.
+    permissions:
+      contents: read
+      actions: read
+    # Job-level. One bench job at a time on the Pi: a queued run waits, a running one is never killed mid-test.
     concurrency:
       group: bench-runner
       cancel-in-progress: false
@@ -39,6 +269,10 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+
+      - name: Clear bench-artifacts from earlier runs
+        # Steps 1 and 2 download the firmware and the APK into bench-artifacts/ in the workspace.
+        run: rm -rf -- "${GITHUB_WORKSPACE}/bench-artifacts"
 
       - name: Runner smoke check
         run: |
@@ -58,21 +292,63 @@ jobs:
             exit 1
           fi
 
-      # Hardware steps a-e, in this order. Each one fails closed: if its input is missing it
-      # prints "not configured: nothing tested" and exits 1. Nothing is built on the Pi.
+      # Downloads and hardware steps, in the order the owner decided (option 1). The downloads come first (they are the
+      # builds of this run), then a (flash), 3 (provisioning, NVS last), c (BLE scan), b (serial check), 4 (APK install), d, e, E2E.
+      # Each one fails closed: if its input is missing it prints "not configured: nothing tested" and exits 1.
+      # The E2E test bundle (expo export, run by bench/run_e2e.sh) is built on the Pi only when the app's node_modules
+      # are installed on the runner. That is not yet the case.
       # Scope (owner decision, 21 Nov): the bench round tests ESP32-to-app and ESP32-to-cloud
-      # communication only. Sensor values are not checked yet, and the firmware is the normal build.
+      # communication only. Sensor values are not checked yet. The firmware is the setup-flow build
+      # (CONFIG_PLANT_SETUP_FLOW=y, simulator off), built by the build-firmware job of this run.
 
-      - name: "a. Firmware flash (ESP32-C3 over USB)"
-        # Input: bench/firmware/image.bin (a prebuilt, merged full-flash image). No file, no flash.
-        env:
-          BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
-          BENCH_FLASH_OFFSET: "0x0"        # offset of a merged full-flash image
+      - name: "1. Download firmware image (build-firmware of this run)"
+        # Input: artifact plant-monitor-firmware-setup from the build-firmware job of THIS run (run-id is this run;
+        # older runs are never searched). The artifact root is the build-setup folder: flasher_args.json and the .bin
+        # files it lists sit at the root (upload-artifact v4 roots the artifact at the common ancestor of the uploaded
+        # paths). Extracted to bench-artifacts/firmware/build-setup/. Steps a and 3 read it from there.
+        # Needs the job permission actions: read, through the workflow token. Nothing is uploaded.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: plant-monitor-firmware-setup
+          path: bench-artifacts/firmware/build-setup
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: "2. Download app APK (build-apk of this run)"
+        # Input: artifact plant-monitor-app-debug-<sha7> from the build-apk job of THIS run (same run-id rule as step 1).
+        # Downloaded into bench-artifacts/app-apk/. The next run step checks that exactly one APK is there.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: plant-monitor-app-debug-*
+          merge-multiple: true
+          path: bench-artifacts/app-apk
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: "2. Check app APK (one APK from build-apk of this run)"
         run: |
           set -euo pipefail
-          image="bench/firmware/image.bin"
-          if [ ! -f "$image" ]; then
-            echo "::error::a. firmware flash: not configured: nothing tested (missing ${image})"
+          fail() { echo "::error::2. app APK: $1"; exit 1; }
+          work="${GITHUB_WORKSPACE}/bench-artifacts/app-apk"
+          apks=()
+          while IFS= read -r -d '' f; do apks+=("$f"); done < <(find "$work" -type f -name '*.apk' -print0 2>/dev/null)
+          [ "${#apks[@]}" = "1" ] || fail "not found: expected one APK from the build-apk job of this run, found ${#apks[@]}"
+          apk="${apks[0]}"
+          [ -s "$apk" ] || fail "APK file is empty"
+          echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
+          echo "2. app APK: saved to the runner workspace from run ${GITHUB_RUN_ID} (commit ${GITHUB_SHA})"
+
+      - name: "a. Firmware flash (ESP32-C3 over USB)"
+        # Input: the setup firmware from step 1 (bench-artifacts/firmware/build-setup: flasher_args.json and the files it
+        # lists). The artifact has no merged image, so every file in flash_files is written at its listed offset, in
+        # offset order (the same rule as step 3). No offset is hard-coded. No file, no flash.
+        env:
+          BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
+        run: |
+          set -euo pipefail
+          build="${GITHUB_WORKSPACE}/bench-artifacts/firmware/build-setup"
+          if [ ! -f "${build}/flasher_args.json" ]; then
+            echo "::error::a. firmware flash: not configured: nothing tested (missing ${build}/flasher_args.json from step 1)"
             exit 1
           fi
           esptool="$(command -v esptool.py || command -v esptool || true)"
@@ -84,54 +360,207 @@ jobs:
             echo "::error::a. firmware flash: not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
             exit 1
           fi
+          # Pinned: esptool v5.x only. The chip-id command below is the v5 spelling.
+          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
+          if [ "$esptool_major" != "5" ]; then
+            echo "::error::a. firmware flash: esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
+            exit 1
+          fi
           # Read the chip id first. Stop unless it is an ESP32-C3.
-          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip_id 2>&1)"
+          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip-id 2>&1)"
           echo "$chip_out"
           if ! grep -q "ESP32-C3" <<<"$chip_out"; then
             echo "::error::a. firmware flash: chip is not an ESP32-C3, not flashing"
             exit 1
           fi
-          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$BENCH_FLASH_OFFSET" "$image"
+          # Flash plan, read before any write. Same rules as step 3: each path inside the build-setup folder,
+          # the file present and not empty, offsets as numbers, written in offset order.
+          plan="$(mktemp)"
+          python3 -I - "$build" > "$plan" <<'PY' || { rm -f "$plan"; echo "::error::a. firmware flash: flash plan could not be read from flasher_args.json (reason above)"; exit 1; }
+          import json, os, sys
+          build = os.path.realpath(sys.argv[1])
+          with open(os.path.join(build, "flasher_args.json"), encoding="utf-8") as f:
+              data = json.load(f)
+          ff = data.get("flash_files") if isinstance(data, dict) else None
+          if not isinstance(ff, dict) or not ff:
+              sys.exit("flasher_args.json has no flash_files map")
+          rows = []
+          for off_text, rel in ff.items():
+              off = int(str(off_text), 0)
+              if off < 0 or not isinstance(rel, str) or not rel or os.path.isabs(rel) \
+                      or ".." in rel.split("/") or "\\" in rel:
+                  sys.exit("flash_files has a file path outside the build-setup folder")
+              path = os.path.realpath(os.path.join(build, rel))
+              if os.path.commonpath([build, path]) != build or not os.path.isfile(path) \
+                      or os.path.getsize(path) == 0:
+                  sys.exit("a file listed in flash_files is missing or empty: " + rel)
+              rows.append((off, path))
+          for off, path in sorted(rows):
+              print(f"{off:#x}\t{path}")
+          PY
+          while IFS=$'\t' read -r off path; do
+            echo "a. flash: writing $(basename "$path") at ${off}"
+            "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$off" "$path" < /dev/null
+          done < "$plan"
+          rm -f "$plan"
+          echo "a. firmware flash: setup firmware written to ${BENCH_ESP_PORT}"
 
-      - name: "b. Serial boot log check (20 s)"
-        # Inputs: bench/firmware/expect.txt (first non-empty line = expected boot line text).
+      - name: "3. Provision and flash board (build-setup files, then NVS last)"
+        # Inputs: repo variable BENCH_BOARD_HW_ID (non-secret, <board-hw-id>); repo variable BENCH_PROVISION_DIR
+        # (required, no default: the provisioning folder on the Pi, set by the owner) with
+        # <hw_id>.nvs.csv and <hw_id>.label.txt, both mode 0600; the build-setup folder of the
+        # firmware artifact from step 1 (flasher_args.json and the .bin files it lists).
+        # Every file in flasher_args.json flash_files is written at its listed offset (none hard-coded).
+        # The NVS partition is built from the CSV and written LAST, at the offset of the partition
+        # named nvs in the partition table binary of the build. No offset is fixed in this file.
+        # The CSV and label are never printed. The label is checked, but the flash does not use it.
+        # Runs before steps c and b. It does not read anything they write. esptool's default --after is hard_reset, so
+        # the last write (NVS) ends with a board reset and the board boots the provisioned image. Steps c and b use that
+        # boot. Step c must finish inside the bench setup window (60 s), which opens at that reset.
+        # The NVS CSV is built into a 0700 temp dir, removed by the EXIT trap.
         env:
-          BENCH_ESP_PORT: /dev/ttyACM0
+          BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
+          BENCH_PROVISION_DIR: ${{ vars.BENCH_PROVISION_DIR }}
+          BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
         run: |
           set -euo pipefail
-          expect="bench/firmware/expect.txt"
-          if [ ! -f "$expect" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
-            exit 1
-          fi
-          line="$(grep -m1 -E '[^[:space:]]' "$expect" || true)"
-          if [ -z "$line" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
-            exit 1
-          fi
+          umask 077
+          # Pi venv with the ESP-IDF NVS tool: ~/nvs-venv (package esp-idf-nvs-partition-gen 0.3.0, installed on the Pi).
+          # This step installs nothing. The pin is PROVISIONAL (ESP-IDF v5.4 constraints check open, see docs/ci-bench-runner.md).
+          nvs_venv="$HOME/nvs-venv"
+          nvs_pin="0.3.0"
+          fail() { echo "::error::3. provisioning: $1"; exit 1; }
+          hw_id="${BENCH_BOARD_HW_ID:-}"
+          [ -n "$hw_id" ] || fail "not configured: nothing tested (repository variable BENCH_BOARD_HW_ID is not set)"
+          [[ "$hw_id" =~ ^[A-Za-z0-9_-]+$ ]] || fail "not configured: nothing tested (BENCH_BOARD_HW_ID has characters that are not allowed)"
+          prov_dir="${BENCH_PROVISION_DIR:-}"
+          [ -n "$prov_dir" ] || fail "not configured: nothing tested (repository variable BENCH_PROVISION_DIR is not set; it is required and names the provisioning folder on the Pi)"
+          csv="${prov_dir}/${hw_id}.nvs.csv"
+          label="${prov_dir}/${hw_id}.label.txt"
+          for f in "$csv" "$label"; do
+            [ -f "$f" ] || fail "not configured: nothing tested (provisioning file for board ${hw_id} is missing in the provisioning folder)"
+            mode="$(stat -c %a "$f")"
+            [ "$mode" = "600" ] || fail "not configured: nothing tested (provisioning file for board ${hw_id} has mode ${mode}, must be 0600)"
+          done
+          build="${GITHUB_WORKSPACE}/bench-artifacts/firmware/build-setup"
+          [ -f "${build}/flasher_args.json" ] || fail "firmware artifact not found (step 1 did not provide build-setup/flasher_args.json)"
+          [ -e "$BENCH_ESP_PORT" ] || fail "not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
           esptool="$(command -v esptool.py || command -v esptool || true)"
-          if [ -z "$esptool" ] || [ ! -e "$BENCH_ESP_PORT" ]; then
-            echo "::error::b. serial check: not configured: nothing tested (no esptool or no device at ${BENCH_ESP_PORT})"
-            exit 1
+          [ -n "$esptool" ] || fail "not configured: nothing tested (esptool not installed on the runner)"
+          # NVS tool: esp-idf-nvs-partition-gen, exactly ${nvs_pin} (provisional), from the Pi venv.
+          # The venv bin goes first on PATH so that python3 is the venv's python. Any other version stops here.
+          [ -x "${nvs_venv}/bin/python3" ] || fail "not configured: nothing tested (ESP-IDF NVS tool venv not found at ${nvs_venv})"
+          export PATH="${nvs_venv}/bin:${PATH}"
+          nvs_ver="$(python3 -I -c 'import importlib.metadata as m; print(m.version("esp-idf-nvs-partition-gen"))' 2>/dev/null || true)"
+          if [ "$nvs_ver" != "$nvs_pin" ]; then
+            fail "NVS tool version is '${nvs_ver:-not installed}', expected exactly ${nvs_pin} (pinned, provisional)"
           fi
-          log="$(mktemp)"
-          stty -F "$BENCH_ESP_PORT" 115200 raw -echo
-          # Start the reader first, then reset the board, so the boot lines are captured.
-          timeout 20 cat "$BENCH_ESP_PORT" > "$log" &
-          reader=$!
-          sleep 1
-          "$esptool" --port "$BENCH_ESP_PORT" run
-          wait "$reader" || true   # timeout exits 124 after 20 s; that is the expected end
-          if grep -F -q -- "$line" "$log"; then
-            echo "b. serial: expected boot line seen: ${line}"
-          else
-            echo "::error::b. serial check failed: expected boot line not seen in 20 s: ${line}"
-            tail -n 20 "$log"
-            exit 1
+          echo "3. provisioning: NVS tool esp-idf-nvs-partition-gen ${nvs_ver} (pinned ${nvs_pin}, provisional)"
+          nvs_gen=(python3 -I -m esp_idf_nvs_partition_gen generate)
+          # Pinned: esptool v5.x only. The chip-id command below is the v5 spelling.
+          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
+          [ "$esptool_major" = "5" ] || fail "esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
+          # Read the chip id first. Stop unless it is an ESP32-C3.
+          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip-id 2>&1 || true)"
+          echo "$chip_out"
+          if ! grep -q "ESP32-C3" <<<"$chip_out"; then
+            fail "chip is not an ESP32-C3, not flashing"
           fi
+          work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/bench-prov.XXXXXX")"
+          chmod 700 "$work"
+          trap 'rm -rf "$work"' EXIT
+          # Plan first, nothing is written yet. The plan comes from flasher_args.json (files and offsets)
+          # and from the partition table binary of the build (offset and size of the nvs partition).
+          # Python reads only the build folder, never the CSV or the label. Errors go to plan.err only.
+          plan_rc=0
+          python3 -I - "$build" "$work" 2>"$work/plan.err" <<'PY' || plan_rc=$?
+          import json, os, struct, sys
 
-      - name: "c. BLE scan (10 s)"
-        # Input: bench/ble/expect.txt (first non-empty line = device name prefix).
+          def err(msg):
+              sys.stderr.write("ERR: " + msg + "\n")
+              sys.exit(2)
+
+          build = os.path.realpath(sys.argv[1])
+          work = sys.argv[2]
+          try:
+              with open(os.path.join(build, "flasher_args.json"), encoding="utf-8") as f:
+                  data = json.load(f)
+          except (OSError, ValueError):
+              err("flasher_args.json is missing or is not valid JSON")
+          ff = data.get("flash_files") if isinstance(data, dict) else None
+          if not isinstance(ff, dict) or not ff:
+              err("flasher_args.json has no flash_files map")
+          entries = []
+          for off_text, rel in ff.items():
+              try:
+                  off = int(str(off_text), 0)
+              except ValueError:
+                  err("flash_files has an offset that is not a number")
+              if off < 0 or not isinstance(rel, str) or not rel or os.path.isabs(rel) \
+                      or ".." in rel.split("/") or "\\" in rel:
+                  err("flash_files has a file path outside the build-setup folder")
+              path = os.path.realpath(os.path.join(build, rel))
+              if os.path.commonpath([build, path]) != build or not os.path.isfile(path) \
+                      or os.path.getsize(path) == 0:
+                  err("a file listed in flash_files is missing or empty in the artifact")
+              entries.append((off, path))
+          offsets = [o for o, _ in entries]
+          if len(set(offsets)) != len(offsets):
+              err("flash_files lists two files at the same offset")
+          pt = [p for _, p in entries if "partition-table" in os.path.basename(p)]
+          if len(pt) != 1:
+              err("flash_files must list exactly one partition table file")
+          raw = open(pt[0], "rb").read()
+          nvs = []
+          for i in range(0, len(raw) - 31, 32):
+              # 32-byte entries, magic 0xAA50. Anything else (end marker 0xEBEB, erased 0xFFFF) ends the table.
+              if raw[i:i + 2] != b"\xaa\x50":
+                  break
+              _typ, _sub, off, size, label = struct.unpack_from("<BBII16s", raw, i + 2)
+              if label.split(b"\x00", 1)[0] == b"nvs":
+                  nvs.append((off, size))
+          if len(nvs) != 1 or nvs[0][0] == 0 or nvs[0][1] == 0:
+              err("partition table has no single usable entry named nvs (no NVS offset)")
+          nvs_off, nvs_size = nvs[0]
+          for off, path in entries:
+              if off < nvs_off + nvs_size and nvs_off < off + os.path.getsize(path):
+                  err("the nvs partition overlaps a file listed in flash_files")
+          with open(os.path.join(work, "flash.tsv"), "w") as f:
+              for off, path in sorted(entries):
+                  f.write(f"{off:#x}\t{path}\n")
+          with open(os.path.join(work, "nvs.tsv"), "w") as f:
+              f.write(f"{nvs_off:#x}\t{nvs_size:#x}\n")
+          PY
+          if [ "$plan_rc" != "0" ]; then
+            msg="$(sed -n 's/^ERR: //p' "$work/plan.err" | head -n 1)"
+            fail "${msg:-cannot read the flash plan from build-setup (no offsets written)}"
+          fi
+          read -r nvs_off nvs_size < "$work/nvs.tsv"
+          echo "3. provisioning: flash plan read from build-setup: $(wc -l < "$work/flash.tsv") files, nvs at ${nvs_off}"
+          cp "$csv" "$work/nvs.csv"
+          chmod 600 "$work/nvs.csv"
+          nvs_bin="$work/nvs.bin"
+          # Tool output is kept in the temp dir and not printed: it may echo CSV lines on error.
+          if ! "${nvs_gen[@]}" "$work/nvs.csv" "$nvs_bin" "$nvs_size" >"$work/nvs-gen.log" 2>&1; then
+            fail "NVS partition generation failed for board ${hw_id} (tool output withheld: it may contain provisioning data)"
+          fi
+          [ -s "$nvs_bin" ] || fail "NVS partition generation produced no file"
+          echo "3. provisioning: NVS partition built for board ${hw_id} (contents not shown)"
+          # Every file from flash_files, in offset order, one write_flash call each.
+          while IFS=$'\t' read -r off path; do
+            echo "3. flash: writing $(basename "$path") at ${off}"
+            "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$off" "$path" < /dev/null
+          done < "$work/flash.tsv"
+          # The NVS partition is written last.
+          echo "3. flash: writing nvs partition at ${nvs_off}"
+          "$esptool" --chip esp32c3 --port "$BENCH_ESP_PORT" write_flash "$nvs_off" "$nvs_bin" < /dev/null
+          echo "3. provisioning: build-setup files and NVS written to ${BENCH_ESP_PORT}"
+
+      - name: "c. BLE scan (10 s), runs before b"
+        # Runs after step 3 and before step b. The bench image opens its BLE setup window on every cold start, and that window
+        # is 60 s (CONFIG_PLANT_BENCH_SETUP_WINDOW_S, sdkconfig.defaults.bench-ci). BLE advertises only inside it, so this scan
+        # must end inside it: it starts a few seconds after the reset of step 3 and takes about 15 s (see docs/ci-bench-runner.md).
+        # Input: bench/ble/expect.txt (first line that is neither empty nor a # comment = device name prefix).
         # Checks only that the device advertises its expected name prefix. No other check.
         run: |
           set -euo pipefail
@@ -140,9 +569,15 @@ jobs:
             echo "::error::c. BLE check: not configured: nothing tested (missing ${expect})"
             exit 1
           fi
-          prefix="$(grep -m1 -E '[^[:space:]]' "$expect" | tr -d '[:space:]' || true)"
+          # Lines starting with # are the header comment of the file, not the expected name.
+          first="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
+          prefix="$(printf '%s' "$first" | tr -d '[:space:]')"
           if [ -z "$prefix" ]; then
             echo "::error::c. BLE check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          if [ "$prefix" = "UNSET" ]; then
+            echo "::error::bench/ble/expect.txt has no expected name yet: owner input needed"
             exit 1
           fi
           if ! command -v bluetoothctl >/dev/null 2>&1; then
@@ -182,15 +617,95 @@ jobs:
             exit 1
           fi
 
+      - name: "b. Serial live stream check (75 s, no reset), runs after c"
+        # Runs after step c. No reset here: this step sends no esptool run, no reset and no RTS/DTR
+        # toggle. It reads the live USB serial stream for a 75 s window and passes only when the expected line appears.
+        # The line is "NWBENCH wake=", printed by the measurement loop of the bench app (main/main.c, the printf with
+        # "NWBENCH wake=", about every 2 s plus sensor time).
+        # The bench image never deep-sleeps (CONFIG_PLANT_BENCH_SLEEP_CYCLE is unset), so the wake lines start when the
+        # 60 s setup window closes (about 60 s after the reset) and keep coming. Step b starts about 15 to 25 s after the
+        # reset, so its 75 s window ends about 90 to 100 s after the reset and contains wake lines. No reset is added.
+        # A board that prints no wake line for the whole window fails closed.
+        # Inputs: bench/firmware/expect.txt (first line that is neither empty nor a # comment = expected line text).
+        env:
+          BENCH_ESP_PORT: /dev/ttyACM0
+        run: |
+          set -euo pipefail
+          window=75   # seconds of live stream to read (the step timeout): one full sleep cycle
+          expect="bench/firmware/expect.txt"
+          if [ ! -f "$expect" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (missing ${expect})"
+            exit 1
+          fi
+          # Lines starting with # are the header comment of the file, not the expected text.
+          line="$(grep -v -E '^[[:space:]]*#' "$expect" | grep -m1 -E '[^[:space:]]' || true)"
+          if [ -z "$line" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (${expect} is empty)"
+            exit 1
+          fi
+          esptool="$(command -v esptool.py || command -v esptool || true)"
+          if [ -z "$esptool" ] || [ ! -e "$BENCH_ESP_PORT" ]; then
+            echo "::error::b. serial check: not configured: nothing tested (no esptool or no device at ${BENCH_ESP_PORT})"
+            exit 1
+          fi
+          esptool_major="$("$esptool" version 2>&1 | sed -n -E 's/^[^0-9]*([0-9]+)\..*$/\1/p' | head -n 1 || true)"
+          if [ "$esptool_major" != "5" ]; then
+            echo "::error::b. serial check: esptool major is '${esptool_major}', expected 5 (esptool v5.x is pinned)"
+            exit 1
+          fi
+          log="$(mktemp)"
+          stty -F "$BENCH_ESP_PORT" 115200 raw -echo
+          # Read the live stream for the window. timeout exits 124 when the window ends (the expected end);
+          # any other non-zero exit means the read itself failed.
+          rc=0
+          timeout "$window" cat "$BENCH_ESP_PORT" > "$log" || rc=$?
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
+            echo "::error::b. serial check failed: could not read ${BENCH_ESP_PORT} (cat exit ${rc}), nothing tested"
+            exit 1
+          fi
+          if grep -F -q -- "$line" "$log"; then
+            echo "b. serial: expected line seen in the live stream: ${line}"
+          else
+            echo "::error::b. serial check failed: timeout, expected line not seen in ${window} s of live stream (no reset sent): ${line}"
+            tail -n 20 "$log"
+            exit 1
+          fi
+
+      - name: "4. Install app APK on the 6P (adb)"
+        # Input: the APK from step 2; secret BENCH_ANDROID_SERIAL (phone id, never printed).
+        env:
+          BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::4. APK install: $1"; exit 1; }
+          serial="${BENCH_ANDROID_SERIAL:-}"
+          [ -n "$serial" ] || fail "not configured: nothing tested (secret BENCH_ANDROID_SERIAL is not set)"
+          apk="${BENCH_APK_PATH:-}"
+          [ -n "$apk" ] && [ -f "$apk" ] || fail "not configured: nothing tested (no APK from step 2)"
+          command -v adb >/dev/null 2>&1 || fail "not configured: nothing tested (adb not installed)"
+          adb start-server >/dev/null 2>&1 || true
+          # Count attached devices with the configured serial in state "device". The serial is not printed.
+          n="$(adb devices | awk -v s="$serial" 'NR>1 && $1==s && $2=="device" {n++} END {print n+0}')"
+          [ "$n" = "1" ] || fail "expected exactly one attached device with the configured serial in state device, found ${n}"
+          adb -s "$serial" install -r "$apk"
+          echo "4. APK installed on the configured device (serial not shown)"
+
       - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
         # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
-        # BENCH_APP_TEST_ACCOUNT (test account config). Values are never in the repo.
+        # BENCH_TEST_EMAIL and BENCH_TEST_EMAIL_PASSWORD (test account). Values are never in the repo.
+        # The script as written opens the app and checks the first screen title only. The device steps
+        # (scan, connect, setup data, connected) are not in it yet (owner input).
         # Scope: communication path only. The flow scans and finds the device, connects, writes
         # the setup data, and checks that the app shows the device as connected. It asserts no
         # reading of any kind.
         env:
           BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
-          BENCH_APP_TEST_ACCOUNT: ${{ secrets.BENCH_APP_TEST_ACCOUNT }}
+          BENCH_TEST_EMAIL: ${{ secrets.BENCH_TEST_EMAIL }}
+          BENCH_TEST_EMAIL_PASSWORD: ${{ secrets.BENCH_TEST_EMAIL_PASSWORD }}
+          # PoP and Wi-Fi go to the Appium script as environment variables only. Never echo them.
+          BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
+          BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
+          BENCH_WIFI_PASSWORD: ${{ secrets.BENCH_WIFI_PASSWORD }}
           APPIUM_PLATFORM_NAME: Android
           APPIUM_AUTOMATION_NAME: UiAutomator2
         run: |
@@ -200,8 +715,12 @@ jobs:
             echo "::error::d. app flow: not configured: nothing tested (missing ${script})"
             exit 1
           fi
-          if [ -z "${BENCH_APP_TEST_ACCOUNT:-}" ]; then
-            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_APP_TEST_ACCOUNT is not set)"
+          if [ -z "${BENCH_TEST_EMAIL:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_TEST_EMAIL is not set)"
+            exit 1
+          fi
+          if [ -z "${BENCH_TEST_EMAIL_PASSWORD:-}" ]; then
+            echo "::error::d. app flow: not configured: nothing tested (secret BENCH_TEST_EMAIL_PASSWORD is not set)"
             exit 1
           fi
           if [ -z "${BENCH_ANDROID_SERIAL:-}" ]; then
@@ -228,6 +747,8 @@ jobs:
         # (set by step d). It must not read, print or compare any reading value.
         env:
           BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
+          # Device identity (the board's hw_id, nw-<12 hex>), a repository variable (name only here).
+          BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
         run: |
           set -euo pipefail
           script="bench/cloud/check.sh"

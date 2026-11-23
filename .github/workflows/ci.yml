@@ -1,3 +1,8 @@
+# Pinned action: espressif/esp-idf-ci-action in the firmware job's "setup flow" step is pinned to a full commit SHA
+# (every other ESP-IDF step in this file uses @v1). To bump that pin: take the SHA from the head of the action's
+# `v1` branch with `git ls-remote https://github.com/espressif/esp-idf-ci-action refs/heads/v1`, put it in the `uses:` line and
+# keep the trailing comment naming the branch (`# v1`). Do not use the tag v1.2.0: it is a different commit.
+# The firmware owner re-checks the pin in every PR that changes it.
 name: CI
 
 on:
@@ -115,6 +120,70 @@ jobs:
           name: firmware-esp32c3
           path: projects/plant-monitor/firmware/build/*.bin
           if-no-files-found: warn
+      - name: ESP-IDF build (esp32c3, setup flow on, simulator off)
+        # Fork PRs skip this step and the two after it (flash-file check, upload): setup packages are built and published for PRs from this repository only.
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        # Requirements traceability (checked against projects/plant-monitor/tests/acceptance-matrix.md): FR-D03 (BLE setup
+        # mode, line 20) and NFR-06 (security, line 53). This build step does not pass either one; it only proves the
+        # setup-flow image compiles and carries the setup-flow config.
+        # Pinned SHA (see the header of this file). Separate build dir and settings file, so no stale sdkconfig is reused.
+        # set -e first: the first failing line fails the step, so the upload below does not run on a bad build.
+        uses: espressif/esp-idf-ci-action@9d38657f3d789ca759b2b37aaf5ceffbc42c4f0d # v1
+        with:
+          esp_idf_version: v5.4
+          target: esp32c3
+          path: projects/plant-monitor/firmware
+          command: |
+            set -e
+            rm -f sdkconfig.setup
+            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.bench-ci" build size
+            grep -q "^CONFIG_PLANT_SETUP_FLOW=y" sdkconfig.setup
+            grep -q "^CONFIG_PLANT_BOARD_V1_SUPERMINI=y" sdkconfig.setup
+            grep -q "^CONFIG_BT_NIMBLE_ENABLED=y" sdkconfig.setup
+            if grep -q "^CONFIG_PLANT_SIM_MOCK_SENSORS=y" sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
+            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci, last in the list).
+            # Double quotes only in this block: the action wraps the whole command in single quotes, so a single quote here ends that wrapper early.
+            if grep -q "^CONFIG_PLANT_BENCH_SLEEP_CYCLE=y" sdkconfig.setup; then echo "bench sleep cycle must be unset in the setup image (sdkconfig.defaults.bench-ci)"; exit 1; fi
+            grep -qxF "# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set" sdkconfig.setup || { echo "sdkconfig.setup lacks the line: # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set (bench-ci overlay not applied)"; exit 1; }
+            # Bench CI image: BLE setup window on every cold start without BOOT (sdkconfig.defaults.bench-ci). Double quotes only.
+            grep -q "^CONFIG_PLANT_BENCH_AUTO_SETUP=y" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_AUTO_SETUP=y (bench-ci overlay not applied)"; exit 1; }
+            grep -q "^CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60 (bench-ci overlay not applied)"; exit 1; }
+            test -s build-setup/plant_monitor.bin
+      - name: Check every flash file named in flasher_args.json
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        # The artifact holds every file esptool flashes (bootloader, partition table, app). The list comes from
+        # flasher_args.json, so a missing or empty file, or an unsafe path, fails this step before the upload.
+        id: files
+        working-directory: projects/plant-monitor/firmware/build-setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s flasher_args.json
+          files=$(jq -r '.flash_files[]' flasher_args.json)
+          test -n "$files"
+          for f in $files; do
+            case "$f" in
+              /*|*..*) echo "unsafe path in flasher_args.json: $f"; exit 1 ;;
+            esac
+            test -s "$f" || { echo "missing or empty flash file named in flasher_args.json: $f"; exit 1; }
+          done
+          {
+            echo "paths<<PATHS_EOF"
+            echo "projects/plant-monitor/firmware/build-setup/flasher_args.json"
+            for f in $files; do echo "projects/plant-monitor/firmware/build-setup/$f"; done
+            echo "PATHS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Flash files verified:"
+          echo "$files"
+      - name: Upload setup firmware artifact
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: plant-monitor-firmware-setup
+          # Exactly the flash files named in flasher_args.json, plus that file. No sdkconfig, no logs, no NVS files
+          # (NVS is written per unit at the bench, not built here).
+          path: ${{ steps.files.outputs.paths }}
+          if-no-files-found: error
       - name: Host unit tests
         working-directory: projects/plant-monitor/firmware
         run: |
@@ -162,7 +231,7 @@ jobs:
       # (the require-await and no-explicit-any findings in the tests were fixed in code, no rule is silenced or skipped).
       - run: deno lint tips/*.ts tips/test/*.test.ts
       - name: Typecheck entry points and the test files
-        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts test/functions/export.test.ts tips/*.ts tips/test/*.test.ts
+        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts test/functions/export.test.ts test/functions/mcp.test.ts tips/*.ts tips/test/*.test.ts
 
   cloud-db:
     name: cloud DB tests

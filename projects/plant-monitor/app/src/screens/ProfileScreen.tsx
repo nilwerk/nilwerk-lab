@@ -1,4 +1,4 @@
-// S03 Profile. Requirements: FR-A01 (profile, sign out, entry to delete), FR-P04 (plan mirrors profiles.is_premium; the server decides),
+// S03 Profile. Requirements: FR-A01 (profile, sign out, entry to delete), FR-P04 (plan mirrors profiles.is_premium; the server decides; the premium dashboard entry shows only for premium),
 // NFR-06 (reads/writes only the caller's own profiles row under RLS).
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
@@ -10,7 +10,7 @@ import { useAuth } from '../auth/AuthContext';
 import type { Profile } from '../auth/types';
 import { validateDisplayName } from '../validation';
 
-export function ProfileScreen({ onPremium, onDelete, onAddSensor, contactEmail }: { onPremium: () => void; onDelete: () => void; onAddSensor: () => void; contactEmail: string }) {
+export function ProfileScreen({ onPremium, onDelete, onAddSensor, onDashboard, contactEmail }: { onPremium: () => void; onDelete: () => void; onAddSensor: () => void; onDashboard: () => void; contactEmail: string }) {
   const th = useTheme();
   const { service, state } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -58,6 +58,7 @@ export function ProfileScreen({ onPremium, onDelete, onAddSensor, contactEmail }
         <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('profile.plan')}</Text>
         <Body>{profile ? t(profile.isPremium ? 'profile.plan.premium' : 'profile.plan.free') : t('common.loading')}</Body>
         {profile && !profile.isPremium ? <Button label={t('profile.whatIsPremium')} variant="ghost" onPress={onPremium} /> : null}
+        {profile && profile.isPremium ? <Button label={t('profile.dashboard')} variant="secondary" onPress={onDashboard} /> : null}
       </View>
       <Field label={t('profile.displayName')} value={name} onChangeText={(v) => { setName(v); setSaved(false); }} error={nameErr ? t(nameErr.key, nameErr.params) : null} />
       <Button label={t('profile.displayName.save')} variant="secondary" onPress={save} busy={busy} disabled={!profile || !!nameErr} />

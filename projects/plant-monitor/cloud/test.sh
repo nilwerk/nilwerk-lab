@@ -11,11 +11,13 @@ HERE="$PWD"
 SRC="$HERE/../docs/interfaces/db-schema.sql"
 MIG="$HERE/supabase/migrations"
 
-# --- 0. drift guard: migration 1 must be the 2.4 schema file, byte for byte (acceptance: do not diverge)
-if ! diff <(tail -n +4 "$MIG/20261107000001_core_schema.sql") "$SRC" >/dev/null; then
-  echo "FAIL: $MIG/20261107000001_core_schema.sql differs from docs/interfaces/db-schema.sql"; exit 1
+# --- 0. frozen-migration guard: migration 1 was pushed to nilwerk-cloud (cloud/README.md "Migration rules"), so its bytes are pinned.
+# Any change to it must be a NEW migration file. The pin is the sha256 of origin/main's migration 1 (owner decision C6).
+MIG1_SHA256=8e1dad08dfaff969671f552e8ca605a698576b5f9d43c5454a6f72209faf69a2
+if ! echo "$MIG1_SHA256  $MIG/20261107000001_core_schema.sql" | sha256sum -c --status; then
+  echo "FAIL: $MIG/20261107000001_core_schema.sql changed; it is frozen. Put the change in a new migration file."; exit 1
 fi
-echo "ok  migration 1 == docs/interfaces/db-schema.sql (no drift)"
+echo "ok  migration 1 is frozen (sha256 pinned)"
 
 # --- 1. server
 CLEANUP=""
@@ -45,6 +47,26 @@ newdb() { # name, seed(yes/no)
   psqlx "$1" -f test/grants.sql
   if [ "$2" = yes ]; then psqlx "$1" -f supabase/seed.sql; fi
 }
+
+# --- 0b. contract == cumulative 2.4 state: db-schema.sql must produce the same public schema as migration 1 + the 4.A4c migration.
+# Only those two migrations are compared (migrations 2-8 add functions and tables that the contract file does not list).
+# The check compares pg_dump --schema-only output of both databases; the \restrict/\unrestrict lines are random per dump and are dropped.
+if [ -n "${DATABASE_URL:-}" ]; then
+  dumpx() { local db="$1"; shift; pg_dump --schema-only --no-owner -n public "$BASE/$db" | grep -v '^\\\(un\)\?restrict'; }
+else
+  dumpx() { local db="$1"; shift; pg_dump --schema-only --no-owner -n public -h "$TMP" -p "$PORT" -U postgres "$db" | grep -v '^\\\(un\)\?restrict'; }
+fi
+CONTRACT_MIG="$MIG/20261122000009_setup_save_plant_rpc.sql"
+psqlx postgres -c "drop database if exists nw_test_ct_src" -c "create database nw_test_ct_src" -c "drop database if exists nw_test_ct_mig" -c "create database nw_test_ct_mig"
+psqlx nw_test_ct_src -f test/stub_auth.sql -f "$SRC"
+psqlx nw_test_ct_mig -f test/stub_auth.sql -f "$MIG/20261107000001_core_schema.sql" -f "$CONTRACT_MIG"
+CT_SRC="$(dumpx nw_test_ct_src)"; CT_MIG="$(dumpx nw_test_ct_mig)"
+[ -n "$CT_SRC" ] && [ -n "$CT_MIG" ] || { echo "FAIL: pg_dump produced an empty schema"; exit 1; }
+if [ "$CT_SRC" != "$CT_MIG" ]; then
+  echo "FAIL: docs/interfaces/db-schema.sql differs from migration 1 + $(basename "$CONTRACT_MIG")"
+  diff <(echo "$CT_SRC") <(echo "$CT_MIG") | head -40; exit 1
+fi
+echo "ok  db-schema.sql == migration 1 + $(basename "$CONTRACT_MIG") (pg_dump --schema-only, public)"
 
 if [ "${NW_ONLY:-}" != api ]; then
 # --- 1b. migration 2 must FAIL (not skip) when pg_cron is missing and the opt-out flag is not set
@@ -95,6 +117,14 @@ else export NW_TEST_DB_URL="postgresql://postgres@/nw_test_export?host=$TMP&port
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/export.test.ts
 unset NW_TEST_DB_URL
 
+# --- 5c. MCP server 4.B5 (FR-P03, FR-P04, FR-P01, FR-P02, NFR-06, NFR-07): tool contracts, key checks, cross-user and revocation against the seeded DB
+echo "== MCP server (test/functions/mcp.test.ts) against local Postgres"
+newdb nw_test_mcp yes
+if [ -n "${DATABASE_URL:-}" ]; then export NW_TEST_DB_URL="$BASE/nw_test_mcp"
+else export NW_TEST_DB_URL="postgresql://postgres@/nw_test_mcp?host=$TMP&port=$PORT"; fi
+node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/mcp.test.ts
+unset NW_TEST_DB_URL
+
 # --- 6. care-tips engine 4.B3 slice 1 (pure TypeScript, no DB): guardrail rules, premium gate, injected weather/assistant (FR-P02, FR-P04)
 if [ "${NW_ONLY:-}" != api ]; then
 echo "== care-tips engine (tips/test/*.test.ts: ALL test files, not only tips.test.ts)"
@@ -105,5 +135,5 @@ fi
 echo "== analytics (analytics/test/*.test.ts: pure functions, hand-computed fixtures)"
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec analytics/test/*.test.ts
 
-for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api nw_test_export; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
+for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api nw_test_export nw_test_mcp nw_test_ct_src nw_test_ct_mig; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
 echo "ALL CLOUD TESTS PASSED"

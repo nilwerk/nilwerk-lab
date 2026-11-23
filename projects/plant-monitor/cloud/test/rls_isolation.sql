@@ -117,7 +117,8 @@ do $$ declare n int; begin
   begin
     update public.devices set plant_id = '10000000-0000-0000-0000-00000000000b' where id = '20000000-0000-0000-0000-00000000000a';
     raise exception 'A pointed its device at B plant';
-  exception when insufficient_privilege then null; end;   -- 42501 new row violates row-level security policy
+  exception when insufficient_privilege then null;   -- 42501 new row violates row-level security policy
+    when unique_violation then raise exception 'A pointed its device at B plant (the policy did not refuse it; only the unique key did)'; end;
   update public.devices set plant_id = null where id = '20000000-0000-0000-0000-00000000000a'; get diagnostics n = row_count;
   if n <> 1 then raise exception 'A cannot clear its own plant link (%)', n; end if;
   update public.devices set plant_id = '10000000-0000-0000-0000-00000000000a' where id = '20000000-0000-0000-0000-00000000000a'; get diagnostics n = row_count;
@@ -130,6 +131,45 @@ do $$ begin
   exception when sqlstate 'P0002' then null; end;
 end $$;
 reset role;
+
+-- 2b. setup save (4.A4c, N1/N2): create_plant_and_link_device is one atomic call and never moves a sensor silently
+set role authenticated;
+set request.uid = :'A';
+do $$ declare n int; nid uuid; begin
+  begin perform public.create_plant_and_link_device('20000000-0000-0000-0000-00000000000b', 'X', 'house', null, 'potting', null, null, false);
+    raise exception 'A linked a plant to the B device';
+  exception when sqlstate 'P0002' then null; end;
+  select count(*) into n from public.plants where name = 'X'; if n <> 0 then raise exception 'plant X inserted for a foreign device'; end if;
+  begin perform public.create_plant_and_link_device('20000000-0000-0000-0000-00000000000a', 'Y', 'house', null, 'potting', null, null, false);
+    raise exception 'A moved its sensor without asking';
+  exception when sqlstate 'P0005' then null; end;
+  select count(*) into n from public.plants where name = 'Y'; if n <> 0 then raise exception 'plant Y inserted on a refused move'; end if;
+  nid := public.create_plant_and_link_device('20000000-0000-0000-0000-00000000000a', 'Z', 'balcony', 'Sill', 'sand', null, 'Berlin', true);
+  select count(*) into n from public.devices where id = '20000000-0000-0000-0000-00000000000a' and plant_id = nid; if n <> 1 then raise exception 'confirmed move did not link the device'; end if;
+  select count(*) into n from public.plants where id = nid and owner_id = '00000000-0000-0000-0000-00000000000a'; if n <> 1 then raise exception 'new plant not owned by A'; end if;
+  select count(*) into n from public.plants where id = '10000000-0000-0000-0000-00000000000a'; if n <> 1 then raise exception 'confirmed move deleted the old plant'; end if;
+  raise notice 'contract ok  create_plant_and_link_device: foreign device refused, silent move refused, confirmed move links and keeps the old plant';
+end $$;
+reset role;
+
+-- 2c. the device link must not reach a foreign plant even when no device uses that plant (ADR-017, RLS-1).
+-- Plant C is owned by B and unlinked; the unique key on devices.plant_id would hide the hole for B's own plant, so this uses C.
+reset role;
+insert into public.plants (id, owner_id, name, location_type, soil_type) values ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000b', 'Unlinked B', 'house', 'potting');
+set role authenticated;
+set request.uid = :'A';
+do $$ begin
+  begin
+    update public.devices set plant_id = '10000000-0000-0000-0000-00000000000c' where id = '20000000-0000-0000-0000-00000000000a';
+    raise exception 'A pointed its device at an unlinked B plant';
+  exception when insufficient_privilege then null; end;   -- 42501: the policy's plant ownership check
+end $$;
+reset role;
+delete from public.plants where id = '10000000-0000-0000-0000-00000000000c';
+do $$ declare n int; begin
+  select count(*) into n from public.devices where id = '20000000-0000-0000-0000-00000000000a' and plant_id = '10000000-0000-0000-0000-00000000000c'; if n <> 0 then raise exception 'foreign plant linked'; end if;
+  raise notice 'RLS ok    A cannot link its device to an unlinked foreign plant (devices_update_own plant check)';
+end $$;
 
 -- 3. B's data is untouched after all of the above
 do $$ declare n int; begin

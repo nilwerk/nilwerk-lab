@@ -9,22 +9,29 @@ SQL=supabase/migrations/20261108000004_device_api.sql
 SQL5=supabase/migrations/20261108000005_devices_plant_check.sql
 SQL6=supabase/migrations/20261110000006_delete_account.sql
 SQL8=supabase/migrations/20261117000008_export_account.sql
+# devices_update_own is defined by SQL9 too (4.A4c). test.sh applies every migration in name order, so SQL9 runs AFTER SQL5 and
+# replaces SQL5's policy: a mutant on SQL5 is overwritten and survives. The RLS mutants therefore target SQL9 and DBS (the contract
+# file, which test.sh section 0b requires to equal migration 1 + SQL9) in step, so the contract drift check does not kill them first.
+SQL9=supabase/migrations/20261122000009_setup_save_plant_rpc.sql
+DBS=../docs/interfaces/db-schema.sql
 EXP=supabase/functions/_shared/export.ts
 LIB=supabase/functions/_shared/lib.ts
 HAN=supabase/functions/_shared/handlers.ts
-BK="$(mktemp -d)"; cp "$SQL" "$BK/sql"; cp "$SQL5" "$BK/sql5"; cp "$SQL6" "$BK/sql6"; cp "$SQL8" "$BK/sql8"; cp "$EXP" "$BK/exp"; cp "$LIB" "$BK/lib"; cp "$HAN" "$BK/han"
-restore() { cp "$BK/sql" "$SQL"; cp "$BK/sql5" "$SQL5"; cp "$BK/sql6" "$SQL6"; cp "$BK/sql8" "$SQL8"; cp "$BK/exp" "$EXP"; cp "$BK/lib" "$LIB"; cp "$BK/han" "$HAN"; }
+BK="$(mktemp -d)"; cp "$SQL" "$BK/sql"; cp "$SQL5" "$BK/sql5"; cp "$SQL6" "$BK/sql6"; cp "$SQL8" "$BK/sql8"; cp "$SQL9" "$BK/sql9"; cp "$DBS" "$BK/dbs"; cp "$EXP" "$BK/exp"; cp "$LIB" "$BK/lib"; cp "$HAN" "$BK/han"
+restore() { cp "$BK/sql" "$SQL"; cp "$BK/sql5" "$SQL5"; cp "$BK/sql6" "$SQL6"; cp "$BK/sql8" "$SQL8"; cp "$BK/sql9" "$SQL9"; cp "$BK/dbs" "$DBS"; cp "$BK/exp" "$EXP"; cp "$BK/lib" "$LIB"; cp "$BK/han" "$HAN"; }
 trap 'restore; rm -rf "$BK"' EXIT
 survived=0; total=0
-mutant() { # name file old new
-  local name="$1" file="$2" old="$3" new="$4" stage="${5:-api}"
+mutant() { # name file old new [stage] [also_file: same substitution applied to this file too]
+  local name="$1" file="$2" old="$3" new="$4" stage="${5:-api}" also="${6:-}" f
   restore
-  OLD="$old" NEW="$new" python3 - "$file" <<'PY' || { echo "BAD MUTANT (pattern not found): $name"; exit 2; }
+  for f in "$file" $also; do
+    OLD="$old" NEW="$new" python3 - "$f" <<'PY' || { echo "BAD MUTANT (pattern not found): $name"; exit 2; }
 import os, sys
 p = sys.argv[1]; s = open(p).read(); o = os.environ["OLD"]
 if s.count(o) != 1: sys.exit(1)
 open(p, "w").write(s.replace(o, os.environ["NEW"]))
 PY
+  done
   total=$((total+1))
   if NW_SKIP_OPENAPI=1 NW_ONLY="$stage" bash ./test.sh >"$BK/out.txt" 2>&1; then echo "SURVIVED  $name"; survived=$((survived+1))
   else echo "killed    $name  ($(grep -m1 -e '^✖' -e 'ERROR:' -e 'FAIL' "$BK/out.txt" | cut -c1-110))"; fi
@@ -66,8 +73,8 @@ mutant "QA-7 MIN_TS 1700000000 -> 1700000001"            "$LIB" "const MIN_TS = 
 mutant "QA-8 MIN_TS 1700000000 -> 1699999999"            "$LIB" "const MIN_TS = 1700000000;" "const MIN_TS = 1699999999;"
 mutant "SQL-14 new owner inherits the old owner's plant link" "$SQL" "plant_id = case when d.owner_id = ct.user_id then plant_id else null end" "plant_id = plant_id"
 # N2: devices_update_own must check that the new plant_id belongs to the caller (RLS stage)
-mutant "RLS-1 devices_update_own without plant ownership check" "$SQL5" "    and (plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid())));" "    );" rls
-mutant "RLS-2 policy forbids clearing the plant link (plant_id is null branch removed)" "$SQL5" "(plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid()))" "(exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid()))" rls
+mutant "RLS-1 devices_update_own without plant ownership check" "$SQL9" "    and (plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid())));" "    );" rls "$DBS"
+mutant "RLS-2 policy forbids clearing the plant link (plant_id is null branch removed)" "$SQL9" "(plant_id is null or exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid()))" "(exists (select 1 from public.plants p where p.id = plant_id and p.owner_id = auth.uid()))" rls "$DBS"
 # 4.B2b DELETE /account (FR-A01, FR-A08, NFR-07, NFR-06)
 mutant "DA-1 no token check (any caller is treated as the user)"   "$HAN" 'if (!uid) return err(401, "unauthorized", "missing or invalid user JWT");
   const r = await readJson(req);

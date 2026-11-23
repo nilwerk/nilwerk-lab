@@ -1,7 +1,7 @@
 # Plant Monitor cloud backend (tasks 4.B1, 4.B2, 4.B3 slice 1)
 
 Supabase scaffold implementing the merged 2.4 contract. **Source of truth for the schema:**
-[`../docs/interfaces/db-schema.sql`](../docs/interfaces/db-schema.sql) (+ `openapi.yaml`). Migration 1 is a verbatim copy; `test.sh` fails on drift.
+[`../docs/interfaces/db-schema.sql`](../docs/interfaces/db-schema.sql) (+ `openapi.yaml`). Migration 1 is a verbatim copy of the 2.4 schema as applied; `test.sh` pins its sha256 and checks that the contract file equals migration 1 plus the 4.A4c migration.
 
 | Path | What |
 |---|---|
@@ -9,6 +9,7 @@ Supabase scaffold implementing the merged 2.4 contract. **Source of truth for th
 | `supabase/migrations/..01_core_schema.sql` | all 14 tables, RLS on every one, `delete_plant` RPC, `readings_hourly` roll-up, `apply_retention`, alert functions (FR-A08, FR-A06, FR-P01, FR-P04, NFR-06/07/13) |
 | `supabase/migrations/..02_schedules.sql` | pg_cron: offline scan 5 min, roll-up hourly, retention nightly (fails loudly without pg_cron; test.sh sets `nilwerk.allow_no_cron=on`) |
 | `supabase/migrations/..03_storage.sql` | private buckets `plant-photos`, `firmware`, owner-folder policy (FR-A05) |
+| `supabase/migrations/20261122000009_setup_save_plant_rpc.sql` | 4.A4c: `create_plant_and_link_device` RPC (setup "save plant", FR-A03/A04, NFR-06; ADR-017) and the plant check in `devices_update_own` (restates the clause of `..05`). Added as a new file because migration 1 is frozen |
 | `supabase/seed.sql` | local fake data: user A (free), user B (premium), one row per table |
 | `test.sh`, `test/` | CI-friendly tests (below) |
 
@@ -45,6 +46,29 @@ Premium feature (FR-P02, FR-P04, ADR-006). Pure TypeScript in `tips/`, no depend
 * Run: `node --experimental-strip-types --test tips/test/tips.test.ts` and `bash tips/test/mutation.sh` from `cloud/`; `test.sh` runs the tests as its last stage (CI job `cloud-db`).
 * FR-P02 requirement text itself (Google Doc) was not readable in this session; the contract above is taken from ADR-006, `architecture.md` section 5 / O-7, `db-schema.sql` (`tips`, `plants`) and `mcp-tools.json` `get_tips`.
 
+## MCP server (task 4.B5, premium, FR-P03)
+Lets the user's own AI client read their own plants. TypeScript, no dependencies. Edge function `mcp` (`supabase/functions/mcp/index.ts`, logic in `supabase/functions/_shared/mcp.ts`): JSON-RPC 2.0 over HTTP POST (single JSON responses, no SSE), `verify_jwt = false` (the bearer token is the user's API key, checked in the function). Contract: `../docs/interfaces/mcp-tools.json` (ADR-007); a test compares names, descriptions, annotations and both schemas with it. Read-only SQL: `migrations/20261123000010_mcp_read_rpcs.sql`.
+
+Tools, all read-only: `list_plants`, `get_plant_status(plant_id)`, `get_history(plant_id, days 1..90 default 7, resolution raw|hourly|daily default hourly)` (at most 2000 points, the server downsamples; watering events from the device's wetting events), `get_tips(plant_id)` (cached tips only, see below).
+
+**API keys (FR-P03, NFR-06)**
+* Format: `nwk_` + 32 random bytes, base64url without padding (43 characters, 47 in total). Shown once, when created.
+* Storage: `public.api_keys` (migration 1). `key_hash` = SHA-256 of the whole key string (bytea, unique). `prefix` = the first 8 characters, for display. `owner_id`, `revoked_at`, `last_used_at`. The key itself is never stored, logged or returned after creation.
+* Check on every request, before any read: the function computes `sha256(key)` and calls `mcp_resolve_key` (service_role only). Unknown or revoked keys give the same answer (401 `key_revoked_or_unknown`). A missing or malformed key gives 401 `unauthorized` without any database call. Revoking = setting `revoked_at`; the next call with that key fails.
+* Creating keys (`POST /api-keys`, openapi) is **not built** here (app side).
+
+**Errors:** HTTP 401 `unauthorized` / `key_revoked_or_unknown`. For a free user, a `tools/call` returns a tool error `premium_required` (FR-P04) and any other method HTTP 403 `premium_required`. Tool errors: `invalid_input`, `not_found` (another user's plant is indistinguishable from an unknown one), `tips_unavailable`, `server_error`, `unknown_tool`. Database messages are never returned.
+
+**Isolation (FR-P03, NFR-07), mechanism: explicit owner filter, not RLS.** The function uses the service role, which bypasses RLS, so RLS cannot protect these reads. Every read goes through an `mcp_*` function that takes `p_owner` (the owner that the verified key resolved to) and filters `owner_id = p_owner` and the plant's owner in SQL. A plant that is not the caller's returns null, which becomes `not_found`. The functions are executable by `service_role` only (`anon` and `authenticated` get permission denied; tested).
+
+**Tips (FR-P02).** `get_tips` reads the newest unexpired row of `tips` and never generates tips (the server is read-only). A row is refused (`tips_unavailable`) when its `guardrail_version` is not `GUARDRAIL_VERSION_EXPECTED` (= `g1.1`, a test checks it equals `tips/guardrails.ts`) or when any item is outside the contract (category enum, text 1..400).
+
+**Tests:** `test/functions/mcp.test.ts`, stage "MCP server" of `test.sh` (own database, seeded). Unit tests cover the key pattern, the hashed key sent to the database, the 401/403/405 paths, input validation, the contract and the tips re-check. Integration tests cover the owner filter (A's key vs B's plant through every tool and at RPC level), revocation, the free-user refusal, history downsampling and the tips guardrail re-check.
+
+**Not built (marked, not claimed):** generation of tips on a cache miss (the contract says it generates; this returns `tips_unavailable`, see 4.B3 slice 2 and Q-13); the rate limit of 60 calls per minute (proposed in the contract); key creation; deployment to `nilwerk-cloud` (no live run; the `verify_jwt = false` setting is unverified in the hosted runtime).
+
+**Cost:** no LLM or paid API on this path. Reads only, so no marginal cost beyond the Supabase function calls.
+
 ## Security review of anon RPC access: deferred (A-104 (2))
 **Status: not done, deferred by Arsany on 2026-11-16 (A-104 (2)).** The review of what the `anon` role can reach through RPC/function access (`handle_new_user`, `is_premium` and the other functions in `public`, including their `EXECUTE` grants and `SECURITY DEFINER` use) was postponed. **Revisit when moving from the prototype to the real app**, before real users or real data. Until then treat the live `nilwerk-cloud` project as prototype-only: no real personal data. This section records the decision only; no review was done or is claimed here. `test/grants.sql` and `test/functions/api.test.ts` already check that API roles are locked out of the 4.B2 token functions, which is not a full review.
 
@@ -53,7 +77,7 @@ Premium feature (FR-P02, FR-P04, ADR-006). Pure TypeScript in `tips/`, no depend
 projects/plant-monitor/cloud/test.sh                  # starts a throw-away local PostgreSQL 15+, needs initdb/pg_ctl/psql
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres projects/plant-monitor/cloud/test.sh   # or an existing superuser server
 ```
-It checks: migration 1 == 2.4 schema file; RLS enabled on every table and user A cannot read, update, delete or forge
+It checks: migration 1 is frozen (sha256 pinned); `db-schema.sql` == migration 1 + `20261122000009` (pg_dump --schema-only, public schema); RLS enabled on every table and user A cannot read, update, delete or forge
 rows of user B on each table (`test/rls_isolation.sql`); retention/roll-up (`test/retention.sql`, A-028: raw ~3 months,
 hourly roll-up 12 months); the Architect's `db-schema.test.sql` on the migrated DB; the edge functions end to end against that DB (`test/functions/api.test.ts`: claim, hash-only storage, 96-sample batch, replay idempotency, token isolation A vs B, revoked/released tokens, API roles locked out of the functions); `test/openapi_check.py` (code == OpenAPI; needs PyYAML) and Node >= 22.6.
 `test/mutation.sh` is the mutation check: 17 one-line mutants of the token-hash, auth, claim and idempotency logic, each must make the tests fail (`NW_ONLY=api test.sh` is its quick mode). A stub `auth` schema and the roles
@@ -64,7 +88,7 @@ Needs Docker and the [Supabase CLI](https://supabase.com/docs/guides/cli): `cd p
 (applies migrations + seed; Studio on http://localhost:54323). **Not run in the agent session** (no Docker there).
 
 ## Migration rules
-- Migration 1 is the 2.4 schema as of 2026-11-07. **Once it is pushed to any real project it is frozen**: every later schema change is a NEW migration file (and an update to `docs/interfaces/db-schema.sql` so the contract stays current). From then on the drift guard in `test.sh` must compare the cumulative state (migrations applied in order vs. the schema file, e.g. via `pg_dump --schema-only` of both), not the byte copy of migration 1. Until the first push, migration 1 may still be re-copied.
+- Migration 1 is the 2.4 schema as of 2026-11-07. **Once it is pushed to any real project it is frozen**: every later schema change is a NEW migration file (and an update to `docs/interfaces/db-schema.sql` so the contract stays current). `test.sh` pins migration 1's sha256 (origin/main bytes). The contract check compares `db-schema.sql` with migration 1 plus the 4.A4c migration via `pg_dump --schema-only` of both (only those two: migrations 2-8 add objects the contract file does not list). A future change to the schema: new migration file, plus the same change in `db-schema.sql`, plus the guard's expected list if it adds a migration to the contract check.
 - `seed.sql` inserts into `auth.users(id, email)`: **unverified against real Supabase** (local test uses a stub table; the real table has more columns/triggers). Check with `supabase db reset` before relying on it.
 
 ## Production (not done here)
@@ -82,3 +106,18 @@ Procedure for Arsany / the Lead against `nilwerk-cloud`. Nothing below has been 
 
 ## Not here yet
 Auth UI, deployment, rate limits, OTA manifest, `/device-release` and the remaining app endpoints. No `package.json` in `cloud/` on purpose: its presence switches on the CI `cloud` job, which applies migrations to a plain Postgres without the `auth` schema and would fail; the `cloud-db` job runs `test.sh`, which now also runs the edge function tests.
+
+## Deferred security review (revisit at real-app phase)
+Decision by Arsany, 16 Nov 2026: the security review of the anonymous RPC access is **deferred**, not accepted. It is not done now. No SQL, migration or function was changed for it. Source: Supabase database advisors on `nilwerk-cloud`, as reported on 16 Nov (not re-run for this section).
+
+| # | Finding | Object |
+|---|---|---|
+| 1 | anon role can call the function through the API (most serious) | `handle_new_user` |
+| 2 | anon role can call the function through the API (most serious) | `is_premium` |
+| 3 | SECURITY DEFINER, executable by anon/authenticated | `delete_plant` and others (full list in the advisor output) |
+| 4 | mutable `search_path` | several functions |
+| 5 | RLS enabled, no policy | `claim_tokens`, `device_credentials`, `firmware_releases` |
+| 6 | unindexed foreign keys | 7 tables |
+| 7 | `auth_rls_initplan` (auth call re-evaluated per row) | 13 policies |
+
+**Revisit trigger:** the project moves from prototype to the real app. Items 1 and 2 are first. Until then the exposure stays as listed; the device functions are covered by `test/grants.sql` only, not by these advisors.

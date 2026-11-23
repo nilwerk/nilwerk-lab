@@ -48,6 +48,28 @@ menu "Plant Monitor"
             Needs a per-unit security-2 salt and verifier in NVS namespace "nw_sec2" or BLE stays off (fail closed).
             NOT RUN ON HARDWARE.
 
+    config PLANT_BENCH_AUTO_SETUP
+        bool "BENCH CI IMAGE ONLY: open the BLE setup window on every cold start, without BOOT"
+        default n
+        depends on PLANT_SETUP_FLOW
+        help
+            BENCH CI IMAGE ONLY (set by sdkconfig.defaults.bench-ci). Every cold start (not a deep-sleep wake) opens the setup window as if
+            BOOT were held for 3 s, so BLE advertises for NW_PROV_SETUP_TIMEOUT_MS (300 s) with no button press. Bench step c needs this to
+            see the NW- name after step 3 provisions the board. PoP is unchanged: a unit with no security-2 salt and verifier in NVS does not
+            advertise (fail closed). A provisioned unit can enter setup on this image only. Never set this on the production, v1 or upload
+            builds. Owner sign-off needed: docs/ci-bench-runner.md.
+
+    config PLANT_BENCH_SETUP_WINDOW_S
+        int "BENCH CI IMAGE ONLY: BLE setup window length in seconds"
+        range 10 300
+        default 300
+        depends on PLANT_BENCH_AUTO_SETUP
+        help
+            BENCH CI IMAGE ONLY (set to 60 by sdkconfig.defaults.bench-ci). Defined only when PLANT_BENCH_AUTO_SETUP is on, so the
+            production, v1 and upload builds never define it and keep NW_PROV_SETUP_TIMEOUT_MS (300 s). With 60 s the setup window
+            closes about 60 s after reset: bench step c (BLE scan) runs inside it, and the measurement loop starts before bench step b.
+            Never set this on a production, v1 or upload build.
+
     config PLANT_API_BASE_URL
         string "Cloud API base URL for POST /device-claim (https, no trailing slash)"
         default "https://api.invalid"

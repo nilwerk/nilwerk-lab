@@ -371,6 +371,15 @@ static void test_five_minute_limit(void)                     /* ADR-011, NFR-03 
     to_session(&p, &f, 0); nw_prov_on_wifi_config(&p, "HomeNet-2G", "correct-horse", 10);
     nw_prov_tick(&p, NW_PROV_SETUP_TIMEOUT_MS); CHECK_EQ(p.state, NW_PROV_S_CLOSED); CHECK_EQ(p.pending.passphrase[0], 0); CHECK(!p.have_wifi);
 }
+static void test_bench_window_only_when_set(void)            /* bench CI image: window 60 s; production default stays 300 s */
+{
+    nw_prov_t p; fake_t f; mk(&p, &f); nw_prov_boot(&p, 0, 1000);
+    CHECK_EQ(p.setup_window_ms, 0u);                           /* production: field unset, NW_PROV_SETUP_TIMEOUT_MS applies */
+    nw_prov_tick(&p, 1000 + 60000u); CHECK_EQ(p.state, NW_PROV_S_ADVERTISING); CHECK(f.ble_on);
+    mk(&p, &f); p.setup_window_ms = 60000u; nw_prov_boot(&p, 0, 1000);   /* what nw_prov_idf.c does on the bench image */
+    nw_prov_tick(&p, 1000 + 60000u - 1); CHECK_EQ(p.state, NW_PROV_S_ADVERTISING); CHECK(f.ble_on);
+    nw_prov_tick(&p, 1000 + 60000u); CHECK_EQ(p.state, NW_PROV_S_CLOSED); CHECK(!f.ble_on);
+}
 static void test_millis_wraparound(void)
 {
     nw_prov_t p; fake_t f; mk(&p, &f); uint32_t start = 0xFFFFFFFFu - 1000u;
@@ -422,7 +431,7 @@ int main(void)
     test_happy_path_and_credentials_stored_on_device_only(); test_no_credentials_in_status_or_reply(); test_event_order_enforced();
     test_bad_inputs_do_not_change_state(); test_wifi_failures_retry_in_same_setup(); test_claim_failures_map_to_reasons_and_retry();
     test_claim_ok_but_flash_write_fails(); test_five_failed_handshakes_close_setup(); test_good_handshake_does_not_reset_failure_count();
-    test_failed_handshake_drops_session_secrets(); test_five_minute_limit(); test_millis_wraparound();
+    test_failed_handshake_drops_session_secrets(); test_five_minute_limit(); test_millis_wraparound(); test_bench_window_only_when_set();
     test_deadline_not_enforced_in_flight_but_after_failure(); test_button_ignored_while_claim_in_flight();
     test_restart_during_setup_resets_window(); test_null_and_arg_guards();
     printf("provisioning host tests: %d checks, %d failed\n", nwtest_checked, nwtest_failed);

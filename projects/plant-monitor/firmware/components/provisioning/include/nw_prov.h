@@ -61,6 +61,7 @@ typedef struct {
     nw_prov_ops_t ops;
     nw_prov_state_t state;
     uint32_t setup_started_ms;
+    uint32_t setup_window_ms;                /* 0 = NW_PROV_SETUP_TIMEOUT_MS (production, host tests). Bench CI image only: set in nw_prov_idf.c */
     uint8_t failed_handshakes;
     bool have_wifi, have_claim;
     nw_prov_status_state_t st;               /* what nw-status reports */

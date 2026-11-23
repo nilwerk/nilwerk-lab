@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SetupFlow } from '../screens/setup/SetupFlow';
+import { initialSetup, setupReducer } from '../screens/setup/setupState';
 import { createFakeSetup, FAKE_LABEL, FAKE_SENSOR, FAKE_WIFI, unavailableProvisioning } from '../provisioning/fakeProvisioning';
 
 const metrics = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } };
@@ -205,7 +206,7 @@ describe('device setup flow', () => {
     await header('Take a photo');
   });
 
-  test('plant details: required fields are validated, a failed save keeps the sensor linked and can be retried', async () => {
+  test('plant details: required fields are validated, a failed save asks the user to check the plant list and can be retried', async () => {
     const { fake } = await mount();
     await toPhoto();
     await tap('Skip for now');
@@ -217,9 +218,86 @@ describe('device setup flow', () => {
     await fillDetails();
     fake.plants.options.failNext = true;
     await tap('Save plant');
-    expect(await screen.findByText(/Your sensor is linked/)).toBeTruthy();
+    expect(await screen.findByText(/The save could not be confirmed/)).toBeTruthy();
     await tap('Save plant');
     await header('All set!');
+  });
+
+  test('a sensor that already has a plant is not moved silently: the user chooses keep (leave, nothing saved) or move', async () => {
+    const { fake, onExit } = await mount();
+    fake.plants.options.linked = true;
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    expect(await header('This sensor already has a plant')).toBeTruthy();
+    expect(fake.plants.created).toHaveLength(0);
+    await tap('Keep the sensor on its current plant');
+    expect(onExit).toHaveBeenCalled();
+    expect(fake.plants.created).toHaveLength(0);
+  });
+
+  test('a sensor that already has a plant: choosing move saves the plant and moves the link', async () => {
+    const { fake } = await mount();
+    fake.plants.options.linked = true;
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    await header('This sensor already has a plant');
+    await tap('Move the sensor to the new plant');
+    await header('All set!');
+    expect(fake.plants.created).toHaveLength(1);
+    expect(fake.plants.moved).toEqual(['device-1']);
+  });
+
+  test('exact sequence (fake): Move commits, its answer is lost, the re-read shows the plant: keep only, no second plant', async () => {
+    const { fake, onExit } = await mount();
+    fake.plants.options.linked = true;
+    fake.plants.options.commitThenLose = true;
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    await header('This sensor already has a plant');
+    expect(screen.getByRole('button', { name: 'Move the sensor to the new plant' })).toBeTruthy();   // positive control
+    await tap('Move the sensor to the new plant');
+    expect(await header('Your sensor is already on a plant')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Move the sensor to the new plant' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save plant' })).toBeNull();
+    expect(fake.plants.created).toHaveLength(1);
+    await tap('Go to my plants');
+    expect(onExit).toHaveBeenCalled();
+    expect(fake.plants.created).toHaveLength(1);
+  });
+
+  test('Back during an in-flight save: Back is withdrawn, the saved plant is shown, and no Move is offered', async () => {
+    const fake = createFakeSetup();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    const inner = fake.services.plants.createPlant;
+    fake.services.plants = { ...fake.services.plants, createPlant: async (...args) => { await gate; return inner(...args); } };
+    const { onExit } = await mount(fake);
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    // positive control first: the Back control is found by its rendered name ("Go back"), so the negative check below is not vacuous
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeTruthy();
+    await tap('Save plant');
+    expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
+    release();
+    expect(await header('All set!')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Move the sensor to the new plant' })).toBeNull();
+    expect(fake.plants.created).toHaveLength(1);
+    expect(fake.plants.moved).toHaveLength(0);
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  test('a late saved answer is accepted from any step of the same attempt (never dropped), not after a restart', () => {
+    const base = { ...initialSetup(0), step: 'photo' as const, deviceId: 'device-1' };
+    const done = setupReducer(base, { type: 'saved', plantName: 'Basil', now: 5 });
+    expect(done).toMatchObject({ step: 'done', plantName: 'Basil', finishedAt: 5 });
+    expect(setupReducer(initialSetup(0), { type: 'saved', plantName: 'Basil', now: 5 }).step).toBe('ready');
   });
 
   test('add another sensor restarts at step 1; cancel exits and disconnects', async () => {
@@ -233,4 +311,38 @@ describe('device setup flow', () => {
     await tap('Go back');
     expect(onExit).toHaveBeenCalled();
   });
+
+  test('while a Move save is in flight: Keep, Move and Back are not tappable, and exactly one p_move call is made', async () => {
+    const fake = createFakeSetup();
+    fake.plants.options.linked = true;
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    const moveCalls: string[] = [];
+    const inner = fake.services.plants.createPlant;
+    fake.services.plants = { ...fake.services.plants, createPlant: async (deviceId, details, photoUri, call) => {
+      if (call?.moveFromCurrent) { moveCalls.push(deviceId); await gate; }   // controllable promise: the move stays in flight until released
+      return inner(deviceId, details, photoUri, call);
+    } };
+    const { onExit } = await mount(fake);
+    await toPhoto();
+    await tap('Skip for now');
+    await fillDetails();
+    await tap('Save plant');
+    await header('This sensor already has a plant');
+    // not awaited: the press returns the in-flight save, which only settles after release()
+    fireEvent.press(await screen.findByRole('button', { name: 'Move the sensor to the new plant' }));
+    // in flight: Back is not offered, and pressing Keep or Move must neither start a second move nor leave the flow
+    expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
+    fireEvent.press(screen.getByRole('button', { name: 'Move the sensor to the new plant' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Keep the sensor on its current plant' }));
+    expect(moveCalls).toHaveLength(1);
+    expect(onExit).not.toHaveBeenCalled();
+    await act(async () => { release(); });   // settle the in-flight save inside act
+    expect(await header('All set!')).toBeTruthy();
+    expect(moveCalls).toHaveLength(1);   // exactly one p_move call
+    expect(fake.plants.created).toHaveLength(1);
+    expect(fake.plants.moved).toEqual(['device-1']);
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
 });

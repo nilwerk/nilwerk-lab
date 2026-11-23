@@ -1,7 +1,7 @@
 # How the Nilwerk team works
 
 Nilwerk builds connected hardware prototypes with a team of AI agents, led and reviewed by a human
-engineer (Arsany) and supported by a human hardware tester. This page is safe to share.
+engineer (the owner) and supported by a human hardware tester. This page is safe to share.
 
 ## Who is on the team
 
@@ -18,7 +18,7 @@ engineer (Arsany) and supported by a human hardware tester. This page is safe to
 | Yara · 3D designer | Enclosures designed for printing and real use |
 | Poppy · PR & Social | Shows the work, with proof, and tells it as a fun series with clearly marked fiction |
 | Max · Sales | Finds and contacts companies who need prototypes |
-| **Arsany** (human) | Owner. Decides, approves and merges |
+| **Owner** (human) | Decides, approves and merges |
 | **Hardware tester** (human) | Assembles, flashes and bench-tests the real hardware |
 
 ## One day
@@ -31,11 +31,11 @@ flowchart LR
   D -->|changes needed| B
   D --> E["Ines · QA tests"]
   E --> F["Kai · pipeline green?"]
-  F --> G{"Arsany reviews<br/>and merges"}
+  F --> G{"Owner reviews<br/>and merges"}
   G --> H["Done ✅"]
   B -. "hands-on hardware" .-> P["Work order for our hardware tester<br/>(assemble · flash · measure · photos)"]
   P --> E
-  C -. "questions / decisions" .-> N["Needs Arsany list<br/>pinned to the exact line"]
+  C -. "questions / decisions" .-> N["Needs-owner list<br/>pinned to the exact line"]
   N --> G
   H --> S["Daily report + showcase item"]
 ```
@@ -52,7 +52,7 @@ flowchart LR
 
 ## Seven days, parallel builders (as run on 8 Nov 2026)
 
-The team works seven days a week. On Sunday 8 Nov five builders ran in parallel, each for roughly 6 to 16 minutes of agent time (measured), and every result then went through an architect review and a QA test before any human merge. Review comments are first-class output: on that day they caught a wrong pin map, a wrong number in a caption and a misleading baseline comparison (PRs #41, #44, #46, status as of 8 Nov: open, waiting for a human).
+The team works seven days a week. On Sunday 8 Nov five builders ran in parallel, each for roughly 6 to 16 minutes of agent time (measured), and every result then went through an architect review and a QA test before any human merge. Review comments are first-class output: on that day they caught a wrong pin map, a wrong number in a caption and a misleading baseline comparison (three pull requests, status as of 8 Nov: open, waiting for a human).
 
 ## Same-day extra rounds and parallel work without collisions
 
@@ -62,13 +62,13 @@ The team works seven days a week. On Sunday 8 Nov five builders ran in parallel,
 
 ## Telling it with personality (since 17 Nov 2026)
 
-The owner asked for posts that show the team's technical work in a fun way: graphics, video with sound and imagination, with the agents as a team that has a life. Poppy now writes **episodes**: a made-up crew life (feelings, rivalries, hobbies, jokes; dashed orange in every image) wrapped around a real event of the day (solid green box with sources). Hard rules: the crew are AI agents and every post says so; the private lives are fiction and never contain a number or a result; nothing is invented about real people (the owner and the hardware tester appear only as themselves, doing real approved things); every fact has a source row that Theo checks; what does not work yet is stated; Arsany approves and publishes. First season: `content/2026-11-17/`; voice guide: `brand/brand-kit.md` section 5c.
+The owner asked for posts that show the team's technical work in a fun way: graphics, video with sound and imagination, with the agents as a team that has a life. Poppy now writes **episodes**: a made-up crew life (feelings, rivalries, hobbies, jokes; dashed orange in every image) wrapped around a real event of the day (solid green box with sources). Hard rules: the crew are AI agents and every post says so; the private lives are fiction and never contain a number or a result; nothing is invented about real people (the owner and the hardware tester appear only as themselves, doing real approved things); every fact has a source row that Theo checks; what does not work yet is stated; the owner approves and publishes. First season: the 17 Nov draft pack; voice guide: the brand kit, section 5c.
 
 ## What makes it trustworthy
 
 - **Nothing is "done" without evidence:** architecture approval, QA pass, green pipeline, and a human merge (documentation-only changes get no architect verdict).
 - **Every agent measures its time** for every task, so estimates for customers are based on real data.
 - **The team learns:** after each sprint every agent turns its lessons into rules in its own playbook.
-- **QA runs the code itself:** on 10 Nov the QA agent re-ran an enclosure check against the newest board and found that part of it could not fail (a typed-in number), see `content/2026-11-10/catches/`.
+- **QA runs the code itself:** on 10 Nov the QA agent re-ran an enclosure check against the newest board and found that part of it could not fail (a typed-in number), see the 10 Nov draft pack.
 - **Honest negatives are published:** a missed target (the first edge-AI model) and a check that has not run yet (circuit ERC) are reported as such, never hidden.
 - **Humans stay in charge** of money, orders, sign-offs and anything that leaves the company.
