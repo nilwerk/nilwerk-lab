@@ -46,6 +46,29 @@ Premium feature (FR-P02, FR-P04, ADR-006). Pure TypeScript in `tips/`, no depend
 * Run: `node --experimental-strip-types --test tips/test/tips.test.ts` and `bash tips/test/mutation.sh` from `cloud/`; `test.sh` runs the tests as its last stage (CI job `cloud-db`).
 * FR-P02 requirement text itself (Google Doc) was not readable in this session; the contract above is taken from ADR-006, `architecture.md` section 5 / O-7, `db-schema.sql` (`tips`, `plants`) and `mcp-tools.json` `get_tips`.
 
+## MCP server (task 4.B5, premium, FR-P03)
+Lets the user's own AI client read their own plants. TypeScript, no dependencies. Edge function `mcp` (`supabase/functions/mcp/index.ts`, logic in `supabase/functions/_shared/mcp.ts`): JSON-RPC 2.0 over HTTP POST (single JSON responses, no SSE), `verify_jwt = false` (the bearer token is the user's API key, checked in the function). Contract: `../docs/interfaces/mcp-tools.json` (ADR-007); a test compares names, descriptions, annotations and both schemas with it. Read-only SQL: `migrations/20261123000010_mcp_read_rpcs.sql`.
+
+Tools, all read-only: `list_plants`, `get_plant_status(plant_id)`, `get_history(plant_id, days 1..90 default 7, resolution raw|hourly|daily default hourly)` (at most 2000 points, the server downsamples; watering events from the device's wetting events), `get_tips(plant_id)` (cached tips only, see below).
+
+**API keys (FR-P03, NFR-06)**
+* Format: `nwk_` + 32 random bytes, base64url without padding (43 characters, 47 in total). Shown once, when created.
+* Storage: `public.api_keys` (migration 1). `key_hash` = SHA-256 of the whole key string (bytea, unique). `prefix` = the first 8 characters, for display. `owner_id`, `revoked_at`, `last_used_at`. The key itself is never stored, logged or returned after creation.
+* Check on every request, before any read: the function computes `sha256(key)` and calls `mcp_resolve_key` (service_role only). Unknown or revoked keys give the same answer (401 `key_revoked_or_unknown`). A missing or malformed key gives 401 `unauthorized` without any database call. Revoking = setting `revoked_at`; the next call with that key fails.
+* Creating keys (`POST /api-keys`, openapi) is **not built** here (app side).
+
+**Errors:** HTTP 401 `unauthorized` / `key_revoked_or_unknown`. For a free user, a `tools/call` returns a tool error `premium_required` (FR-P04) and any other method HTTP 403 `premium_required`. Tool errors: `invalid_input`, `not_found` (another user's plant is indistinguishable from an unknown one), `tips_unavailable`, `server_error`, `unknown_tool`. Database messages are never returned.
+
+**Isolation (FR-P03, NFR-07), mechanism: explicit owner filter, not RLS.** The function uses the service role, which bypasses RLS, so RLS cannot protect these reads. Every read goes through an `mcp_*` function that takes `p_owner` (the owner that the verified key resolved to) and filters `owner_id = p_owner` and the plant's owner in SQL. A plant that is not the caller's returns null, which becomes `not_found`. The functions are executable by `service_role` only (`anon` and `authenticated` get permission denied; tested).
+
+**Tips (FR-P02).** `get_tips` reads the newest unexpired row of `tips` and never generates tips (the server is read-only). A row is refused (`tips_unavailable`) when its `guardrail_version` is not `GUARDRAIL_VERSION_EXPECTED` (= `g1.1`, a test checks it equals `tips/guardrails.ts`) or when any item is outside the contract (category enum, text 1..400).
+
+**Tests:** `test/functions/mcp.test.ts`, stage "MCP server" of `test.sh` (own database, seeded). Unit tests cover the key pattern, the hashed key sent to the database, the 401/403/405 paths, input validation, the contract and the tips re-check. Integration tests cover the owner filter (A's key vs B's plant through every tool and at RPC level), revocation, the free-user refusal, history downsampling and the tips guardrail re-check.
+
+**Not built (marked, not claimed):** generation of tips on a cache miss (the contract says it generates; this returns `tips_unavailable`, see 4.B3 slice 2 and Q-13); the rate limit of 60 calls per minute (proposed in the contract); key creation; deployment to `nilwerk-cloud` (no live run; the `verify_jwt = false` setting is unverified in the hosted runtime).
+
+**Cost:** no LLM or paid API on this path. Reads only, so no marginal cost beyond the Supabase function calls.
+
 ## Security review of anon RPC access: deferred (A-104 (2))
 **Status: not done, deferred by Arsany on 2026-11-16 (A-104 (2)).** The review of what the `anon` role can reach through RPC/function access (`handle_new_user`, `is_premium` and the other functions in `public`, including their `EXECUTE` grants and `SECURITY DEFINER` use) was postponed. **Revisit when moving from the prototype to the real app**, before real users or real data. Until then treat the live `nilwerk-cloud` project as prototype-only: no real personal data. This section records the decision only; no review was done or is claimed here. `test/grants.sql` and `test/functions/api.test.ts` already check that API roles are locked out of the 4.B2 token functions, which is not a full review.
 
