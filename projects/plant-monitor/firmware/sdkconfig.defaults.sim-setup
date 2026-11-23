@@ -1,0 +1,11 @@
+# SIMULATOR OVERLAY (setup-flow boot check, sim-setup). Applied AFTER sdkconfig.defaults.v1 and sdkconfig.defaults.setup; used only by
+# tests/qemu_setup_check.sh. Never use this for a board build.
+# Same two QEMU changes as sdkconfig.defaults.sim-qemu (console on UART0, mocked sensors), plus the bench setup window so every cold
+# start opens the setup decision, as the bench image does (sdkconfig.defaults.bench-ci).
+# QEMU has no Bluetooth controller and no security-2 data in its NVS image, so this build cannot advertise BLE. The check only proves
+# the boot decision and the start path (see tests/qemu_setup_check.sh).
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=n
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_PLANT_SIM_MOCK_SENSORS=y
+CONFIG_PLANT_BENCH_AUTO_SETUP=y
+CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60

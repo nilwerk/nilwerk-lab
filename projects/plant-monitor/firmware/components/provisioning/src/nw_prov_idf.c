@@ -52,8 +52,9 @@ static void make_hw_id(char out[NW_PROV_HWID_LEN + 1])
 static void io_ble_set(void *ctx, bool on)
 {
     (void)ctx;
-    /* Advertising is owned by wifi_prov_mgr (start/stop provisioning). Setup end stops the manager from nw_setup_run(), outside the lock. */
-    ESP_LOGI(TAG, "NWSETUP ble %s", on ? "advertising" : "off");
+    /* Advertising is owned by wifi_prov_mgr (start/stop provisioning). Setup end stops the manager from nw_setup_run(), outside the lock.
+     * This is the state machine's request only: "advertising" is logged by start_ble() once the manager really starts (sim: never). */
+    ESP_LOGI(TAG, "NWSETUP ble %s", on ? "requested" : "off");
 }
 static void io_wifi_start(void *ctx, const char *ssid, const char *pass)
 {
@@ -206,6 +207,7 @@ static bool start_ble(void)
       if (pe != ESP_OK) { ESP_LOGE(TAG, "NWSETUP BLE: start_provisioning failed (%d)", (int)pe); return false; } }
     wifi_prov_mgr_endpoint_register("nw-claim", ep_claim, NULL);
     wifi_prov_mgr_endpoint_register("nw-status", ep_status, NULL);
+    ESP_LOGI(TAG, "NWSETUP ble advertising");   /* only here: the manager is up (the state machine's request is logged in io_ble_set) */
     return true;
 }
 

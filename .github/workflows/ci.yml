@@ -257,12 +257,26 @@ jobs:
           echo "$rc" > "$RUNNER_TEMP/boot_rc"
           cat "$RUNNER_TEMP/boot_check.txt"
           exit "$rc"
+      - name: Simulator setup-flow check (scenario 2)
+        id: setup2
+        working-directory: projects/plant-monitor/firmware
+        shell: bash
+        run: |
+          export IDF_PATH="$HOME/esp/esp-idf"
+          . "$IDF_PATH/export.sh" >/dev/null
+          set +e
+          bash tests/qemu_setup_check.sh --log "$RUNNER_TEMP/qemu_setup.log" > "$RUNNER_TEMP/setup_check.txt" 2>&1
+          rc=$?
+          echo "$rc" > "$RUNNER_TEMP/setup_rc"
+          cat "$RUNNER_TEMP/setup_check.txt"
+          exit "$rc"
       # Runs even when an earlier step failed: every scenario gets PASS, FAIL or NOT RUN. Scenarios 2 to 4 have no harness yet.
       - name: Scenario summary
         if: always()
         shell: bash
         env:
           BOOT_OUTCOME: ${{ steps.boot.outcome }}
+          SETUP_OUTCOME: ${{ steps.setup2.outcome }}
         run: |
           rc="$(cat "$RUNNER_TEMP/boot_rc" 2>/dev/null || echo none)"
           case "$BOOT_OUTCOME" in
@@ -276,6 +290,18 @@ jobs:
               esac ;;
             *) s1="NOT RUN"; note="the boot check did not start (an earlier step failed)" ;;
           esac
+          src="$(cat "$RUNNER_TEMP/setup_rc" 2>/dev/null || echo none)"
+          case "$SETUP_OUTCOME" in
+            success) s2="PASS"; note2="boot decision and start path checked in tests/qemu_setup_check.sh; QEMU has no BLE, so no advertising check" ;;
+            failure)
+              s2="FAIL"
+              case "$src" in
+                1) note2="a setup-flow check failed (see the lines below)" ;;
+                2) note2="setup or build problem, not a firmware verdict" ;;
+                *) note2="script exit code: $src" ;;
+              esac ;;
+            *) s2="NOT RUN"; note2="the setup check did not start (an earlier step failed)" ;;
+          esac
           {
             echo "## Firmware simulator: scenario results"
             echo "Simulator only (QEMU ESP32-C3, mocked sensors). Not hardware. ESP-IDF ${IDF_VERSION}, QEMU ${QEMU_VERSION}."
@@ -283,7 +309,7 @@ jobs:
             echo "| # | Scenario | Result | Note |"
             echo "|---|---|---|---|"
             echo "| 1 | Boot to app_main, five readings, mock decode, sleep call (tests/qemu_boot_check.sh) | $s1 | $note |"
-            echo "| 2 | Missing security-2 data in NVS: BLE must stay off | NOT RUN | no simulator harness yet |"
+            echo "| 2 | Setup flow on a cold start: setup mode, BLE refused without security-2 data, no crash (tests/qemu_setup_check.sh) | $s2 | $note2 |"
             echo "| 3 | Failed boot decision (NWSETUP boot decision failed) | NOT RUN | no simulator harness yet |"
             echo "| 4 | Five resets | NOT RUN | no simulator harness yet |"
             echo ""
@@ -292,6 +318,14 @@ jobs:
               echo ""
               echo '```'
               grep -E '^(PASS|FAIL|RESULT|NOTE|SETUP)' "$RUNNER_TEMP/boot_check.txt" || true
+              echo '```'
+              echo "</details>"
+            fi
+            if [ -f "$RUNNER_TEMP/setup_check.txt" ]; then
+              echo "<details><summary>Scenario 2 check lines</summary>"
+              echo ""
+              echo '```'
+              grep -E '^(PASS|FAIL|RESULT|NOTE|SETUP)' "$RUNNER_TEMP/setup_check.txt" || true
               echo '```'
               echo "</details>"
             fi
