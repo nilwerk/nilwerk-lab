@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bench/app/run_appium.sh: bench step d ("d. App flow on phone"). Device flow in the real (Supabase) app build, through an
 # Appium 2 server (UiAutomator2) with W3C element calls. Labels are read from projects/plant-monitor/app/strings/en.json at
-# run time. No coordinates. Screen order (file, string key):
+# run time. No coordinates, except the last fallback of hide_keyboard (a tap near the top of the screen). Screen order (file, string key):
 #   0. launch         Welcome title app.name (src/screens/WelcomeScreen.tsx). The MOCK build is refused (app.mockBanner, App.tsx).
 #   1. sign up        welcome.createAccount (WelcomeScreen.tsx) -> auth.email, auth.password, auth.signUp.submit (AuthFormScreen.tsx)
 #                     -> plants.title "My plants" (signed in), or auth.signUp.checkEmail (needs confirmation: sign in with
@@ -225,6 +225,73 @@ PY
     --data-binary @"$work/value.json" "$appium_url/session/$sid/element/$el/value")" || code="000"
   rm -f "$work/value.json"
   [ "$code" = "200" ] || fail "typing into \"$1\" was not accepted (HTTP $code)"
+  hide_keyboard "$1"
+}
+
+# ---- keyboard: close the on-screen keyboard after every text entry ----
+# Why: the soft keyboard covers the buttons below the field and the step stalled until someone closed it by hand (Nexus 6P,
+# Android 8.1). hide_keyboard is called from field(), so every entry path (sign-up, sign-in, setup code, Wi-Fi, names) is covered.
+# Nothing in here can stop the run (each call is guarded; a failed hide is only logged); the next tap or wait still fails with its
+# own message if the keyboard really is in the way. Only the job-clock guard (job_fits) and the step limit (budget) can stop it.
+# Appium 2 UiAutomator2 methods used (POST /session/<id>/execute/sync): "mobile: isKeyboardShown" and "mobile: hideKeyboard".
+# Not run on a phone yet: check the first bench run's "keyboard:" log lines.
+
+# kb_shown: returns 0 = shown, 1 = hidden, 2 = unknown. Asks Appium first, then the phone's input-method state through adb.
+kb_shown() {
+  local code v
+  code="$(curl -sS --max-time 30 -o "$work/kb.json" -w '%{http_code}' -H 'Content-Type: application/json' \
+    --data-binary '{"script":"mobile: isKeyboardShown","args":[]}' "$appium_url/session/$sid/execute/sync")" || code="000"
+  if [ "$code" = "200" ]; then
+    v="$(python3 -I -c 'import json, sys; print(str(json.load(open(sys.argv[1], encoding="utf-8")).get("value")).lower())' "$work/kb.json" 2>/dev/null)" || v=""
+    [ "$v" = "true" ] && return 0
+    [ "$v" = "false" ] && return 1
+  fi
+  v="$(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell dumpsys input_method 2>/dev/null | tr -d '\r' | grep -o 'mInputShown=[a-z]*' | head -n 1)" || v=""
+  [ "$v" = "mInputShown=true" ] && return 0
+  [ "$v" = "mInputShown=false" ] && return 1
+  return 2
+}
+
+# hide_keyboard <field label>: logs one line, never a typed value. The label is a screen string, not a secret.
+hide_keyboard() {
+  job_fits 20 "closing the keyboard"
+  budget
+  local how="not needed" state=0 w="" h="" screen="screen unchanged"
+  kb_shown || state=$?
+  if [ "$state" != "1" ]; then
+    # (a) Appium: hide the keyboard (UiAutomator2 presses Back only while the keyboard is up).
+    how="appium"
+    curl -sS --max-time 30 -o /dev/null -H 'Content-Type: application/json' \
+      --data-binary '{"script":"mobile: hideKeyboard","args":[]}' "$appium_url/session/$sid/execute/sync" || true
+    sleep 1
+    state=0; kb_shown || state=$?
+  fi
+  if [ "$state" != "1" ]; then
+    # (b) adb: ESC. Enter (66) is not used: it can submit the form on the sign-up and sign-in screens.
+    how="adb-esc"
+    timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell input keyevent 111 >/dev/null 2>&1 || true
+    sleep 1
+    state=0; kb_shown || state=$?
+  fi
+  if [ "$state" != "1" ]; then
+    # (c) last resort, the only coordinate use in this script: tap the middle of the top tenth of the screen (title area,
+    # away from the fields and from the keyboard, which covers the lower part).
+    how="adb-tap"
+    read -r w h < <(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell wm size 2>/dev/null | tr -d '\r' \
+      | sed -n 's/.*[^0-9]\([0-9][0-9]*\)x\([0-9][0-9]*\).*/\1 \2/p' | tail -n 1) || true
+    if [[ "$w" =~ ^[0-9]+$ && "$h" =~ ^[0-9]+$ ]]; then
+      timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell input tap $(( w / 2 )) $(( h / 10 )) >/dev/null 2>&1 || true
+    fi
+    sleep 1
+    state=0; kb_shown || state=$?
+  fi
+  # Back can leave the screen on some devices: the field's own label must still be on the screen (one look, no wait).
+  probe desc "$1" || screen="WARNING the field label is no longer on screen (the keyboard hide may have navigated away)"
+  if [ "$state" = "1" ]; then
+    echo "d. app flow: ${step_name}: keyboard: closed (${how}); ${screen}"
+  else
+    echo "d. app flow: ${step_name}: keyboard: WARNING may still be open (last method ${how}, state code ${state}); ${screen}"
+  fi
 }
 
 # ---- session and launch (the launch check and the app.name check are kept) ----
