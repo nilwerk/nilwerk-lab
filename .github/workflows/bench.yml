@@ -978,6 +978,7 @@ jobs:
             exit 1
           fi
           echo "e. cloud check: waiting ${wait_s} s for the first reading (BENCH_FIRST_READING_WAIT_S); largest wait that fits now is ${max_wait_s} s"
+          # This sleep is NOT redundant with step d: step d does not read BENCH_FIRST_READING_WAIT_S, so this is the only wait.
           sleep "$wait_s"
           bash "$script"
 
