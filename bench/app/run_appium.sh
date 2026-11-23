@@ -6,7 +6,7 @@
 #   1. sign up        welcome.createAccount (WelcomeScreen.tsx) -> auth.email, auth.password, auth.signUp.submit (AuthFormScreen.tsx)
 #                     -> plants.title "My plants" (signed in), or auth.signUp.checkEmail (needs confirmation: sign in with
 #                     auth.haveAccount, auth.signIn.submit), or auth.error.emailTaken (sign in with the same address).
-#                     The address is BENCH_TEST_EMAIL with a random tag per run (BENCH_RUN_EMAIL, never printed).
+#                     Test account: BENCH_TEST_EMAIL, BENCH_TEST_EMAIL_PASSWORD, display name BENCH_TEST_USER (never printed).
 #   2. add sensor     nav.profile tab (src/ui/TabBar.tsx) -> setup.addSensor (ProfileScreen.tsx) -> setup.findSensor
 #                     (src/screens/setup/SetupSteps.tsx ReadyStep) -> the device "Sensor NW-<last 6 of hw_id>," (setup.ready.device)
 #                     -> setup.connect.codeLabel = NW1:<hw_id>:<pop>, setup.connect.submit (ConnectStep)
@@ -74,7 +74,7 @@ keys=(app.name app.mockBanner welcome.haveAccount auth.email auth.password auth.
   setup.details.save setup.details.saveError setup.done.title setup.done.seePlant setup.move.title setup.move.move
   setup.linked.title setup.notMoved.title setup.linked.unknownTitle
   setup.linkError.wifi.title setup.linkError.owned.title setup.linkError.claim.title
-  welcome.createAccount auth.signUp.submit auth.signUp.checkEmail auth.error.emailTaken auth.haveAccount
+  welcome.createAccount auth.signUp.submit auth.signUp.checkEmail auth.error.emailTaken auth.haveAccount auth.displayName
   plants.refresh plants.row.a11y)
 declare -A T
 dump="$(python3 -I - "$strings" "${keys[@]}" <<'PY'
@@ -98,13 +98,7 @@ pkg="$(sed -n "s/^ *package: '\([A-Za-z0-9_.]*\)',\{0,1\}$/\1/p" "$app/app.confi
 [ -n "${BENCH_ANDROID_SERIAL:-}" ] || fail "secret BENCH_ANDROID_SERIAL is not set (value not printed)"
 [ -n "${BENCH_TEST_EMAIL:-}" ] || fail "secret BENCH_TEST_EMAIL is not set (value not printed)"
 [ -n "${BENCH_TEST_EMAIL_PASSWORD:-}" ] || fail "secret BENCH_TEST_EMAIL_PASSWORD is not set (value not printed)"
-# This run's address: BENCH_TEST_EMAIL with a random tag in the local part (local+bench<8 hex>@domain). Never printed.
-run_email="$(python3 -I -c 'import secrets, sys
-local, sep, domain = sys.argv[1].partition("@")
-if not (sep and local and "." in domain and "@" not in domain):
-    sys.exit(1)
-print(f"{local}+bench{secrets.token_hex(4)}@{domain}")' "$BENCH_TEST_EMAIL")" || fail "secret BENCH_TEST_EMAIL is not an e-mail address (value not printed)"
-export BENCH_RUN_EMAIL="$run_email"
+[ -n "${BENCH_TEST_USER:-}" ] || fail "secret BENCH_TEST_USER is not set (value not printed)"
 [ -n "${BENCH_WIFI_SSID:-}" ] || fail "secret BENCH_WIFI_SSID is not set (value not printed)"
 [ -n "${BENCH_WIFI_PASSWORD:-}" ] || fail "secret BENCH_WIFI_PASSWORD is not set (value not printed)"
 hw="${BENCH_BOARD_HW_ID:-}"
@@ -265,15 +259,16 @@ echo "d. app flow: launch: first screen title '${T[app.name]}' found in the app 
 # ---- 1. sign in with the test account ----
 step_name="1. sign in"
 probe text "${T[plants.title]}" && fail "the app starts already signed in; the bench must start signed out"
-# Sign up with this run's address (BENCH_RUN_EMAIL, random). Outcomes, read from the sign-up screen:
+# Sign up with the test account: e-mail BENCH_TEST_EMAIL, password BENCH_TEST_EMAIL_PASSWORD, display name BENCH_TEST_USER
+# (the app's only username-like field, auth.displayName). Outcomes, read from the sign-up screen:
 #   signed in (e-mail confirmation off or already done) -> go on.
 #   auth.signUp.checkEmail (sign-up accepted, confirmation needed) -> try to sign in; the bench cannot open the link.
 #   auth.error.emailTaken (the address already has an account) -> sign in with it.
 #   anything else -> fail with the screen's message.
-# sign_in_form <message if not accepted>: switches to sign-in from the sign-up screen and signs in with the run's address.
+# sign_in_form <message if not accepted>: switches to sign-in from the sign-up screen and signs in with the test account.
 sign_in_form() {
   tap "${T[auth.haveAccount]}"
-  field "${T[auth.email]}" BENCH_RUN_EMAIL
+  field "${T[auth.email]}" BENCH_TEST_EMAIL
   field "${T[auth.password]}" BENCH_TEST_EMAIL_PASSWORD
   tap "${T[auth.signIn.submit]}"
   wait_any 60 "${T[plants.title]}" "${T[auth.error.invalidCredentials]}" "${T[auth.error.network]}" \
@@ -281,8 +276,9 @@ sign_in_form() {
   [ "$hit" = "${T[plants.title]}" ] || fail "$1 (sign-in screen: \"$hit\")"
 }
 tap "${T[welcome.createAccount]}"
-field "${T[auth.email]}" BENCH_RUN_EMAIL
+field "${T[auth.email]}" BENCH_TEST_EMAIL
 field "${T[auth.password]}" BENCH_TEST_EMAIL_PASSWORD
+field "${T[auth.displayName]}" BENCH_TEST_USER
 tap "${T[auth.signUp.submit]}"
 job_fits 120 "the sign-up answer"
 checkmail_prefix="${T[auth.signUp.checkEmail]%%'{email}'*}"
