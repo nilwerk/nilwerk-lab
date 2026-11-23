@@ -228,6 +228,66 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
         run: ./gradlew assembleDebug
 
+      - name: Print APK sha256, size and manifest dump (diagnostic, never fails)
+        # Diagnostic only: this step never fails the job. It prints the APK sha256 and size, the manifest entry
+        # size, and the aapt2 xmltree dump of AndroidManifest.xml (full dump in the job summary). Purpose: the 6P
+        # rejected the manifest at install (run 45184412853); the 6P runs at most Android 8.1 (API 27).
+        shell: bash
+        run: |
+          set +eo pipefail
+          shopt -s nullglob
+          apks=(projects/plant-monitor/app/android/app/build/outputs/apk/debug/*.apk)
+          if [ "${#apks[@]}" != "1" ]; then
+            echo "APK diagnostics: expected one debug APK, found ${#apks[@]}. Nothing printed; job continues."
+            exit 0
+          fi
+          apk="${apks[0]}"
+          echo "APK sha256=$(sha256sum "$apk" | cut -d' ' -f1) size=$(stat -c %s "$apk")"
+          echo "APK manifest entry size=$(unzip -l "$apk" 2>/dev/null | awk '$NF=="AndroidManifest.xml" {print $1}')"
+
+          aapt2=""
+          for root in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"; do
+            [ -n "$root" ] && [ -d "$root/build-tools" ] || continue
+            cand="$(find "$root/build-tools" -mindepth 2 -maxdepth 2 -name aapt2 -type f 2>/dev/null | sort -V | tail -n 1)"
+            if [ -n "$cand" ]; then aapt2="$cand"; break; fi
+          done
+          if [ -z "$aapt2" ]; then
+            echo "aapt2: not available on this runner (no build-tools/*/aapt2 under ANDROID_HOME or ANDROID_SDK_ROOT). Manifest dump skipped; job continues."
+            exit 0
+          fi
+          echo "aapt2: ${aapt2}"
+          dump="${RUNNER_TEMP:-/tmp}/manifest-xmltree.txt"
+          "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" > "$dump" 2>&1
+          echo "aapt2 dump exit code: $? (diagnostic only)"
+          if [ ! -s "$dump" ]; then
+            echo "aapt2 produced no output. Job continues."
+            exit 0
+          fi
+
+          echo "--- uses-sdk ---"
+          awk '/E: uses-sdk/ {p=1; print; next} /E: / {p=0} p && /A: / {print}' "$dump"
+          for name in minSdkVersion targetSdkVersion; do
+            hex="$(grep -m1 -oE "android:${name}\([^)]*\)=\(type 0x[0-9a-f]+\)0x[0-9a-f]+" "$dump" | grep -oE '0x[0-9a-f]+$')"
+            if [ -n "$hex" ]; then echo "${name}=$((hex))"; else echo "${name}=not found"; fi
+          done
+
+          echo "--- lines with neverForLocation or attributes newer than API 27 ---"
+          grep -nE 'android:(neverForLocation|dataExtractionRules|foregroundServiceType|enableOnBackInvokedCallback|localeConfig|hasFragileUserData|forceQueryable|preserveLegacyExternalStorage|requestLegacyExternalStorage|minAspectRatio|appComponentFactory|allowNativeHeapPointerTagging|gwpAsanMode)\(' "$dump" || echo "(none)"
+
+          if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+            {
+              echo "### APK manifest dump (aapt2 xmltree, diagnostic)"
+              echo ""
+              echo "<details><summary>AndroidManifest.xml of ${apk##*/}</summary>"
+              echo ""
+              echo '```'
+              cat "$dump"
+              echo '```'
+              echo "</details>"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
       - name: Name the artifact by commit
         id: meta
         env:
@@ -317,13 +377,17 @@ jobs:
       - name: "2. Download app APK (build-apk of this run)"
         # Input: artifact plant-monitor-app-debug-<sha7> from the build-apk job of THIS run (same run-id rule as step 1).
         # Downloaded into bench-artifacts/app-apk/. The next run step checks that exactly one APK is there.
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          pattern: plant-monitor-app-debug-*
-          merge-multiple: true
-          path: bench-artifacts/app-apk
-          run-id: ${{ github.run_id }}
-          github-token: ${{ github.token }}
+        # Downloaded with the GitHub CLI, not actions/download-artifact: on this self-hosted runner the action wrote a
+        # truncated APK (96,227,715 bytes instead of 180,763,206; runs 45180735909 and 45184412853). gh run download
+        # gave the complete file (size, SHA-256 and unzip -t checked on the Pi).
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dest="${GITHUB_WORKSPACE}/bench-artifacts/app-apk"
+          mkdir -p "$dest"
+          gh run download "${GITHUB_RUN_ID}" -R "${GITHUB_REPOSITORY}" -p 'plant-monitor-app-debug-*' -D "$dest"
+          find "$dest" -type f -name '*.apk' -exec sh -c 'echo "2. app APK downloaded: $1 ($(stat -c %s "$1") bytes)"' _ {} \;
 
       - name: "2. Check app APK (one APK from build-apk of this run)"
         run: |
@@ -335,6 +399,13 @@ jobs:
           [ "${#apks[@]}" = "1" ] || fail "not found: expected one APK from the build-apk job of this run, found ${#apks[@]}"
           apk="${apks[0]}"
           [ -s "$apk" ] || fail "APK file is empty"
+          # An APK is a zip archive with an end-of-archive record and a manifest. A download cut short fails here,
+          # with a clear message, instead of failing later at adb install. This check does NOT catch the install
+          # failure seen in run 45184412853: that APK was a complete zip (unzip -t OK, sha256 matched the upload).
+          # The device rejected its AndroidManifest.xml during parsing; that cause is still open.
+          unzip -tq "$apk" >/dev/null 2>&1 || fail "APK is not a valid zip archive (truncated or corrupt download): $apk"
+          unzip -l "$apk" | grep -q 'AndroidManifest.xml' || fail "APK has no AndroidManifest.xml"
+          echo "APK sha256=$(sha256sum "$apk" | cut -d' ' -f1) size=$(stat -c %s "$apk")"
           echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
           echo "2. app APK: saved to the runner workspace from run ${GITHUB_RUN_ID} (commit ${GITHUB_SHA})"
 
