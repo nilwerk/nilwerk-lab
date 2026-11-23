@@ -69,5 +69,8 @@ void nw_glue_tick(nw_glue_t *g, uint32_t now_ms);
  *              Not button wake: IO9 is not an RTC pin on the ESP32-C3 (only IO0-IO5 can wake deep sleep). */
 typedef enum { NW_GLUE_NEXT_STAY = 0, NW_GLUE_NEXT_NORMAL, NW_GLUE_NEXT_SLEEP_UNTIL_RESET } nw_glue_next_t;
 nw_glue_next_t nw_glue_next_after_setup(const nw_prov_t *p, bool record_present);
+/* Decision after nw_prov_boot() and the setup loop (PR #172, Theo): a failed boot decision (boot_rc != NW_PROV_OK) never
+ * falls through to NORMAL; it sleeps until reset. Otherwise the same as nw_glue_next_after_setup(). */
+nw_glue_next_t nw_glue_next_after_boot(const nw_prov_t *p, int boot_rc, bool record_present);
 
 #endif

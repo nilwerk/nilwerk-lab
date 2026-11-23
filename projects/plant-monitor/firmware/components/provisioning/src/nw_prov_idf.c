@@ -258,7 +258,7 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     if (s_mgr_up) { wifi_prov_mgr_stop_provisioning(); wifi_prov_mgr_deinit(); s_mgr_up = false; }   /* BLE off (FR-D09) [verify] deinit frees BT memory */
     bool have_record = false;
     { nw_prov_record_t r; if (s_glue.io.store.load && s_glue.io.store.load(s_glue.io.store_ctx, &r) == 0) { have_record = true; memset(&r, 0, sizeof r); } }
-    nw_glue_next_t next = nw_glue_next_after_setup(&s_prov, have_record);
+    nw_glue_next_t next = nw_glue_next_after_boot(&s_prov, rc, have_record);   /* PR #172: failed boot decision sleeps, never normal */
     ESP_LOGI(TAG, "NWSETUP end: %s", next == NW_GLUE_NEXT_NORMAL ? "normal mode" : "sleep until reset");
     return next == NW_GLUE_NEXT_NORMAL ? NW_SETUP_NORMAL : NW_SETUP_SLEEP_UNTIL_RESET;
 }
