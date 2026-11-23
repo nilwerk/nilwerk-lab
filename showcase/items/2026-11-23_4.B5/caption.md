@@ -1,0 +1,1 @@
+Task 4.B5 (Cloud AI role): an MCP server lets a user's own AI client read only their own plants, through a hashed, revocable per-user key and a premium gate, with tests that show one user cannot read another user's plant.

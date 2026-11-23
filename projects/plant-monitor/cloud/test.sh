@@ -117,6 +117,14 @@ else export NW_TEST_DB_URL="postgresql://postgres@/nw_test_export?host=$TMP&port
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/export.test.ts
 unset NW_TEST_DB_URL
 
+# --- 5c. MCP server 4.B5 (FR-P03, FR-P04, FR-P01, FR-P02, NFR-06, NFR-07): tool contracts, key checks, cross-user and revocation against the seeded DB
+echo "== MCP server (test/functions/mcp.test.ts) against local Postgres"
+newdb nw_test_mcp yes
+if [ -n "${DATABASE_URL:-}" ]; then export NW_TEST_DB_URL="$BASE/nw_test_mcp"
+else export NW_TEST_DB_URL="postgresql://postgres@/nw_test_mcp?host=$TMP&port=$PORT"; fi
+node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/mcp.test.ts
+unset NW_TEST_DB_URL
+
 # --- 6. care-tips engine 4.B3 slice 1 (pure TypeScript, no DB): guardrail rules, premium gate, injected weather/assistant (FR-P02, FR-P04)
 if [ "${NW_ONLY:-}" != api ]; then
 echo "== care-tips engine (tips/test/*.test.ts: ALL test files, not only tips.test.ts)"
@@ -127,5 +135,5 @@ fi
 echo "== analytics (analytics/test/*.test.ts: pure functions, hand-computed fixtures)"
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec analytics/test/*.test.ts
 
-for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api nw_test_export nw_test_ct_src nw_test_ct_mig; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
+for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api nw_test_export nw_test_mcp nw_test_ct_src nw_test_ct_mig; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
 echo "ALL CLOUD TESTS PASSED"
