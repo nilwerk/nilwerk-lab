@@ -4,18 +4,18 @@ Internal file. File names and IDs are allowed here; they are not allowed in `pos
 
 | ID | Claim in the draft | Type | Source (file, line or section) | As of | Status |
 |---|---|---|---|---|---|
-| C1 | The app's main screens run in a browser with fake sensor values and a fake Bluetooth scan; five screens (welcome, sign-up error, profile, plant list, plant detail) | measured | `showcase/items/2026-11-20_sim-evidence/caption.md` (What it shows; Images 01–05) | 20 Nov run | Screen 04 viewed 23 Nov (plant list, MOCK banner). Screens 01–03 and 05 not yet viewed: **OPEN**, look at them before approval |
+| C1 | The app's main screens run in a browser with fake sensor values and a fake Bluetooth scan; five screens (welcome, sign-up error, profile, plant list, plant detail) | measured | `showcase/items/2026-11-20_sim-evidence/caption.md` (What it shows; Images 01–05) | 20 Nov run | Checked 23 Nov: screens 01–05 all viewed (`01-welcome.png` to `05-plant-detail.png`); each shows the MOCK banner |
 | C2 | The firmware starts in an ESP32-C3 simulator (QEMU, ESP-IDF 5.4, v1 build with simulator overlay) and prints five mock readings, numbered 0 to 4 | measured | `showcase/items/2026-11-20_sim-evidence/boot-log.txt`: lines `NWBENCH wake=1 i=0` to `i=4`; header lines (ESP-IDF v5.4, QEMU esp32c3) | build compile time 20 Nov 2026 18:10 | Checked 23 Nov in the log |
 | C3 | Sensor values are fixed mocks; calibration constants are placeholders until set on the bench; QEMU has no USB serial; no live database | measured and caveat | `boot-log.txt`: line `NWSIMMOCK sensors=MOCK fixed values, NOT sensor data`; line `CALIBRATION IS A PLACEHOLDER UNTIL SET ON THE BENCH`; `caption.md` (Caveats, Unverified) | 20 Nov | Checked in the log; the no-USB and no-database points come from `caption.md` |
-| C4 | Agent minutes about 6.5 (app) and about 18.5 (firmware, incl. toolchain install), wall clock | measured (as stated in item) | `caption.md` (Time) | 20 Nov | **OPEN**: check the Agent Log rows for this item before posting; the caption figure is the only source so far |
+| C4 | Agent minutes about 6.5 (app) and about 18.5 (firmware, incl. toolchain install) | measured (as stated in item) | `caption.md` (Time) | 20 Nov | **OPEN**: check the Agent Log rows for this item before posting; the caption figure is the only source so far |
 | C5 | Own human estimates about 4 h (app) and about 4 h (firmware) | estimated | `caption.md` (Time) | 20 Nov | Labelled "estimated" in the post. Not a measured figure |
-| C6 | Nothing ran on a phone or a real board; no real sensor data; no real Bluetooth pairing | caveat | `caption.md` (Unverified); `boot-log.txt` header line "Nothing here was measured on hardware" | 20 Nov | Checked |
+| C6 | Nothing ran on a phone or a real board; no real sensor data; no real Bluetooth pairing | caveat | `caption.md` (What it shows: "Nothing here is real sensor data, real Bluetooth, or a real phone"; Caveats: "The app runs on a web build, not a phone"); `check-output.txt` NOTE line "This checks the driver code path, not hardware." | 20 Nov | Checked 23 Nov (grepped; the earlier header-line citation did not exist in `boot-log.txt`) |
 | C7 | The real sensor board has not been tested yet (used in the lead-in) | status | `caption.md` (Unverified: real sensors and soil probe); `team/reports/2026-11-21.md`, bench checks still open | 21 Nov report | **OPEN** as a status word: recheck the day of posting, since bench checks can move |
-| C8 | Closing line "AI agents, led and reviewed by humans" | team fact | `showcase/workflow/team-workflow.md` (intro paragraph) | 23 Nov | Checked: the same wording is used in the team workflow |
+| C8 | Closing line "AI agents, led and reviewed by humans" | team fact | `showcase/workflow/team-workflow.md` (intro, line 3: "a team of AI agents, led and reviewed by a human engineer (the owner)") | 23 Nov | Checked: the meaning matches, the wording does not. The post's closing line is a shorter form and is not quoted from that file |
 
 ## Open points before any approval
 
-1. Look at screens 01–03 and 05 of the item and confirm each fake-data screen carries MOCK (C1). Screen 04 is confirmed.
+1. Done 23 Nov: screens 01–05 checked, each fake-data screen carries MOCK (C1).
 2. Agent Log rows for the simulator item: confirm or correct the 6.5 and 18.5 minutes (C4).
 3. Technical check by the architect role: the simulator claims (C2, C3).
 4. Native German check of the DE text. The check must cover the layout as well as the words.
