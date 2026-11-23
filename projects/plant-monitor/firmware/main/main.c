@@ -79,11 +79,19 @@ void app_main(void)
 #ifdef CONFIG_PLANT_SETUP_FLOW
     if (esp_reset_reason() != ESP_RST_DEEPSLEEP) {          /* setup decision only on a cold start; a sample wake never opens BLE (FR-D09) */
         if (nw_setup_run(button_held_ms_after_cold_start()) == NW_SETUP_SLEEP_UNTIL_RESET) {
+#ifdef CONFIG_PLANT_BENCH_AUTO_SETUP
+            /* DEBUG (bench image only): do not deep-sleep here, so the board stays on USB and its serial log can be read. */
+            printf("NWSETUP bench debug: deep sleep skipped (setup closed, never provisioned)\n");
+            fflush(stdout);
+#else
             printf("NWSETUP closed, never provisioned: deep sleep with no timer; reset to try again\n");
             fflush(stdout);
+#endif
             /* nw_hal_esp32_prepare_deep_sleep() is NOT called: it needs nw_hal_esp32_init first (it reads the HAL's pin copy). IO3 (SOIL_PWR)
              * was never configured in this path, so its level in sleep depends on the board pull-down: bench check for NFR-12 (WO step). */
+#ifndef CONFIG_PLANT_BENCH_AUTO_SETUP
             esp_deep_sleep_start();
+#endif
         }
     }
 #endif

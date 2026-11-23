@@ -6,5 +6,5 @@
 #   components/provisioning/src/nw_prov_proto.c:58-69  nw_prov_adv_name(): memcpy(out, "NW-", 3), then the last 6 hex of hw_id.
 #   components/provisioning/include/nw_prov_proto.h:23  NW_PROV_ADV_NAME_LEN 9 ("NW-" + 6 hex).
 #   components/provisioning/src/nw_prov_idf.c:201-204  the name is passed to wifi_prov_mgr_start_provisioning() (BLE advertising).
-# Owner input: none for the prefix. Step c still needs the Pi's bluetoothctl and a powered board.
+# Owner input: none for the prefix. Step c needs the Pi's hcitool (BLE scan) and a powered board.
 NW-
