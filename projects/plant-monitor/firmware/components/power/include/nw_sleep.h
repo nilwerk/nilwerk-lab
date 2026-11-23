@@ -31,6 +31,16 @@
  * TOLERANCE is ASSUMED (wake-jitter allowance, not measured). */
 #define NW_REPORT_PERIOD_S 3600
 #define NW_REPORT_DUE_TOLERANCE_S 120 /* ASSUMED until measured */
+#ifdef CONFIG_PLANT_BENCH_UPLOAD_MINUTE
+/* BENCH CI IMAGE ONLY (owner decision 2026-11-23): one sample and one report per minute, on USB, no deep sleep. Only the bench overlay
+ * defines the switch; production, v1 and upload builds keep the values above. The override is below the production lines on purpose. */
+#undef NW_SLEEP_SAMPLE_PERIOD_S
+#define NW_SLEEP_SAMPLE_PERIOD_S 60
+#undef NW_REPORT_PERIOD_S
+#define NW_REPORT_PERIOD_S 60
+#undef NW_REPORT_DUE_TOLERANCE_S
+#define NW_REPORT_DUE_TOLERANCE_S 10 /* bench only: must stay below the period (nw_sleep.c compares unsigned values) */
+#endif
 
 /* Low battery, FR-D06 (acceptance matrix, A-008.2 and A-018): event when the voltage falls below 3.4 V, cleared at 3.5 V or above,
  * no re-fire while it stays between. Values are the requirement; the ADC reading that the comparison uses is ASSUMED

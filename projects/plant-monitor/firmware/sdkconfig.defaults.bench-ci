@@ -11,3 +11,7 @@
 CONFIG_PLANT_BENCH_AUTO_SETUP=y
 # Bench CI image only: BLE setup window of 60 s (main/Kconfig.projbuild, PLANT_BENCH_SETUP_WINDOW_S). Production stays 300 s.
 CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60
+# Hourly upload on the bench, once a minute (owner decision 2026-11-23). Test account only; the data is deleted after the test.
+# The cloud base URL is NOT set here: the workflow writes CONFIG_PLANT_API_BASE_URL into a file outside the repo and lists it last.
+CONFIG_PLANT_UPLOAD=y
+CONFIG_PLANT_BENCH_UPLOAD_MINUTE=y
