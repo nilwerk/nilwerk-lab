@@ -72,6 +72,9 @@ caps = {
     "appium:automationName": os.environ.get("APPIUM_AUTOMATION_NAME", "UiAutomator2"),
     "appium:udid": os.environ["BENCH_ANDROID_SERIAL"],
     "appium:appPackage": sys.argv[1],
+    # The launch activity must be named: without it Appium sends "am start -a MAIN -c LAUNCHER" with no package and the
+    # device answers "Intent does not match any activities" (run 45219867846, step d).
+    "appium:appActivity": os.environ.get("APPIUM_APP_ACTIVITY", ".MainActivity"),
     "appium:newCommandTimeout": 120,
 }
 with open(sys.argv[2], "w", encoding="utf-8") as f:
