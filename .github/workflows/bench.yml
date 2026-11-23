@@ -336,7 +336,9 @@ jobs:
           apk="${apks[0]}"
           [ -s "$apk" ] || fail "APK file is empty"
           # An APK is a zip archive with an end-of-archive record and a manifest. A download cut short fails here,
-          # with a clear message, instead of failing later at adb install (seen in run 45184412853 with a 96 MB file).
+          # with a clear message, instead of failing later at adb install. This check does NOT catch the install
+          # failure seen in run 45184412853: that APK was a complete zip (unzip -t OK, sha256 matched the upload).
+          # The device rejected its AndroidManifest.xml during parsing; that cause is still open.
           unzip -tq "$apk" >/dev/null 2>&1 || fail "APK is not a valid zip archive (truncated or corrupt download): $apk"
           unzip -l "$apk" | grep -q 'AndroidManifest.xml' || fail "APK has no AndroidManifest.xml"
           echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
