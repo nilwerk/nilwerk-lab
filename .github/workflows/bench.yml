@@ -377,13 +377,17 @@ jobs:
       - name: "2. Download app APK (build-apk of this run)"
         # Input: artifact plant-monitor-app-debug-<sha7> from the build-apk job of THIS run (same run-id rule as step 1).
         # Downloaded into bench-artifacts/app-apk/. The next run step checks that exactly one APK is there.
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          pattern: plant-monitor-app-debug-*
-          merge-multiple: true
-          path: bench-artifacts/app-apk
-          run-id: ${{ github.run_id }}
-          github-token: ${{ github.token }}
+        # Downloaded with the GitHub CLI, not actions/download-artifact: on this self-hosted runner the action wrote a
+        # truncated APK (96,227,715 bytes instead of 180,763,206; runs 45180735909 and 45184412853). gh run download
+        # gave the complete file (size, SHA-256 and unzip -t checked on the Pi).
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dest="${GITHUB_WORKSPACE}/bench-artifacts/app-apk"
+          mkdir -p "$dest"
+          gh run download "${GITHUB_RUN_ID}" -R "${GITHUB_REPOSITORY}" -p 'plant-monitor-app-debug-*' -D "$dest"
+          find "$dest" -type f -name '*.apk' -exec sh -c 'echo "2. app APK downloaded: $1 ($(stat -c %s "$1") bytes)"' _ {} \;
 
       - name: "2. Check app APK (one APK from build-apk of this run)"
         run: |
