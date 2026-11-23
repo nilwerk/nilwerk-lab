@@ -70,6 +70,14 @@ menu "Plant Monitor"
             closes about 60 s after reset: bench step c (BLE scan) runs inside it, and the measurement loop starts before bench step b.
             Never set this on a production, v1 or upload build.
 
+    config PLANT_BENCH_SOIL_POWER_ON
+        bool "BENCH CI IMAGE ONLY: soil probe supply stays on (no power gating between readings, A-094)"
+        default n
+        help
+            BENCH CI IMAGE ONLY (set by sdkconfig.defaults.bench-ci). The soil probe supply (GPIO3, SOIL_PWR) is driven high by the
+            first reading and is never switched off, so the probe value can be read and tested between readings. NFR-12 (IO3 low
+            outside a measurement) is NOT met on this image, on purpose. Never set this on a production, v1 or upload build.
+
     config PLANT_API_BASE_URL
         string "Cloud API base URL for POST /device-claim (https, no trailing slash)"
         default "https://api.invalid"

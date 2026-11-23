@@ -134,4 +134,8 @@ if(Python3_FOUND)
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_bench_review_conditions.py)
   add_test(NAME bench_review_conditions_selftest
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_bench_review_conditions.py --selftest)
+  add_test(NAME bench_soil_power_on_B1_B4
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_bench_soil_power.py)
+  add_test(NAME bench_soil_power_on_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_bench_soil_power.py --selftest)
 endif()
