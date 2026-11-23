@@ -597,6 +597,13 @@ jobs:
             flock -w 60 "$ble_lock" timeout 10 hcitool lescan --duplicates > "$log" 2>&1 || true
             if grep -q "^LE Scan" "$log"; then break; fi
             echo "c. BLE: scan attempt ${attempt} did not start, retrying"
+            # bluez can get stuck after earlier scans: every scan then fails with "Set scan parameters failed:
+            # Input/output error". Restart the bluetooth service once through the sudo rule that the Pi grants
+            # to the runner user only (/etc/sudoers.d/ghrunner-bluetooth), then retry.
+            if grep -q "Set scan parameters failed" "$log"; then
+              sudo -n /usr/bin/systemctl restart bluetooth || echo "::warning::c. BLE: could not restart bluetooth (sudo rule missing on the Pi)"
+              sleep 4
+            fi
             sleep 3
           done
           if grep -q "Operation not permitted" "$log"; then
