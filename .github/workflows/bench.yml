@@ -50,11 +50,40 @@ jobs:
   build-firmware:
     name: build setup firmware (GitHub-hosted)
     runs-on: ubuntu-latest
-    # No secrets. The steps below are copied from the firmware job of ci.yml (setup image only).
+    # No secrets. One repository VARIABLE (SUPABASE_URL, a public client value). The steps below are copied from the
+    # firmware job of ci.yml (setup image only), plus the cloud API base URL step.
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Cloud API base URL for the bench build (repository variable SUPABASE_URL, fail closed)
+        # The upload build needs CONFIG_PLANT_API_BASE_URL (DEV_GUIDE 7.1, option 2). It is built from the project URL in the
+        # repository variable SUPABASE_URL (not a secret): <SUPABASE_URL>/functions/v1, the path of the functions
+        # (docs/interfaces/openapi.yaml, servers; /device-claim and /ingest are under it).
+        # The line goes into the git-ignored file firmware/sdkconfig.defaults.local, which the build step reads as one of
+        # its SDKCONFIG_DEFAULTS. It is never printed. The artifact holds flash files only, so the file is never uploaded.
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "::error::Repository variable SUPABASE_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret). Bench build aborted."
+            exit 1
+          fi
+          # Checked exactly as set: no trailing slash is removed first, so a slash fails here.
+          # Bash regex, not grep: grep matches per line, so a value with a newline could pass and break the config line.
+          # Host only: https://<project-ref>.supabase.co, nothing after it. The host must end in .supabase.co.
+          re='^https://[a-z0-9-]+\.supabase\.co$'
+          if ! [[ "$SUPABASE_URL" =~ $re ]]; then
+            echo "::error::Repository variable SUPABASE_URL must be https://<project-ref>.supabase.co (host ending in .supabase.co, no path, no trailing slash). Bench build aborted. The value is not printed."
+            exit 1
+          fi
+          base="$SUPABASE_URL"
+          umask 077
+          printf 'CONFIG_PLANT_API_BASE_URL="%s/functions/v1"\n' "$base" > projects/plant-monitor/firmware/sdkconfig.defaults.local
+          test -s projects/plant-monitor/firmware/sdkconfig.defaults.local
+          echo "Bench build: cloud API base URL written to the git-ignored sdkconfig.defaults.local (value not printed)."
       - name: ESP-IDF build (esp32c3, setup flow on, simulator off)
         # Copied from ci.yml (job firmware). Pinned SHA: see the header of ci.yml. The firmware owner re-checks the pin.
         # set -e first: the first failing line fails the step, so the upload below does not run on a bad build.
@@ -67,18 +96,22 @@ jobs:
           command: |
             set -e
             rm -f sdkconfig.setup
-            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.bench-ci" build size
+            # sdkconfig.defaults.local is LAST, so its CONFIG_PLANT_API_BASE_URL overrides any earlier file (bench-ci included).
+            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.bench-ci;sdkconfig.defaults.local" build size
             grep -q "^CONFIG_PLANT_SETUP_FLOW=y" sdkconfig.setup
             grep -q "^CONFIG_PLANT_BOARD_V1_SUPERMINI=y" sdkconfig.setup
             grep -q "^CONFIG_BT_NIMBLE_ENABLED=y" sdkconfig.setup
             if grep -q "^CONFIG_PLANT_SIM_MOCK_SENSORS=y" sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
-            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci, last in the list).
+            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci).
             # Double quotes only in this block: the action wraps the whole command in single quotes, so a single quote here ends that wrapper early.
             if grep -q "^CONFIG_PLANT_BENCH_SLEEP_CYCLE=y" sdkconfig.setup; then echo "bench sleep cycle must be unset in the setup image (sdkconfig.defaults.bench-ci)"; exit 1; fi
             grep -qxF "# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set" sdkconfig.setup || { echo "sdkconfig.setup lacks the line: # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set (bench-ci overlay not applied)"; exit 1; }
             # Bench CI image: BLE setup window on every cold start without BOOT (sdkconfig.defaults.bench-ci). Double quotes only.
             grep -q "^CONFIG_PLANT_BENCH_AUTO_SETUP=y" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_AUTO_SETUP=y (bench-ci overlay not applied)"; exit 1; }
             grep -q "^CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60 (bench-ci overlay not applied)"; exit 1; }
+            # Cloud API base URL from sdkconfig.defaults.local (written by the step before this build). Double quotes only here.
+            grep -Eq "^CONFIG_PLANT_API_BASE_URL=.https://" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_API_BASE_URL=https (sdkconfig.defaults.local not applied)"; exit 1; }
+            if grep -Eq "^CONFIG_PLANT_API_BASE_URL=.*invalid" sdkconfig.setup; then echo "CONFIG_PLANT_API_BASE_URL is still the invalid placeholder"; exit 1; fi
             test -s build-setup/plant_monitor.bin
       - name: Check every flash file named in flasher_args.json
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
@@ -153,10 +186,13 @@ jobs:
             echo "::error::Repository variable SUPABASE_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret). Build aborted."
             exit 1
           fi
-          case "$SUPABASE_URL" in
-            https://*) ;;
-            *) echo "::error::Repository variable SUPABASE_URL must start with https://. Build aborted."; exit 1 ;;
-          esac
+          # Same host rule as the bench build (build-firmware): https://<project-ref>.supabase.co, nothing after it.
+          # Checked exactly as set (no slash is removed first). Bash regex, so a value with a newline cannot pass.
+          re='^https://[a-z0-9-]+\.supabase\.co$'
+          if ! [[ "$SUPABASE_URL" =~ $re ]]; then
+            echo "::error::Repository variable SUPABASE_URL must be https://<project-ref>.supabase.co (host ending in .supabase.co, no path, no trailing slash). Build aborted. The value is not printed."
+            exit 1
+          fi
           echo "SUPABASE_URL is set (a public client value; the job log MAY show it, depending on debug settings)."
 
       - name: Check repository variable SUPABASE_PUBLISHABLE_KEY
@@ -890,10 +926,19 @@ jobs:
         # Scope: checks only that the device communicated with the cloud, i.e. at least one row
         # from this device exists in the EU project and was received after BENCH_TEST_START_UTC
         # (set by step d). It must not read, print or compare any reading value.
+        # Wait: repository variable BENCH_FIRST_READING_WAIT_S (60 to 3600 seconds, no default). The step sleeps that long
+        # before its one read, so the first upload of the 1-minute bench build can reach the cloud. Missing or out of range fails.
+        # Range reason: 60 s is the shortest wait that covers one upload cycle of the 1-minute build; 3600 s is the ceiling,
+        # the whole bench job timeout (timeout-minutes 60), so no wait can run past the job.
+        # LIMIT: 60 to 3600 s is the allowed range, but the wait is NOT the whole job budget. The job timeout is timeout-minutes 60
+        # (3600 s, counted from the job start), and steps 1 to d run before this step. The step fails closed, before sleeping, when
+        # elapsed-since-job-start + wait + 900 s reserve (for bench/cloud/check.sh and Bench E2E, which run after the wait)
+        # would exceed 3600 s. A longer wait needs the owner to set a longer timeout-minutes on the bench job.
         env:
           BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
           # Device identity (the board's hw_id, nw-<12 hex>), a repository variable (name only here).
           BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
+          BENCH_FIRST_READING_WAIT_S: ${{ vars.BENCH_FIRST_READING_WAIT_S }}
         run: |
           set -euo pipefail
           script="bench/cloud/check.sh"
@@ -909,6 +954,33 @@ jobs:
             echo "::error::e. cloud check: not configured: nothing tested (test start time not set by step d)"
             exit 1
           fi
+          wait_s="${BENCH_FIRST_READING_WAIT_S:-}"
+          if [ -z "$wait_s" ]; then
+            echo "::error::e. cloud check: not configured: nothing tested (repository variable BENCH_FIRST_READING_WAIT_S is not set; set it to 60 to 3600 seconds, there is no default)"
+            exit 1
+          fi
+          if ! [[ "$wait_s" =~ ^[0-9]{2,4}$ ]] || [ "$wait_s" -lt 60 ] || [ "$wait_s" -gt 3600 ]; then
+            echo "::error::e. cloud check: BENCH_FIRST_READING_WAIT_S must be a whole number of seconds from 60 to 3600 (out of range or not a number; value not printed)"
+            exit 1
+          fi
+          # Job budget check (fail closed, nothing slept if it does not fit). 3600 = timeout-minutes 60 of the bench job.
+          # 900 = reserve for check.sh and Bench E2E after the wait (an assumption, not measured; the owner may tune it).
+          job_budget_s=3600
+          reserve_s=900
+          start="${BENCH_JOB_START_EPOCH:-}"
+          if ! [[ "$start" =~ ^[0-9]+$ ]]; then
+            echo "::error::e. cloud check: job start time not recorded (first step of the job); nothing tested"
+            exit 1
+          fi
+          elapsed_s=$(( $(date +%s) - start ))
+          max_wait_s=$(( job_budget_s - elapsed_s - reserve_s ))
+          if [ "$wait_s" -gt "$max_wait_s" ]; then
+            echo "::error::e. cloud check: wait of ${wait_s} s does not fit the 60 min job timeout: ${elapsed_s} s already used, ${reserve_s} s reserved for the check and E2E, so the largest wait now is ${max_wait_s} s. Nothing tested. Lower BENCH_FIRST_READING_WAIT_S, or the owner sets a longer timeout-minutes on the bench job."
+            exit 1
+          fi
+          echo "e. cloud check: waiting ${wait_s} s for the first reading (BENCH_FIRST_READING_WAIT_S); largest wait that fits now is ${max_wait_s} s"
+          # This sleep is NOT redundant with step d: step d does not read BENCH_FIRST_READING_WAIT_S, so this is the only wait.
+          sleep "$wait_s"
           bash "$script"
 
       - name: Bench E2E
