@@ -589,9 +589,23 @@ jobs:
           # hcitool lescan prints one "<MAC> <Name>" line per advertisement ("(unknown)" when there is no name).
           # bluetoothctl did not list an NW- advertisement that hcitool sees on the bench, so the check uses hcitool.
           # The runner user needs HCI access (setcap on hcitool, or a sudo rule). A permission error fails the step below.
-          timeout 10 hcitool lescan --duplicates > "$log" 2>&1 || true
+          # One BLE scan at a time on the bench. A second LE scan while one runs fails with
+          # "Set scan parameters failed: Input/output error", so every scan takes this lock and
+          # retries a few times. Nothing else on the bench may run a BLE scan (no bluetoothctl scan).
+          ble_lock="/tmp/nw-ble-scan.lock"
+          for attempt in 1 2 3; do
+            flock -w 60 "$ble_lock" timeout 10 hcitool lescan --duplicates > "$log" 2>&1 || true
+            if grep -q "^LE Scan" "$log"; then break; fi
+            echo "c. BLE: scan attempt ${attempt} did not start, retrying"
+            sleep 3
+          done
           if grep -q "Operation not permitted" "$log"; then
             echo "::error::c. BLE check: hcitool has no HCI permission for the runner user (setcap or sudo rule needed)"
+            cat "$log"
+            exit 1
+          fi
+          if ! grep -q "^LE Scan" "$log"; then
+            echo "::error::c. BLE check: no BLE scan could start after 3 attempts (bluetooth service stuck? restart it on the Pi)"
             cat "$log"
             exit 1
           fi
