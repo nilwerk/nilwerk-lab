@@ -20,6 +20,7 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "nvs.h"
+#include "nvs_flash.h"
 #include "nw_prov_glue.h"
 #include "nw_prov_store_nvs.h"
 #include "nw_sec2.h"
@@ -221,6 +222,13 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     make_hw_id(hw);
     nw_glue_io_t io = {.ble_set = io_ble_set, .wifi_start = io_wifi_start, .http_post = io_http_post};
     nw_prov_ops_t ops;
+    /* NVS must be up before the record is read. ESP_ERR_INVALID_STATE means it is already initialised (the upload
+     * component calls nvs_flash_init again later in the same boot). Never erase here: that would wipe the provisioning record. */
+    esp_err_t nvs_ret = nvs_flash_init();
+    if (nvs_ret != ESP_OK && nvs_ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "nvs_flash_init failed (%d); not erasing, setup refused", (int)nvs_ret);
+        return NW_SETUP_SLEEP_UNTIL_RESET;
+    }
     nw_prov_store_nvs(&io.store);
     if (nw_glue_init(&s_glue, &io, hw, CONFIG_PLANT_FW_VERSION, &ops) != NW_PROV_OK) { ESP_LOGE(TAG, "glue init"); return NW_SETUP_SLEEP_UNTIL_RESET; }
     nw_prov_init(&s_prov, &ops);

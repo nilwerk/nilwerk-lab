@@ -183,7 +183,7 @@ uint32_t nw_upload_idf_wake(const nw_soil_t *soil, nw_err_t e_soil, const nw_aht
     nw_prov_store_nvs(&store);
     bool have_creds = false;
     esp_err_t ne = nvs_flash_init();                               /* NEVER erase on failure: that would wipe the token */
-    if (ne == ESP_OK) {
+    if (ne == ESP_OK || ne == ESP_ERR_INVALID_STATE) {             /* INVALID_STATE: already initialised by the setup flow this boot */
         int lr = store.load(NULL, &rec);
         nw_creds_check_t cc = lr == 0 ? nw_cycle_creds_check(&rec) : NW_CREDS_NO_SSID;
         have_creds = (lr == 0 && cc == NW_CREDS_OK);
