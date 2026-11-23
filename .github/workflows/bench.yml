@@ -221,12 +221,49 @@ jobs:
           CI: "1"
         run: npx expo prebuild --platform android --no-install
 
-      - name: Build the debug APK (Gradle)
+      - name: Build the release APK with the JavaScript bundle (Gradle)
+        # assembleRelease, not assembleDebug: the bench has no Metro server (bench decision, 23 Nov 2026). The release
+        # build embeds the JS bundle, and expo-dev-launcher's Android code exists only in its debug source set.
+        # Same change as app-apk.yml (keep the two in step). Signing: the template's release config (debug key).
         working-directory: projects/plant-monitor/app/android
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
+
+      - name: Check the bundled release APK (fail closed)
+        # Same check as app-apk.yml: one valid zip with assets/index.android.bundle, valid signature, package
+        # de.nilwerk.plantmonitor, launcher de.nilwerk.plantmonitor.MainActivity only, no DevLauncherActivity in the
+        # manifest. Reads the build output only; no secret is used or printed.
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::APK check: $1"; exit 1; }
+          shopt -s nullglob
+          apks=(projects/plant-monitor/app/android/app/build/outputs/apk/release/*.apk)
+          [ "${#apks[@]}" = "1" ] || fail "expected one release APK, found ${#apks[@]}"
+          apk="${apks[0]}"
+          unzip -tq "$apk" >/dev/null 2>&1 || fail "the release APK is not a valid zip archive"
+          listing="$(mktemp)"
+          unzip -l "$apk" > "$listing"
+          grep -q ' assets/index.android.bundle$' "$listing" || fail "the JavaScript bundle (assets/index.android.bundle) is not inside the APK"
+          aapt2=""
+          apksigner=""
+          for root in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"; do
+            [ -n "$root" ] && [ -d "$root/build-tools" ] || continue
+            [ -n "$aapt2" ] || aapt2="$(find "$root/build-tools" -mindepth 2 -maxdepth 2 -name aapt2 -type f 2>/dev/null | sort -V | tail -n 1)"
+            [ -n "$apksigner" ] || apksigner="$(find "$root/build-tools" -mindepth 2 -maxdepth 2 -name apksigner -type f 2>/dev/null | sort -V | tail -n 1)"
+          done
+          [ -n "$aapt2" ] && [ -n "$apksigner" ] || fail "aapt2 or apksigner not found under ANDROID_HOME or ANDROID_SDK_ROOT (build-tools)"
+          "$apksigner" verify "$apk" >/dev/null 2>&1 || fail "the APK signature does not verify"
+          badging="$("$aapt2" dump badging "$apk")" || fail "aapt2 dump badging failed"
+          grep -q "^package: name='de.nilwerk.plantmonitor'" <<<"$badging" || fail "the package is not de.nilwerk.plantmonitor"
+          launchers="$(sed -n "s/^launchable-activity: name='\([^']*\)'.*/\1/p" <<<"$badging")"
+          [ "$launchers" = "de.nilwerk.plantmonitor.MainActivity" ] || fail "the launcher activity is '${launchers:-none}', expected de.nilwerk.plantmonitor.MainActivity"
+          dump="$(mktemp)"
+          "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" > "$dump" 2>&1 || fail "aapt2 dump xmltree failed"
+          if grep -q 'DevLauncherActivity' "$dump"; then fail "the manifest contains DevLauncherActivity (dev launcher, not usable on the bench)"; fi
+          echo "APK check passed: JavaScript bundle inside, signature valid, package de.nilwerk.plantmonitor, launcher de.nilwerk.plantmonitor.MainActivity, no DevLauncherActivity."
 
       - name: Print APK sha256, size and manifest dump (diagnostic, never fails)
         # Diagnostic only: this step never fails the job. It prints the APK sha256 and size, the manifest entry
@@ -236,7 +273,7 @@ jobs:
         run: |
           set +eo pipefail
           shopt -s nullglob
-          apks=(projects/plant-monitor/app/android/app/build/outputs/apk/debug/*.apk)
+          apks=(projects/plant-monitor/app/android/app/build/outputs/apk/release/*.apk)
           if [ "${#apks[@]}" != "1" ]; then
             echo "APK diagnostics: expected one debug APK, found ${#apks[@]}. Nothing printed; job continues."
             exit 0
@@ -299,7 +336,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: plant-monitor-app-debug-${{ steps.meta.outputs.short }}
-          path: projects/plant-monitor/app/android/app/build/outputs/apk/debug/*.apk
+          path: projects/plant-monitor/app/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14
 
