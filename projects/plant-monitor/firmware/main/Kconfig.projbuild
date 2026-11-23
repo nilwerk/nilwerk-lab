@@ -89,6 +89,17 @@ menu "Plant Monitor"
             setup flow OFF, so build with CONFIG_PLANT_SETUP_FLOW=y), and PLANT_API_BASE_URL set to the real https URL (build setting, A-082).
             UNVERIFIED: compiled by CI only, never run on hardware.
 
+    config PLANT_BENCH_UPLOAD_MINUTE
+        bool "BENCH CI IMAGE ONLY: upload every minute from an awake loop (no deep sleep)"
+        default n
+        depends on PLANT_UPLOAD
+        help
+            BENCH CI IMAGE ONLY (set by sdkconfig.defaults.bench-ci). The unit stays on USB and does not deep-sleep. Each minute it
+            reads the sensors, prints one NWBENCH line (the line bench step b reads) and uploads one sample; the sample and report
+            interval are 60 s (NW_SLEEP_SAMPLE_PERIOD_S, NW_REPORT_PERIOD_S in nw_sleep.h), the device rate limit is raised to 70 per
+            hour (nw_upload.h) and the retry back-off to 60 s. Test data goes to the test account and is deleted after the test.
+            Never set this on the production, v1 or upload builds.
+
     config PLANT_NTP_SERVER
         string "NTP server for the SNTP time sync (needed for sample timestamps)"
         default "pool.ntp.org"

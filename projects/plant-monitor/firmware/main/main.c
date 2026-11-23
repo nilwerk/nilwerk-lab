@@ -48,6 +48,21 @@ static void fmt_x(char *dst, size_t n, long v, int decimals)
     snprintf(dst, n, "%s%ld.%0*ld", v < 0 ? "-" : "", labs(v) / div, decimals, labs(v) % div);
 }
 
+/* One NWBENCH line: the format bench step b reads (bench/firmware/expect.txt). Used by the sensor loop and by the bench upload loop. */
+static void print_bench_line(int i, const nw_soil_t *soil, const nw_aht20_t *aht, const nw_bh1750_t *bh, uint32_t vbat, uint32_t vadc,
+                             const nw_battery_cfg_t *bat, nw_err_t e_soil, nw_err_t e_aht, nw_err_t e_bh, nw_err_t e_bat)
+{
+    char pct[16], t[16], rh[16], lux[16];
+    fmt_x(pct, sizeof pct, soil->pct_x10, 1);
+    fmt_x(t, sizeof t, aht->temp_c_x100, 2);
+    fmt_x(rh, sizeof rh, aht->rh_x100, 2);
+    fmt_x(lux, sizeof lux, bh->lux_x10, 1);
+    printf("NWBENCH wake=%d i=%d soil_raw=%d soil_pct=%s soil_flags=0x%02x temp_c=%s rh_pct=%s lux=%s lux_raw=%u "
+           "vbat_mv=%u vbat_adc_mv=%u vbat_plausible=%d divider_na=%u err=soil:%d,aht:%d,bh:%d,bat:%d\n",
+           wake_count, i, soil->raw, pct, soil->flags, t, rh, lux, bh->raw, (unsigned)vbat, (unsigned)vadc,
+           nw_battery_plausible(vbat), (unsigned)nw_battery_divider_na(vbat, bat), e_soil, e_aht, e_bh, e_bat);
+}
+
 #ifdef CONFIG_PLANT_SETUP_FLOW
 /* Button hold measured after a cold start (power-on / reset), FR-D03, FR-D07. NOT "held at power-up": IO9 is the boot strap, low at reset
  * means ROM download mode (pcb/pinmap-sleep.md:20), so the user presses AFTER the reset releases. [proposed] window 3 s to start pressing,
@@ -79,11 +94,19 @@ void app_main(void)
 #ifdef CONFIG_PLANT_SETUP_FLOW
     if (esp_reset_reason() != ESP_RST_DEEPSLEEP) {          /* setup decision only on a cold start; a sample wake never opens BLE (FR-D09) */
         if (nw_setup_run(button_held_ms_after_cold_start()) == NW_SETUP_SLEEP_UNTIL_RESET) {
+#ifdef CONFIG_PLANT_BENCH_AUTO_SETUP
+            /* DEBUG (bench image only): do not deep-sleep here, so the board stays on USB and its serial log can be read. */
+            printf("NWSETUP bench debug: deep sleep skipped (setup closed, never provisioned)\n");
+            fflush(stdout);
+#else
             printf("NWSETUP closed, never provisioned: deep sleep with no timer; reset to try again\n");
             fflush(stdout);
+#endif
             /* nw_hal_esp32_prepare_deep_sleep() is NOT called: it needs nw_hal_esp32_init first (it reads the HAL's pin copy). IO3 (SOIL_PWR)
              * was never configured in this path, so its level in sleep depends on the board pull-down: bench check for NFR-12 (WO step). */
+#ifndef CONFIG_PLANT_BENCH_AUTO_SETUP
             esp_deep_sleep_start();
+#endif
         }
     }
 #endif
@@ -113,7 +136,10 @@ void app_main(void)
              NW_BOARD_NAME, wake_count, cal.dry_raw, cal.wet_raw, (unsigned)bat.r_top_ohm, (unsigned)bat.r_bot_ohm);
 
 #ifdef CONFIG_PLANT_UPLOAD
-    {   /* 4.F3 slice 3 (UNVERIFIED on hardware): one wake = read once, buffer, maybe report, deep sleep to the next 15-min boundary. */
+    /* 4.F3 slice 3 (UNVERIFIED on hardware): one wake = read once, buffer, maybe report, then sleep to the next sample boundary.
+     * Production: deep sleep, which ends the boot. Bench CI image (CONFIG_PLANT_BENCH_UPLOAD_MINUTE): no deep sleep, the unit stays on USB,
+     * prints the NWBENCH line that step b reads, then waits to the next minute boundary and repeats. */
+    for (;;) {
         nw_soil_t soil = {0};
         nw_aht20_t aht = {0};
         nw_bh1750_t bh = {0};
@@ -122,12 +148,20 @@ void app_main(void)
         nw_err_t e_aht = nw_aht20_read(&hal, &aht);
         nw_err_t e_bh = nw_bh1750_read(&hal, &bh);
         nw_err_t e_bat = nw_battery_measure(&hal, &bat, &vbat, &vadc);
+#ifdef CONFIG_PLANT_BENCH_UPLOAD_MINUTE
+        print_bench_line(0, &soil, &aht, &bh, vbat, vadc, &bat, e_soil, e_aht, e_bh, e_bat);   /* before the upload: step b sees it at once */
+#endif
         uint32_t sleep_s = nw_upload_idf_wake(&soil, e_soil, &aht, e_aht, &bh, e_bh, vbat, e_bat);
+#ifdef CONFIG_PLANT_BENCH_UPLOAD_MINUTE
+        wake_count++;
+        vTaskDelay(pdMS_TO_TICKS(sleep_s * 1000));
+#else
         ESP_LOGI(TAG, "NWUPLOAD sleep s=%u", (unsigned)sleep_s);
         fflush(stdout);
         PREPARE_DEEP_SLEEP();
         esp_sleep_enable_timer_wakeup((uint64_t)sleep_s * 1000000ULL);
         esp_deep_sleep_start();
+#endif
     }
 #endif
 
@@ -140,15 +174,7 @@ void app_main(void)
         nw_err_t e_aht = nw_aht20_read(&hal, &aht);
         nw_err_t e_bh = nw_bh1750_read(&hal, &bh);
         nw_err_t e_bat = nw_battery_measure(&hal, &bat, &vbat, &vadc);
-        char pct[16], t[16], rh[16], lux[16];
-        fmt_x(pct, sizeof pct, soil.pct_x10, 1);
-        fmt_x(t, sizeof t, aht.temp_c_x100, 2);
-        fmt_x(rh, sizeof rh, aht.rh_x100, 2);
-        fmt_x(lux, sizeof lux, bh.lux_x10, 1);
-        printf("NWBENCH wake=%d i=%d soil_raw=%d soil_pct=%s soil_flags=0x%02x temp_c=%s rh_pct=%s lux=%s lux_raw=%u "
-               "vbat_mv=%u vbat_adc_mv=%u vbat_plausible=%d divider_na=%u err=soil:%d,aht:%d,bh:%d,bat:%d\n",
-               wake_count, i, soil.raw, pct, soil.flags, t, rh, lux, bh.raw, (unsigned)vbat, (unsigned)vadc,
-               nw_battery_plausible(vbat), (unsigned)nw_battery_divider_na(vbat, &bat), e_soil, e_aht, e_bh, e_bat);
+        print_bench_line(i, &soil, &aht, &bh, vbat, vadc, &bat, e_soil, e_aht, e_bh, e_bat);
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 

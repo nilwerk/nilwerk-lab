@@ -118,7 +118,7 @@ firmware is the setup-flow build (`CONFIG_PLANT_SETUP_FLOW=y`, simulator off), b
 | c. BLE scan | Runs after step 3, before step b. `bluetoothctl` scan for 10 s, inside the bench setup window (60 s from the reset; `CONFIG_PLANT_BENCH_SETUP_WINDOW_S`, see "Timing" below). Asserts that the first line of the expect file that is not empty and not a `#` comment, with all whitespace removed, is the start of a device name seen in the scan. Only the name field is read, and the device address never matches. | `bench/ble/expect.txt` (created from the firmware sources: prefix `NW-`; the value `UNSET` stops the step), `bluetoothctl` | fails |
 | b. Serial live stream | Runs after step c (board provisioned and running). **No reset** (no esptool run, no reset, no RTS/DTR toggle). Reads the live serial stream for 75 s (owner decision, option 1). The bench image never deep-sleeps (`CONFIG_PLANT_BENCH_SLEEP_CYCLE` unset), so the wake lines start when the 60 s setup window closes and then keep coming, about every 2 s. Asserts that the first line of the expect file that is not empty and not a `#` comment, `NWBENCH wake=`, is in it. A board that prints no wake line for the whole window fails. | `bench/firmware/expect.txt` (created from the firmware sources; not yet run on hardware); a device at `/dev/ttyACM0` | fails, with "timeout, expected line not seen" |
 | 4. Install app APK on the 6P | Checks that exactly one device with the device id in secret `BENCH_ANDROID_SERIAL` is attached in state `device`, then runs `adb -s <device-id> install -r` with the APK from step 2. The device id is never printed. | Secret `BENCH_ANDROID_SERIAL`; the APK from step 2; `adb` | fails, no install |
-| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2). **As written, the script only opens the app (package from `app.config.ts`) and checks that the first screen title (`app.name`) exists.** The device steps (scan, connect, write the setup data, connected) are not in the script yet (owner input). It asserts no sensor value. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh` (created; device steps are an owner input); secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL` and `BENCH_TEST_EMAIL_PASSWORD` (test account, passed as environment variables only); Appium 2.x on the runner | fails closed if a secret or Appium 2.x is missing |
+| d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2) with the real app build. The script signs in with the test account, adds a sensor through the app (scan, setup code, Wi-Fi, name, photo skip, plant details, done) and waits until this run's plant shows a reading on My plants. It reads and prints no sensor value. The screen order and the string keys are in the header of the script and in the PR. Not yet run on a phone. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh` (created); secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL`, `BENCH_TEST_EMAIL_PASSWORD`, `BENCH_BOARD_POP`, `BENCH_WIFI_SSID`, `BENCH_WIFI_PASSWORD` (environment variables only); repository variable `BENCH_BOARD_HW_ID`; Appium 2.x on the runner. Fixed limits in the script: first reading at most 900 s, whole step at most 2400 s, and each wait must fit the job clock (3300 s from the first step's `BENCH_JOB_START_EPOCH`, set by the job's first step); the job step has `timeout-minutes: 45` | fails closed if an input is missing or the setup code is malformed |
 | e. Cloud check | Runs `bench/cloud/check.sh`. It checks only that the device communicated with the cloud: at least one row from this device exists in the EU project and was received after `BENCH_TEST_START_UTC`. It does not read, print or compare any reading value. | `bench/cloud/check.sh` (created; one read of `public.readings` with the secret key, read-only); secret `BENCH_CLOUD_CHECK_CONFIG` (JSON `{url, secret_key}`, owner input); repository variable `BENCH_BOARD_HW_ID`; `BENCH_TEST_START_UTC` from step d | fails |
 | Bench E2E | Runs `bench/run_e2e.sh` | `bench/run_e2e.sh` (created; runs `npm run test:web-flow`, a mock web flow, when the app's `node_modules` exist on the runner) | fails |
 
@@ -154,6 +154,10 @@ the board as flashed by step a alone.
 - **Step b after c.** Step b starts about 20 to 25 s after the reset and reads 75 s, so its window ends about 95 to 100 s after the
   reset. Wake lines start at about 60 s and keep coming (no deep sleep on this image), so step b sees them. Step b passes for any
   start time while the board runs, as long as its window reaches past the first wake line. No reset is added to step b.
+- **Bench upload build (owner decision 2026-11-23, `CONFIG_PLANT_BENCH_UPLOAD_MINUTE` in `sdkconfig.defaults.bench-ci`).** The image
+  uploads once a minute and does not deep-sleep. It prints one `NWBENCH wake=` line per minute, before the upload, so the first line
+  comes about 60 s after the reset, when the setup window closes. Step b (window about 20 to 25 s to 95 to 100 s after the reset) sees
+  that first line; the next one comes after about 120 s. Not checked on hardware. The first line must not wait for the Wi-Fi join.
 - **Smallest fix if the margin is not enough: a window of 70 s, not 90 s.** Lengthening the window moves the first wake line
   later. At 90 s the first wake line falls about 90 s after the reset, and step b (starting about 20 to 25 s after the reset) would
   see only about 5 to 10 s of wake lines, a thin margin. At 70 s step c gains about 10 s and step b still has about 25 s of wake lines
@@ -199,6 +203,14 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 
 **Repository variables** (not secrets, set by the owner, not by this PR):
 - `BENCH_BOARD_HW_ID` (value `<board-hw-id>`): the board's hw_id. Used by step 3 and by step e.
+- `SUPABASE_URL`: the project URL only (`https://<project-ref>.supabase.co`, no path, no trailing slash). The job
+  `build-firmware` builds `CONFIG_PLANT_API_BASE_URL` from it as `<SUPABASE_URL>/functions/v1` (the functions path in
+  `docs/interfaces/openapi.yaml`), writes it to the git-ignored `firmware/sdkconfig.defaults.local` and passes that file
+  in `SDKCONFIG_DEFAULTS` (DEV_GUIDE 7.1, option 2). The job fails closed if it is missing or not `https://`. The value is
+  never printed and the file is never uploaded. Also used by the Android APK job (same variable).
+- `BENCH_FIRST_READING_WAIT_S`: **required**, no default, whole seconds from 60 to 3600. Step e sleeps this long before its
+  one read of the cloud, so the first upload of the 1-minute bench build can arrive. Step e fails closed if it is missing
+  or out of range. **Note:** the bench job has `timeout-minutes: 60`, which also limits this wait (steps a to d run first). A longer job limit is an owner decision, not made here. The 900 s reserve in the budget check (for `check.sh` and Bench E2E) is an **assumption, not measured**; the owner may tune it.
 - `BENCH_PROVISION_DIR`: **required**, no default. The folder on the Pi that holds the provisioning files of step 3
   (`<hw_id>.nvs.csv` and `<hw_id>.label.txt`, mode `0600`). The workflow fails closed if it is empty. Its value is
   not written in this repo.
@@ -207,8 +219,8 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 - `bench/firmware/expect.txt` (step b): `NWBENCH wake=`, from the `printf` in `projects/plant-monitor/firmware/main/main.c` (printed once per reading cycle; step b sends no reset).
 - `bench/ble/expect.txt` (step c): `NW-`, the advertised name prefix, from `nw_prov_proto.c:58-69`. The value `UNSET`
   makes step c fail with "bench/ble/expect.txt has no expected name yet: owner input needed".
-- `bench/app/run_appium.sh` (step d): opens the package from `app.config.ts` and checks the first screen title
-  (`app.name`). It fails with "screen expectation missing: owner or app owner input needed" if the title is not readable.
+- `bench/app/run_appium.sh` (step d): the app flow in the real build (sign in, add a sensor, first reading on My plants).
+  It fails with "d. app flow: <step>: <reason>" at the first step that does not show the expected text.
 - `bench/cloud/check.sh` (step e): one read-only GET of `public.readings` for the bench device. It fails with
   "cloud check not defined: owner input needed" if `BENCH_CLOUD_CHECK_CONFIG` is not the JSON form in its header.
 - `bench/run_e2e.sh` (E2E): runs `npm run test:web-flow` (a mock web flow). It fails with
@@ -216,8 +228,9 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 - The expect files begin with a `#` header. Steps b and c skip `#` lines.
 
 **Owner inputs still needed (not in the repo):**
-- `bench/app/run_appium.sh`: the device steps (scan, connect, write setup data, connected) and the test-account
-  sign-in are not in the script. The app owner confirms the first screen title.
+- `bench/app/run_appium.sh`: none (the wait limits are fixed in the script; the first reading may take up to 900 s, so Kai
+  should confirm that the upload interval fits). The workflow step d passes `BENCH_BOARD_HW_ID` (repository variable).
+  The BLE setup window must be open when step d runs (see the PR).
 - `bench/cloud/check.sh`: the owner sets `BENCH_CLOUD_CHECK_CONFIG` as the JSON object `{url, secret_key}` and approves
   that the check uses the secret key for one read (the key bypasses row-level security).
 - `bench/run_e2e.sh`: whether the mock web flow is the bench E2E. The flow runs `expo export` (a build) and needs the

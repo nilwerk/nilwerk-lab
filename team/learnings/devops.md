@@ -102,3 +102,9 @@ Living skill file for this role (TEAM.md §8). Rules are short and imperative, m
 25. **Start every run with "Is main green?"** Read the latest main run and every open PR head before you write the final status.
     *Why:* the Lead's plan depends on that status line, and it is the job of this role.
     *Source:* `team/roles/devops.md` "End of day"; persona (Kai).
+
+## Bench Pi (added 23 Nov 2026, from the bench bring-up)
+- Read `docs/bench-pi.md` before any bench run or change to the bench workflow. Its paths, tools and board facts are the source for the bench steps.
+- Never flash or capture from the Pi without first checking the board's USB serial and stopping other readers on `/dev/ttyACM0`. *Why:* a reader reset the board and a second board was blank. *Source:* bench bring-up 23 Nov.
+- Reopen the serial port after every reset, and do not count a flash "success" line as a working app. *Why:* the flash only verifies the write. *Source:* `docs/bench-pi.md` sections 6 and 8.
+- A bench run is green only when steps a to e have each passed. A "success" on the build jobs does not count. *Why:* a run was still in progress when it was reported as working. *Source:* run 45184412853.

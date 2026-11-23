@@ -19,6 +19,10 @@
 
 #define NW_RING_CAP 96            /* FR-D04: 24 h of 15-min samples (96 x 15 min = 24 h) */
 #define NW_SAMPLE_PERIOD_S 900    /* FR-D01 / FR-D02: 15 min */
+#ifdef CONFIG_PLANT_BENCH_UPLOAD_MINUTE
+#undef NW_SAMPLE_PERIOD_S
+#define NW_SAMPLE_PERIOD_S 60     /* BENCH CI IMAGE ONLY: 1 min, must equal NW_SLEEP_SAMPLE_PERIOD_S (nw_sleep.c static assert) */
+#endif
 
 /* Single source for the unix-time floor: schema minimum of samples[].ts, sent_at and events[].ts
  * (docs/interfaces/device-report.schema.json). Nov 2023. A clock below this has not been SNTP-synced. */

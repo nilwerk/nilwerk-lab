@@ -130,4 +130,8 @@ if(Python3_FOUND)
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_api_url_not_committed.py)
   add_test(NAME api_url_check_selftest
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_api_url_not_committed.py --selftest)
+  add_test(NAME bench_review_conditions_C1_C2_C4
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_bench_review_conditions.py)
+  add_test(NAME bench_review_conditions_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_bench_review_conditions.py --selftest)
 endif()

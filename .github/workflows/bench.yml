@@ -50,11 +50,40 @@ jobs:
   build-firmware:
     name: build setup firmware (GitHub-hosted)
     runs-on: ubuntu-latest
-    # No secrets. The steps below are copied from the firmware job of ci.yml (setup image only).
+    # No secrets. One repository VARIABLE (SUPABASE_URL, a public client value). The steps below are copied from the
+    # firmware job of ci.yml (setup image only), plus the cloud API base URL step.
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Cloud API base URL for the bench build (repository variable SUPABASE_URL, fail closed)
+        # The upload build needs CONFIG_PLANT_API_BASE_URL (DEV_GUIDE 7.1, option 2). It is built from the project URL in the
+        # repository variable SUPABASE_URL (not a secret): <SUPABASE_URL>/functions/v1, the path of the functions
+        # (docs/interfaces/openapi.yaml, servers; /device-claim and /ingest are under it).
+        # The line goes into the git-ignored file firmware/sdkconfig.defaults.local, which the build step reads as one of
+        # its SDKCONFIG_DEFAULTS. It is never printed. The artifact holds flash files only, so the file is never uploaded.
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "::error::Repository variable SUPABASE_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret). Bench build aborted."
+            exit 1
+          fi
+          # Checked exactly as set: no trailing slash is removed first, so a slash fails here.
+          # Bash regex, not grep: grep matches per line, so a value with a newline could pass and break the config line.
+          # Host only: https://<project-ref>.supabase.co, nothing after it. The host must end in .supabase.co.
+          re='^https://[a-z0-9-]+\.supabase\.co$'
+          if ! [[ "$SUPABASE_URL" =~ $re ]]; then
+            echo "::error::Repository variable SUPABASE_URL must be https://<project-ref>.supabase.co (host ending in .supabase.co, no path, no trailing slash). Bench build aborted. The value is not printed."
+            exit 1
+          fi
+          base="$SUPABASE_URL"
+          umask 077
+          printf 'CONFIG_PLANT_API_BASE_URL="%s/functions/v1"\n' "$base" > projects/plant-monitor/firmware/sdkconfig.defaults.local
+          test -s projects/plant-monitor/firmware/sdkconfig.defaults.local
+          echo "Bench build: cloud API base URL written to the git-ignored sdkconfig.defaults.local (value not printed)."
       - name: ESP-IDF build (esp32c3, setup flow on, simulator off)
         # Copied from ci.yml (job firmware). Pinned SHA: see the header of ci.yml. The firmware owner re-checks the pin.
         # set -e first: the first failing line fails the step, so the upload below does not run on a bad build.
@@ -67,18 +96,22 @@ jobs:
           command: |
             set -e
             rm -f sdkconfig.setup
-            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.bench-ci" build size
+            # sdkconfig.defaults.local is LAST, so its CONFIG_PLANT_API_BASE_URL overrides any earlier file (bench-ci included).
+            idf.py -B build-setup -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.setup -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.setup;sdkconfig.defaults.bench-ci;sdkconfig.defaults.local" build size
             grep -q "^CONFIG_PLANT_SETUP_FLOW=y" sdkconfig.setup
             grep -q "^CONFIG_PLANT_BOARD_V1_SUPERMINI=y" sdkconfig.setup
             grep -q "^CONFIG_BT_NIMBLE_ENABLED=y" sdkconfig.setup
             if grep -q "^CONFIG_PLANT_SIM_MOCK_SENSORS=y" sdkconfig.setup; then echo "simulated sensors must be off"; exit 1; fi
-            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci, last in the list).
+            # Bench CI image stays awake on USB: bench sleep cycle must be unset (sdkconfig.defaults.bench-ci).
             # Double quotes only in this block: the action wraps the whole command in single quotes, so a single quote here ends that wrapper early.
             if grep -q "^CONFIG_PLANT_BENCH_SLEEP_CYCLE=y" sdkconfig.setup; then echo "bench sleep cycle must be unset in the setup image (sdkconfig.defaults.bench-ci)"; exit 1; fi
             grep -qxF "# CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set" sdkconfig.setup || { echo "sdkconfig.setup lacks the line: # CONFIG_PLANT_BENCH_SLEEP_CYCLE is not set (bench-ci overlay not applied)"; exit 1; }
             # Bench CI image: BLE setup window on every cold start without BOOT (sdkconfig.defaults.bench-ci). Double quotes only.
             grep -q "^CONFIG_PLANT_BENCH_AUTO_SETUP=y" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_AUTO_SETUP=y (bench-ci overlay not applied)"; exit 1; }
             grep -q "^CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60 (bench-ci overlay not applied)"; exit 1; }
+            # Cloud API base URL from sdkconfig.defaults.local (written by the step before this build). Double quotes only here.
+            grep -Eq "^CONFIG_PLANT_API_BASE_URL=.https://" sdkconfig.setup || { echo "sdkconfig.setup lacks CONFIG_PLANT_API_BASE_URL=https (sdkconfig.defaults.local not applied)"; exit 1; }
+            if grep -Eq "^CONFIG_PLANT_API_BASE_URL=.*invalid" sdkconfig.setup; then echo "CONFIG_PLANT_API_BASE_URL is still the invalid placeholder"; exit 1; fi
             test -s build-setup/plant_monitor.bin
       - name: Check every flash file named in flasher_args.json
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
@@ -153,10 +186,13 @@ jobs:
             echo "::error::Repository variable SUPABASE_URL is not set. Add it under Settings > Secrets and variables > Actions > Variables (a variable, not a secret). Build aborted."
             exit 1
           fi
-          case "$SUPABASE_URL" in
-            https://*) ;;
-            *) echo "::error::Repository variable SUPABASE_URL must start with https://. Build aborted."; exit 1 ;;
-          esac
+          # Same host rule as the bench build (build-firmware): https://<project-ref>.supabase.co, nothing after it.
+          # Checked exactly as set (no slash is removed first). Bash regex, so a value with a newline cannot pass.
+          re='^https://[a-z0-9-]+\.supabase\.co$'
+          if ! [[ "$SUPABASE_URL" =~ $re ]]; then
+            echo "::error::Repository variable SUPABASE_URL must be https://<project-ref>.supabase.co (host ending in .supabase.co, no path, no trailing slash). Build aborted. The value is not printed."
+            exit 1
+          fi
           echo "SUPABASE_URL is set (a public client value; the job log MAY show it, depending on debug settings)."
 
       - name: Check repository variable SUPABASE_PUBLISHABLE_KEY
@@ -221,12 +257,109 @@ jobs:
           CI: "1"
         run: npx expo prebuild --platform android --no-install
 
-      - name: Build the debug APK (Gradle)
+      - name: Build the release APK with the JavaScript bundle (Gradle)
+        # assembleRelease, not assembleDebug: the bench has no Metro server (bench decision, 23 Nov 2026). The release
+        # build embeds the JS bundle, and expo-dev-launcher's Android code exists only in its debug source set.
+        # Same change as app-apk.yml (keep the two in step). Signing: the template's release config (debug key).
         working-directory: projects/plant-monitor/app/android
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
+
+      - name: Check the bundled release APK (fail closed)
+        # Same check as app-apk.yml: one valid zip with assets/index.android.bundle, valid signature, package
+        # de.nilwerk.plantmonitor, launcher de.nilwerk.plantmonitor.MainActivity only, no DevLauncherActivity in the
+        # manifest. Reads the build output only; no secret is used or printed.
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::APK check: $1"; exit 1; }
+          shopt -s nullglob
+          apks=(projects/plant-monitor/app/android/app/build/outputs/apk/release/*.apk)
+          [ "${#apks[@]}" = "1" ] || fail "expected one release APK, found ${#apks[@]}"
+          apk="${apks[0]}"
+          unzip -tq "$apk" >/dev/null 2>&1 || fail "the release APK is not a valid zip archive"
+          listing="$(mktemp)"
+          unzip -l "$apk" > "$listing"
+          grep -q ' assets/index.android.bundle$' "$listing" || fail "the JavaScript bundle (assets/index.android.bundle) is not inside the APK"
+          aapt2=""
+          apksigner=""
+          for root in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"; do
+            [ -n "$root" ] && [ -d "$root/build-tools" ] || continue
+            [ -n "$aapt2" ] || aapt2="$(find "$root/build-tools" -mindepth 2 -maxdepth 2 -name aapt2 -type f 2>/dev/null | sort -V | tail -n 1)"
+            [ -n "$apksigner" ] || apksigner="$(find "$root/build-tools" -mindepth 2 -maxdepth 2 -name apksigner -type f 2>/dev/null | sort -V | tail -n 1)"
+          done
+          [ -n "$aapt2" ] && [ -n "$apksigner" ] || fail "aapt2 or apksigner not found under ANDROID_HOME or ANDROID_SDK_ROOT (build-tools)"
+          "$apksigner" verify "$apk" >/dev/null 2>&1 || fail "the APK signature does not verify"
+          badging="$("$aapt2" dump badging "$apk")" || fail "aapt2 dump badging failed"
+          grep -q "^package: name='de.nilwerk.plantmonitor'" <<<"$badging" || fail "the package is not de.nilwerk.plantmonitor"
+          launchers="$(sed -n "s/^launchable-activity: name='\([^']*\)'.*/\1/p" <<<"$badging")"
+          [ "$launchers" = "de.nilwerk.plantmonitor.MainActivity" ] || fail "the launcher activity is '${launchers:-none}', expected de.nilwerk.plantmonitor.MainActivity"
+          dump="$(mktemp)"
+          "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" > "$dump" 2>&1 || fail "aapt2 dump xmltree failed"
+          if grep -q 'DevLauncherActivity' "$dump"; then fail "the manifest contains DevLauncherActivity (dev launcher, not usable on the bench)"; fi
+          echo "APK check passed: JavaScript bundle inside, signature valid, package de.nilwerk.plantmonitor, launcher de.nilwerk.plantmonitor.MainActivity, no DevLauncherActivity."
+
+      - name: Print APK sha256, size and manifest dump (diagnostic, never fails)
+        # Diagnostic only: this step never fails the job. It prints the APK sha256 and size, the manifest entry
+        # size, and the aapt2 xmltree dump of AndroidManifest.xml (full dump in the job summary). Purpose: the 6P
+        # rejected the manifest at install (run 45184412853); the 6P runs at most Android 8.1 (API 27).
+        shell: bash
+        run: |
+          set +eo pipefail
+          shopt -s nullglob
+          apks=(projects/plant-monitor/app/android/app/build/outputs/apk/release/*.apk)
+          if [ "${#apks[@]}" != "1" ]; then
+            echo "APK diagnostics: expected one debug APK, found ${#apks[@]}. Nothing printed; job continues."
+            exit 0
+          fi
+          apk="${apks[0]}"
+          echo "APK sha256=$(sha256sum "$apk" | cut -d' ' -f1) size=$(stat -c %s "$apk")"
+          echo "APK manifest entry size=$(unzip -l "$apk" 2>/dev/null | awk '$NF=="AndroidManifest.xml" {print $1}')"
+
+          aapt2=""
+          for root in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"; do
+            [ -n "$root" ] && [ -d "$root/build-tools" ] || continue
+            cand="$(find "$root/build-tools" -mindepth 2 -maxdepth 2 -name aapt2 -type f 2>/dev/null | sort -V | tail -n 1)"
+            if [ -n "$cand" ]; then aapt2="$cand"; break; fi
+          done
+          if [ -z "$aapt2" ]; then
+            echo "aapt2: not available on this runner (no build-tools/*/aapt2 under ANDROID_HOME or ANDROID_SDK_ROOT). Manifest dump skipped; job continues."
+            exit 0
+          fi
+          echo "aapt2: ${aapt2}"
+          dump="${RUNNER_TEMP:-/tmp}/manifest-xmltree.txt"
+          "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" > "$dump" 2>&1
+          echo "aapt2 dump exit code: $? (diagnostic only)"
+          if [ ! -s "$dump" ]; then
+            echo "aapt2 produced no output. Job continues."
+            exit 0
+          fi
+
+          echo "--- uses-sdk ---"
+          awk '/E: uses-sdk/ {p=1; print; next} /E: / {p=0} p && /A: / {print}' "$dump"
+          for name in minSdkVersion targetSdkVersion; do
+            hex="$(grep -m1 -oE "android:${name}\([^)]*\)=\(type 0x[0-9a-f]+\)0x[0-9a-f]+" "$dump" | grep -oE '0x[0-9a-f]+$')"
+            if [ -n "$hex" ]; then echo "${name}=$((hex))"; else echo "${name}=not found"; fi
+          done
+
+          echo "--- lines with neverForLocation or attributes newer than API 27 ---"
+          grep -nE 'android:(neverForLocation|dataExtractionRules|foregroundServiceType|enableOnBackInvokedCallback|localeConfig|hasFragileUserData|forceQueryable|preserveLegacyExternalStorage|requestLegacyExternalStorage|minAspectRatio|appComponentFactory|allowNativeHeapPointerTagging|gwpAsanMode)\(' "$dump" || echo "(none)"
+
+          if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+            {
+              echo "### APK manifest dump (aapt2 xmltree, diagnostic)"
+              echo ""
+              echo "<details><summary>AndroidManifest.xml of ${apk##*/}</summary>"
+              echo ""
+              echo '```'
+              cat "$dump"
+              echo '```'
+              echo "</details>"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
 
       - name: Name the artifact by commit
         id: meta
@@ -239,7 +372,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: plant-monitor-app-debug-${{ steps.meta.outputs.short }}
-          path: projects/plant-monitor/app/android/app/build/outputs/apk/debug/*.apk
+          path: projects/plant-monitor/app/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -264,6 +397,11 @@ jobs:
       # Node major the runner must provide. See docs/ci-bench-runner.md, "Node workaround".
       EXPECTED_NODE_MAJOR: "20"
     steps:
+      - name: Record job start (for the wait limit in step d)
+        # The job timeout (timeout-minutes: 60) counts from the job start. This is the first step, so its time is the start
+        # that step d uses to check that each wait fits. Written to GITHUB_ENV for this run only.
+        run: echo "BENCH_JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Checkout
         # Pinned to the full commit SHA of the actions/checkout v4.4.0 tag.
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -317,13 +455,17 @@ jobs:
       - name: "2. Download app APK (build-apk of this run)"
         # Input: artifact plant-monitor-app-debug-<sha7> from the build-apk job of THIS run (same run-id rule as step 1).
         # Downloaded into bench-artifacts/app-apk/. The next run step checks that exactly one APK is there.
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          pattern: plant-monitor-app-debug-*
-          merge-multiple: true
-          path: bench-artifacts/app-apk
-          run-id: ${{ github.run_id }}
-          github-token: ${{ github.token }}
+        # Downloaded with the GitHub CLI, not actions/download-artifact: on this self-hosted runner the action wrote a
+        # truncated APK (96,227,715 bytes instead of 180,763,206; runs 45180735909 and 45184412853). gh run download
+        # gave the complete file (size, SHA-256 and unzip -t checked on the Pi).
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dest="${GITHUB_WORKSPACE}/bench-artifacts/app-apk"
+          mkdir -p "$dest"
+          gh run download "${GITHUB_RUN_ID}" -R "${GITHUB_REPOSITORY}" -p 'plant-monitor-app-debug-*' -D "$dest"
+          find "$dest" -type f -name '*.apk' -exec sh -c 'echo "2. app APK downloaded: $1 ($(stat -c %s "$1") bytes)"' _ {} \;
 
       - name: "2. Check app APK (one APK from build-apk of this run)"
         run: |
@@ -335,6 +477,13 @@ jobs:
           [ "${#apks[@]}" = "1" ] || fail "not found: expected one APK from the build-apk job of this run, found ${#apks[@]}"
           apk="${apks[0]}"
           [ -s "$apk" ] || fail "APK file is empty"
+          # An APK is a zip archive with an end-of-archive record and a manifest. A download cut short fails here,
+          # with a clear message, instead of failing later at adb install. This check does NOT catch the install
+          # failure seen in run 45184412853: that APK was a complete zip (unzip -t OK, sha256 matched the upload).
+          # The device rejected its AndroidManifest.xml during parsing; that cause is still open.
+          unzip -tq "$apk" >/dev/null 2>&1 || fail "APK is not a valid zip archive (truncated or corrupt download): $apk"
+          unzip -l "$apk" | grep -q 'AndroidManifest.xml' || fail "APK has no AndroidManifest.xml"
+          echo "APK sha256=$(sha256sum "$apk" | cut -d' ' -f1) size=$(stat -c %s "$apk")"
           echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
           echo "2. app APK: saved to the runner workspace from run ${GITHUB_RUN_ID} (commit ${GITHUB_SHA})"
 
@@ -580,14 +729,42 @@ jobs:
             echo "::error::bench/ble/expect.txt has no expected name yet: owner input needed"
             exit 1
           fi
-          if ! command -v bluetoothctl >/dev/null 2>&1; then
-            echo "::error::c. BLE check: not configured: nothing tested (bluetoothctl not installed)"
+          if ! command -v hcitool >/dev/null 2>&1; then
+            echo "::error::c. BLE check: not configured: nothing tested (hcitool not installed)"
             exit 1
           fi
           log="$(mktemp)"
           names="$(mktemp)"
-          { echo "power on"; echo "scan on"; sleep 10; echo "scan off"; echo "quit"; } \
-            | timeout 30 bluetoothctl > "$log" 2>&1 || true
+          # hcitool lescan prints one "<MAC> <Name>" line per advertisement ("(unknown)" when there is no name).
+          # bluetoothctl did not list an NW- advertisement that hcitool sees on the bench, so the check uses hcitool.
+          # The runner user needs HCI access (setcap on hcitool, or a sudo rule). A permission error fails the step below.
+          # One BLE scan at a time on the bench. A second LE scan while one runs fails with
+          # "Set scan parameters failed: Input/output error", so every scan takes this lock and
+          # retries a few times. Nothing else on the bench may run a BLE scan (no bluetoothctl scan).
+          ble_lock="/tmp/nw-ble-scan.lock"
+          for attempt in 1 2 3; do
+            flock -w 60 "$ble_lock" timeout 10 hcitool lescan --duplicates > "$log" 2>&1 || true
+            if grep -q "^LE Scan" "$log"; then break; fi
+            echo "c. BLE: scan attempt ${attempt} did not start, retrying"
+            # bluez can get stuck after earlier scans: every scan then fails with "Set scan parameters failed:
+            # Input/output error". Restart the bluetooth service once through the sudo rule that the Pi grants
+            # to the runner user only (/etc/sudoers.d/ghrunner-bluetooth), then retry.
+            if grep -q "Set scan parameters failed" "$log"; then
+              sudo -n /usr/bin/systemctl restart bluetooth || echo "::warning::c. BLE: could not restart bluetooth (sudo rule missing on the Pi)"
+              sleep 4
+            fi
+            sleep 3
+          done
+          if grep -q "Operation not permitted" "$log"; then
+            echo "::error::c. BLE check: hcitool has no HCI permission for the runner user (setcap or sudo rule needed)"
+            cat "$log"
+            exit 1
+          fi
+          if ! grep -q "^LE Scan" "$log"; then
+            echo "::error::c. BLE check: no BLE scan could start after 3 attempts (bluetooth service stuck? restart it on the Pi)"
+            cat "$log"
+            exit 1
+          fi
           # Take only the NAME field of each device line, after the MAC. Accepted lines (any prompt
           # or text before "Device" is ignored, and so is a [NEW] or [CHG] tag):
           #   Device <MAC> <Name>
@@ -596,11 +773,7 @@ jobs:
           # Every other [CHG] line (RSSI, TxPower, UUIDs, ...) is a property, not a name, and is ignored.
           # [DEL] lines are skipped: a removed device is not a seen device.
           # Written to a file first, with no grep -q after a pipe (SIGPIPE and pipefail false FAIL).
-          sed -n -E \
-            -e '/\[DEL\] Device /d' \
-            -e '/\[CHG\] Device /{ s/^.*\[CHG\] Device [0-9A-Fa-f:]{17} Name: (.*)$/\1/p; d; }' \
-            -e 's/^.*Device [0-9A-Fa-f:]{17} (.*)$/\1/p' \
-            "$log" > "$names" || true
+          sed -n -E 's/^[0-9A-Fa-f:]{17} (.*)$/\1/p' "$log" > "$names" || true
           # The prefix must match the START of the name field. A MAC address or any other text
           # on the line never counts. "$prefix"* is a literal prefix in a case pattern.
           found=""
@@ -693,11 +866,11 @@ jobs:
       - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
         # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
         # BENCH_TEST_EMAIL and BENCH_TEST_EMAIL_PASSWORD (test account). Values are never in the repo.
-        # The script as written opens the app and checks the first screen title only. The device steps
-        # (scan, connect, setup data, connected) are not in it yet (owner input).
-        # Scope: communication path only. The flow scans and finds the device, connects, writes
-        # the setup data, and checks that the app shows the device as connected. It asserts no
-        # reading of any kind.
+        # The script signs in, adds the sensor (scan, connect, Wi-Fi, name, plant details), then checks that
+        # this run's plant shows a soil-moisture reading on My plants. The reading value is never read or printed.
+        # Repository variable: BENCH_BOARD_HW_ID (device id, nw-<12 hex>). The script fails closed if it is missing.
+        # Step d waits are fixed in the script (first reading at most 900 s, whole step at most 2400 s); timeout-minutes is the backstop.
+        timeout-minutes: 45
         env:
           BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
           BENCH_TEST_EMAIL: ${{ secrets.BENCH_TEST_EMAIL }}
@@ -706,6 +879,7 @@ jobs:
           BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
           BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
           BENCH_WIFI_PASSWORD: ${{ secrets.BENCH_WIFI_PASSWORD }}
+          BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
           APPIUM_PLATFORM_NAME: Android
           APPIUM_AUTOMATION_NAME: UiAutomator2
         run: |
@@ -731,6 +905,13 @@ jobs:
             echo "::error::d. app flow: not configured: nothing tested (appium not installed)"
             exit 1
           fi
+          # Prepare the phone for UiAutomator2: stop a stale automation server and wake the screen.
+          # Without this the server can crash with "UiAutomation not connected" (seen on the bench, run 45184412853).
+          adb -s "$BENCH_ANDROID_SERIAL" shell am force-stop io.appium.uiautomator2.server || true
+          adb -s "$BENCH_ANDROID_SERIAL" shell am force-stop io.appium.uiautomator2.server.test || true
+          adb -s "$BENCH_ANDROID_SERIAL" shell input keyevent KEYCODE_WAKEUP || true
+          adb -s "$BENCH_ANDROID_SERIAL" shell input keyevent 82 || true
+          sleep 3
           appium_major="$(appium --version 2>/dev/null | cut -d. -f1)"
           if [ "$appium_major" != "2" ]; then
             echo "::error::d. app flow: not configured: nothing tested (Appium 2.x required, found major '${appium_major}')"
@@ -745,10 +926,19 @@ jobs:
         # Scope: checks only that the device communicated with the cloud, i.e. at least one row
         # from this device exists in the EU project and was received after BENCH_TEST_START_UTC
         # (set by step d). It must not read, print or compare any reading value.
+        # Wait: repository variable BENCH_FIRST_READING_WAIT_S (60 to 3600 seconds, no default). The step sleeps that long
+        # before its one read, so the first upload of the 1-minute bench build can reach the cloud. Missing or out of range fails.
+        # Range reason: 60 s is the shortest wait that covers one upload cycle of the 1-minute build; 3600 s is the ceiling,
+        # the whole bench job timeout (timeout-minutes 60), so no wait can run past the job.
+        # LIMIT: 60 to 3600 s is the allowed range, but the wait is NOT the whole job budget. The job timeout is timeout-minutes 60
+        # (3600 s, counted from the job start), and steps 1 to d run before this step. The step fails closed, before sleeping, when
+        # elapsed-since-job-start + wait + 900 s reserve (for bench/cloud/check.sh and Bench E2E, which run after the wait)
+        # would exceed 3600 s. A longer wait needs the owner to set a longer timeout-minutes on the bench job.
         env:
           BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
           # Device identity (the board's hw_id, nw-<12 hex>), a repository variable (name only here).
           BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
+          BENCH_FIRST_READING_WAIT_S: ${{ vars.BENCH_FIRST_READING_WAIT_S }}
         run: |
           set -euo pipefail
           script="bench/cloud/check.sh"
@@ -764,6 +954,33 @@ jobs:
             echo "::error::e. cloud check: not configured: nothing tested (test start time not set by step d)"
             exit 1
           fi
+          wait_s="${BENCH_FIRST_READING_WAIT_S:-}"
+          if [ -z "$wait_s" ]; then
+            echo "::error::e. cloud check: not configured: nothing tested (repository variable BENCH_FIRST_READING_WAIT_S is not set; set it to 60 to 3600 seconds, there is no default)"
+            exit 1
+          fi
+          if ! [[ "$wait_s" =~ ^[0-9]{2,4}$ ]] || [ "$wait_s" -lt 60 ] || [ "$wait_s" -gt 3600 ]; then
+            echo "::error::e. cloud check: BENCH_FIRST_READING_WAIT_S must be a whole number of seconds from 60 to 3600 (out of range or not a number; value not printed)"
+            exit 1
+          fi
+          # Job budget check (fail closed, nothing slept if it does not fit). 3600 = timeout-minutes 60 of the bench job.
+          # 900 = reserve for check.sh and Bench E2E after the wait (an assumption, not measured; the owner may tune it).
+          job_budget_s=3600
+          reserve_s=900
+          start="${BENCH_JOB_START_EPOCH:-}"
+          if ! [[ "$start" =~ ^[0-9]+$ ]]; then
+            echo "::error::e. cloud check: job start time not recorded (first step of the job); nothing tested"
+            exit 1
+          fi
+          elapsed_s=$(( $(date +%s) - start ))
+          max_wait_s=$(( job_budget_s - elapsed_s - reserve_s ))
+          if [ "$wait_s" -gt "$max_wait_s" ]; then
+            echo "::error::e. cloud check: wait of ${wait_s} s does not fit the 60 min job timeout: ${elapsed_s} s already used, ${reserve_s} s reserved for the check and E2E, so the largest wait now is ${max_wait_s} s. Nothing tested. Lower BENCH_FIRST_READING_WAIT_S, or the owner sets a longer timeout-minutes on the bench job."
+            exit 1
+          fi
+          echo "e. cloud check: waiting ${wait_s} s for the first reading (BENCH_FIRST_READING_WAIT_S); largest wait that fits now is ${max_wait_s} s"
+          # This sleep is NOT redundant with step d: step d does not read BENCH_FIRST_READING_WAIT_S, so this is the only wait.
+          sleep "$wait_s"
           bash "$script"
 
       - name: Bench E2E
