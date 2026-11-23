@@ -927,6 +927,8 @@ jobs:
         # (set by step d). It must not read, print or compare any reading value.
         # Wait: repository variable BENCH_FIRST_READING_WAIT_S (60 to 3600 seconds, no default). The step sleeps that long
         # before its one read, so the first upload of the 1-minute bench build can reach the cloud. Missing or out of range fails.
+        # Range reason: 60 s is the shortest wait that covers one upload cycle of the 1-minute build; 3600 s is the ceiling,
+        # the whole bench job timeout (timeout-minutes 60), so no wait can run past the job.
         # LIMIT: 60 to 3600 s is the allowed range, but the wait is NOT the whole job budget. The job timeout is timeout-minutes 60
         # (3600 s, counted from the job start), and steps 1 to d run before this step. The step fails closed, before sleeping, when
         # elapsed-since-job-start + wait + 900 s reserve (for bench/cloud/check.sh and Bench E2E, which run after the wait)
