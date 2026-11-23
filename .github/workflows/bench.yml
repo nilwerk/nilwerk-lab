@@ -825,11 +825,10 @@ jobs:
       - name: "d. App flow on phone (Appium 2.x, UiAutomator2)"
         # Inputs: bench/app/run_appium.sh; secrets BENCH_ANDROID_SERIAL (phone id) and
         # BENCH_TEST_EMAIL and BENCH_TEST_EMAIL_PASSWORD (test account). Values are never in the repo.
-        # The script as written opens the app and checks the first screen title only. The device steps
-        # (scan, connect, setup data, connected) are not in it yet (owner input).
-        # Scope: communication path only. The flow scans and finds the device, connects, writes
-        # the setup data, and checks that the app shows the device as connected. It asserts no
-        # reading of any kind.
+        # The script signs in, adds the sensor (scan, connect, Wi-Fi, name, plant details), then checks that
+        # this run's plant shows a soil-moisture reading on My plants. The reading value is never read or printed.
+        # Repository variables: BENCH_BOARD_HW_ID (device id, nw-<12 hex>) and BENCH_FIRST_READING_WAIT_S
+        # (seconds to wait for the first reading; owner or Kai input). The script fails closed if either is missing.
         env:
           BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
           BENCH_TEST_EMAIL: ${{ secrets.BENCH_TEST_EMAIL }}
@@ -838,6 +837,8 @@ jobs:
           BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
           BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
           BENCH_WIFI_PASSWORD: ${{ secrets.BENCH_WIFI_PASSWORD }}
+          BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
+          BENCH_FIRST_READING_WAIT_S: ${{ vars.BENCH_FIRST_READING_WAIT_S }}
           APPIUM_PLATFORM_NAME: Android
           APPIUM_AUTOMATION_NAME: UiAutomator2
         run: |
