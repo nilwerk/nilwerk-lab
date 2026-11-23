@@ -3,9 +3,11 @@
 # empty nor a # comment appears in it. Only the first such line is checked.
 # Purpose of this file: the line text, taken from the firmware sources. No value is invented.
 # Sources (projects/plant-monitor/firmware):
-#   main/main.c:141   printf "NWBENCH wake=%d i=%d ..." once per reading cycle (loop main/main.c:127, 2 s delay main/main.c:145). USED BELOW.
-#   main/main.c:105   ESP_LOGI "NWBENCH start board=%s ..." (boot). Not used: a board asleep for the whole window prints no boot line.
-#   The wake line is printed only by the bench app (not the CONFIG_PLANT_UPLOAD build) and, with the setup flow on,
-#   only once the unit is provisioned (an unprovisioned unit deep-sleeps before any read: main/main.c:73-81).
+#   main/main.c:60    printf "NWBENCH wake=%d i=%d ..." in print_bench_line(). USED BELOW. Called by:
+#                     - the bench upload image (CONFIG_PLANT_BENCH_UPLOAD_MINUTE): main/main.c:152, once per minute, no deep sleep;
+#                     - the sensor-only bench app: main/main.c:177, once per 2 s reading cycle (delay main/main.c:178).
+#   main/main.c:135   ESP_LOGI "NWBENCH start board=%s ..." (boot). Not used: a board asleep for the whole window prints no boot line.
+#   The upload build without the bench overlay (production values) does not print it: its loop deep-sleeps (main/main.c:161-163). On the bench image, CONFIG_PLANT_BENCH_AUTO_SETUP skips
+#   the setup deep sleep (main/main.c:107-108), so an unprovisioned unit also reaches the wake line.
 # Owner input: none for this line. It is not yet confirmed on hardware (no bench run has happened).
 NWBENCH wake=

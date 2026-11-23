@@ -37,7 +37,9 @@
 #ifdef CONFIG_PLANT_BENCH_UPLOAD_MINUTE
 /* BENCH CI IMAGE ONLY: one request per minute needs more than the production limit of 6 per hour. 70 leaves room for the window edge.
  * The cloud does not enforce a limit yet (openapi /ingest, [not in 4.B2]); if it starts to, bench uploads get 429 with Retry-After.
- * Back-off 60 s: a failed minute retries the next minute. Production values above are unchanged. */
+ * Back-off 60 s: a failed minute retries the next minute. Production values above are unchanged.
+ * CONTRACT (C4, Theo review): docs/interfaces/openapi.yaml line 110 (/ingest, "max 6 requests per device per hour") stays 6/h.
+ * This 70 is BENCH-ONLY, for the test account. It does not change the contract, and the server does not enforce either value yet. */
 #undef NW_UPLOAD_MAX_PER_HOUR
 #define NW_UPLOAD_MAX_PER_HOUR 70
 #undef NW_UPLOAD_BACKOFF_BASE_S
