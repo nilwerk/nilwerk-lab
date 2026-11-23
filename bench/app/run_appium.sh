@@ -48,6 +48,16 @@ FIRST_READING_MAX_S=900
 step_deadline=$(( $(date +%s) + STEP_MAX_S ))
 budget() { [ "$(date +%s)" -lt "$step_deadline" ] || fail "the step time limit of ${STEP_MAX_S} s was reached"; }
 
+# Job clock: the bench job has timeout-minutes 60, and its first step records BENCH_JOB_START_EPOCH (epoch seconds).
+# Before each wait, stop if the job time used plus that wait would pass JOB_LIMIT_S (3300 s, 5 min before the job timeout).
+JOB_LIMIT_S=3300
+job_fits() { # job_fits <largest wait in seconds> <what>
+  local start="${BENCH_JOB_START_EPOCH:-}" elapsed
+  [[ "$start" =~ ^[0-9]+$ ]] || fail "job start time not recorded (the first step of the job must write BENCH_JOB_START_EPOCH); nothing tested"
+  elapsed=$(( $(date +%s) - start ))
+  [ $(( elapsed + $1 )) -le "$JOB_LIMIT_S" ] || fail "$2 of up to $1 s would pass the job clock: ${elapsed} s used of ${JOB_LIMIT_S} s allowed. Stopped before waiting."
+}
+
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 app="$root/projects/plant-monitor/app"
 strings="$app/strings/en.json"
@@ -89,6 +99,7 @@ pkg="$(sed -n "s/^ *package: '\([A-Za-z0-9_.]*\)',\{0,1\}$/\1/p" "$app/app.confi
 [ -n "${BENCH_WIFI_PASSWORD:-}" ] || fail "secret BENCH_WIFI_PASSWORD is not set (value not printed)"
 hw="${BENCH_BOARD_HW_ID:-}"
 [[ "$hw" =~ ^nw-[0-9a-f]{12}$ ]] || fail "BENCH_BOARD_HW_ID is not set or is not nw-<12 hex> (value not printed)"
+[[ "${BENCH_JOB_START_EPOCH:-}" =~ ^[0-9]+$ ]] || fail "job start time not recorded (the first step of the job must write BENCH_JOB_START_EPOCH); nothing tested"
 pop="$(printf '%s' "${BENCH_BOARD_POP:-}" | tr '[:lower:]' '[:upper:]')"
 [[ "$pop" =~ ^[0-9A-HJKMNP-TV-Z]{8}$ ]] || fail "secret BENCH_BOARD_POP is not set or is not an 8-character setup code (value not printed)"
 
@@ -158,6 +169,7 @@ print(v.get("element-6066-11e5-a328-0025ce0bfe10") or v.get("ELEMENT") or "")' "
 # wait_el <tries> <kind> <value>: up to <tries> looks, 2 s apart.
 wait_el() {
   local _
+  job_fits $(( $1 * 2 )) "a screen wait"
   for _ in $(seq 1 "$1"); do
     budget
     if probe "$2" "$3"; then return 0; fi
@@ -170,6 +182,7 @@ wait_el() {
 wait_any() {
   local tries="$1" t _
   shift
+  job_fits $(( tries * 2 )) "a screen wait"
   for _ in $(seq 1 "$tries"); do
     budget
     for t in "$@"; do
@@ -312,6 +325,7 @@ for m in re.finditer(r"\{(\w+)\}", template):
 print(out + re.escape(template[pos:]))
 PY
 )" || fail "the plant row label could not be built from strings/en.json"
+job_fits "$FIRST_READING_MAX_S" "the wait for the first reading"
 first_deadline=$(( $(date +%s) + FIRST_READING_MAX_S ))
 while ! probe descMatches "$row_re"; do
   budget

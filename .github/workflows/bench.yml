@@ -361,6 +361,11 @@ jobs:
       # Node major the runner must provide. See docs/ci-bench-runner.md, "Node workaround".
       EXPECTED_NODE_MAJOR: "20"
     steps:
+      - name: Record job start (for the wait limit in step d)
+        # The job timeout (timeout-minutes: 60) counts from the job start. This is the first step, so its time is the start
+        # that step d uses to check that each wait fits. Written to GITHUB_ENV for this run only.
+        run: echo "BENCH_JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Checkout
         # Pinned to the full commit SHA of the actions/checkout v4.4.0 tag.
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
