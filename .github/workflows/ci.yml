@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       firmware: ${{ steps.d.outputs.firmware }}
+      firmwaresim: ${{ steps.d.outputs.firmwaresim }}
       app: ${{ steps.d.outputs.app }}
       cloud: ${{ steps.d.outputs.cloud }}
       clouddb: ${{ steps.d.outputs.clouddb }}
@@ -67,6 +68,9 @@ jobs:
           CT="$P/docs/interfaces/ $P/docs/adr/"
           # v1/ too: v1/WIRING.md (pin table) is checked against board.h by a firmware host test (check_board_v1.py).
           gate firmware "test -f $P/firmware/CMakeLists.txt" "$P/firmware/" "$P/v1/" $CT
+          # firmwaresim = QEMU boot check (job firmware-sim). Narrower than firmware: only files under firmware/. Push to main also turns it on
+          # (ALL), so main warms the ESP-IDF/QEMU cache that PR runs restore.
+          gate firmwaresim "test -f $P/firmware/CMakeLists.txt" "$P/firmware/"
           gate app "test -f $P/app/package.json" "$P/app/" $CT
           # cloud = Deno lint/typecheck of the Supabase edge functions (they are Deno code, there is no cloud/package.json and must not be one).
           # Their tests run in cloud-db (Node 22 + Postgres), see the comment there.
@@ -192,6 +196,106 @@ jobs:
           else
             echo "No host tests yet (test/host/)."
           fi
+
+  firmware-sim:
+    name: firmware simulator boot check (QEMU, mocked sensors)
+    # Runs on a PR that changes projects/plant-monitor/firmware and on every push to main (see the detect gate firmwaresim).
+    # Simulator only: the boot check in tests/qemu_boot_check.sh. Not a hardware test.
+    needs: detect
+    if: needs.detect.outputs.firmwaresim == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      IDF_VERSION: v5.4
+      QEMU_VERSION: "9.0.0"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Host packages (ESP-IDF prerequisites, libslirp0 for QEMU)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git wget flex bison gperf python3 python3-venv python3-pip cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 libslirp0
+      # The cache holds the ESP-IDF source tree and ~/.espressif (toolchains, Python env, QEMU). Key = IDF version + QEMU version + OS.
+      # A PR can restore a cache saved on main; a cache saved on a PR branch is visible only to that branch.
+      - name: Restore ESP-IDF and QEMU cache
+        id: cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.espressif
+            ~/esp/esp-idf
+          key: idf-v5.4-qemu-9.0.0-${{ runner.os }}
+      - name: Install ESP-IDF v5.4 (cache miss only)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/esp"
+          git clone --depth 1 --branch "$IDF_VERSION" --shallow-submodules --recursive https://github.com/espressif/esp-idf.git "$HOME/esp/esp-idf"
+          "$HOME/esp/esp-idf/install.sh" esp32c3
+      - name: Install QEMU via idf_tools.py (cache miss only)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          export IDF_PATH="$HOME/esp/esp-idf"
+          . "$IDF_PATH/export.sh" >/dev/null
+          python "$IDF_PATH/tools/idf_tools.py" install qemu-riscv32
+      - name: Check toolchain versions (every run, cache hit or miss)
+        run: |
+          export IDF_PATH="$HOME/esp/esp-idf"
+          . "$IDF_PATH/export.sh" >/dev/null
+          idf.py --version > idf_version.txt; cat idf_version.txt
+          grep -q "ESP-IDF v5\.4" idf_version.txt || { echo "::error::ESP-IDF is not ${IDF_VERSION}"; exit 1; }
+          qemu-system-riscv32 --version | head -1
+          qemu-system-riscv32 --version | grep -q "version ${QEMU_VERSION}" || { echo "::error::qemu-system-riscv32 is not ${QEMU_VERSION}"; exit 1; }
+      - name: Simulator boot check (scenario 1)
+        id: boot
+        working-directory: projects/plant-monitor/firmware
+        shell: bash
+        run: |
+          export IDF_PATH="$HOME/esp/esp-idf"
+          . "$IDF_PATH/export.sh" >/dev/null
+          set +e
+          bash tests/qemu_boot_check.sh --log "$RUNNER_TEMP/qemu_boot.log" > "$RUNNER_TEMP/boot_check.txt" 2>&1
+          rc=$?
+          echo "$rc" > "$RUNNER_TEMP/boot_rc"
+          cat "$RUNNER_TEMP/boot_check.txt"
+          exit "$rc"
+      # Runs even when an earlier step failed: every scenario gets PASS, FAIL or NOT RUN. Scenarios 2 to 4 have no harness yet.
+      - name: Scenario summary
+        if: always()
+        shell: bash
+        env:
+          BOOT_OUTCOME: ${{ steps.boot.outcome }}
+        run: |
+          rc="$(cat "$RUNNER_TEMP/boot_rc" 2>/dev/null || echo none)"
+          case "$BOOT_OUTCOME" in
+            success) s1="PASS"; note="all checks in tests/qemu_boot_check.sh passed" ;;
+            failure)
+              s1="FAIL"
+              case "$rc" in
+                1) note="a boot or sensor check failed (see the lines below)" ;;
+                2) note="setup or build problem, not a firmware verdict" ;;
+                *) note="script exit code: $rc" ;;
+              esac ;;
+            *) s1="NOT RUN"; note="the boot check did not start (an earlier step failed)" ;;
+          esac
+          {
+            echo "## Firmware simulator: scenario results"
+            echo "Simulator only (QEMU ESP32-C3, mocked sensors). Not hardware. ESP-IDF ${IDF_VERSION}, QEMU ${QEMU_VERSION}."
+            echo ""
+            echo "| # | Scenario | Result | Note |"
+            echo "|---|---|---|---|"
+            echo "| 1 | Boot to app_main, five readings, mock decode, sleep call (tests/qemu_boot_check.sh) | $s1 | $note |"
+            echo "| 2 | Missing security-2 data in NVS: BLE must stay off | NOT RUN | no simulator harness yet |"
+            echo "| 3 | Failed boot decision (NWSETUP boot decision failed) | NOT RUN | no simulator harness yet |"
+            echo "| 4 | Five resets | NOT RUN | no simulator harness yet |"
+            echo ""
+            if [ -f "$RUNNER_TEMP/boot_check.txt" ]; then
+              echo "<details><summary>Scenario 1 check lines</summary>"
+              echo ""
+              echo '```'
+              grep -E '^(PASS|FAIL|RESULT|NOTE|SETUP)' "$RUNNER_TEMP/boot_check.txt" || true
+              echo '```'
+              echo "</details>"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   app:
     needs: detect
@@ -461,7 +565,7 @@ jobs:
 
   summary:
     name: Final status
-    needs: [detect, firmware, app, cloud, cloud-db, cloud-mutation, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
+    needs: [detect, firmware, firmware-sim, app, cloud, cloud-db, cloud-mutation, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -473,6 +577,7 @@ jobs:
             echo "|---|---|"
             echo "| detect | ${{ needs.detect.result }} |"
             echo "| firmware | ${{ needs.firmware.result }} |"
+            echo "| firmware-sim | ${{ needs.firmware-sim.result }} |"
             echo "| app | ${{ needs.app.result }} |"
             echo "| cloud | ${{ needs.cloud.result }} |"
             echo "| cloud-db | ${{ needs.cloud-db.result }} |"
@@ -487,7 +592,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           # Detect must succeed: if it fails, every job is skipped and that must not look green.
           [ "${{ needs.detect.result }}" = "success" ] || { echo "Pipeline RED: Detect ${{ needs.detect.result }}"; exit 1; }
-          for r in "${{ needs.firmware.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.cloud-db.result }}" "${{ needs.cloud-mutation.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
+          for r in "${{ needs.firmware.result }}" "${{ needs.firmware-sim.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.cloud-db.result }}" "${{ needs.cloud-mutation.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "Pipeline RED"; exit 1; fi
           done
           echo "Pipeline GREEN (skipped = workstream not started yet)"
