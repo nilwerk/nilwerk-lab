@@ -58,6 +58,10 @@ static void delay_ms(void *ctx, uint32_t ms)
 static void soil_power(void *ctx, bool on)
 {
     (void)ctx;
+#ifdef CONFIG_PLANT_BENCH_SOIL_POWER_ON
+    /* BENCH CI IMAGE ONLY (A-094): the supply stays on after the first reading. NFR-12 is not met on this image. */
+    on = true;
+#endif
     gpio_set_level((gpio_num_t)s.soil_pwr, on ? 1 : 0);
 }
 

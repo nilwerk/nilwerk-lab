@@ -11,6 +11,9 @@
 CONFIG_PLANT_BENCH_AUTO_SETUP=y
 # Bench CI image only: BLE setup window of 60 s (main/Kconfig.projbuild, PLANT_BENCH_SETUP_WINDOW_S). Production stays 300 s.
 CONFIG_PLANT_BENCH_SETUP_WINDOW_S=60
+# Bench CI image only (A-094): soil probe supply stays on between readings, so the probe value can be tested. NFR-12 is not met here.
+# Kconfig PLANT_BENCH_SOIL_POWER_ON (main/Kconfig.projbuild). Production, v1 and upload builds do not list this file.
+CONFIG_PLANT_BENCH_SOIL_POWER_ON=y
 # Hourly upload on the bench, once a minute (owner decision 2026-11-23). Test account only; the data is deleted after the test.
 # The cloud base URL is NOT set here. The bench workflow (bench.yml, job build-firmware, once PR #186 is merged) writes
 # CONFIG_PLANT_API_BASE_URL into firmware/sdkconfig.defaults.local (git-ignored, never committed) and lists that file LAST:
