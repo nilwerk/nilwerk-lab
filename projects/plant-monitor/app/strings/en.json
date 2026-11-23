@@ -328,7 +328,7 @@
   "dashboard.error": "Could not load the dashboard. Check your connection and try again.",
   "dashboard.profileError": "Could not check your plan. Nothing was loaded. Try again.",
   "dashboard.upgrade.title": "Premium feature",
-  "dashboard.upgrade.body": "The premium dashboard shows 30- and 90-day graphs, trends and watering events. It is part of Premium. Free accounts do not load any plant history.",
+  "dashboard.upgrade.body": "The premium dashboard shows 30- and 90-day history for each plant: soil moisture, battery, watering event counts and trends. It is part of Premium. Free accounts do not load any plant history.",
   "dashboard.noPlants": "No plants yet. Add a sensor to see history here.",
   "dashboard.noReadings": "No readings in this period yet.",
   "dashboard.window.title": "Last {days} days",
