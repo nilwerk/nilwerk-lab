@@ -199,6 +199,14 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 
 **Repository variables** (not secrets, set by the owner, not by this PR):
 - `BENCH_BOARD_HW_ID` (value `<board-hw-id>`): the board's hw_id. Used by step 3 and by step e.
+- `SUPABASE_URL`: the project URL only (`https://<project-ref>.supabase.co`, no path, no trailing slash). The job
+  `build-firmware` builds `CONFIG_PLANT_API_BASE_URL` from it as `<SUPABASE_URL>/functions/v1` (the functions path in
+  `docs/interfaces/openapi.yaml`), writes it to the git-ignored `firmware/sdkconfig.defaults.local` and passes that file
+  in `SDKCONFIG_DEFAULTS` (DEV_GUIDE 7.1, option 2). The job fails closed if it is missing or not `https://`. The value is
+  never printed and the file is never uploaded. Also used by the Android APK job (same variable).
+- `BENCH_FIRST_READING_WAIT_S`: **required**, no default, whole seconds from 60 to 3600. Step e sleeps this long before its
+  one read of the cloud, so the first upload of the 1-minute bench build can arrive. Step e fails closed if it is missing
+  or out of range. **Note:** the bench job has `timeout-minutes: 60`, which also limits this wait (steps a to d run first). A longer job limit is an owner decision, not made here.
 - `BENCH_PROVISION_DIR`: **required**, no default. The folder on the Pi that holds the provisioning files of step 3
   (`<hw_id>.nvs.csv` and `<hw_id>.label.txt`, mode `0600`). The workflow fails closed if it is empty. Its value is
   not written in this repo.
