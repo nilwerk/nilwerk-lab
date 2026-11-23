@@ -192,7 +192,7 @@ static bool start_ble(void)
     wifi_prov_security2_params_t sec2 = {0};
     if (!load_sec2(&sec2, salt, &sl, ver, &vl)) { ESP_LOGE(TAG, "NWSETUP no security-2 salt/verifier in NVS: BLE stays off"); return false; }
     wifi_prov_mgr_config_t cfg = {.scheme = wifi_prov_scheme_ble, .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM};
-    if (wifi_prov_mgr_init(cfg) != ESP_OK) return false;
+    if (wifi_prov_mgr_init(cfg) != ESP_OK) { ESP_LOGE(TAG, "NWSETUP BLE: wifi_prov_mgr_init failed"); return false; }
     s_mgr_up = true;
     static uint8_t uuid[16];               /* wifi_prov_scheme_ble wants the UUID in little-endian order [verify] */
     static const uint8_t be[16] = {0xb5,0x36,0x72,0xdd,0x52,0x27,0x40,0xa0,0x8b,0x6f,0x6f,0x83,0x6a,0x58,0x8c,0x4c};  /* NW_PROV_SERVICE_UUID */
@@ -202,7 +202,8 @@ static bool start_ble(void)
     nw_prov_adv_name(s_glue.hw_id, name, sizeof name);
     wifi_prov_mgr_endpoint_create("nw-claim");
     wifi_prov_mgr_endpoint_create("nw-status");
-    if (wifi_prov_mgr_start_provisioning(WIFI_PROV_SECURITY_2, &sec2, name, NULL) != ESP_OK) return false;
+    { esp_err_t pe = wifi_prov_mgr_start_provisioning(WIFI_PROV_SECURITY_2, &sec2, name, NULL);
+      if (pe != ESP_OK) { ESP_LOGE(TAG, "NWSETUP BLE: start_provisioning failed (%d)", (int)pe); return false; } }
     wifi_prov_mgr_endpoint_register("nw-claim", ep_claim, NULL);
     wifi_prov_mgr_endpoint_register("nw-status", ep_status, NULL);
     return true;
@@ -211,6 +212,14 @@ static bool start_ble(void)
 nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
 {
     s_lock = xSemaphoreCreateMutex();
+    /* NVS first: the Wi-Fi driver (esp_wifi_init below) opens NVS during init. Without this, Wi-Fi init fails with
+     * ESP_ERR_NVS_NOT_INITIALIZED (4353), wifi_prov_mgr cannot set STA mode, BLE provisioning never starts, and the unit
+     * goes to deep sleep. Found by the bench debug boot log (NWSETUP BLE: start_provisioning failed (12289)). */
+    esp_err_t nvs_ret = nvs_flash_init();
+    if (nvs_ret != ESP_OK && nvs_ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "nvs_flash_init failed (%d); not erasing, setup refused", (int)nvs_ret);
+        return NW_SETUP_SLEEP_UNTIL_RESET;
+    }
     esp_netif_init();
     esp_event_loop_create_default();
     s_sta = esp_netif_create_default_wifi_sta();
@@ -222,13 +231,6 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     make_hw_id(hw);
     nw_glue_io_t io = {.ble_set = io_ble_set, .wifi_start = io_wifi_start, .http_post = io_http_post};
     nw_prov_ops_t ops;
-    /* NVS must be up before the record is read. ESP_ERR_INVALID_STATE means it is already initialised (the upload
-     * component calls nvs_flash_init again later in the same boot). Never erase here: that would wipe the provisioning record. */
-    esp_err_t nvs_ret = nvs_flash_init();
-    if (nvs_ret != ESP_OK && nvs_ret != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "nvs_flash_init failed (%d); not erasing, setup refused", (int)nvs_ret);
-        return NW_SETUP_SLEEP_UNTIL_RESET;
-    }
     nw_prov_store_nvs(&io.store);
     if (nw_glue_init(&s_glue, &io, hw, CONFIG_PLANT_FW_VERSION, &ops) != NW_PROV_OK) { ESP_LOGE(TAG, "glue init"); return NW_SETUP_SLEEP_UNTIL_RESET; }
     nw_prov_init(&s_prov, &ops);
