@@ -826,6 +826,13 @@ jobs:
             echo "::error::d. app flow: not configured: nothing tested (appium not installed)"
             exit 1
           fi
+          # Prepare the phone for UiAutomator2: stop a stale automation server and wake the screen.
+          # Without this the server can crash with "UiAutomation not connected" (seen on the bench, run 45184412853).
+          adb -s "$BENCH_ANDROID_SERIAL" shell am force-stop io.appium.uiautomator2.server || true
+          adb -s "$BENCH_ANDROID_SERIAL" shell am force-stop io.appium.uiautomator2.server.test || true
+          adb -s "$BENCH_ANDROID_SERIAL" shell input keyevent KEYCODE_WAKEUP || true
+          adb -s "$BENCH_ANDROID_SERIAL" shell input keyevent 82 || true
+          sleep 3
           appium_major="$(appium --version 2>/dev/null | cut -d. -f1)"
           if [ "$appium_major" != "2" ]; then
             echo "::error::d. app flow: not configured: nothing tested (Appium 2.x required, found major '${appium_major}')"
