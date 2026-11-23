@@ -3,8 +3,10 @@
 # Appium 2 server (UiAutomator2) with W3C element calls. Labels are read from projects/plant-monitor/app/strings/en.json at
 # run time. No coordinates. Screen order (file, string key):
 #   0. launch         Welcome title app.name (src/screens/WelcomeScreen.tsx). The MOCK build is refused (app.mockBanner, App.tsx).
-#   1. sign in        welcome.haveAccount (WelcomeScreen.tsx) -> auth.email, auth.password, auth.signIn.submit
-#                     (src/screens/AuthFormScreen.tsx) -> plants.title "My plants" (App.tsx shows PlantsScreen when signed in).
+#   1. sign up        welcome.createAccount (WelcomeScreen.tsx) -> auth.email, auth.password, auth.signUp.submit (AuthFormScreen.tsx)
+#                     -> plants.title "My plants" (signed in), or auth.signUp.checkEmail (needs confirmation: sign in with
+#                     auth.haveAccount, auth.signIn.submit), or auth.error.emailTaken (sign in with the same address).
+#                     Test account: BENCH_TEST_EMAIL, BENCH_TEST_EMAIL_PASSWORD, display name BENCH_TEST_USER (never printed).
 #   2. add sensor     nav.profile tab (src/ui/TabBar.tsx) -> setup.addSensor (ProfileScreen.tsx) -> setup.findSensor
 #                     (src/screens/setup/SetupSteps.tsx ReadyStep) -> the device "Sensor NW-<last 6 of hw_id>," (setup.ready.device)
 #                     -> setup.connect.codeLabel = NW1:<hw_id>:<pop>, setup.connect.submit (ConnectStep)
@@ -72,6 +74,7 @@ keys=(app.name app.mockBanner welcome.haveAccount auth.email auth.password auth.
   setup.details.save setup.details.saveError setup.done.title setup.done.seePlant setup.move.title setup.move.move
   setup.linked.title setup.notMoved.title setup.linked.unknownTitle
   setup.linkError.wifi.title setup.linkError.owned.title setup.linkError.claim.title
+  welcome.createAccount auth.signUp.submit auth.signUp.checkEmail auth.error.emailTaken auth.haveAccount auth.displayName
   plants.refresh plants.row.a11y)
 declare -A T
 dump="$(python3 -I - "$strings" "${keys[@]}" <<'PY'
@@ -95,6 +98,7 @@ pkg="$(sed -n "s/^ *package: '\([A-Za-z0-9_.]*\)',\{0,1\}$/\1/p" "$app/app.confi
 [ -n "${BENCH_ANDROID_SERIAL:-}" ] || fail "secret BENCH_ANDROID_SERIAL is not set (value not printed)"
 [ -n "${BENCH_TEST_EMAIL:-}" ] || fail "secret BENCH_TEST_EMAIL is not set (value not printed)"
 [ -n "${BENCH_TEST_EMAIL_PASSWORD:-}" ] || fail "secret BENCH_TEST_EMAIL_PASSWORD is not set (value not printed)"
+[ -n "${BENCH_TEST_USER:-}" ] || fail "secret BENCH_TEST_USER is not set (value not printed)"
 [ -n "${BENCH_WIFI_SSID:-}" ] || fail "secret BENCH_WIFI_SSID is not set (value not printed)"
 [ -n "${BENCH_WIFI_PASSWORD:-}" ] || fail "secret BENCH_WIFI_PASSWORD is not set (value not printed)"
 hw="${BENCH_BOARD_HW_ID:-}"
@@ -255,13 +259,47 @@ echo "d. app flow: launch: first screen title '${T[app.name]}' found in the app 
 # ---- 1. sign in with the test account ----
 step_name="1. sign in"
 probe text "${T[plants.title]}" && fail "the app starts already signed in; the bench must start signed out"
-tap "${T[welcome.haveAccount]}"
+# Sign up with the test account: e-mail BENCH_TEST_EMAIL, password BENCH_TEST_EMAIL_PASSWORD, display name BENCH_TEST_USER
+# (the app's only username-like field, auth.displayName). Outcomes, read from the sign-up screen:
+#   signed in (e-mail confirmation off or already done) -> go on.
+#   auth.signUp.checkEmail (sign-up accepted, confirmation needed) -> try to sign in; the bench cannot open the link.
+#   auth.error.emailTaken (the address already has an account) -> sign in with it.
+#   anything else -> fail with the screen's message.
+# sign_in_form <message if not accepted>: switches to sign-in from the sign-up screen and signs in with the test account.
+sign_in_form() {
+  tap "${T[auth.haveAccount]}"
+  field "${T[auth.email]}" BENCH_TEST_EMAIL
+  field "${T[auth.password]}" BENCH_TEST_EMAIL_PASSWORD
+  tap "${T[auth.signIn.submit]}"
+  wait_any 60 "${T[plants.title]}" "${T[auth.error.invalidCredentials]}" "${T[auth.error.network]}" \
+    "${T[auth.error.notConfigured]}" "${T[auth.error.unknown]}" || fail "$1 (no answer to the sign-in in time)"
+  [ "$hit" = "${T[plants.title]}" ] || fail "$1 (sign-in screen: \"$hit\")"
+}
+tap "${T[welcome.createAccount]}"
 field "${T[auth.email]}" BENCH_TEST_EMAIL
 field "${T[auth.password]}" BENCH_TEST_EMAIL_PASSWORD
-tap "${T[auth.signIn.submit]}"
-wait_any 60 "${T[plants.title]}" "${T[auth.error.invalidCredentials]}" "${T[auth.error.network]}" \
-  "${T[auth.error.notConfigured]}" "${T[auth.error.unknown]}" || fail "no answer to the sign-in in time"
-[ "$hit" = "${T[plants.title]}" ] || fail "the server did not accept the test sign-in (screen: \"$hit\")"
+field "${T[auth.displayName]}" BENCH_TEST_USER
+tap "${T[auth.signUp.submit]}"
+job_fits 120 "the sign-up answer"
+checkmail_prefix="${T[auth.signUp.checkEmail]%%'{email}'*}"
+answer=""
+for _ in $(seq 1 60); do
+  budget
+  if probe text "${T[plants.title]}"; then answer="signed in"; break; fi
+  if probe textStarts "$checkmail_prefix"; then answer="checkEmail"; break; fi
+  if probe text "${T[auth.error.emailTaken]}"; then answer="emailTaken"; break; fi
+  if probe text "${T[auth.error.network]}"; then answer="network"; break; fi
+  if probe text "${T[auth.error.notConfigured]}"; then answer="notConfigured"; break; fi
+  if probe text "${T[auth.error.unknown]}"; then answer="unknown"; break; fi
+  sleep 2
+done
+case "$answer" in
+  "signed in") ;;
+  checkEmail) sign_in_form "the sign-up was accepted but needs e-mail confirmation, and the bench cannot open the link; the test project must auto-confirm or pre-confirm the test account" ;;
+  emailTaken) sign_in_form "the address already has an account and sign-in with the test password failed" ;;
+  "") fail "no answer to the sign-up in time" ;;
+  *) fail "the sign-up failed (answer: $answer)" ;;
+esac
 ok
 
 # ---- 2. add a sensor: find, pair with the setup code, Wi-Fi, name, photo, plant details, done ----

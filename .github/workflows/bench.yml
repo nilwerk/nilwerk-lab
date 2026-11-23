@@ -875,6 +875,7 @@ jobs:
           BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
           BENCH_TEST_EMAIL: ${{ secrets.BENCH_TEST_EMAIL }}
           BENCH_TEST_EMAIL_PASSWORD: ${{ secrets.BENCH_TEST_EMAIL_PASSWORD }}
+          BENCH_TEST_USER: ${{ secrets.BENCH_TEST_USER }}
           # PoP and Wi-Fi go to the Appium script as environment variables only. Never echo them.
           BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
           BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
