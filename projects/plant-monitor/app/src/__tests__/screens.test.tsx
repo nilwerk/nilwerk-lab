@@ -173,7 +173,7 @@ describe('legal line (A-052, draft)', () => {
 describe('requirement citations', () => {
   test('every screen has FR ids in the map and in its source header', () => {
     const files: Record<keyof typeof SCREEN_FR, string> = {
-      welcome: 'WelcomeScreen', plants: 'PlantsScreen', plantDetail: 'PlantDetailScreen', plantGallery: 'PlantGalleryScreen', removePlant: 'RemovePlantScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen', setup: 'setup/SetupSteps', alerts: 'AlertsScreen',
+      welcome: 'WelcomeScreen', plants: 'PlantsScreen', plantDetail: 'PlantDetailScreen', plantGallery: 'PlantGalleryScreen', removePlant: 'RemovePlantScreen', signUp: 'AuthFormScreen', signIn: 'AuthFormScreen', profile: 'ProfileScreen', deleteAccount: 'DeleteAccountScreen', premium: 'PremiumScreen', setup: 'setup/SetupSteps', alerts: 'AlertsScreen', premiumDashboard: 'PremiumDashboardScreen',
     };
     for (const [screenName, ids] of Object.entries(SCREEN_FR)) {
       expect(ids.length).toBeGreaterThan(0);
