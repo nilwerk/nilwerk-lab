@@ -335,6 +335,10 @@ jobs:
           [ "${#apks[@]}" = "1" ] || fail "not found: expected one APK from the build-apk job of this run, found ${#apks[@]}"
           apk="${apks[0]}"
           [ -s "$apk" ] || fail "APK file is empty"
+          # An APK is a zip archive with an end-of-archive record and a manifest. A download cut short fails here,
+          # with a clear message, instead of failing later at adb install (seen in run 45184412853 with a 96 MB file).
+          unzip -tq "$apk" >/dev/null 2>&1 || fail "APK is not a valid zip archive (truncated or corrupt download): $apk"
+          unzip -l "$apk" | grep -q 'AndroidManifest.xml' || fail "APK has no AndroidManifest.xml"
           echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
           echo "2. app APK: saved to the runner workspace from run ${GITHUB_RUN_ID} (commit ${GITHUB_SHA})"
 
