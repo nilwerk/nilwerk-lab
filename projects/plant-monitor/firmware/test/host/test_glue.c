@@ -184,6 +184,30 @@ static void test_item4_behaviour_after_closed(void)
     nw_prov_init(&p2, &ops); CHECK_EQ(nw_prov_boot(&p2, 0, 0), NW_PROV_OK); CHECK_EQ(p2.state, NW_PROV_S_ADVERTISING);
 }
 
+/* PR #172 (Theo): a failed boot decision must not fall through to normal mode. Sleep until reset instead. */
+static int k_load_err(void *c, nw_prov_record_t *o) { (void)c; (void)o; return -1; }
+static int k_erase_err(void *c) { (void)c; return -1; }
+static void test_pr172_failed_boot_decision_sleeps_until_reset(void)
+{
+    fk_t f = {0};
+    nw_prov_ops_t ops = {.ctx = &f, .ble_set = k_ble, .store = {k_load_err, k_save, k_erase}, .store_ctx = &f};
+    nw_prov_t p; nw_prov_init(&p, &ops);
+    int rc = nw_prov_boot(&p, 0, 0);                                                  /* NVS read error */
+    CHECK_EQ(rc, NW_PROV_ERR_STORE); CHECK_EQ(p.state, NW_PROV_S_NORMAL);
+    CHECK_EQ(nw_glue_next_after_boot(&p, rc, false), NW_GLUE_NEXT_SLEEP_UNTIL_RESET);  /* no fall-through to normal */
+
+    nw_prov_ops_t ops2 = {.ctx = &f, .ble_set = k_ble, .store = {k_load, k_save, k_erase_err}, .store_ctx = &f};
+    nw_prov_t p2; nw_prov_init(&p2, &ops2);
+    rc = nw_prov_boot(&p2, NW_PROV_BUTTON_RESET_MS, 0);                               /* factory reset, erase fails */
+    CHECK_EQ(rc, NW_PROV_ERR_STORE);
+    CHECK_EQ(nw_glue_next_after_boot(&p2, rc, true), NW_GLUE_NEXT_SLEEP_UNTIL_RESET); /* old record not wiped: do not run it */
+
+    nw_prov_t p3; nw_prov_init(&p3, &ops2);
+    f.stored = true;                                                                  /* healthy provisioned boot: unchanged */
+    rc = nw_prov_boot(&p3, 0, 0);
+    CHECK_EQ(rc, NW_PROV_OK); CHECK_EQ(nw_glue_next_after_boot(&p3, rc, true), NW_GLUE_NEXT_NORMAL);
+}
+
 /* WO glue item 6: the glue must not touch the state machine constants. Items 5 (traceability) is checked by test_prov / contract check. */
 static void test_item6_constants_unchanged(void)
 {
@@ -197,7 +221,8 @@ int main(void)
     test_item1_timeout_is_wrap_safe_and_retry_rearms(); test_item1_late_result_after_timeout_is_ignored();
     test_item2_claim_body_fields(); test_item2_escaping_and_limits();
     test_item3_http_mapping(); test_item3_token_parser();
-    test_item4_behaviour_after_closed(); test_item6_constants_unchanged();
+    test_item4_behaviour_after_closed(); test_pr172_failed_boot_decision_sleeps_until_reset();
+    test_item6_constants_unchanged();
     printf("glue host tests: %d checks, %d failed\n", nwtest_checked, nwtest_failed);
     return nwtest_failed ? 1 : 0;
 }

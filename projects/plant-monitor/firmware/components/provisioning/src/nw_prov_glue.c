@@ -186,3 +186,10 @@ nw_glue_next_t nw_glue_next_after_setup(const nw_prov_t *p, bool record_present)
     /* CLOSED */
     return record_present ? NW_GLUE_NEXT_NORMAL : NW_GLUE_NEXT_SLEEP_UNTIL_RESET;
 }
+
+/* PR #172 (Theo): a failed boot decision never falls through to normal mode; the unit sleeps until reset. */
+nw_glue_next_t nw_glue_next_after_boot(const nw_prov_t *p, int boot_rc, bool record_present)
+{
+    if (boot_rc != NW_PROV_OK) return NW_GLUE_NEXT_SLEEP_UNTIL_RESET;
+    return nw_glue_next_after_setup(p, record_present);
+}
