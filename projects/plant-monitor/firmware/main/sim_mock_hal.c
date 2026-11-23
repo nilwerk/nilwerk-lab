@@ -90,6 +90,15 @@ static int sim_adc_read(void *ctx, nw_adc_ch_t ch, nw_adc_sample_t *out)
     return -1;
 }
 
+/* SIMULATOR ONLY: answers adc_hal_self_calibration() (see main/CMakeLists.txt, --wrap). QEMU's SAR ADC never raises the ONESHOT_DONE
+ * event, so the real self-calibration spins forever in the ADC2 constructor before app_main. MOCK init code 0 (not a calibration value);
+ * the mock HAL never reads the ADC through the driver, so no sensor value depends on it. */
+uint32_t __wrap_adc_hal_self_calibration(int adc_n, int atten, bool internal_gnd)
+{
+    (void)adc_n; (void)atten; (void)internal_gnd;
+    return 0;
+}
+
 static nw_hal_t mock_hal;
 
 int nw_sim_mock_hal_init(nw_hal_t *hal)
