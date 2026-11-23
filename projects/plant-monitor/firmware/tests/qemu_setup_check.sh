@@ -95,4 +95,7 @@ if [ "$fails" -eq 0 ]; then
     exit 0
 fi
 echo "RESULT: FAIL ($fails failed, $passes passed). Serial log: $LOG"
+echo "== serial log tail (last 80 lines of $LOG) =="
+tail -n 80 "$LOG"
+echo "== end of serial log tail =="
 exit 1
