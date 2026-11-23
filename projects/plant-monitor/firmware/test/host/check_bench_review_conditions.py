@@ -13,7 +13,7 @@ def check(t):
     errs = []
     bc = t["bench-ci"]
     if "outside the repo" in bc: errs.append("C1: bench-ci comment still says the URL file is outside the repo")
-    if "sdkconfig.defaults.local;sdkconfig.defaults.bench-ci" not in bc: errs.append("C1: bench-ci comment does not state the real order (local before bench-ci)")
+    if "sdkconfig.defaults.bench-ci;sdkconfig.defaults.local" not in bc: errs.append("C1: bench-ci comment does not state the real order (local last, as PR #186 at 541a910)")
     ex = [l for l in t["expect"].splitlines() if l.strip() and not l.lstrip().startswith("#")]
     if not ex or ex[0].strip() not in t["main"]: errs.append("C2: first expect.txt line is not the NWBENCH text in main/main.c")
     if "printed only by the bench app" in t["expect"]: errs.append("C2: expect.txt still says the wake line is printed only by the bench app")
@@ -35,7 +35,7 @@ def selftest():
     base = load()
     if check(base): print("selftest: base tree fails", check(base)); return 1
     mutants = {
-        "C1 outside-repo wording": ("bench-ci", "sdkconfig.defaults.local;sdkconfig.defaults.bench-ci", "outside the repo"),
+        "C1 outside-repo wording": ("bench-ci", "sdkconfig.defaults.bench-ci;sdkconfig.defaults.local", "outside the repo"),
         "C2 stale printed-only claim": ("expect", "NWBENCH wake=", "printed only by the bench app NWBENCH wake="),
         "C4 contract line not named": ("upload_h", "openapi.yaml line 110", "openapi.yaml"),
     }
