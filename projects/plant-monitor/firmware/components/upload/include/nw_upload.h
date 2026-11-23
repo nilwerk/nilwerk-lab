@@ -34,6 +34,19 @@
 #define NW_UPLOAD_RATE_WINDOW_S 3600
 #define NW_UPLOAD_BACKOFF_BASE_S 900             /* ASSUMED: one sample wake. Failures: 900, 1800, 3600, 3600 ... s */
 #define NW_UPLOAD_BACKOFF_MAX_S 3600             /* ASSUMED: never later than the next hourly report */
+#ifdef CONFIG_PLANT_BENCH_UPLOAD_MINUTE
+/* BENCH CI IMAGE ONLY: one request per minute needs more than the production limit of 6 per hour. 70 leaves room for the window edge.
+ * The cloud does not enforce a limit yet (openapi /ingest, [not in 4.B2]); if it starts to, bench uploads get 429 with Retry-After.
+ * Back-off 60 s: a failed minute retries the next minute. Production values above are unchanged.
+ * CONTRACT (C4, Theo review): docs/interfaces/openapi.yaml line 110 (/ingest, "max 6 requests per device per hour") stays 6/h.
+ * This 70 is BENCH-ONLY, for the test account. It does not change the contract, and the server does not enforce either value yet. */
+#undef NW_UPLOAD_MAX_PER_HOUR
+#define NW_UPLOAD_MAX_PER_HOUR 70
+#undef NW_UPLOAD_BACKOFF_BASE_S
+#define NW_UPLOAD_BACKOFF_BASE_S 60
+#undef NW_UPLOAD_BACKOFF_MAX_S
+#define NW_UPLOAD_BACKOFF_MAX_S 60
+#endif
 #define NW_UPLOAD_LOWBAT_BACKOFF_S 3600          /* ASSUMED: below NW_VBAT_LOW_MV a failed upload waits a full hour (radio energy) */
 #define NW_UPLOAD_RETRY_AFTER_MAX_S 3600         /* a server value above this is clamped: never silent for more than an hour */
 #define NW_UPLOAD_POISON_MAX 3                   /* rejects (400/413) of the same batch before it is dropped */

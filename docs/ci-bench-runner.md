@@ -154,6 +154,10 @@ the board as flashed by step a alone.
 - **Step b after c.** Step b starts about 20 to 25 s after the reset and reads 75 s, so its window ends about 95 to 100 s after the
   reset. Wake lines start at about 60 s and keep coming (no deep sleep on this image), so step b sees them. Step b passes for any
   start time while the board runs, as long as its window reaches past the first wake line. No reset is added to step b.
+- **Bench upload build (owner decision 2026-11-23, `CONFIG_PLANT_BENCH_UPLOAD_MINUTE` in `sdkconfig.defaults.bench-ci`).** The image
+  uploads once a minute and does not deep-sleep. It prints one `NWBENCH wake=` line per minute, before the upload, so the first line
+  comes about 60 s after the reset, when the setup window closes. Step b (window about 20 to 25 s to 95 to 100 s after the reset) sees
+  that first line; the next one comes after about 120 s. Not checked on hardware. The first line must not wait for the Wi-Fi join.
 - **Smallest fix if the margin is not enough: a window of 70 s, not 90 s.** Lengthening the window moves the first wake line
   later. At 90 s the first wake line falls about 90 s after the reset, and step b (starting about 20 to 25 s after the reset) would
   see only about 5 to 10 s of wake lines, a thin margin. At 70 s step c gains about 10 s and step b still has about 25 s of wake lines
