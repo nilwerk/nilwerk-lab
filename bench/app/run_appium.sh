@@ -24,7 +24,7 @@
 # through a JSON file in a temporary folder that is deleted on exit.
 #
 # Other inputs: BENCH_BOARD_HW_ID (repository variable, nw-<12 hex>; the label needs it, and the scanned name is NW- plus its last
-# 6 characters). BENCH_FIRST_READING_WAIT_S (seconds): OWNER/KAI INPUT, the upload interval decides it, so there is no default.
+# 6 characters). Time limits are fixed in the script (see "Fixed time limits" below), not inputs.
 # BENCH_SENSOR_NAME, BENCH_PLANT_NAME_PREFIX, BENCH_PLANT_AREA, BENCH_PLANT_CITY: non-secret test names (defaults below). The
 # plant name gets a per-run suffix, so an older plant with the same name cannot pass the reading check.
 #
@@ -35,6 +35,18 @@ set -euo pipefail
 step_name=""
 fail() { echo "::error::d. app flow: ${step_name:+${step_name}: }$1"; exit 1; }
 ok() { echo "d. app flow: ${step_name}: ok"; }
+
+# Fixed time limits (no input sets them). Every wait has a cap, and the whole step stops at STEP_MAX_S, so the step
+# stays inside the 60-minute job (the workflow also sets timeout-minutes). Each curl call has --max-time 30.
+#   wait_el: one look every 2 s. Tap and screen waits: 30 looks = 60 s. Device scan: 45 looks = 90 s.
+#   wait_any: one look every 2 s. Sign-in answer: 60 looks = 120 s. Wi-Fi step after the setup code: 180 looks = 360 s.
+#   Linking (photo step or an error): 180 looks = 360 s. Plant save answer: 120 looks = 240 s.
+#   First reading on My plants: FIRST_READING_MAX_S = 900 s, refresh every 30 s.
+#   Whole step: STEP_MAX_S = 2400 s (40 min), checked on every look.
+STEP_MAX_S=2400
+FIRST_READING_MAX_S=900
+step_deadline=$(( $(date +%s) + STEP_MAX_S ))
+budget() { [ "$(date +%s)" -lt "$step_deadline" ] || fail "the step time limit of ${STEP_MAX_S} s was reached"; }
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 app="$root/projects/plant-monitor/app"
@@ -79,7 +91,6 @@ hw="${BENCH_BOARD_HW_ID:-}"
 [[ "$hw" =~ ^nw-[0-9a-f]{12}$ ]] || fail "BENCH_BOARD_HW_ID is not set or is not nw-<12 hex> (value not printed)"
 pop="$(printf '%s' "${BENCH_BOARD_POP:-}" | tr '[:lower:]' '[:upper:]')"
 [[ "$pop" =~ ^[0-9A-HJKMNP-TV-Z]{8}$ ]] || fail "secret BENCH_BOARD_POP is not set or is not an 8-character setup code (value not printed)"
-[[ "${BENCH_FIRST_READING_WAIT_S:-}" =~ ^[1-9][0-9]{0,4}$ ]] || fail "BENCH_FIRST_READING_WAIT_S is not set: owner or Kai input needed (the upload interval decides how long to wait for the first reading)"
 
 export BENCH_SENSOR_CODE="NW1:${hw}:${pop}"
 export BENCH_WIFI_SSID BENCH_WIFI_PASSWORD
@@ -99,7 +110,7 @@ work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/bench-appium.XXXXXX")"
 chmod 700 "$work"
 sid=""
 cleanup() {
-  if [ -n "$sid" ]; then curl -sS -o /dev/null -X DELETE "$appium_url/session/$sid" || true; fi
+  if [ -n "$sid" ]; then curl -sS --max-time 30 -o /dev/null -X DELETE "$appium_url/session/$sid" || true; fi
   rm -rf "$work"
 }
 trap cleanup EXIT
@@ -133,7 +144,7 @@ PY
 probe() {
   selector "$work/sel.json" "$1" "$2"
   local code
-  code="$(curl -sS -o "$work/el.json" -w '%{http_code}' -H 'Content-Type: application/json' \
+  code="$(curl -sS --max-time 30 -o "$work/el.json" -w '%{http_code}' -H 'Content-Type: application/json' \
     --data-binary @"$work/sel.json" "$appium_url/session/$sid/element")" || code="000"
   el=""
   if [ "$code" = "200" ]; then
@@ -148,6 +159,7 @@ print(v.get("element-6066-11e5-a328-0025ce0bfe10") or v.get("ELEMENT") or "")' "
 wait_el() {
   local _
   for _ in $(seq 1 "$1"); do
+    budget
     if probe "$2" "$3"; then return 0; fi
     sleep 2
   done
@@ -159,6 +171,7 @@ wait_any() {
   local tries="$1" t _
   shift
   for _ in $(seq 1 "$tries"); do
+    budget
     for t in "$@"; do
       if probe text "$t"; then hit="$t"; return 0; fi
     done
@@ -169,7 +182,7 @@ wait_any() {
 
 post_el() { # post_el <click|clear>
   local code
-  code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data-binary '{}' \
+  code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data-binary '{}' \
     "$appium_url/session/$sid/element/$el/$1")" || code="000"
   [ "$code" = "200" ] || fail "the phone did not accept the $1 command (HTTP $code)"
 }
@@ -191,7 +204,7 @@ with open(sys.argv[2], "w", encoding="utf-8") as f:
 PY
   post_el clear
   local code
-  code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+  code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
     --data-binary @"$work/value.json" "$appium_url/session/$sid/element/$el/value")" || code="000"
   rm -f "$work/value.json"
   [ "$code" = "200" ] || fail "typing into \"$1\" was not accepted (HTTP $code)"
@@ -216,7 +229,7 @@ caps = {
 with open(sys.argv[2], "w", encoding="utf-8") as f:
     json.dump({"capabilities": {"alwaysMatch": caps}}, f)
 PY
-code="$(curl -sS -o "$work/new.json" -w '%{http_code}' -H 'Content-Type: application/json' \
+code="$(curl -sS --max-time 30 -o "$work/new.json" -w '%{http_code}' -H 'Content-Type: application/json' \
   --data-binary @"$work/session.json" "$appium_url/session")" || code="000"
 [ "$code" = "200" ] || fail "Appium did not start a session at APPIUM_URL (HTTP ${code})"
 sid="$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["value"]["sessionId"])' "$work/new.json")" \
@@ -299,9 +312,10 @@ for m in re.finditer(r"\{(\w+)\}", template):
 print(out + re.escape(template[pos:]))
 PY
 )" || fail "the plant row label could not be built from strings/en.json"
-deadline=$(( $(date +%s) + BENCH_FIRST_READING_WAIT_S ))
+first_deadline=$(( $(date +%s) + FIRST_READING_MAX_S ))
 while ! probe descMatches "$row_re"; do
-  [ "$(date +%s)" -lt "$deadline" ] || fail "no reading for this run's plant on My plants within ${BENCH_FIRST_READING_WAIT_S} s"
+  budget
+  [ "$(date +%s)" -lt "$first_deadline" ] || fail "no reading for this run's plant on My plants within ${FIRST_READING_MAX_S} s"
   tap "${T[plants.refresh]}"
   sleep 30
 done

@@ -827,8 +827,9 @@ jobs:
         # BENCH_TEST_EMAIL and BENCH_TEST_EMAIL_PASSWORD (test account). Values are never in the repo.
         # The script signs in, adds the sensor (scan, connect, Wi-Fi, name, plant details), then checks that
         # this run's plant shows a soil-moisture reading on My plants. The reading value is never read or printed.
-        # Repository variables: BENCH_BOARD_HW_ID (device id, nw-<12 hex>) and BENCH_FIRST_READING_WAIT_S
-        # (seconds to wait for the first reading; owner or Kai input). The script fails closed if either is missing.
+        # Repository variable: BENCH_BOARD_HW_ID (device id, nw-<12 hex>). The script fails closed if it is missing.
+        # Step d waits are fixed in the script (first reading at most 900 s, whole step at most 2400 s); timeout-minutes is the backstop.
+        timeout-minutes: 45
         env:
           BENCH_ANDROID_SERIAL: ${{ secrets.BENCH_ANDROID_SERIAL }}
           BENCH_TEST_EMAIL: ${{ secrets.BENCH_TEST_EMAIL }}
@@ -838,7 +839,6 @@ jobs:
           BENCH_WIFI_SSID: ${{ secrets.BENCH_WIFI_SSID }}
           BENCH_WIFI_PASSWORD: ${{ secrets.BENCH_WIFI_PASSWORD }}
           BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
-          BENCH_FIRST_READING_WAIT_S: ${{ vars.BENCH_FIRST_READING_WAIT_S }}
           APPIUM_PLATFORM_NAME: Android
           APPIUM_AUTOMATION_NAME: UiAutomator2
         run: |
