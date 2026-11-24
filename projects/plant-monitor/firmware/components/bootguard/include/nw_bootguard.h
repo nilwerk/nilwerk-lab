@@ -1,8 +1,9 @@
 /* Boot-loop guard and safe fallback. Pure C: no ESP-IDF, no flash, no radio. The ESP-IDF adapter only feeds it the retained state and acts on the answer.
  *
- * Requirements: FR-D05 (a new image that fails to confirm rolls back to the previous one; built on nw_ota_boot_decide, not repeated here),
- * NFR-01 (battery life: a unit that resets in a loop must not burn its cell on endless Wi-Fi/BLE attempts), NFR-12 (the fallback state is plain deep sleep,
- * radios off, so the 50 uA limit applies unchanged). FR-D04 (offline samples stay in the RTC ring, which this guard never touches).
+ * Requirements: FR-D05 covers ONLY the rollback branch (a new image that fails to confirm rolls back to the previous one; built on nw_ota_boot_decide,
+ * not repeated here). The fallback state and its long sleep have no requirement of their own: they are a design proposal constrained by NFR-01
+ * (a unit that resets in a loop must not burn its cell on endless Wi-Fi/BLE attempts) and NFR-12 (fallback is plain deep sleep, radios off, 50 uA
+ * limit unchanged). FR-D04: offline samples stay in the RTC ring, which this guard never touches.
  *
  * NOT RUN ON HARDWARE. Every number marked [proposed] is a design proposal, not a decision (open point for Arsany).
  *
@@ -12,6 +13,17 @@
  *      A boot that dies before that point (panic, watchdog, brownout, reset button) leaves the count raised, so the next boot sees the failure.
  *   3. FALLBACK: no BLE, no Wi-Fi, no sensors. Log the one line from nw_bootguard_log_line(), deep sleep for out.sleep_s, nothing else.
  *   4. ROLLBACK: the running image is an unconfirmed OTA image and it is looping (or its window is used up): switch to the previous slot and reboot.
+ *      A looping image rolls back at the START of boot N+1 (boot 6 with N = 5), after N failed boots. This is earlier than the decided 8-boot OTA
+ *      window (A-116) and is NEW behaviour: open question for the owner.
+ *
+ * ADAPTER RULES (contract for the ESP-IDF adapter slice, not implemented here, not verified):
+ *   (a) EVERY deliberate sleep path calls nw_bootguard_confirm_good() first: the normal end of a cycle, the low-battery skip (FR-D06), the BLE setup
+ *       timeout on a never-provisioned unit (FR-D03), and just before an OTA reboot (otherwise the new image starts with the old image's raised count).
+ *       A sleep path that forgets it counts a failed boot per wake and trips the fallback after N+1 wakes.
+ *   (b) If ROLLBACK cannot be carried out (no valid previous slot, the call fails), the adapter must enter the FALLBACK sleep itself. The guard clears
+ *       the counter on ROLLBACK, so without this the same image would loop forever with radios on.
+ *   (c) Pass the real reset reason: NW_BG_RESET_POWERON only for a genuine power-on reset. Anything else (software, watchdog, brownout, deep-sleep wake,
+ *       unknown) with a bad magic is treated as corruption and falls back.
  *   After a fallback sleep the next boot is a PROBATION boot: exactly one normal attempt. If it fails again, the guard goes straight back to fallback.
  */
 #ifndef NW_BOOTGUARD_H
@@ -28,8 +40,8 @@
  * looping new image is rolled back by this guard before the slow 8-boot window ends. Open point for Arsany. */
 #define NW_BOOTGUARD_MAX_FAILED_BOOTS 5u
 
-/* Long sleep in fallback. [proposed] 21600 s = 6 h. Reasoning: 4 probation tries per day cost at most about 0.7 mAh/day extra over pure sleep
- * (estimate, see the PR text) while a unit that recovers is back within 6 h; 24 h would save about 0.5 mAh/day more but delays alerts (FR-E03)
+/* Long sleep in fallback. [proposed] 21600 s = 6 h. Reasoning: 4 probation tries per day (up to 0.17 mAh each)
+ * (estimate, 0.52 to 1.2 mAh/day in total vs 5.9 mAh/day in normal duty, power budget section 12) while a unit that recovers is back within 6 h; 24 h would save about 0.5 mAh/day more but delays alerts (FR-E03)
  * and a recovered unit by a day. Open point for Arsany. */
 #define NW_BOOTGUARD_FALLBACK_SLEEP_S 21600u
 
@@ -63,12 +75,19 @@ typedef enum {
     NW_BG_WHY_OTA_WINDOW     /* OTA window used up without confirmation (nw_ota_boot_decide said ROLLBACK) */
 } nw_bg_why_t;
 
+/* Why the retained magic may be wrong. Only NW_BG_RESET_POWERON explains a magic mismatch; 0 (OTHER) is the fail-safe default. */
+typedef enum {
+    NW_BG_RESET_OTHER = 0,   /* software, watchdog, brownout, deep-sleep wake, button, unknown */
+    NW_BG_RESET_POWERON      /* genuine power-on reset: RTC memory legitimately holds garbage */
+} nw_bg_reset_t;
+
 typedef struct {
     nw_bg_action_t action;
     bool allow_ble;          /* false in FALLBACK and ROLLBACK: no BLE setup, no advertising */
     bool allow_wifi;         /* false in FALLBACK and ROLLBACK: no association, no SNTP, no upload */
     uint32_t sleep_s;        /* deep sleep for FALLBACK, else 0 */
     nw_bg_why_t why;
+    uint8_t failed;          /* failed boots counted when the decision was made (what the log line shows) */
 } nw_bootguard_out_t;
 
 /* Re-initialise to a clean valid state (failed_boots 0, not in fallback). */
@@ -79,20 +98,21 @@ bool nw_bootguard_valid(const nw_bootguard_t *st);
 
 /* Call once at the start of every boot, before any radio. `ota` is the OTA boot state (nw_ota_boot_t, unconfirmed_boots already incremented by the
  * caller as in nw_ota.h) or NULL when the running image is not an OTA image pending verify.
- *   - magic mismatch (power-on garbage): re-init, count this boot, RUN.
+ *   - magic mismatch AND reset == NW_BG_RESET_POWERON: re-init, count this boot, RUN.
+ *   - magic mismatch with any other reset reason: corruption, same as the next line (fail safe; a looping unit cannot hide behind a wiped magic).
  *   - valid magic, inconsistent content: re-init, answer FALLBACK (why CORRUPT), fail safe.
  *   - previous answer was FALLBACK: probation, exactly one more attempt.
  *   - failed_boots already at the limit: FALLBACK (why COUNT), or ROLLBACK when an unconfirmed OTA image is pending (why OTA_LOOP).
  *   - pending OTA image whose window is used up: ROLLBACK (why OTA_WINDOW), decided by nw_ota_boot_decide.
  *   - otherwise count this boot and RUN.
  * On ROLLBACK the counter is cleared so the previous image starts with a full budget. */
-nw_bootguard_out_t nw_bootguard_boot(nw_bootguard_t *st, const nw_ota_boot_t *ota);
+nw_bootguard_out_t nw_bootguard_boot(nw_bootguard_t *st, const nw_ota_boot_t *ota, nw_bg_reset_t reset);
 
 /* Call when the cycle reaches its normal end (the deep sleep after a finished wake). Clears the counter and the probation flag. */
 void nw_bootguard_confirm_good(nw_bootguard_t *st);
 
 /* One log line, no newline inside, NUL-terminated, truncated to cap: "NWBOOTGUARD <action> why=<w> failed=<n> limit=<N> sleep_s=<s> ble=off wifi=off".
  * Returns the length written, 0 for RUN (nothing to log) or cap == 0. */
-size_t nw_bootguard_log_line(char *buf, size_t cap, const nw_bootguard_out_t *out, const nw_bootguard_t *st);
+size_t nw_bootguard_log_line(char *buf, size_t cap, const nw_bootguard_out_t *out);
 
 #endif

@@ -31,7 +31,7 @@ bool nw_bootguard_valid(const nw_bootguard_t *st)
     return st->check == bg_check(st);
 }
 
-static nw_bootguard_out_t out_of(nw_bg_action_t a, nw_bg_why_t why)
+static nw_bootguard_out_t out_of(nw_bg_action_t a, nw_bg_why_t why, uint8_t failed)
 {
     nw_bootguard_out_t o;
     o.action = a;
@@ -39,21 +39,22 @@ static nw_bootguard_out_t out_of(nw_bg_action_t a, nw_bg_why_t why)
     o.allow_wifi = (a == NW_BG_RUN);
     o.sleep_s = (a == NW_BG_FALLBACK) ? NW_BOOTGUARD_FALLBACK_SLEEP_S : 0;
     o.why = why;
+    o.failed = failed;
     return o;
 }
 
-nw_bootguard_out_t nw_bootguard_boot(nw_bootguard_t *st, const nw_ota_boot_t *ota)
+nw_bootguard_out_t nw_bootguard_boot(nw_bootguard_t *st, const nw_ota_boot_t *ota, nw_bg_reset_t reset)
 {
     bool pending = ota && ota->pending_verify;
 
-    if (st->magic != NW_BOOTGUARD_MAGIC) {            /* power-on: RTC memory is garbage, not a failure */
+    if (st->magic != NW_BOOTGUARD_MAGIC && reset == NW_BG_RESET_POWERON) {   /* power-on: RTC memory is garbage, not a failure */
         nw_bootguard_init(st);
-    } else if (!nw_bootguard_valid(st)) {             /* was valid once, content is wrong now: stop retrying */
+    } else if (!nw_bootguard_valid(st)) {             /* wrong magic without a power-on reset, or content wrong now: stop retrying */
         nw_bootguard_init(st);
         st->failed_boots = NW_BOOTGUARD_MAX_FAILED_BOOTS;
         st->in_fallback = 1;
         seal(st);
-        return out_of(NW_BG_FALLBACK, NW_BG_WHY_CORRUPT);
+        return out_of(NW_BG_FALLBACK, NW_BG_WHY_CORRUPT, st->failed_boots);
     }
 
     if (st->in_fallback) {                            /* probation: the long sleep is over, one more normal attempt */
@@ -63,22 +64,24 @@ nw_bootguard_out_t nw_bootguard_boot(nw_bootguard_t *st, const nw_ota_boot_t *ot
 
     if (st->failed_boots >= NW_BOOTGUARD_MAX_FAILED_BOOTS) {
         if (pending) {                                 /* the new image is the suspect: back to the previous slot (FR-D05) */
+            uint8_t seen = st->failed_boots;
             nw_bootguard_init(st);
-            return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_LOOP);
+            return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_LOOP, seen);
         }
         st->in_fallback = 1;
         seal(st);
-        return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT);
+        return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT, st->failed_boots);
     }
 
     if (pending && nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {   /* the 4.F4 window rule, not repeated here */
+        uint8_t seen = st->failed_boots;
         nw_bootguard_init(st);
-        return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_WINDOW);
+        return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_WINDOW, seen);
     }
 
     st->failed_boots++;
     seal(st);
-    return out_of(NW_BG_RUN, NW_BG_WHY_NONE);
+    return out_of(NW_BG_RUN, NW_BG_WHY_NONE, st->failed_boots);
 }
 
 void nw_bootguard_confirm_good(nw_bootguard_t *st)
@@ -86,14 +89,14 @@ void nw_bootguard_confirm_good(nw_bootguard_t *st)
     nw_bootguard_init(st);
 }
 
-size_t nw_bootguard_log_line(char *buf, size_t cap, const nw_bootguard_out_t *out, const nw_bootguard_t *st)
+size_t nw_bootguard_log_line(char *buf, size_t cap, const nw_bootguard_out_t *out)
 {
     static const char *const why_s[] = { "none", "count", "corrupt", "ota_loop", "ota_window" };
     if (!buf || cap == 0) return 0;
     buf[0] = 0;
     if (out->action == NW_BG_RUN) return 0;
     int n = snprintf(buf, cap, "NWBOOTGUARD %s why=%s failed=%u limit=%u sleep_s=%u ble=off wifi=off",
-                     out->action == NW_BG_FALLBACK ? "fallback" : "rollback", why_s[out->why], (unsigned)st->failed_boots,
+                     out->action == NW_BG_FALLBACK ? "fallback" : "rollback", why_s[out->why], (unsigned)out->failed,
                      (unsigned)NW_BOOTGUARD_MAX_FAILED_BOOTS, (unsigned)out->sleep_s);
     if (n < 0) { buf[0] = 0; return 0; }
     return (size_t)n < cap ? (size_t)n : cap - 1;

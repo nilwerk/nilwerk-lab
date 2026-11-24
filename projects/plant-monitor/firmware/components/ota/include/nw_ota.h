@@ -20,8 +20,7 @@
 
 /* Rollback window, counted in BOOTS and not in seconds: the device has no trusted clock before SNTP, and the
  * confirmation point (a successful /ingest) comes once per hourly report = every 4th wake of 15 min (FR-D01, FR-D02).
- * [proposed, open decision A-116] 8 boots = two hourly upload chances before rollback. Derived here, not from an NFR:
- * asked to the Lead. */
+ * [decided, A-116, Arsany 21 Nov: accept 8 boots] 8 boots = two hourly upload chances before rollback. Derived here, not from an NFR. */
 #define NW_OTA_MAX_UNCONFIRMED_BOOTS 8
 
 /* Streaming SHA-256 (FIPS 180-4) for the chunked download. */

@@ -23,8 +23,8 @@ M = [  # (old, new, what)
  # threshold -> fallback
  ("if (st->failed_boots >= NW_BOOTGUARD_MAX_FAILED_BOOTS) {", "if (st->failed_boots > NW_BOOTGUARD_MAX_FAILED_BOOTS) {", "threshold off by one (one retry too many)"),
  ("if (st->failed_boots >= NW_BOOTGUARD_MAX_FAILED_BOOTS) {", "if (st->failed_boots + 1u >= NW_BOOTGUARD_MAX_FAILED_BOOTS) {", "threshold off by one (one retry too few)"),
- ("        st->in_fallback = 1;\n        seal(st);\n        return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT);", "        seal(st);\n        return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT);", "fallback does not mark the probation boot"),
- ("        return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT);", "        return out_of(NW_BG_FALLBACK, NW_BG_WHY_NONE);", "fallback reason lost"),
+ ("        st->in_fallback = 1;\n        seal(st);\n        return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT, st->failed_boots);", "        seal(st);\n        return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT, st->failed_boots);", "fallback does not mark the probation boot"),
+ ("        return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT, st->failed_boots);", "        return out_of(NW_BG_FALLBACK, NW_BG_WHY_NONE, st->failed_boots);", "fallback reason lost"),
  # fallback does not retry radios, sleeps long
  ("o.allow_ble = (a == NW_BG_RUN);", "o.allow_ble = (a != NW_BG_ROLLBACK);", "fallback leaves BLE allowed"),
  ("o.allow_wifi = (a == NW_BG_RUN);", "o.allow_wifi = (a != NW_BG_ROLLBACK);", "fallback leaves Wi-Fi allowed"),
@@ -39,16 +39,16 @@ M = [  # (old, new, what)
  ("st->failed_boots = (uint8_t)(NW_BOOTGUARD_MAX_FAILED_BOOTS - 1u);", "st->failed_boots = 0;", "probation grants a full new budget (endless retries)"),
  ("st->failed_boots = (uint8_t)(NW_BOOTGUARD_MAX_FAILED_BOOTS - 1u);", "st->failed_boots = (uint8_t)(NW_BOOTGUARD_MAX_FAILED_BOOTS - 2u);", "probation grants two attempts"),
  # rollback when not confirmed (builds on nw_ota_boot_decide)
- ("        if (pending) {                                 /* the new image is the suspect: back to the previous slot (FR-D05) */\n            nw_bootguard_init(st);\n            return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_LOOP);\n        }\n", "", "looping unconfirmed image sleeps instead of rolling back"),
+ ("        if (pending) {                                 /* the new image is the suspect: back to the previous slot (FR-D05) */\n            uint8_t seen = st->failed_boots;\n            nw_bootguard_init(st);\n            return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_LOOP, seen);\n        }\n", "", "looping unconfirmed image sleeps instead of rolling back"),
  ("    if (pending && nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {", "    if (0 && pending && nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {", "OTA window ignored"),
  ("    if (pending && nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {", "    if (nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {", "OTA window applied without the pending check (NULL deref)"),
  ("    bool pending = ota && ota->pending_verify;", "    bool pending = ota != NULL;", "any OTA state counts as pending"),
- ("        if (pending) {                                 /* the new image is the suspect: back to the previous slot (FR-D05) */\n            nw_bootguard_init(st);", "        if (pending) {                                 /* the new image is the suspect: back to the previous slot (FR-D05) */\n            st->in_fallback = 0;", "rollback keeps the failed count"),
- ("    if (pending && nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {   /* the 4.F4 window rule, not repeated here */\n        nw_bootguard_init(st);", "    if (pending && nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {   /* the 4.F4 window rule, not repeated here */", "window rollback keeps the failed count"),
+ ("        if (pending) {                                 /* the new image is the suspect: back to the previous slot (FR-D05) */\n            uint8_t seen = st->failed_boots;\n            nw_bootguard_init(st);", "        if (pending) {                                 /* the new image is the suspect: back to the previous slot (FR-D05) */\n            uint8_t seen = st->failed_boots;\n            st->in_fallback = 0;", "rollback keeps the failed count"),
+ ("    if (pending && nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {   /* the 4.F4 window rule, not repeated here */\n        uint8_t seen = st->failed_boots;\n        nw_bootguard_init(st);", "    if (pending && nw_ota_boot_decide(ota) == NW_OTA_ROLLBACK) {   /* the 4.F4 window rule, not repeated here */\n        uint8_t seen = st->failed_boots;", "window rollback keeps the failed count"),
  # corrupted counter fails safe
- ("        return out_of(NW_BG_FALLBACK, NW_BG_WHY_CORRUPT);", "        return out_of(NW_BG_RUN, NW_BG_WHY_CORRUPT);", "corrupt state runs normally"),
+ ("        return out_of(NW_BG_FALLBACK, NW_BG_WHY_CORRUPT, st->failed_boots);", "        return out_of(NW_BG_RUN, NW_BG_WHY_CORRUPT, st->failed_boots);", "corrupt state runs normally"),
  ("        st->failed_boots = NW_BOOTGUARD_MAX_FAILED_BOOTS;\n        st->in_fallback = 1;\n        seal(st);\n        return", "        seal(st);\n        return", "corrupt state re-sealed without probation flag"),
- ("    if (st->magic != NW_BOOTGUARD_MAGIC) {            /* power-on: RTC memory is garbage, not a failure */\n        nw_bootguard_init(st);\n    } else if", "    if (0) {\n        nw_bootguard_init(st);\n    } else if", "power-on garbage treated as corruption (new unit sleeps 6 h)"),
+ ("    } else if (!nw_bootguard_valid(st)) {", "    } else if (0) {", "corruption never detected (valid() unused)"),
  ("    if (st->failed_boots > NW_BOOTGUARD_MAX_FAILED_BOOTS) return false;", "", "range check on the count removed"),
  ("    if (st->in_fallback > 1) return false;", "", "range check on the fallback flag removed"),
  ("    if (st->reserved != 0) return false;", "", "reserved field not checked"),
@@ -56,6 +56,13 @@ M = [  # (old, new, what)
  ("    uint32_t v = ((uint32_t)st->failed_boots) | ((uint32_t)st->in_fallback << 8) | ((uint32_t)st->reserved << 16);", "    uint32_t v = ((uint32_t)st->in_fallback << 8) | ((uint32_t)st->reserved << 16);", "check ignores the count"),
  ("    uint32_t v = ((uint32_t)st->failed_boots) | ((uint32_t)st->in_fallback << 8) | ((uint32_t)st->reserved << 16);", "    uint32_t v = ((uint32_t)st->failed_boots) | ((uint32_t)st->reserved << 16);", "check ignores the fallback flag"),
  ("    if (st->magic != NW_BOOTGUARD_MAGIC) return false;", "", "magic not checked in valid()"),
+ # reset reason (magic mismatch is power-on only with a power-on reset)
+ ("if (st->magic != NW_BOOTGUARD_MAGIC && reset == NW_BG_RESET_POWERON) {", "(void)reset;\n    if (st->magic != NW_BOOTGUARD_MAGIC) {", "magic mismatch always treated as power-on (reset reason ignored)"),
+ ("if (st->magic != NW_BOOTGUARD_MAGIC && reset == NW_BG_RESET_POWERON) {", "if (st->magic != NW_BOOTGUARD_MAGIC && reset != NW_BG_RESET_OTHER) {", "unknown reset reason accepted as power-on"),
+ ("if (st->magic != NW_BOOTGUARD_MAGIC && reset == NW_BG_RESET_POWERON) {", "(void)reset;\n    if (0) {", "power-on reset never accepted (new unit sleeps 6 h)"),
+ ("uint8_t seen = st->failed_boots;\n            nw_bootguard_init(st);\n            return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_LOOP, seen);", "nw_bootguard_init(st);\n            return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_LOOP, st->failed_boots);", "loop rollback log shows the cleared count"),
+ ("uint8_t seen = st->failed_boots;\n        nw_bootguard_init(st);\n        return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_WINDOW, seen);", "nw_bootguard_init(st);\n        return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_WINDOW, st->failed_boots);", "window rollback log shows the cleared count"),
+ ("(unsigned)out->failed,", "(unsigned)0,", "log line hides the failed count"),
  # one log line
  ("    if (out->action == NW_BG_RUN) return 0;", "", "a normal boot logs a fallback line"),
  ("\"NWBOOTGUARD %s why=%s failed=%u limit=%u sleep_s=%u ble=off wifi=off\"", "\"NWBOOTGUARD %s why=%s failed=%u limit=%u sleep_s=%u ble=off wifi=off\\n\"", "log line ends with a newline (two lines)"),
