@@ -128,6 +128,28 @@ describe('connect your AI: premium generate, shown once, copy (FR-P03)', () => {
     expect(screen.getByRole('button', { name: t('mcp.keys.create') })).toBeTruthy();
   });
 
+  test.each(['network', 'bad_response'] as const)('create fails with %s: copy says it MAY not exist and the list is reloaded', async (code) => {
+    const rows: ApiKeyInfo[] = [];
+    const b = backend([], {
+      list: jest.fn(async () => rows.map((r) => ({ ...r }))),
+      create: jest.fn(async () => { rows.push(info({ id: 'k-ghost', name: 'Ghost' })); throw new ApiKeysError(code); }), // server created it, the response was lost
+    });
+    await mount(authWith(true), b);
+    await fireEvent.press(await screen.findByRole('button', { name: t('mcp.keys.create') }));
+    expect(await screen.findByText(t('mcp.error.create'))).toBeTruthy();
+    expect(t('mcp.error.create')).toMatch(/may not have been created/);
+    expect(await screen.findByLabelText(t('mcp.keys.row', { name: 'Ghost', prefix: 'nwk_TEST' }))).toBeTruthy();
+    expect(b.list).toHaveBeenCalledTimes(2);
+  });
+
+  test('create fails with server error: no reload needed beyond the first load', async () => {
+    const b = backend([], { create: jest.fn(async () => { throw new ApiKeysError('server'); }) });
+    await mount(authWith(true), b);
+    await fireEvent.press(await screen.findByRole('button', { name: t('mcp.keys.create') }));
+    expect(await screen.findByText(t('mcp.error.create'))).toBeTruthy();
+    expect(b.list).toHaveBeenCalledTimes(1);
+  });
+
   test('empty name: field error and no create request', async () => {
     const b = backend();
     await mount(authWith(true), b);
@@ -188,6 +210,20 @@ describe('connect your AI: revoke (FR-P03)', () => {
     await fireEvent.press(screen.getByRole('button', { name: t('mcp.keys.revoke.yes') }));
     expect(await screen.findByText(t('mcp.error.revoke'))).toBeTruthy();
     expect(screen.getByText(t('mcp.keys.active'))).toBeTruthy();
+  });
+
+  test('revoke answers 404 (already gone): no "still works" claim, the list is reloaded and shows the real state', async () => {
+    let rows = [info()];
+    const b = backend([], {
+      list: jest.fn(async () => rows.map((r) => ({ ...r }))),
+      revoke: jest.fn(async () => { rows = [info({ revokedAt: '2026-11-24T09:00:00Z' })]; throw new ApiKeysError('not_found'); }),
+    });
+    await mount(authWith(true), b);
+    await fireEvent.press(await screen.findByRole('button', { name: t('mcp.keys.revoke.a11y', { name: 'My AI assistant' }) }));
+    await fireEvent.press(screen.getByRole('button', { name: t('mcp.keys.revoke.yes') }));
+    expect(await screen.findByText(t('mcp.keys.revoked'))).toBeTruthy();
+    expect(screen.queryByText(t('mcp.error.revoke'))).toBeNull();
+    expect(b.list).toHaveBeenCalledTimes(2);
   });
 
   test('an already revoked key is listed as Revoked with its last-used date and cannot be revoked again', async () => {

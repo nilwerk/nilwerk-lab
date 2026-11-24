@@ -119,7 +119,10 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
       setCreated(c);
       await load();
     } catch (e) {
-      if (e instanceof ApiKeysError && e.code === 'premium_required') { setPlan('free'); setNotice(null); } else { setNotice(t('mcp.error.create')); }
+      if (e instanceof ApiKeysError && e.code === 'premium_required') { setPlan('free'); setNotice(null); return; }
+      setNotice(t('mcp.error.create'));
+      // a lost response or an unusable 201 body can leave a key the user never saw: the list is the source of truth
+      if (e instanceof ApiKeysError && (e.code === 'network' || e.code === 'bad_response')) await load();
     } finally {
       setCreating(false);
     }
@@ -130,7 +133,8 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
       await apiKeys.revoke(id);
       setConfirmId(null);
       await load();
-    } catch {
+    } catch (e) {
+      if (e instanceof ApiKeysError && e.code === 'not_found') { setConfirmId(null); await load(); return; } // already gone: show the real state, do not claim it still works
       setNotice(t('mcp.error.revoke')); // the key was NOT revoked: say so, keep the row and the confirm open (playbook rule 12)
     } finally {
       setRevoking(false);

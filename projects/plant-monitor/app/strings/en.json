@@ -351,7 +351,7 @@
   "mcp.locked.body": "Connecting your AI is part of Premium. Free accounts cannot create a key.",
   "mcp.loading": "Loading your keys...",
   "mcp.error.load": "Could not load your keys. Check your connection and try again.",
-  "mcp.error.create": "The key was not created. Check your connection and try again.",
+  "mcp.error.create": "The key may not have been created. Check the list below before you try again.",
   "mcp.error.revoke": "The key was not revoked and still works. Try again.",
   "mcp.error.premium": "Your account is not Premium, so no key was created.",
   "mcp.keys.title": "Your key",
