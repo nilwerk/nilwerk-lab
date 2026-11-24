@@ -202,7 +202,11 @@ paths:
       tags: [app]
       summary: Create a personal API key for the MCP server (premium)
       x-requirements: [FR-P03, FR-P04, NFR-06]
-      description: Key = "nwk_" + 32 random bytes base64url. Returned ONCE; only SHA-256 and the 8-char prefix are stored. 403 premium_required for free users.
+      description: |
+        [built, 4.B2d] Implemented by the edge function `api-keys` (cloud/supabase/functions/api-keys; handler in _shared/api_keys.ts). Not deployed.
+        Key = "nwk_" + 32 random bytes base64url. Returned ONCE (Cache-Control: no-store); only SHA-256 and the 8-char prefix are stored.
+        Order of checks: 405, 401, then public.is_premium() called as the user before any write (403 premium_required for free users, no row written), then 400 (name required, 1 to 60 characters), then the insert (500 without detail).
+        The insert is the only service-role call on this path (authenticated has no insert grant on api_keys).
       security: [{ userJwt: [] }]
       requestBody:
         required: true
@@ -211,7 +215,11 @@ paths:
         "201":
           description: Created
           content: { application/json: { schema: { type: object, required: [id, key, prefix], properties: { id: { type: string, format: uuid }, key: { type: string }, prefix: { type: string } } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/PremiumRequired" }
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
+        "500": { $ref: "#/components/responses/Internal" }
     get:
       tags: [app]
       summary: List own keys (never the key itself)
@@ -225,11 +233,19 @@ paths:
       tags: [app]
       summary: Revoke a key; the next MCP call with it fails
       x-requirements: [FR-P03, NFR-06]
+      description: |
+        [built, 4.B2d] Same edge function `api-keys`. Order of checks: 405, 401, 400 (id is not a uuid), 404 (not the caller's key, indistinguishable from an unknown id), then the revoke.
+        Revoking an already revoked own key returns 204 again and keeps the first revoked_at. No premium check: a lapsed user can still revoke.
+        The update is the only service-role call and is filtered by id and owner.
       security: [{ userJwt: [] }]
       parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
       responses:
-        "204": { description: Revoked (sets revoked_at) }
+        "204": { description: Revoked (sets revoked_at); also returned when the key was already revoked }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { description: Not found }
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
+        "500": { $ref: "#/components/responses/Internal" }
   /export:
     get:
       tags: [app]

@@ -2,7 +2,7 @@
 // docs/interfaces/db-schema.sql public.api_keys (list = select of the granted columns under RLS, never the key or its hash).
 // Requirements: FR-P03 (generate / revoke a key for the user's AI), FR-P04 (403 premium_required: free accounts get no key), NFR-06 (user JWT; the key is
 // returned once by the server, only its hash and prefix are stored; this client never persists it).
-// The edge function route name `api-keys` is PROPOSED: the function is not built yet (cloud/supabase/functions has no api-keys). Unit-tested with a fake fetch only.
+// The edge function `api-keys` is built (cloud/supabase/functions/api-keys, task 4.B2d) but not deployed and not run against a live project. Unit-tested with a fake fetch only.
 export type ApiKeysErrorCode = 'premium_required' | 'unauthorized' | 'not_found' | 'network' | 'server' | 'bad_response' | 'not_configured' | 'unknown';
 
 export class ApiKeysError extends Error {
