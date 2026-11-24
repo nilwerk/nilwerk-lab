@@ -119,16 +119,16 @@ Text proposed by QA from Arsany's decisions. Item numbers refer to the v0.1 open
 
 ## Status update S4 (24 Nov 2026, `origin/main` ca8b9ed)
 
-Only rows that changed since the last status are listed. Every other row is unchanged (see `tests/test-plan.md` section 3). Detail, commands and counts: `tests/test-plan.md` section 11 and `tests/results/5.1-s4.md`. The status words are the vocabulary of the test plan. No row below is Pass.
+Bench run 45434991511 (ca8b9ed) completed with failure: steps 1, 2, a, 3, c, b, 4 succeeded, step d failed at app launch, steps e and E2E were skipped. It proved ESP32 provisioning, BLE advertising, the wake line and APK install; nothing past app launch. Only rows that changed since the last status are listed. Every other row is unchanged (see `tests/test-plan.md` section 3). Detail, commands and counts: `tests/test-plan.md` section 11 and `tests/results/5.1-s4.md`. The status words are the vocabulary of the test plan. No row below is Pass.
 
 | Req ID | Status | Ran (local, with log) | Not run |
 |---|---|---|---|
-| FR-P01 | PARTIAL, not Pass | `cloud/test.sh` analytics endpoint 13 of 13 (free 403 with no read, premium 200 with hand-computed values for window 30 and 90, RLS isolation), pure aggregates 11 of 11, app jest premium slice 25 of 25 | live Supabase, PostgREST adapter, seeded UI check on a device. 30/90-day line chart not built, scope pending A-131 |
+| FR-P01 | PARTIAL, not Pass | `cloud/test.sh` analytics endpoint 13 of 13 (free 403 with no read, premium 200 with hand-computed values for window 30 and 90, RLS isolation), pure aggregates 11 of 11, app jest premium slice 25 of 25 | live Supabase, PostgREST adapter, seeded UI check on a device. 30/90-day line chart not built (A-131 tracked in the Needs Arsany tab) |
 | FR-P04 | PARTIAL, not Pass | same analytics endpoint tests (real `is_premium()` on local Postgres), `rls_isolation.sql` OK | live Supabase, PostgREST adapter, flag-toggle timing within 1 min [proposed] |
-| FR-D03 | bench run pending | none from the bench | bench run 45434991511 in progress at 17:20 Berlin; no bench step completed. Partial scope only: steps c and d, no account check |
-| FR-A03 | bench run pending | none from the bench | same run; partial scope: step d only |
-| NFR-04 | bench run pending | none from the bench | same run; step e shows a row arrived, latency not measured |
-| NFR-06 | bench run pending | (c) SQL level only, as before | same run; step e is one row reaching the cloud; per-device credentials and user isolation not checked |
-| NFR-07 | bench run pending | local export tests, as before | same run does not check region, export or delete |
+| FR-D03 | not Pass (bench run failed) | run 45434991511 (ca8b9ed): step c (BLE scan) success; steps 3 provision, b serial stream success | step d FAILED at "0. launch" (Appium session not started); no account check |
+| FR-A03 | not Pass (bench run failed) | none | run 45434991511: step d FAILED at launch; nothing past launch ran |
+| NFR-04 | not Pass | none | run 45434991511: step e SKIPPED (d failed); latency not measured |
+| NFR-06 | not Pass | (c) SQL level only, as before | run 45434991511: step e SKIPPED; per-device credentials and user isolation not checked |
+| NFR-07 | not Pass | local export tests, as before | no bench step covers it (run 45434991511) |
 
-Open decisions blocking rows: A-131 (FR-P01 chart), A-115 (decided; code text still says TO CONFIRM), A-129 and A-130 (IDs only; tracked in the Needs Arsany tab). A-108 and A-094 unchanged.
+Open decisions blocking rows: A-131 (tracked in the Needs Arsany tab), A-115 (decided; code text still says TO CONFIRM), A-129 and A-130 (IDs only; tracked in the Needs Arsany tab). A-108 and A-094 unchanged.
