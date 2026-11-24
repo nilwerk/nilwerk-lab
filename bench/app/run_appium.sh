@@ -39,7 +39,7 @@ fail() { echo "::error::d. app flow: ${step_name:+${step_name}: }$1"; exit 1; }
 ok() { echo "d. app flow: ${step_name}: ok"; }
 
 # Fixed time limits (no input sets them). Every wait has a cap, and the whole step stops at STEP_MAX_S, so the step
-# stays inside the 60-minute job (the workflow also sets timeout-minutes). Each curl call has --max-time 30.
+# stays inside the 60-minute job (the workflow also sets timeout-minutes). Each curl call has --max-time 30, except the session create (120 s, see appium_session.sh).
 #   wait_el: one look every 2 s. Tap and screen waits: 30 looks = 60 s. Device scan: 45 looks = 90 s.
 #   wait_any: one look every 2 s. Sign-in answer: 60 looks = 120 s. Wi-Fi step after the setup code: 180 looks = 360 s.
 #   Linking (photo step or an error): 180 looks = 360 s. Plant save answer: 120 looks = 240 s.
@@ -296,26 +296,8 @@ hide_keyboard() {
 
 # ---- session and launch (the launch check and the app.name check are kept) ----
 step_name="0. launch"
-python3 -I - "$pkg" "$work/session.json" <<'PY'
-import json, os, sys
-caps = {
-    "platformName": os.environ.get("APPIUM_PLATFORM_NAME", "Android"),
-    "appium:automationName": os.environ.get("APPIUM_AUTOMATION_NAME", "UiAutomator2"),
-    "appium:udid": os.environ["BENCH_ANDROID_SERIAL"],
-    "appium:appPackage": sys.argv[1],
-    # The launch activity must be named: without it Appium sends "am start -a MAIN -c LAUNCHER" with no package and the
-    # device answers "Intent does not match any activities" (run 45219867846, step d).
-    "appium:appActivity": os.environ.get("APPIUM_APP_ACTIVITY", ".MainActivity"),
-    # The app's Bluetooth and location permissions are granted by Appium, so no system dialog has to be tapped.
-    "appium:autoGrantPermissions": True,
-    "appium:newCommandTimeout": 120,
-}
-with open(sys.argv[2], "w", encoding="utf-8") as f:
-    json.dump({"capabilities": {"alwaysMatch": caps}}, f)
-PY
-code="$(curl -sS --max-time 30 -o "$work/new.json" -w '%{http_code}' -H 'Content-Type: application/json' \
-  --data-binary @"$work/session.json" "$appium_url/session")" || code="000"
-[ "$code" = "200" ] || fail "Appium did not start a session at APPIUM_URL (HTTP ${code})"
+# Capabilities and the session request live in appium_session.sh (it prints the one ::error:: line itself). Its time limit is 120 s.
+bash "$(dirname "${BASH_SOURCE[0]}")/appium_session.sh" "$pkg" "$work" "$appium_url" || exit 1
 sid="$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["value"]["sessionId"])' "$work/new.json")" \
   || fail "Appium reply has no session id"
 
