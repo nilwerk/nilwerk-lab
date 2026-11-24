@@ -6,7 +6,7 @@ Requirements are **not changed** here. Where the requirement text was vague, the
 - **[accepted]** = Arsany answered; the source is cited in the row. Counts as PASS evidence criterion.
 - **[proposed]** = my number, not yet confirmed. Must not be quoted as a requirement and is not PASS evidence until Arsany confirms (listed under *Open points for G1*).
 
-Status of every row: **not run** (nothing is built yet). Status is updated per PR in `tests/results/<task-id>.md`.
+Status of every row: **not run** unless the table *Status update S4* at the end of this file or `tests/test-plan.md` (section 11) says otherwise. No row is Pass without a log. Status is updated per PR in `tests/results/<task-id>.md`.
 
 Bench column: **Y** = hands-on work with hardware/phone/people (procedure written in 5.x). Hands-on bench work is done by **Peter** (human integrator, TEAM.md §12) through Nora's work orders; Arsany keeps his own phones, the live Claude session and approvals, **SW** = QA can run it automatically, **Y+SW** = both.
 Prio: M must, S should, C could (from the Requirements doc).
@@ -116,3 +116,19 @@ Text proposed by QA from Arsany's decisions. Item numbers refer to the v0.1 open
 7. **FR-D10 extras** — 'fresh sample' test design, 3 reboots, per-soil storage (all [proposed]); and the 'moisture clears at +5 / −5 points' reading in FR-A07 (Theo to confirm wording).
 8. **v0.2 items not in this matrix** — FR-D08, FR-D09, FR-H01..H03, NFR-10 (provisioning security), NFR-11 (works without internet) are 'proposed' in architecture.md 10.1 and have no Arsany answer; I add rows when they are accepted.
 9. ~~NFR-01 self-discharge~~ — closed (and flexed on 2026-11-08 by scenario, ADR-015: best/typical ≥ 3 months, worst > 1 month): NFR-01 is ≥ 3 months / 2190 h by the literal formula 0.8 × rated ÷ average current, no self-discharge term; '+SD' and 6 months (4380 h) are information lines only. `power_budget.py` on main is aligned (`NFR01_MONTHS = 3.0`, `NFR01_HOURS = 2190`, `STRETCH_HOURS = 4380` information only; asserted in `hardware/power-budget/test_power_budget.py`). Not re-checked by me in this sync: architecture.md wording.
+
+## Status update S4 (24 Nov 2026, `origin/main` ca8b9ed)
+
+Only rows that changed since the last status are listed. Every other row is unchanged (see `tests/test-plan.md` section 3). Detail, commands and counts: `tests/test-plan.md` section 11 and `tests/results/5.1-s4.md`. The status words are the vocabulary of the test plan. No row below is Pass.
+
+| Req ID | Status | Ran (local, with log) | Not run |
+|---|---|---|---|
+| FR-P01 | PARTIAL, not Pass | `cloud/test.sh` analytics endpoint 13 of 13 (free 403 with no read, premium 200 with hand-computed values for window 30 and 90, RLS isolation), pure aggregates 11 of 11, app jest premium slice 25 of 25 | live Supabase, PostgREST adapter, seeded UI check on a device. 30/90-day line chart not built, scope pending A-131 |
+| FR-P04 | PARTIAL, not Pass | same analytics endpoint tests (real `is_premium()` on local Postgres), `rls_isolation.sql` OK | live Supabase, PostgREST adapter, flag-toggle timing within 1 min [proposed] |
+| FR-D03 | bench run pending | none from the bench | bench run 45434991511 in progress at 17:20 Berlin; no bench step completed. Partial scope only: steps c and d, no account check |
+| FR-A03 | bench run pending | none from the bench | same run; partial scope: step d only |
+| NFR-04 | bench run pending | none from the bench | same run; step e shows a row arrived, latency not measured |
+| NFR-06 | bench run pending | (c) SQL level only, as before | same run; step e is one row reaching the cloud; per-device credentials and user isolation not checked |
+| NFR-07 | bench run pending | local export tests, as before | same run does not check region, export or delete |
+
+Open decisions blocking rows: A-131 (FR-P01 graph scope), A-115 (decided; code text still says TO CONFIRM), A-129 (migration), A-130 (NVS pin). A-108 and A-094 unchanged.
