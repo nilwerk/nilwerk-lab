@@ -1,7 +1,7 @@
 // Analytics (task 4.B4): 30/90-day aggregates, trend, watering events and plant comparison.
 // Requirements: FR-P01 (30/90-day history, trends, watering events, comparison), FR-P04 (premium only, ADR-008).
 // Pure TypeScript: no database, no network, no clock (the caller passes `nowMs`). Runs in Deno and Node 22.6+.
-// The HTTP endpoint (not built in 4.B4 yet) calls public.is_premium() first and maps readings rows to AnalyticsReading.
+// The HTTP endpoint (supabase/functions/_shared/analytics.ts, 4.B4 slice 2) calls public.is_premium() first and maps readings rows to AnalyticsReading.
 
 export const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
