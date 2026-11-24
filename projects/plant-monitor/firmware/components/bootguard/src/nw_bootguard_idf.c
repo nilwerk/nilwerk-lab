@@ -8,6 +8,7 @@
  *   just before an OTA reboot                                 NO caller yet (no OTA adapter)           would confirm
  *   reset button, also during pairing                         hardware reset, no code runs             does NOT confirm, counted as a failed boot
  *   restart after a revoked token (FR-D07, nw_upload_idf.c)   esp_restart() there, not changed         does NOT confirm, one count, next boot confirms
+ *   HAL init failure in main.c (`return;` from app_main)    never sleeps, never confirms             counted as a failed boot, ends in fallback after N+1 tries
  *   the guard's fallback sleep                                this file                                does NOT confirm (probation must survive)
  *   sleep after a failed rollback                             this file                                does NOT confirm
  */

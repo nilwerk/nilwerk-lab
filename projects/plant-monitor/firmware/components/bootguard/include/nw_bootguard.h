@@ -14,7 +14,7 @@
  *   3. FALLBACK: no BLE, no Wi-Fi, no sensors. Log the one line from nw_bootguard_log_line(), deep sleep for out.sleep_s, nothing else.
  *   4. ROLLBACK: the running image is an unconfirmed OTA image and it is looping (or its window is used up): switch to the previous slot and reboot.
  *      A looping image rolls back at the START of boot N+1 (boot 6 with N = 5), after N failed boots. This is earlier than the decided 8-boot OTA
- *      window (A-116) and is NEW behaviour: open question for the owner.
+ *      window (A-116) and is NEW behaviour, accepted by the owner. It stays off until the bench proves it (Kconfig PLANT_BOOTGUARD).
  *
  * ADAPTER (task 4.F7b): components/bootguard/src/nw_bootguard_idf.c implements the rules below. It is compiled only with CONFIG_PLANT_BOOTGUARD (default n);
  * no CI build line sets that option, so it is NOT compiled by CI and NOT run on hardware. The CI build compiles THIS pure file for the ESP32-C3 (nw_bootguard.c.obj,
