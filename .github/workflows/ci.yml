@@ -369,7 +369,7 @@ jobs:
       # (the require-await and no-explicit-any findings in the tests were fixed in code, no rule is silenced or skipped).
       - run: deno lint tips/*.ts tips/test/*.test.ts
       - name: Typecheck entry points and the test files
-        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts test/functions/export.test.ts test/functions/mcp.test.ts test/functions/analytics.test.ts test/functions/analytics_deps.test.ts tips/*.ts tips/test/*.test.ts
+        run: deno check supabase/functions/*/index.ts test/functions/api.test.ts test/functions/export.test.ts test/functions/mcp.test.ts test/functions/analytics.test.ts test/functions/analytics_deps.test.ts test/functions/api_keys.test.ts test/functions/api_keys_deps.test.ts tips/*.ts tips/test/*.test.ts
 
   cloud-db:
     name: cloud DB tests

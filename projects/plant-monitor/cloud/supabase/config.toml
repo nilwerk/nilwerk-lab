@@ -54,3 +54,5 @@ verify_jwt = false   # 4.B2c GET /export: the function verifies the user JWT its
 verify_jwt = false   # 4.B5 MCP server: the bearer is the user's API key (nwk_...), checked in the function against api_keys (FR-P03, NFR-06)
 [functions.analytics]
 verify_jwt = false   # 4.B4 GET /analytics: the function verifies the user JWT itself (getUser) and runs every query as the user (FR-P04, FR-P01, NFR-06)
+[functions.api-keys]
+verify_jwt = false   # 4.B2d POST /api-keys, DELETE /api-keys/{id}: the function verifies the user JWT itself (getUser) and checks is_premium() as the user (FR-P03, FR-P04, NFR-06)
