@@ -371,7 +371,7 @@ static void test_five_minute_limit(void)                     /* ADR-011, NFR-03 
     to_session(&p, &f, 0); nw_prov_on_wifi_config(&p, "HomeNet-2G", "correct-horse", 10);
     nw_prov_tick(&p, NW_PROV_SETUP_TIMEOUT_MS); CHECK_EQ(p.state, NW_PROV_S_CLOSED); CHECK_EQ(p.pending.passphrase[0], 0); CHECK(!p.have_wifi);
 }
-static void test_bench_window_only_when_set(void)            /* bench CI image: window 60 s; production default stays 300 s */
+static void test_bench_window_only_when_set(void)            /* override path: a window other than the default (60 s is a test value; bench CI image sets 300 s, as production) */
 {
     nw_prov_t p; fake_t f; mk(&p, &f); nw_prov_boot(&p, 0, 1000);
     CHECK_EQ(p.setup_window_ms, 0u);                           /* production: field unset, NW_PROV_SETUP_TIMEOUT_MS applies */
