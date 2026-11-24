@@ -13,5 +13,6 @@ export const SCREEN_FR = {
   setup: ['FR-A03', 'FR-D03', 'FR-A04', 'FR-A05', 'NFR-03'], // S10-S16 device setup (A-023: no hub step); FR-D02/D07/A02 also cited in SetupSteps
   premium: ['FR-P04'],                       // S40 Premium sheet (A-024: activated by Nilwerk + contact link)
   premiumDashboard: ['FR-P01', 'FR-P04', 'NFR-06'], // S41 Premium dashboard (4.A6): 30/90-day aggregates, trends, watering events; upgrade state for free accounts
+  connectAi: ['FR-P03', 'FR-P04', 'NFR-06'], // S42 Connect your AI (4.A8): create (shown once) / revoke an MCP key, setup text; locked state for free accounts
   alerts: ['FR-A07', 'FR-D06', 'FR-A06'],    // S30 Alerts list (4.A5): rules in plants/alerts.ts; push delivery not built, S31 detail not built
 } as const;
