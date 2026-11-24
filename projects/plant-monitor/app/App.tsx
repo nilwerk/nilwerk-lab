@@ -1,4 +1,4 @@
-// App shell. Requirements: FR-A01 (signed-out: welcome -> sign up / sign in; signed-in: profile -> delete account / premium), FR-A06 (plants tab: list -> detail),
+// App shell. Requirements: FR-P03 (profile -> connect your AI), FR-A01 (signed-out: welcome -> sign up / sign in; signed-in: profile -> delete account / premium), FR-A06 (plants tab: list -> detail),
 // FR-A05 (detail -> photo gallery), FR-A08 + A-022 (detail -> export -> remove plant -> keep/release sensor), 4.A3 device setup (profile -> setup; fake service in the mock build, real BLE in a dev build, 4.A3b). Alerts (4.A5, FR-A07): plant list -> alerts list, rules from src/plants/alerts.ts; push delivery is not built.
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
@@ -27,6 +27,8 @@ import { PlantRemovedScreen, RemovePlantScreen, type RemoveOutcome } from './src
 import { PlantGalleryScreen } from './src/screens/PlantGalleryScreen';
 import { AlertsScreen } from './src/screens/AlertsScreen';
 import { PremiumDashboardScreen } from './src/screens/PremiumDashboardScreen';
+import { ConnectAiScreen } from './src/screens/ConnectAiScreen';
+import { createApiKeysClient, unconfiguredApiKeys, type ApiKeysService } from './src/mcp/apiKeysApi';
 import { createAnalyticsClient, unconfiguredAnalytics, type AnalyticsService } from './src/analytics/analyticsApi';
 import { PlantsProvider } from './src/plants/PlantsContext';
 import { createFakePlants } from './src/plants/fakePlants';
@@ -44,7 +46,7 @@ import { createEspAdapter } from './src/provisioning/espAdapter';
 import { createFetchClaimApi } from './src/provisioning/claimApi';
 import type { SetupServices } from './src/provisioning/types';
 
-type Route = 'welcome' | AuthMode | 'plants' | 'alerts' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium' | 'dashboard';
+type Route = 'welcome' | AuthMode | 'plants' | 'alerts' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium' | 'dashboard' | 'connectAi';
 type Removed = RemoveOutcome;
 
 /** Service used when no Supabase config is present: every call reports "not configured" instead of crashing. */
@@ -53,7 +55,7 @@ function unconfiguredAuth(): AuthService {
   return { getSession: async () => null, onChange: () => () => undefined, signUp: no, signIn: no, signOut: no, getProfile: no, updateDisplayName: no, deleteAccount: no, getAccessToken: async () => null };
 }
 
-export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnalytics }: { contactEmail: string; banner?: string; setup: SetupServices; analytics?: AnalyticsService }) {
+export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnalytics, apiKeys = unconfiguredApiKeys }: { contactEmail: string; banner?: string; setup: SetupServices; analytics?: AnalyticsService; apiKeys?: ApiKeysService }) {
   const { state } = useAuth();
   const th = useTheme();
   const [route, setRoute] = useState<Route>('welcome');
@@ -82,6 +84,8 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
     screen = <SetupFlow services={setup} onExit={() => setRoute('profile')} />;
   } else if (route === 'dashboard') {
     screen = <PremiumDashboardScreen analytics={analytics} onBack={() => setRoute('profile')} onPremium={() => setRoute('premium')} />;
+  } else if (route === 'connectAi') {
+    screen = <ConnectAiScreen apiKeys={apiKeys} onBack={() => setRoute('profile')} onPremium={() => setRoute('premium')} />;
   } else if (route === 'premium') {
     screen = <PremiumScreen contactEmail={contactEmail} onBack={() => setRoute('profile')} />;
   } else if (route === 'plant' && plantId) {
@@ -95,7 +99,7 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
   } else if (route === 'removed' && removed) {
     screen = <PlantRemovedScreen {...removed} onDone={() => { setRemoved(null); setRoute('plants'); }} />;
   } else if (route === 'profile') {
-    screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} onAddSensor={() => setRoute('setup')} onDashboard={() => setRoute('dashboard')} />;
+    screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} onAddSensor={() => setRoute('setup')} onDashboard={() => setRoute('dashboard')} onConnectAi={() => setRoute('connectAi')} />;
   } else if (route === 'alerts') {
     screen = <AlertsScreen onBack={() => setRoute('plants')} />;
   } else {
@@ -136,6 +140,10 @@ export default function App() {
   const analytics = useMemo<AnalyticsService>(() => (!mock && isConfigured(cfg)
     ? createAnalyticsClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
     : unconfiguredAnalytics), [cfg, mock, service]);
+  // 4.A8: MCP key client (FR-P03). The /api-keys edge function is not built yet (proposed route); mock and unconfigured builds report not_configured and fetch nothing.
+  const apiKeys = useMemo<ApiKeysService>(() => (!mock && isConfigured(cfg)
+    ? createApiKeysClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
+    : unconfiguredApiKeys), [cfg, mock, service]);
   const [fonts] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, Inter_400Regular, Inter_600SemiBold, JetBrainsMono_400Regular, JetBrainsMono_600SemiBold });
   if (!fonts) return null;
   return (
@@ -143,7 +151,7 @@ export default function App() {
     <AuthProvider service={service}>
       <PlantsProvider service={plants}>
         <StatusBar style="auto" />
-        <Root contactEmail={cfg.contactEmail} banner={mock ? t('app.mockBanner') : undefined} setup={setup} analytics={analytics} />
+        <Root contactEmail={cfg.contactEmail} banner={mock ? t('app.mockBanner') : undefined} setup={setup} analytics={analytics} apiKeys={apiKeys} />
       </PlantsProvider>
     </AuthProvider>
     </SafeAreaProvider>
