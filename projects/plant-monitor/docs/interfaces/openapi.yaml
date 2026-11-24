@@ -342,6 +342,7 @@ paths:
         {date YYYY-MM-DD (UTC), soil_pct_mean, battery_mv_mean (null for a day with no value), reading_count}. Same plausible-only, own-rows-only,
         premium-gated rules as the aggregates (FR-P04, NFR-06). Additive: existing clients ignore it. Clients treat null as a gap, never as 0.
         The deployed function does not return `daily` yet; it is not in `required` until built.
+        [proposed, A-140] UTC calendar days, and the first rolling-window day not being listed (so daily counts may not add up to reading_count), await the owner's confirmation.
       security: [{ userJwt: [] }]
       parameters:
         - { name: window, in: query, required: true, schema: { type: integer, enum: [30, 90] } }
