@@ -10,8 +10,9 @@
 # BLE setup window on every cold start, without BOOT (bench image only; owner sign-off needed). See main/Kconfig.projbuild.
 CONFIG_PLANT_BENCH_AUTO_SETUP=y
 # Bench CI image only: BLE setup window of 300 s (main/Kconfig.projbuild, PLANT_BENCH_SETUP_WINDOW_S), the same length as the
-# product text "Setup mode closes after 5 minutes". Why not 60 s: the bench has no person to press the pinhole button, so the
-# automated steps after sign-in (add the sensor in the app, step 2) need the window open. Product firmware is unchanged (300 s).
+# product text "Setup mode closes after 5 minutes" (A-137; the CI guards in .github/workflows pin 300 s under A-138). Why not 60 s:
+# the bench has no person to press the pinhole button, so the automated steps after sign-in (add the sensor in the app, step d
+# of bench.yml) need the window open. Step b reads the wake lines only after it closes (A-139). Product firmware is unchanged (300 s).
 CONFIG_PLANT_BENCH_SETUP_WINDOW_S=300
 # Bench CI image only (A-094): soil probe supply stays on between readings, so the probe value can be tested. NFR-12 is not met here.
 # Kconfig PLANT_BENCH_SOIL_POWER_ON (main/Kconfig.projbuild). Production, v1 and upload builds do not list this file.
