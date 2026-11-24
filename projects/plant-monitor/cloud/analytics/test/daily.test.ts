@@ -162,3 +162,52 @@ test("11: aggregatePlant carries the same series (the 30-day aggregate fields ar
   assert.deepEqual(p.daily, dailySeriesForPlant(A, "a", NOW_MS, 30));
   assert.equal(p.daily.length, 30);
 });
+
+test("10: means are not rounded: soil 40 and 41 on one day -> 40.5 exactly; battery 3001 and 3002 -> 3001.5", () => {
+  const rows = [r("a", "2026-11-23T01:00:00Z", 40, 3001), r("a", "2026-11-23T02:00:00Z", 41, 3002)];
+  assert.deepEqual(day(dailySeriesForPlant(rows, "a", NOW_MS, 30), "2026-11-23"), { date: "2026-11-23", soilPctMean: 40.5, batteryMvMean: 3001.5, readingCount: 2 });
+  // (40 + 41) / 2 = 40.5 and (3001 + 3002) / 2 = 3001.5
+});
+
+test("11: 0 is not null: soil readings 0 and 0 -> soil mean 0 (not null), battery 0 -> 0; an empty day stays null with count 0", () => {
+  const rows = [r("a", "2026-11-23T01:00:00Z", 0, 0), r("a", "2026-11-23T02:00:00Z", 0, 0)];
+  const d = dailySeriesForPlant(rows, "a", NOW_MS, 30);
+  assert.deepEqual(day(d, "2026-11-23"), { date: "2026-11-23", soilPctMean: 0, batteryMvMean: 0, readingCount: 2 });
+  assert.strictEqual(day(d, "2026-11-23")!.soilPctMean, 0);
+  assert.deepEqual(day(d, "2026-11-22"), { date: "2026-11-22", ...EMPTY });
+});
+
+test("12: rows between the rolling window start and the first listed date count in reading_count but in no daily item", () => {
+  // 30-day rolling start = 2026-10-25T10:00Z, first listed date = 2026-10-26. Rows at 10:00:00 (exactly the start, inside) and 23:59:59 of Oct 25.
+  const rows = [r("a", "2026-10-25T10:00:00Z", 10, 3000), r("a", "2026-10-25T23:59:59Z", 20, 3100), r("a", "2026-10-25T09:59:59Z", 30, 3200)];
+  assert.equal(aggregatePlant({ id: "a", name: "A" }, rows, NOW_MS, 30).readingCount, 2);   // 09:59:59 is before the start: out
+  assert.equal(dailySeriesForPlant(rows, "a", NOW_MS, 30).reduce((n, x) => n + x.readingCount, 0), 0);
+});
+
+test("13: nowMs exactly 00:00:00.000Z: today is a single-instant day; a row at nowMs is in, a row 1 ms later is not", () => {
+  const now = Date.parse("2026-11-24T00:00:00.000Z");
+  const rows = [r("a", "2026-11-23T23:59:59.999Z", 10, 3000), r("a", "2026-11-24T00:00:00.000Z", 20, 3100), r("a", "2026-11-24T00:00:00.001Z", 99, 1)];
+  const d = dailySeriesForPlant(rows, "a", now, 30);
+  assert.equal(d.length, 30); assert.equal(d[29].date, "2026-11-24"); assert.equal(d[0].date, "2026-10-26");
+  assert.deepEqual(d[29], { date: "2026-11-24", soilPctMean: 20, batteryMvMean: 3100, readingCount: 1 });
+  assert.deepEqual(d[28], { date: "2026-11-23", soilPctMean: 10, batteryMvMean: 3000, readingCount: 1 });
+});
+
+test("14: calendar boundaries: leap year 2028, non-leap 2027 and a year end list the right consecutive dates", () => {
+  // 30 dates ending 2028-03-01: Feb 1 .. Feb 29 is 29 dates, plus Mar 1 = 30 -> index 0 = Feb 1, 27 = Feb 28, 28 = Feb 29, 29 = Mar 1.
+  const leap = dailySeriesForPlant([], "a", Date.parse("2028-03-01T05:00:00Z"), 30).map((x) => x.date);
+  assert.deepEqual([leap[0], leap[27], leap[28], leap[29]], ["2028-02-01", "2028-02-28", "2028-02-29", "2028-03-01"]);
+  // ending 2027-03-01: Feb 2027 has 28 days; Jan 31 + Feb 1-28 (28) + Mar 1 = 30 -> index 0 = Jan 31, 1 = Feb 1, 28 = Feb 28, 29 = Mar 1 (no Feb 29)
+  const plain = dailySeriesForPlant([], "a", Date.parse("2027-03-01T05:00:00Z"), 30).map((x) => x.date);
+  assert.deepEqual([plain[0], plain[1], plain[28], plain[29]], ["2027-01-31", "2027-02-01", "2027-02-28", "2027-03-01"]);
+  assert.ok(!plain.includes("2027-02-29"));
+  // ending 2027-01-05: Dec 7 .. Dec 31 (25 dates) + Jan 1-5 (5) = 30 -> index 0 = Dec 7, 24 = Dec 31, 25 = Jan 1, 29 = Jan 5
+  const ny = dailySeriesForPlant([], "a", Date.parse("2027-01-05T12:00:00Z"), 30).map((x) => x.date);
+  assert.deepEqual([ny[0], ny[24], ny[25], ny[29]], ["2026-12-07", "2026-12-31", "2027-01-01", "2027-01-05"]);
+});
+
+test("16: a row with a null plant or an unparseable time is in no item", () => {
+  const rows = [r(null, "2026-11-23T01:00:00Z", 50, 3000), r("a", "yesterday", 50, 3000), r("a", "", 50, 3000)];
+  const d = dailySeriesForPlant(rows, "a", NOW_MS, 30);
+  assert.equal(d.reduce((n, x) => n + x.readingCount, 0), 0);
+});

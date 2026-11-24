@@ -131,6 +131,18 @@ test("4.B4b ADR-018: 200 carries `daily` per plant in snake_case; the rows read 
   }
 });
 
+test("4.B4b ADR-018 test 15: more than 1000 rows (3 pages) give the same day values as the same rows in one page", async () => {
+  // 2,500 plausible rows 15 min apart ending at NOW - 15 min (26 days), moisture = 30 + (i % 3), battery 3900. All inside the 90-day window.
+  const rows: ReadingRow[] = Array.from({ length: 2500 }, (_, i) => ({ ts: new Date(NOW_MS - (2500 - i) * 900_000).toISOString(), plant_id: "x", moisture_pct: 30 + (i % 3), vbat_mv: 3900, plausible: true }));
+  const run = async (cap: number) => {
+    const { deps } = spyDeps({ plants: async () => [{ id: "x", name: "X" }], readingsPage: async (_j, _s, off, lim) => rows.slice(off, off + Math.min(lim, cap)) });
+    return await (await handleAnalytics(req("?window=90", "jwt-p"), deps, NOW_MS)).json() as { plants: { daily: { reading_count: number }[] }[] };
+  };
+  const paged = await run(1000), single = await run(10_000);
+  assert.deepEqual(paged.plants[0].daily, single.plants[0].daily);
+  assert.equal(paged.plants[0].daily.reduce((n, d) => n + d.reading_count, 0), 2500, "every row lands in exactly one day");
+});
+
 test("4.B4b: a free user still gets 403 and no read (the daily series adds no read before the gate)", async () => {
   const { deps, calls } = spyDeps({ isPremium: async () => false });
   const r = await handleAnalytics(req("?window=90", "jwt-e"), deps, NOW_MS);

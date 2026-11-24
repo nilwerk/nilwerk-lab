@@ -110,6 +110,7 @@ for k in an_plant["properties"]["trend"]["required"]:
     check(re.search(r"\b%s:" % k, an_text) is not None, f"/analytics: trend field '{k}' is produced")
 # 4.B4b ADR-018: the `daily` series is built: marker, required, bounds, and the four item fields are produced in code (wire names) and by the pure function
 check("[proposed, 4.B4b" not in an["description"] and "[built, 4.B4b]" in an["description"], "/analytics: daily marker says built (no 'proposed, 4.B4b' left)")
+check("[proposed, A-140]" in an["description"], "/analytics: the two open details (UTC days, first-day count rule) stay marked [proposed, A-140] until the owner answers")
 daily = an_plant["properties"]["daily"]
 check("[built, 4.B4b]" in daily["description"] and "[proposed" not in daily["description"], "/analytics: daily field description says built")
 check("daily" in an_plant["required"], "/analytics: daily is in the plant's required list (built, ADR-018)")
