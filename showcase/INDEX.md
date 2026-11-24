@@ -14,6 +14,7 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 - `content/2026-11-18/` — small draft pack (`posts.md`, `claim-check.md`): two ideas from PRs #132 and #133, plain story first, "For engineers" second, EN LinkedIn + DE; **not for posting before PR #131 is merged and Arsany approves**
 - `content/2026-11-19/` — small draft pack (`posts.md`, `claim-check.md`, `plan-notes.md`): "The fix that went to the wrong place", plain story first, "For engineers" second, EN + DE LinkedIn, Instagram text; **not for posting before the rescue PR (#137) is merged and Arsany approves**
 - `content/2026-11-23/` — small draft pack from the 20 Nov simulator evidence (`posts.md`, `claim-check.md`): plain story first, "For engineers" second, EN LinkedIn + DE, one image; **not for posting until the owner approves and the German and technical checks are done**
+- `content/2026-11-24/` — small draft pack "The reviewers caught what the builders missed" (`posts.md`): plain story first, "For engineers" second, EN + DE LinkedIn, Instagram carousel outline (5 slides, alt text), claim-sources table; **not for posting until the owner approves and the German and technical checks are done**
 - `stories/origin/` — origin story canon and first carousel (pre-brand look, to be re-rendered if the brand is approved)
 
 ## Items
@@ -65,6 +66,8 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 | 2026-11-20 | Cloud: premium analytics functions | 30/90-day aggregates, watering events, trend and plant comparison as pure functions; 11 tests pass; a changed comparison operator makes 4 tests fail. Thresholds are proposals, no endpoint built (`items/2026-11-20_4.B4`) | about 3 | see caption |
 | 2026-11-20 | Firmware: OTA image check and rollback decision | Image hash check and rollback decision as pure C; host tests on a PC only, no device, no network. Caption counts under review (`items/2026-11-20_4.F4`) | about 5 | see caption |
 | 2026-11-20 | Simulator evidence: app web flow and firmware boot | App screens in a browser with fake sensor values, each marked MOCK; firmware booting in a chip simulator and printing five mock readings; driver checks pass. Not a phone, not real sensors (`items/2026-11-20_sim-evidence`) | app about 6.5, firmware about 18.5 | see caption |
+| 2026-11-24 | 4.A6 | Premium dashboard screen: soil range bars and first-week vs last-week bars, missing readings handled; no picture captured, nothing run on a phone or live backend (`items/2026-11-24_4.A6`) | see Agent Log | #191 (merged) |
+| 2026-11-24 | 4.B4 slice 2 | Premium analytics endpoint: premium check before any reading; 13 checks against a local database with row-level security; test-output image; not run on a live backend (`items/2026-11-24_4.B4-s2`) | 7.5 | #192 (merged) |
 
 The six 2026-11-20 items are on `origin/main` (checked 23 Nov 2026, Berlin time, at 02e5c05). Their captions are under review, so the rows above give no test counts for the alerts and firmware OTA items; recheck after the review closes.
 
