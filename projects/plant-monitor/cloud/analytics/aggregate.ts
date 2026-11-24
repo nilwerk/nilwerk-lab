@@ -6,9 +6,9 @@
 export const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
 
-/** TO CONFIRM (open decision A-115): soil percent points one sample step must rise to count as a watering event. Strictly above. */
+/** Decided, A-115 (owner, 2026-11-21): a watering event is a soil rise of 10 percentage points or more between two consecutive samples (>=, so exactly 10 counts). */
 export const WATERING_RISE_PCT = 10;
-/** TO CONFIRM (open decision A-115): two consecutive samples further apart than this are not compared (a rise across a long gap is not a watering). */
+/** Decided, A-115 (owner, 2026-11-21): two readings more than 2 hours apart do not join into one event (exactly 2 h still does). A rise across a longer gap is not a watering. */
 export const MAX_EVENT_GAP_MS = 2 * 3_600_000;
 
 export const ANALYTICS_WINDOWS_DAYS = [30, 90] as const;
@@ -65,7 +65,7 @@ function samplesInWindow(readings: AnalyticsReading[], plantId: string, startMs:
   return out.sort((a, b) => a.t - b.t);
 }
 
-/** Count consecutive soil samples whose rise is strictly above WATERING_RISE_PCT and whose gap is at most MAX_EVENT_GAP_MS. */
+/** Count consecutive soil samples whose rise is WATERING_RISE_PCT or more and whose gap is at most MAX_EVENT_GAP_MS (A-115). */
 function countWateringEvents(samples: Sample[]): number {
   let events = 0;
   for (let i = 1; i < samples.length; i++) {
@@ -73,7 +73,7 @@ function countWateringEvents(samples: Sample[]): number {
     if (prev.moisturePct === null || cur.moisturePct === null) continue;
     const gap = cur.t - prev.t;
     if (gap <= 0 || gap > MAX_EVENT_GAP_MS) continue;
-    if (cur.moisturePct - prev.moisturePct > WATERING_RISE_PCT) events++;
+    if (cur.moisturePct - prev.moisturePct >= WATERING_RISE_PCT) events++;
   }
   return events;
 }

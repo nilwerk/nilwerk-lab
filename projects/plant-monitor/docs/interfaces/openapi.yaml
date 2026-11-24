@@ -332,10 +332,9 @@ paths:
         aggregates in cloud/analytics/aggregate.ts). No migration. Not deployed. The function calls public.is_premium() as the user first
         (FR-P04, ADR-008) and returns 403 premium_required before reading any reading. Every query runs as the user under RLS (owner_id = auth.uid()),
         so no parameter can name another user. Response carries Cache-Control: no-store.
-        PROVISIONAL: wateringEvents uses WATERING_RISE_PCT = 10 and MAX_EVENT_GAP_MS = 2 h. Both values are TO CONFIRM under open decision A-115
-        and are NOT decided yet; the numbers may change before the feature is released.
+        Watering events: the rule is decided (A-115): a soil rise of 10 percentage points or more, and two readings more than 2 hours apart do not join into one event.
         Per plant: readingCount (plausible samples in the window), soil percent and battery mV as mean/min/max (null when no usable sample),
-        wateringEvents (consecutive plausible soil samples at most 2 h apart whose rise is strictly above WATERING_RISE_PCT = 10, TO CONFIRM),
+        wateringEvents (consecutive plausible soil samples at most 2 h apart whose rise is 10 soil percent points or more, decided A-115),
         trend (mean of the last 7 days minus mean of the first 7 days of the window, soil percent points; null if either week is empty).
         Plants are sorted by name. Plants with no readings are listed with zeros and nulls.
       security: [{ userJwt: [] }]

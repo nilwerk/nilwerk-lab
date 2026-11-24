@@ -133,6 +133,10 @@ else export NW_TEST_DB_URL="postgresql://postgres@/nw_test_analytics?host=$TMP&p
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/analytics.test.ts
 unset NW_TEST_DB_URL
 
+# --- 5e. analytics database adapter 4.B4 slice 3 (no DB: fake PostgREST client records calls): premium RPC as the user before any read, paging by rows returned
+echo "== analytics adapter (test/functions/analytics_deps.test.ts) with a fake client"
+node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/analytics_deps.test.ts
+
 # --- 6. care-tips engine 4.B3 slice 1 (pure TypeScript, no DB): guardrail rules, premium gate, injected weather/assistant (FR-P02, FR-P04)
 if [ "${NW_ONLY:-}" != api ]; then
 echo "== care-tips engine (tips/test/*.test.ts: ALL test files, not only tips.test.ts)"

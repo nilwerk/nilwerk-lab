@@ -22,7 +22,7 @@ const BASIL: AnalyticsReading[] = [
   r("a", "2026-11-08T00:00:00Z", 30, 3820),  // -12 d
   r("a", "2026-11-08T03:00:00Z", 50, 3815),  // 3 h after the previous: gap > 2 h, a +20 rise is NOT a watering
   r("a", "2026-11-10T00:00:00Z", 30, 3800),  // -10 d
-  r("a", "2026-11-10T00:15:00Z", 40, 3805),  // +15 min: rise of exactly 10 is NOT above the threshold
+  r("a", "2026-11-10T00:15:00Z", 40, 3805),  // +15 min: rise of exactly 10 IS a watering (A-115: 10 points or more): WATERING EVENT
   r("a", "2026-11-14T00:00:00Z", 35, 3740),  // -6 d: last week
   r("a", "2026-11-17T00:00:00Z", 30, 3760),  // -3 d: last week
   r("a", "2026-11-17T00:15:00Z", 31, 3758),  // +1
@@ -33,14 +33,14 @@ const BASIL: AnalyticsReading[] = [
   r("a", "2026-11-20T01:00:00Z", 99, 3000),  // one hour in the future: excluded everywhere
 ];
 
-test("30-day aggregates of Basil: 14 readings in window, soil and battery mean/min/max, 2 events, trend", () => {
+test("30-day aggregates of Basil: 14 readings in window, soil and battery mean/min/max, 3 events, trend", () => {
   const got = aggregatePlant({ id: "a", name: "Basil" }, BASIL, NOW_MS, 30);
   // soil: 40,38,30,30,50,30,40,35,30,31,45,44,40,52 -> sum 535, n 14
   // battery: 3900,3880,3850,3820,3815,3800,3805,3740,3760,3758,3755,3750,3720,3715 -> sum 53068, n 14
   assert.equal(got.readingCount, 14);
   assert.deepEqual(got.soilPct, { mean: 535 / 14, min: 30, max: 52 });
   assert.deepEqual(got.batteryMv, { mean: 53068 / 14, min: 3715, max: 3900 });
-  assert.equal(got.wateringEvents, 2);
+  assert.equal(got.wateringEvents, 3);   // hand count: +10 (00:15 on Nov 10, exactly 10 counts), +14 (Nov 17), +12 (Nov 19); the 3 h gap +20 does not
   // first week (Oct 21-27): 40, 38 -> 39. last week (Nov 13-20): 35,30,31,45,44,40,52 -> sum 277, n 7 -> 277/7
   assert.equal(got.trend.firstWeekMean, 39);
   assert.ok(Math.abs(got.trend.lastWeekMean! - 277 / 7) < 1e-9);
@@ -54,19 +54,27 @@ test("90-day aggregates of Basil: 16 readings; first week empty so trend is null
   assert.equal(got.readingCount, 16);
   assert.deepEqual(got.soilPct, { mean: 565 / 16, min: 10, max: 52 });
   assert.deepEqual(got.batteryMv, { mean: 60018 / 16, min: 3000, max: 3950 });
-  assert.equal(got.wateringEvents, 2);
+  assert.equal(got.wateringEvents, 3);
   assert.equal(got.trend.soilChangePct, null);
   assert.equal(got.trend.firstWeekMean, null);
   assert.ok(Math.abs(got.trend.lastWeekMean! - 277 / 7) < 1e-9);
 });
 
-test("watering threshold: a rise of exactly 10 and a rise across a 3 h gap are not events (strictly above, gap <= 2 h)", () => {
-  const onlyEdge: AnalyticsReading[] = [
-    r("a", "2026-11-10T00:00:00Z", 30, 3800),
-    r("a", "2026-11-10T00:15:00Z", 40, 3800),   // +10: not above
-    r("a", "2026-11-10T03:30:00Z", 60, 3800),   // +20 but 3 h 15 min after: gap too long
-  ];
-  assert.equal(aggregatePlant({ id: "a", name: "Basil" }, onlyEdge, NOW_MS, 30).wateringEvents, 0);
+test("A-115 boundary: rise of exactly 10 points is an event, 9.9 is not", () => {
+  const at = (v: number) => [r("a", "2026-11-10T00:00:00Z", 30, null), r("a", "2026-11-10T00:15:00Z", v, null)];
+  assert.equal(aggregatePlant({ id: "a", name: "Basil" }, at(40), NOW_MS, 30).wateringEvents, 1);   // 40 - 30 = 10 -> counts
+  assert.equal(aggregatePlant({ id: "a", name: "Basil" }, at(39.9), NOW_MS, 30).wateringEvents, 0); // 9.9 -> does not
+});
+
+test("A-115 boundary: exactly 2 h apart still joins, 2 h 1 s apart does not (rise +20 in both)", () => {
+  const gap = (second: string) => [r("a", "2026-11-10T00:00:00Z", 30, null), r("a", second, 50, null)];
+  assert.equal(aggregatePlant({ id: "a", name: "Basil" }, gap("2026-11-10T02:00:00Z"), NOW_MS, 30).wateringEvents, 1);  // 7,200,000 ms: allowed
+  assert.equal(aggregatePlant({ id: "a", name: "Basil" }, gap("2026-11-10T02:00:01Z"), NOW_MS, 30).wateringEvents, 0);  // 7,201,000 ms: too far
+});
+
+test("A-115 both limits at once: exactly 10 points across exactly 2 h is an event", () => {
+  const both = [r("a", "2026-11-10T00:00:00Z", 30, null), r("a", "2026-11-10T02:00:00Z", 40, null)];
+  assert.equal(aggregatePlant({ id: "a", name: "Basil" }, both, NOW_MS, 30).wateringEvents, 1);
 });
 
 test("watering threshold: a rise of 10.5 is an event", () => {
@@ -137,6 +145,6 @@ test("premium gate (FR-P04): free users get premium_required for 30 and 90 days;
   assert.equal(premium.ok, true);
   if (premium.ok) {
     assert.equal(premium.windowDays, 30);
-    assert.equal(premium.plants[0].wateringEvents, 2);
+    assert.equal(premium.plants[0].wateringEvents, 3);
   }
 });
