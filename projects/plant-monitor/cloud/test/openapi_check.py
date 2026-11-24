@@ -108,6 +108,17 @@ for k in an_plant["required"]:
     check(re.search(r"\b%s:" % k, an_text) is not None, f"/analytics: plant field '{k}' is produced")
 for k in an_plant["properties"]["trend"]["required"]:
     check(re.search(r"\b%s:" % k, an_text) is not None, f"/analytics: trend field '{k}' is produced")
+# 4.B4b ADR-018: the `daily` series is built: marker, required, bounds, and the four item fields are produced in code (wire names) and by the pure function
+check("[proposed, 4.B4b" not in an["description"] and "[built, 4.B4b]" in an["description"], "/analytics: daily marker says built (no 'proposed, 4.B4b' left)")
+daily = an_plant["properties"]["daily"]
+check("[built, 4.B4b]" in daily["description"] and "[proposed" not in daily["description"], "/analytics: daily field description says built")
+check("daily" in an_plant["required"], "/analytics: daily is in the plant's required list (built, ADR-018)")
+check(daily["type"] == "array" and daily["maxItems"] == 90 and daily["minItems"] == 30, "/analytics: daily is an array of 30..90 items (at most 90)")
+daily_fields = sorted(daily["items"]["required"])
+check(daily_fields == sorted(daily["items"]["properties"].keys()) == ["battery_mv_mean", "date", "reading_count", "soil_pct_mean"], f"/analytics: daily item fields are exactly date, soil_pct_mean, battery_mv_mean, reading_count (spec {daily_fields})")
+wire = re.search(r"daily: p\.daily\.map\(\(d\) => \(\{(.*?)\}\)\)", an_text, re.S)
+check(wire is not None and sorted(re.findall(r"(\w+): d\.", wire.group(1))) == daily_fields, "/analytics: the code maps exactly these daily item fields (wire names)")
+check("DailyPoint" in an_all and "dailySeries(samples, nowMs, windowDays)" in an_all and "reading_count: number" in an_text, "/analytics: daily is computed by dailySeries over the same samples as the aggregates (no second read)")
 check(all(r in an_text for r in an["x-requirements"]), f"/analytics cites {an['x-requirements']} in code")
 check("premium_required" in an_text and "err(403, \"premium_required\"" in an_text, "/analytics: 403 premium_required before any read (FR-P04)")
 check(re.search(r"\[functions\.analytics\]\s*\nverify_jwt = false", open(os.path.join(root, "supabase", "config.toml")).read()) is not None, "config.toml: analytics has verify_jwt = false (the handler verifies the JWT itself)")
