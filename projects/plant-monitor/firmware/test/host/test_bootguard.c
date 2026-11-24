@@ -351,6 +351,36 @@ static void test_corrupted_counter_fails_safe(void)
     CHECK(!nw_bootguard_valid(&h));
 }
 
+/* Adapter rule (b), header: a ROLLBACK that cannot be carried out must end in the fallback sleep, with the probation boot after it. */
+static void test_rollback_failed_falls_to_fallback(void)
+{
+    nw_bootguard_t s = fresh();
+    nw_ota_boot_t p = pend(1);
+    for (unsigned i = 0; i < N; i++) CHECK_EQ(failed_boot(&s, &p).action, NW_BG_RUN);
+    nw_bootguard_out_t r = failed_boot(&s, &p);
+    CHECK_EQ(r.action, NW_BG_ROLLBACK);
+    CHECK_EQ(s.failed_boots, 0);                           /* the guard cleared its counter on ROLLBACK: the adapter must repair this */
+    nw_bootguard_out_t f = nw_bootguard_rollback_failed(&s);
+    CHECK_EQ(f.action, NW_BG_FALLBACK);
+    CHECK_EQ(f.why, NW_BG_WHY_ROLLBACK_FAILED);
+    CHECK_EQ(f.sleep_s, NW_BOOTGUARD_FALLBACK_SLEEP_S);
+    CHECK(!f.allow_ble);
+    CHECK(!f.allow_wifi);
+    CHECK_EQ(f.failed, N);
+    CHECK(nw_bootguard_valid(&s));
+    CHECK_EQ(s.in_fallback, 1);
+    char line[128];
+    CHECK(nw_bootguard_log_line(line, sizeof line, &f) > 0);
+    CHECK(strstr(line, "NWBOOTGUARD fallback why=rollback_failed failed=5 limit=5 sleep_s=21600 ble=off wifi=off") == line);
+    /* the next boot is the probation boot: one normal attempt, then straight back to the rollback attempt (the image is still pending) */
+    CHECK_EQ(failed_boot(&s, &p).action, NW_BG_RUN);
+    CHECK_EQ(failed_boot(&s, &p).action, NW_BG_ROLLBACK);
+    /* from a corrupt or stale state it still lands in a valid fallback state */
+    nw_bootguard_t g = fresh(); flip(&g, 6);
+    CHECK_EQ(nw_bootguard_rollback_failed(&g).action, NW_BG_FALLBACK);
+    CHECK(nw_bootguard_valid(&g));
+}
+
 int main(void)
 {
     test_constants_and_budget();
@@ -361,6 +391,7 @@ int main(void)
     test_magic_mismatch_needs_poweron_reset();
     test_log_shows_causing_count();
     test_corrupted_counter_fails_safe();
+    test_rollback_failed_falls_to_fallback();
     printf("test_bootguard: %d checks, %d failed\n", nwtest_checked, nwtest_failed);
     return nwtest_failed ? 1 : 0;
 }

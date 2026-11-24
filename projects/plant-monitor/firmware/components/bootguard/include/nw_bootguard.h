@@ -16,7 +16,10 @@
  *      A looping image rolls back at the START of boot N+1 (boot 6 with N = 5), after N failed boots. This is earlier than the decided 8-boot OTA
  *      window (A-116) and is NEW behaviour: open question for the owner.
  *
- * ADAPTER RULES (contract for the ESP-IDF adapter slice, not implemented here, not verified):
+ * ADAPTER (task 4.F7b): components/bootguard/src/nw_bootguard_idf.c implements the rules below. It is compiled only with CONFIG_PLANT_BOOTGUARD (default n);
+ * no CI build line sets that option, so it is NOT compiled by CI and NOT run on hardware. The CI build compiles THIS pure file for the ESP32-C3 (nw_bootguard.c.obj,
+ * libbootguard.a), linked into no image. Reset-reason mapping and the sleep-path table are in nw_bootguard_map.h and tested on the host.
+ * ADAPTER RULES (the contract the adapter follows, not verified on a board):
  *   (a) EVERY deliberate sleep path calls nw_bootguard_confirm_good() first: the normal end of a cycle, the low-battery skip (FR-D06), the BLE setup
  *       timeout on a never-provisioned unit (FR-D03), and just before an OTA reboot (otherwise the new image starts with the old image's raised count).
  *       A sleep path that forgets it counts a failed boot per wake and trips the fallback after N+1 wakes.
@@ -45,7 +48,7 @@
  * and a recovered unit by a day. Open point for Arsany. */
 #define NW_BOOTGUARD_FALLBACK_SLEEP_S 21600u
 
-/* Retained across deep sleep and software resets (RTC_DATA_ATTR in the adapter), 12 bytes. RTC memory, not NVS, as nw_cycle_state_t does: a counter
+/* Retained across deep sleep and software resets (RTC_NOINIT_ATTR in the adapter, see nw_bootguard_idf.c), 12 bytes. RTC memory, not NVS, as nw_cycle_state_t does: a counter
  * written on EVERY boot would wear flash (NVS is wear-levelled but a loop writes it thousands of times a day), RTC memory costs no write cycles.
  * Budget [proposed]: NW_BOOTGUARD_RTC_BYTES = 12 on top of nw_cycle_state_t, both together inside NW_CYCLE_RTC_BUDGET_BYTES (4096, also a proposal,
  * checked in test_bootguard.c). Limit: RTC memory is lost on a full power loss, so a loop that cuts the supply (brownout that drops the RTC domain)
@@ -72,7 +75,8 @@ typedef enum {
     NW_BG_WHY_COUNT,         /* failed boot count reached NW_BOOTGUARD_MAX_FAILED_BOOTS */
     NW_BG_WHY_CORRUPT,       /* retained counter had a valid magic but inconsistent content: fail safe */
     NW_BG_WHY_OTA_LOOP,      /* guard tripped while an unconfirmed OTA image was running */
-    NW_BG_WHY_OTA_WINDOW     /* OTA window used up without confirmation (nw_ota_boot_decide said ROLLBACK) */
+    NW_BG_WHY_OTA_WINDOW,    /* OTA window used up without confirmation (nw_ota_boot_decide said ROLLBACK) */
+    NW_BG_WHY_ROLLBACK_FAILED /* the adapter could not carry out a ROLLBACK answer (adapter rule b): fallback instead */
 } nw_bg_why_t;
 
 /* Why the retained magic may be wrong. Only NW_BG_RESET_POWERON explains a magic mismatch; 0 (OTHER) is the fail-safe default. */
@@ -110,6 +114,10 @@ nw_bootguard_out_t nw_bootguard_boot(nw_bootguard_t *st, const nw_ota_boot_t *ot
 
 /* Call when the cycle reaches its normal end (the deep sleep after a finished wake). Clears the counter and the probation flag. */
 void nw_bootguard_confirm_good(nw_bootguard_t *st);
+
+/* Adapter rule (b): call when a ROLLBACK answer could not be carried out. The guard cleared its counter on ROLLBACK, so this puts it back into the fallback
+ * state (count at the limit, in_fallback 1: the next boot is the probation boot) and returns the FALLBACK answer (why ROLLBACK_FAILED, sleep_s as for any fallback). */
+nw_bootguard_out_t nw_bootguard_rollback_failed(nw_bootguard_t *st);
 
 /* One log line, no newline inside, NUL-terminated, truncated to cap: "NWBOOTGUARD <action> why=<w> failed=<n> limit=<N> sleep_s=<s> ble=off wifi=off".
  * Returns the length written, 0 for RUN (nothing to log) or cap == 0. */

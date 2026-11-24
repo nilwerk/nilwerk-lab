@@ -1,0 +1,8 @@
+# Boot-loop guard (task 4.F7b). MANUAL BUILD ONLY, for the bench once a work order exists. No CI build line lists this file, so the guard adapter
+# (components/bootguard/src/nw_bootguard_idf.c) is NOT compiled by CI. Never use it for a production build before the bench check.
+# Add it LAST after the board overlays, in its own build dir and sdkconfig so a stale sdkconfig cannot hide it, for example:
+#   idf.py -B build-bootguard -DIDF_TARGET=esp32c3 -DSDKCONFIG=sdkconfig.bootguard \
+#     -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.v1;sdkconfig.defaults.bootguard" build size && grep -q '^CONFIG_PLANT_BOOTGUARD=y' sdkconfig.bootguard
+# Rollback also needs an OTA partition table and CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE; neither is set (single-app partition table today), so on this
+# build an image is never "pending verify" and only the fallback sleep can be reached. Open point for the OTA task.
+CONFIG_PLANT_BOOTGUARD=y

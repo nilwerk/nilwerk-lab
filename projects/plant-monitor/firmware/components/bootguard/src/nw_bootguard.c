@@ -84,6 +84,15 @@ nw_bootguard_out_t nw_bootguard_boot(nw_bootguard_t *st, const nw_ota_boot_t *ot
     return out_of(NW_BG_RUN, NW_BG_WHY_NONE, st->failed_boots);
 }
 
+nw_bootguard_out_t nw_bootguard_rollback_failed(nw_bootguard_t *st)
+{
+    nw_bootguard_init(st);
+    st->failed_boots = NW_BOOTGUARD_MAX_FAILED_BOOTS;
+    st->in_fallback = 1;
+    seal(st);
+    return out_of(NW_BG_FALLBACK, NW_BG_WHY_ROLLBACK_FAILED, st->failed_boots);
+}
+
 void nw_bootguard_confirm_good(nw_bootguard_t *st)
 {
     nw_bootguard_init(st);
@@ -91,7 +100,7 @@ void nw_bootguard_confirm_good(nw_bootguard_t *st)
 
 size_t nw_bootguard_log_line(char *buf, size_t cap, const nw_bootguard_out_t *out)
 {
-    static const char *const why_s[] = { "none", "count", "corrupt", "ota_loop", "ota_window" };
+    static const char *const why_s[] = { "none", "count", "corrupt", "ota_loop", "ota_window", "rollback_failed" };
     if (!buf || cap == 0) return 0;
     buf[0] = 0;
     if (out->action == NW_BG_RUN) return 0;
