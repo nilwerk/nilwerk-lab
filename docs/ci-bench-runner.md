@@ -174,8 +174,9 @@ the board as flashed by step a alone.
   rule as before), and the owner decides whether to raise `timeout-minutes`.
 - **Bench upload build (owner decision 2026-11-23, `CONFIG_PLANT_BENCH_UPLOAD_MINUTE` in `sdkconfig.defaults.bench-ci`).** The image
   uploads once a minute and does not deep-sleep. It prints one `NWBENCH wake=` line per minute, before the upload, so the first
-  line comes about 300 s after the reset, when the setup window closes. A 75 s window after that always holds one line (lines are
-  60 s apart). Not checked on hardware.
+  line comes when the measurement loop starts: when `nw_setup_run` returns, at window close (about 300 s after the reset), or
+  earlier on a Wi-Fi claim, or later while a join or claim is in flight (up to about 35 s past 300 s). Step b reads R+310 to R+385,
+  so a 75 s read always holds one line (lines are 60 s apart). Not checked on hardware.
 - **BLE on every cold start, bench image only (owner sign-off needed).** `sdkconfig.defaults.bench-ci` sets
   `CONFIG_PLANT_BENCH_AUTO_SETUP=y` (`main/Kconfig.projbuild`, `depends on PLANT_SETUP_FLOW`). On that image each cold start
   (not a deep-sleep wake) passes the setup request to `nw_setup_run` as if BOOT were held for 3 s
