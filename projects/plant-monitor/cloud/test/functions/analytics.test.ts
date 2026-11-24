@@ -42,7 +42,7 @@ test("NFR-06: missing or forged token -> 401 before any data access", async () =
   assert.deepEqual(calls, ["getUserId"]);
 });
 
-test("openapi /analytics: window must be exactly 30 or 90 -> 400 bad_request, no data access", async () => {
+test("window must be exactly 30 or 90 -> 400 bad_request, no data access", async () => {
   const { deps, calls } = spyDeps();
   const bad = ["", "?window=", "?window=7", "?window=031", "?window=30.0", "?window=30%20", "?window=60", "?days=30"];
   for (const qs of bad) {
@@ -172,7 +172,7 @@ test("FR-P04: the free user is refused 403 premium_required (integration, real i
   assert.ok(!calls.some((c) => c.startsWith("readingsPage") || c === "plants"), "no reading or plant is read for a free user");
 });
 
-test("FR-P01: premium user, window=30 -> 200 with the openapi shape, hand-computed aggregates for Basil and zeros for Aloe", db, async () => {
+test("FR-P01: premium user, window=30 -> 200 with the contract shape, hand-computed aggregates for Basil and zeros for Aloe", db, async () => {
   const r = await handleAnalytics(req("?window=30", "jwt-p"), dbDeps(), NOW_MS);
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("cache-control"), "no-store");

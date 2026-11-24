@@ -5,13 +5,13 @@
 <text x="16" y="56" fill="#24292f">== analytics endpoint against local Postgres (migrated schema, row-level security)</text>
 <text x="16" y="76" fill="#1a7f37">✔ FR-P04: wrong method -&gt; 405 and nothing is read</text>
 <text x="16" y="96" fill="#1a7f37">✔ NFR-06: missing or forged token -&gt; 401 before any data access</text>
-<text x="16" y="116" fill="#1a7f37">✔ openapi /analytics: window must be exactly 30 or 90 -&gt; 400 bad_request, no data access</text>
+<text x="16" y="116" fill="#1a7f37">✔ window must be exactly 30 or 90 -&gt; 400 bad_request, no data access</text>
 <text x="16" y="136" fill="#1a7f37">✔ FR-P04: a free user gets 403 premium_required and NO plant or reading is read</text>
 <text x="16" y="156" fill="#1a7f37">✔ 500: a failed premium check, plant read or reading read -&gt; &#x27;internal&#x27;, no database detail in the body</text>
 <text x="16" y="176" fill="#1a7f37">✔ NFR-07-style paging: reads every page until an empty one; the offset advances by the rows actually returned (a server row cap cannot skip rows)</text>
 <text x="16" y="196" fill="#1a7f37">✔ setup: three users, two premium and one free; each has its own plants and readings</text>
 <text x="16" y="216" fill="#1a7f37">✔ FR-P04: the free user is refused 403 premium_required (integration, real is_premium())</text>
-<text x="16" y="236" fill="#1a7f37">✔ FR-P01: premium user, window=30 -&gt; 200 with the openapi shape, hand-computed aggregates for Basil and zeros for Aloe</text>
+<text x="16" y="236" fill="#1a7f37">✔ FR-P01: premium user, window=30 -&gt; 200 with the contract shape, hand-computed aggregates for Basil and zeros for Aloe</text>
 <text x="16" y="256" fill="#1a7f37">✔ FR-P01: window=90 -&gt; the same readings; the first week is empty so the trend is null</text>
 <text x="16" y="276" fill="#1a7f37">✔ NFR-06: the answer names only the caller&#x27;s plants; F&#x27;s plant and readings never appear</text>
 <text x="16" y="296" fill="#1a7f37">✔ paging over the real database: 2,401 rows in three pages (1000, 1000, 401) and one empty page</text>
