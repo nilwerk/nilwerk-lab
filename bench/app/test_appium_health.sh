@@ -15,7 +15,11 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         if mode == "hang":
             time.sleep(30); return
-        code, body = {"ready": (200, b'{"value":{"build":{"version":"2.0.0"},"ready":true,"message":"ok"}}'),
+        if mode == "204":
+            self.send_response(204); self.end_headers(); return
+        code, body = {"badjson": (200, b"<html>not json"), "empty": (200, b""),
+                      "string": (200, b'{"value":{"ready":"true"}}'), "null": (200, b'{"value":null}'),
+                      "ready": (200, b'{"value":{"build":{"version":"2.0.0"},"ready":true,"message":"ok"}}'),
                       "notready": (200, b'{"value":{"ready":false}}'),
                       "500": (500, b'{"value":{"error":"unknown error"}}')}[mode]
         self.send_response(code); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body)
@@ -42,7 +46,14 @@ run_case() { # name mode expect_exit expect_code
   local ok=1
   [ "$rc" = "$want" ] || ok=0
   if [ "$want" = "0" ]; then [ "$errs" = "0" ] || ok=0
-  else [ "$errs" = "1" ] && printf '%s\n' "$out" | grep -qF "::error::d. app flow: 0. Appium not ready at APPIUM_URL (HTTP ${wcode}): check the appium service on the Pi (systemctl status appium), then re-run" || ok=0; fi
+  else
+    [ "$errs" = "1" ] || ok=0
+    if [ "$wcode" = "U" ]; then
+      printf '%s\n' "$out" | grep -qF "::error::d. app flow: 0. Appium answered HTTP 200 but the reply could not be read: check python3 and the appium service on the Pi (systemctl status appium), then re-run" || ok=0
+    else
+      printf '%s\n' "$out" | grep -qF "::error::d. app flow: 0. Appium not ready at APPIUM_URL (HTTP ${wcode}): check the appium service on the Pi (systemctl status appium), then re-run" || ok=0
+    fi
+  fi
   printf '%s\n' "$out" | grep -q "127.0.0.1" && ok=0   # host must not be printed
   if [ "$ok" = 1 ]; then echo "PASS: $name"; else echo "FAIL: $name"; fails=$((fails + 1)); fi
 }
@@ -52,4 +63,9 @@ run_case "ready false" notready 1 200
 run_case "HTTP 500" 500 1 500
 run_case "connection refused" refused 1 000
 run_case "hang past timeout" hang 1 000
+run_case "200 invalid JSON" badjson 1 U
+run_case "200 empty body" empty 1 U
+run_case "200 ready as string" string 1 200
+run_case "200 value null" null 1 200
+run_case "HTTP 204" 204 1 204
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
