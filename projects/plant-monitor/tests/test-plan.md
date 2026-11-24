@@ -192,6 +192,8 @@ From the repo root, after `git fetch origin main` and a worktree on the branch:
 7. PCB: `python3 pcb/check_netlist.py` and `python3 pcb/check_layout.py`
 
 
+S3 Lessons: [the matrix had drifted from the code: its power-budget test count (23) was stale against the 30 tests that run, and one CI-gated suite (BOM) was red on main without a visible flag] → [recount tests from the tool output and re-grep the IDs before any row changes status; a red test on main is reported in the plan, not left to the next reader].
+
 ## 11. S4 update (24 Nov 2026): what ran on main, what did not
 
 Base: `origin/main` ca8b9ed in a clean worktree (`git status --porcelain` empty). Ancestry of the two merged slices: `git merge-base --is-ancestor a6185f4 origin/main` exit 0 (analytics endpoint), same for 76dbd72 exit 0 (premium dashboard). No test code was changed. Section 5 numbers are from 02e5c05 and are historic.
@@ -228,8 +230,8 @@ Criterion: a row may leave "bench run pending" only when the named steps of a be
 
 Check at 17:20 (Berlin, 24 Nov), command `gh api repos/nilwerk/nilwerk-lab/actions/runs/45434991511 --jq '[.status,.conclusion]|@tsv'`: `in_progress` with no conclusion. Head SHA ca8b9ed (event workflow_dispatch). Jobs from `.../jobs`:
 - build setup firmware (GitHub-hosted): completed, success. This is a build job. It is not a bench step.
-- Android debug APK (GitHub-hosted): in progress (Gradle release build step running).
-- bench (the Pi): not started yet. Steps 1, 2, a, 3, c, b, 4, d, e and E2E: none has completed.
+- Android debug APK (GitHub-hosted): completed, success at 17:26 Berlin (a build job, not a bench step).
+- bench smoke and E2E (the Pi): in progress at 17:26 Berlin. At 17:26:39 only setup steps (job start, checkout, clear artifacts, runner smoke check) had completed; step 1 (download firmware) was in progress and steps 2, a, 3, c, b, 4, d, e and E2E were pending. None of the bench steps has completed.
 
 So the run is in progress and no bench step has completed. All rows below stay pending.
 
@@ -247,12 +249,12 @@ When the run completes, update this table with the run conclusion and, per step 
 
 | ID | Blocks | State |
 |---|---|---|
-| A-131 | FR-P01: scope of the 30/90-day graph (line chart) | open |
-| A-115 | FR-P01 watering-event thresholds (provisional in code and OpenAPI, text still says TO CONFIRM) | decided; the code comments and `openapi.yaml` should be updated and the new value tested (not done in this round, docs only) |
-| A-129 | a pending migration (see the decision itself) | open |
-| A-130 | NVS pin (see the decision itself) | open |
+| A-131 | FR-P01 (30/90-day line chart) | open, tracked in the Needs Arsany tab |
+| A-115 | FR-P01 watering-event thresholds (provisional in code and OpenAPI, text still says TO CONFIRM) | decided; code comments and `openapi.yaml` not yet updated (docs only here) |
+| A-129 | row link given by the Lead, not backed by a repo file | open, tracked in the Needs Arsany tab |
+| A-130 | row link given by the Lead, not backed by a repo file | open, tracked in the Needs Arsany tab |
 | A-108, A-094 | unchanged, see section 8 | as in section 8 |
 
-This repo has no A-129, A-130 or A-131 text (grep of all .md, .yml, .ts files: 0 hits); IDs come from the assignment. Which rows A-129 and A-130 block is for the Lead to confirm.
+The repo has no source text for A-129, A-130 or A-131 (grep of all .md, .yml, .ts files: 0 hits). They are listed by ID only, tracked in the Needs Arsany tab, which is not in the repo.
 
-Lessons: [the matrix had drifted from the code: its power-budget test count (23) was stale against the 30 tests that run, and one CI-gated suite (BOM) was red on main without a visible flag] → [recount tests from the tool output and re-grep the IDs before any row changes status; a red test on main is reported in the plan, not left to the next reader].
+S4 Lessons: [a status table that says PASS for a slice whose live backend and chart never ran reads as earned] → [list ran and not run side by side; a bench row stays pending until its steps show completed and success].

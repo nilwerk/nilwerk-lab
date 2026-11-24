@@ -131,4 +131,4 @@ Only rows that changed since the last status are listed. Every other row is unch
 | NFR-06 | bench run pending | (c) SQL level only, as before | same run; step e is one row reaching the cloud; per-device credentials and user isolation not checked |
 | NFR-07 | bench run pending | local export tests, as before | same run does not check region, export or delete |
 
-Open decisions blocking rows: A-131 (FR-P01 graph scope), A-115 (decided; code text still says TO CONFIRM), A-129 (migration), A-130 (NVS pin). A-108 and A-094 unchanged.
+Open decisions blocking rows: A-131 (FR-P01 chart), A-115 (decided; code text still says TO CONFIRM), A-129 and A-130 (IDs only; tracked in the Needs Arsany tab). A-108 and A-094 unchanged.
