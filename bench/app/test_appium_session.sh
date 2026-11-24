@@ -55,7 +55,39 @@ run_case() { # name mode limit_s expect_exit expect_text
 run_case "reply after 3 s, limit 10 s: session starts" slow 10 0 ""
 run_case "never replies, limit 2 s: one ::error:: line" hang 2 1 "::error::d. app flow: 0. launch: no reply from Appium within 2 s while starting the session: the server answered /status, so check the phone (adb devices), the Appium journal (journalctl -u appium -n 50) and whether aapt2/Android build-tools are installed on the Pi"
 run_case "session create HTTP 500: one ::error:: line" 500 10 1 "::error::d. app flow: 0. launch: Appium did not start a session at APPIUM_URL (HTTP 500)"
-run_case "invalid limit value falls back to 120 s (fast reply ok)" ok abc 0 ""
+
+# Effective --max-time: a curl shim records its arguments (the fast fake server cannot tell 120 from any other default).
+mkdir -p "$tmp/shim"
+cat > "$tmp/shim/curl" <<'SH'
+#!/usr/bin/env bash
+out=""; prev=""
+for a in "$@"; do
+  [ "$prev" = "--max-time" ] && echo "$a" > "$SHIM_LOG"
+  [ "$prev" = "-o" ] && out="$a"
+  prev="$a"
+done
+echo '{"value":{"sessionId":"abc"}}' > "$out"
+printf 200
+SH
+chmod +x "$tmp/shim/curl"
+limit_case() { # label APPIUM_SESSION_TIMEOUT_S-value expected --max-time ("unset" = variable not set)
+  local label="$1" val="$2" want="$3" got
+  mkdir -p "$tmp/w"; rm -f "$tmp/shim.log"
+  if [ "$val" = "unset" ]; then
+    got="$(env -u APPIUM_SESSION_TIMEOUT_S PATH="$tmp/shim:$PATH" SHIM_LOG="$tmp/shim.log" BENCH_ANDROID_SERIAL=S bash "$here/appium_session.sh" p "$tmp/w" http://x >/dev/null 2>&1; cat "$tmp/shim.log" 2>/dev/null)"
+  else
+    got="$(PATH="$tmp/shim:$PATH" SHIM_LOG="$tmp/shim.log" APPIUM_SESSION_TIMEOUT_S="$val" BENCH_ANDROID_SERIAL=S bash "$here/appium_session.sh" p "$tmp/w" http://x >/dev/null 2>&1; cat "$tmp/shim.log" 2>/dev/null)"
+  fi
+  echo "--- case: $label (--max-time $got)"
+  if [ "$got" = "$want" ]; then echo "PASS: $label"; else echo "FAIL: $label (want $want)"; fails=$((fails + 1)); fi
+}
+limit_case "limit unset: --max-time 120" unset 120
+limit_case "limit abc falls back to 120" abc 120
+limit_case "limit 0 falls back to 120" 0 120
+limit_case "limit 301 falls back to 120" 301 120
+limit_case "limit 99999 falls back to 120" 99999 120
+limit_case "limit 300 is kept" 300 300
+limit_case "limit 1 is kept" 1 1
 
 # capabilities: the three start timeouts are sent, the old ones are unchanged
 python3 -I - "$tmp/req.json" <<'PY' && echo "PASS: capabilities" || { echo "FAIL: capabilities"; fails=$((fails + 1)); }
