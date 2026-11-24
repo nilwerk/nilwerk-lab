@@ -6,7 +6,6 @@ import type { Deps, RpcResult } from "./lib.ts";
 import { envFirst, PUBLISHABLE_KEY_NAMES, SECRET_KEY_NAMES } from "./env.ts";
 import type { AnalyticsDeps } from "./analytics.ts";
 import { buildAnalyticsDeps, type AnalyticsClient } from "./analytics_deps.ts";
-import type { AnalyticsPlant } from "../../../analytics/aggregate.ts";
 
 const env = (...names: readonly string[]): string => envFirst((n) => Deno.env.get(n), names);
 
