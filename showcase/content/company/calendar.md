@@ -68,3 +68,7 @@ Placement: **Tue 10 stays the company post "Why we exist"** (Arsany's brief, bui
 ## Daily routine (also in `../DAILY.md`)
 
 Evening before: re-score the candidates, build tomorrow's card and text, claim-check row first, recount. Next morning: recount again, then (if Drive is linked) create the Metricool draft with `draft: true`, slot 10:00; otherwise hand Arsany the file names and caption. After posting: note it in the Content Plan; after a day look at reach and saves.
+
+## Plan note, Tue 24 Nov 2026 (Poppy, daily task)
+
+Idea: "Three checks, one of them caught our own reviewer" (formats: LinkedIn EN + DE, Instagram carousel of 5 text cards). Evidence: three real catches of 24 Nov classified by who was wrong (a machine lint check caught a builder import; the architect was wrong about an open decision; the architect caught a builder error message), with on-main / in-review labels per number plus the bench run with one honest red step. Claim sources are in `showcase/content/2026-11-24/posts.md` (table "Claim sources"). Status: drafted, not scheduled. Needs owner approval, technical check, German check and a recount on the posting day. Instagram draft in Metricool not created: no publicly readable image exists yet (a text-only Instagram draft is rejected).
