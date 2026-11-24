@@ -22,14 +22,14 @@ const BASIL: AnalyticsReading[] = [
   r("a", "2026-11-08T00:00:00Z", 30, 3820),  // -12 d
   r("a", "2026-11-08T03:00:00Z", 50, 3815),  // 3 h after the previous: gap > 2 h, a +20 rise is NOT a watering
   r("a", "2026-11-10T00:00:00Z", 30, 3800),  // -10 d
-  r("a", "2026-11-10T00:15:00Z", 40, 3805),  // +15 min: rise of exactly 10 IS a watering (A-115: 10 points or more): WATERING EVENT
+  r("a", "2026-11-10T00:15:00Z", 40, 3805),  // +15 min: rise of exactly 10 IS a watering (A-115: 10 points or more): WATERING EVENT 1
   r("a", "2026-11-14T00:00:00Z", 35, 3740),  // -6 d: last week
   r("a", "2026-11-17T00:00:00Z", 30, 3760),  // -3 d: last week
   r("a", "2026-11-17T00:15:00Z", 31, 3758),  // +1
-  r("a", "2026-11-17T00:30:00Z", 45, 3755),  // +14 from 31: WATERING EVENT 1
+  r("a", "2026-11-17T00:30:00Z", 45, 3755),  // +14 from 31: WATERING EVENT 2
   r("a", "2026-11-17T00:45:00Z", 44, 3750),  // drop
   r("a", "2026-11-19T00:00:00Z", 40, 3720),  // -1 d: last week
-  r("a", "2026-11-19T01:00:00Z", 52, 3715),  // +12 from 40 within 1 h: WATERING EVENT 2
+  r("a", "2026-11-19T01:00:00Z", 52, 3715),  // +12 from 40 within 1 h: WATERING EVENT 3
   r("a", "2026-11-20T01:00:00Z", 99, 3000),  // one hour in the future: excluded everywhere
 ];
 
