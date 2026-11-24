@@ -104,3 +104,44 @@ describe('premium dashboard: states (FR-P01)', () => {
     expect(screen.queryByText(t('dashboard.error'))).toBeNull();
   });
 });
+
+describe('premium dashboard: graphs and gaps (FR-P01)', () => {
+  const rangeLabel = 'Soil moisture range from 20.0 % to 60.0 %, mean 42.5 %';
+  const trendLabel = 'Soil moisture trend graph: first week mean 40.0 %, last week mean 45.0 %';
+
+  test('ready: a range graph and a first-week / last-week trend graph per plant and window, from the response values', async () => {
+    await mountScreen(svcWith(true), analyticsStub(async (w) => fixture(w)));
+    expect(await screen.findAllByLabelText(rangeLabel)).toHaveLength(2);
+    expect(screen.getAllByLabelText(trendLabel)).toHaveLength(2);
+    expect(screen.getAllByText(t('dashboard.trend.first'))).toHaveLength(2);
+    expect(screen.getAllByText(t('dashboard.trend.last'))).toHaveLength(2);
+    expect(screen.getAllByText('40.0 %')).toHaveLength(2);
+    expect(screen.getAllByText('45.0 %')).toHaveLength(2);
+  });
+
+  test('gaps: soil present but no trend (a week is empty) shows the soil graph and "not enough readings", no trend graph', async () => {
+    const gap: PlantAnalytics = { ...basil, trend: { soilChangePct: null, firstWeekMean: 40, lastWeekMean: null } };
+    await mountScreen(svcWith(true), analyticsStub(async (w) => fixture(w, [gap])));
+    expect(await screen.findAllByLabelText(rangeLabel)).toHaveLength(2);
+    expect(screen.getAllByText(t('dashboard.plant.noTrend'))).toHaveLength(2);
+    expect(screen.queryByLabelText(trendLabel)).toBeNull();
+  });
+
+  test('gaps: no soil sample and no battery sample shows the notice and no graph, without crashing', async () => {
+    const noSoil: PlantAnalytics = { ...basil, readingCount: 1, soilPct: null, batteryMv: null, trend: { soilChangePct: null, firstWeekMean: null, lastWeekMean: null } };
+    await mountScreen(svcWith(true), analyticsStub(async (w) => fixture(w, [noSoil])));
+    expect(await screen.findAllByText(t('dashboard.plant.noSoil'))).toHaveLength(2);
+    expect(screen.queryByLabelText(/Soil moisture range/)).toBeNull();
+    expect(screen.queryByLabelText(/Soil moisture trend graph/)).toBeNull();
+    expect(screen.getAllByText(t('dashboard.plant.noTrend'))).toHaveLength(2);
+  });
+
+  test('gaps: a plant with a trend but no soil readings range graph is absent and the rest still renders', async () => {
+    const mixed: PlantAnalytics[] = [{ ...basil, plantId: 'p-a', name: 'Aloe', soilPct: null }, { ...basil, plantId: 'p-b', name: 'Mint' }];
+    await mountScreen(svcWith(true), analyticsStub(async (w) => fixture(w, mixed)));
+    expect(await screen.findAllByText('Mint')).toHaveLength(2);
+    expect(screen.getAllByText('Aloe')).toHaveLength(2);
+    expect(screen.getAllByLabelText(rangeLabel)).toHaveLength(2);
+    expect(screen.getAllByLabelText(trendLabel)).toHaveLength(4);
+  });
+});

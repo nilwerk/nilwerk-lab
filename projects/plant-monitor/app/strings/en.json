@@ -338,5 +338,9 @@
   "dashboard.plant.battery": "Battery: mean {mean} V, min {min} V, max {max} V",
   "dashboard.plant.watering": "Watering events: {count}",
   "dashboard.plant.trend": "Trend: soil {change} points (first week {first} %, last week {last} %)",
+  "dashboard.range.label": "Soil moisture range from {min} % to {max} %, mean {mean} %",
+  "dashboard.trend.first": "First week",
+  "dashboard.trend.last": "Last week",
+  "dashboard.trend.label": "Soil moisture trend graph: first week mean {first} %, last week mean {last} %",
   "dashboard.plant.noTrend": "Trend: not enough readings in both the first and the last week."
 }
