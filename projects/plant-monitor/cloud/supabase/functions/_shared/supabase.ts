@@ -4,8 +4,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import type { Deps, RpcResult } from "./lib.ts";
 import { envFirst, PUBLISHABLE_KEY_NAMES, SECRET_KEY_NAMES } from "./env.ts";
-import type { AnalyticsDeps, ReadingRow } from "./analytics.ts";
-import type { AnalyticsPlant } from "../../../analytics/aggregate.ts";
+import type { AnalyticsDeps } from "./analytics.ts";
+import { buildAnalyticsDeps, type AnalyticsClient } from "./analytics_deps.ts";
 
 const env = (...names: readonly string[]): string => envFirst((n) => Deno.env.get(n), names);
 
@@ -79,26 +79,6 @@ export function makeAnalyticsDeps(): AnalyticsDeps {
     global: { headers: { Authorization: `Bearer ${jwt}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  return {
-    async getUserId(jwt) {
-      const { data, error } = await asUser(jwt).auth.getUser(jwt);
-      return error || !data.user ? null : data.user.id;
-    },
-    async isPremium(jwt) {
-      const { data, error } = await asUser(jwt).rpc("is_premium");
-      return error || typeof data !== "boolean" ? null : data;
-    },
-    async plants(jwt) {
-      const { data, error } = await asUser(jwt).from("plants").select("id,name");
-      return error || !Array.isArray(data) ? null : (data as AnalyticsPlant[]);
-    },
-    async readingsPage(jwt, sinceIso, offset, limit) {
-      const { data, error } = await asUser(jwt).from("readings")
-        .select("ts,plant_id,moisture_pct,vbat_mv,plausible")
-        .eq("plausible", true).gte("ts", sinceIso)
-        .order("ts", { ascending: true }).order("device_id", { ascending: true })   // (ts, device_id) is unique: stable paging
-        .range(offset, offset + limit - 1);
-      return error || !Array.isArray(data) ? null : (data as ReadingRow[]);
-    },
-  };
+  // The query logic lives in analytics_deps.ts (no npm: import, so Node tests can load it with a fake client).
+  return buildAnalyticsDeps(asUser as unknown as (jwt: string) => AnalyticsClient);
 }

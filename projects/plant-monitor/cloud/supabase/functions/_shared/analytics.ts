@@ -79,7 +79,7 @@ export async function handleAnalytics(req: Request, deps: AnalyticsDeps, nowMs: 
     window_days: result.windowDays as AnalyticsWindow,
     plants: result.plants.map((p): AnalyticsPlantWire => ({
       plant_id: p.plantId, name: p.name, reading_count: p.readingCount,
-      // watering_events is PROVISIONAL: its thresholds (WATERING_RISE_PCT, MAX_EVENT_GAP_MS) are TO CONFIRM under A-115, not decided.
+      // watering_events thresholds (WATERING_RISE_PCT = 10 points or more, MAX_EVENT_GAP_MS = 2 h) are decided, A-115.
       soil_pct: p.soilPct, battery_mv: p.batteryMv, watering_events: p.wateringEvents,
       trend: { soil_change_pct: p.trend.soilChangePct, first_week_mean: p.trend.firstWeekMean, last_week_mean: p.trend.lastWeekMean },
     })),
