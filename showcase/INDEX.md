@@ -14,7 +14,7 @@ Proof of what the Nilwerk team builds and how fast — captured during the work 
 - `content/2026-11-18/` — small draft pack (`posts.md`, `claim-check.md`): two ideas from PRs #132 and #133, plain story first, "For engineers" second, EN LinkedIn + DE; **not for posting before PR #131 is merged and Arsany approves**
 - `content/2026-11-19/` — small draft pack (`posts.md`, `claim-check.md`, `plan-notes.md`): "The fix that went to the wrong place", plain story first, "For engineers" second, EN + DE LinkedIn, Instagram text; **not for posting before the rescue PR (#137) is merged and Arsany approves**
 - `content/2026-11-23/` — small draft pack from the 20 Nov simulator evidence (`posts.md`, `claim-check.md`): plain story first, "For engineers" second, EN LinkedIn + DE, one image; **not for posting until the owner approves and the German and technical checks are done**
-- `content/2026-11-24/` — small draft pack "The reviewers caught what the builders missed" (`posts.md`): plain story first, "For engineers" second, EN + DE LinkedIn, Instagram carousel outline (5 slides, alt text), claim-sources table; **not for posting until the owner approves and the German and technical checks are done**
+- `content/2026-11-24/` — small draft pack "Three checks, one of them caught our own reviewer" (`posts.md`): plain story first, "For engineers" second, EN + DE LinkedIn, Instagram carousel outline (5 slides, alt text), claim-sources table with on-main / in-review column; **not for posting until the owner approves and the German and technical checks are done**
 - `stories/origin/` — origin story canon and first carousel (pre-brand look, to be re-rendered if the brand is approved)
 
 ## Items
