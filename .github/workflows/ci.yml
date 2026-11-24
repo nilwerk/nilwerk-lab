@@ -35,6 +35,7 @@ jobs:
       interfaces: ${{ steps.d.outputs.interfaces }}
       powerbudget: ${{ steps.d.outputs.powerbudget }}
       costs: ${{ steps.d.outputs.costs }}
+      benchtests: ${{ steps.d.outputs.benchtests }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -87,6 +88,8 @@ jobs:
           gate interfaces "find $P/docs/interfaces \\( -name '*.json' -o -name '*.yaml' -o -name '*.yml' \\) 2>/dev/null | grep -q ." "$P/docs/interfaces/"
           gate powerbudget "find $P/hardware/power-budget -name '*.py' 2>/dev/null | grep -q ." "$P/hardware/power-budget/"
           gate costs "find $P/docs/costs -name 'test_*.py' 2>/dev/null | grep -q ." "$P/docs/costs/"
+          # benchtests = offline tests of the bench scripts (job bench-tests). Only bench/ (the scripts and their tests live there). Never runs the bench itself.
+          gate benchtests "test -f bench/firmware/test_wait_setup_window.sh" "bench/"
           cat "$GITHUB_OUTPUT"
 
   firmware:
@@ -597,9 +600,24 @@ jobs:
         working-directory: projects/plant-monitor/docs/costs
         run: python -m unittest discover -v
 
+  bench-tests:
+    name: bench script tests (offline)
+    needs: detect
+    if: needs.detect.outputs.benchtests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Offline tests only: stubs and a local fake server, no Pi, phone, secret or network. Needs bash, python3, curl (all on ubuntu-latest).
+      - name: wait_setup_window
+        run: timeout 300 bash bench/firmware/test_wait_setup_window.sh
+      - name: appium_health
+        run: timeout 300 bash bench/app/test_appium_health.sh
+      - name: appium_session
+        run: timeout 300 bash bench/app/test_appium_session.sh
+
   summary:
     name: Final status
-    needs: [detect, firmware, firmware-sim, app, cloud, cloud-db, cloud-mutation, ml, pcb, sim, mechanical, interfaces, powerbudget, costs]
+    needs: [detect, firmware, firmware-sim, app, cloud, cloud-db, cloud-mutation, ml, pcb, sim, mechanical, interfaces, powerbudget, costs, bench-tests]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -623,10 +641,11 @@ jobs:
             echo "| interfaces | ${{ needs.interfaces.result }} |"
             echo "| powerbudget | ${{ needs.powerbudget.result }} |"
             echo "| costs | ${{ needs.costs.result }} |"
+            echo "| bench-tests | ${{ needs.bench-tests.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
           # Detect must succeed: if it fails, every job is skipped and that must not look green.
           [ "${{ needs.detect.result }}" = "success" ] || { echo "Pipeline RED: Detect ${{ needs.detect.result }}"; exit 1; }
-          for r in "${{ needs.firmware.result }}" "${{ needs.firmware-sim.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.cloud-db.result }}" "${{ needs.cloud-mutation.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}"; do
+          for r in "${{ needs.firmware.result }}" "${{ needs.firmware-sim.result }}" "${{ needs.app.result }}" "${{ needs.cloud.result }}" "${{ needs.cloud-db.result }}" "${{ needs.cloud-mutation.result }}" "${{ needs.ml.result }}" "${{ needs.pcb.result }}" "${{ needs.sim.result }}" "${{ needs.mechanical.result }}" "${{ needs.interfaces.result }}" "${{ needs.powerbudget.result }}" "${{ needs.costs.result }}" "${{ needs.bench-tests.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then echo "Pipeline RED"; exit 1; fi
           done
           echo "Pipeline GREEN (skipped = workstream not started yet)"

@@ -40,4 +40,8 @@ run_case "(c2) epoch abc fails closed" "abc" "$R" 1 none
 run_case "(d) epoch in the future (now R-5000, wait 5310 s) fails closed, no sleep" "$R" "$((R - 5000))" 1 none
 run_case "(e) now R+310 exact, no wait" "$R" "$((R + 310))" 0 none
 run_case "(f) now R (wait 310 s, at the limit) sleeps 310" "$R" "$R" 0 310
+run_case "(g1) 19-digit epoch 9999999999999999999 fails closed, no sleep" "9999999999999999999" "$R" 1 none
+run_case "(g2) 20-digit epoch fails closed, no sleep" "99999999999999999999" "$R" 1 none
+run_case "(g3) 11-digit epoch (valid length, far future) fails closed by the 310 s cap, not the digit check" "99999999999" "$R" 1 none
+run_case "(g4) 11-digit epoch in the past, no wait" "00000000001" "$R" 0 none
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

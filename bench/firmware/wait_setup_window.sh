@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 # Step b wait (A-139). Sleeps until BENCH_RESET_EPOCH + 310 s: the 300 s setup window (sdkconfig.defaults.bench-ci) closes
 # about then, plus a 10 s margin. Called by bench.yml step b. Sends no reset and reads no serial data.
-# Fails closed (exit 1, no sleep) if the epoch is missing or not a whole number, or if the wait would be longer than 310 s
+# Fails closed (exit 1, no sleep) if the epoch is missing or not a whole number of at most 11 digits, or if the wait would be longer than 310 s
 # (that means the epoch is in the future, so it is wrong). Offline test: bench/firmware/test_wait_setup_window.sh.
 set -uo pipefail
 reset_epoch="${BENCH_RESET_EPOCH:-}"
 if ! [[ "$reset_epoch" =~ ^[0-9]+$ ]]; then
   echo "::error::b. serial check: reset time of step 3 not recorded, nothing tested"
+  exit 1
+fi
+# At most 11 digits (year 5138 or so): checked before any arithmetic, because bash arithmetic wraps silently on a 19-digit value.
+if [ "${#reset_epoch}" -gt 11 ]; then
+  echo "::error::b. serial check: reset time of step 3 has more than 11 digits, not a time, nothing tested, nothing slept"
   exit 1
 fi
 wait_s=$(( reset_epoch + 310 - $(date +%s) ))

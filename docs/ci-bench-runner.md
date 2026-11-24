@@ -4,7 +4,7 @@
 A self-hosted GitHub Actions runner on the bench host. It runs the hardware-near
 checks (the end-to-end bench setup) that GitHub-hosted runners cannot do.
 
-- Runner name: `plant-bench-pi`
+- Runner name: the name chosen when the runner was registered (shown in the repository's runner list)
 - Label: `bench` (the bench job uses `runs-on: [self-hosted, bench]`)
 - Host: Debian GNU/Linux 13 (trixie), 64-bit, arm64 (`aarch64`). See "Bench host and runner" below.
 - Workflow: `.github/workflows/bench.yml`
@@ -14,7 +14,7 @@ checks (the end-to-end bench setup) that GitHub-hosted runners cannot do.
 `bench.yml`, label `bench`, and **no Environment gate** (the owner declined it). `hil.yml` and `esp32c3-bench` are not used.
 
 **Label check:** the label in this doc and in `bench.yml` (`runs-on: [self-hosted, bench]`) is `bench`. The label on the
-Pi is confirmed: the runner `plant-bench-pi` is Idle with label `bench` (Pi setup comment on PR #156, 22 Nov 2026).
+Pi is confirmed: the runner is Idle with label `bench` (checked by the owner on 22 Nov 2026).
 
 **Requirements:** the bench round touches FR-D03, FR-A03, NFR-04, NFR-06 and NFR-07 (rows in
 `projects/plant-monitor/tests/acceptance-matrix.md`). It covers the communication path only and does not pass those
@@ -82,7 +82,7 @@ the `main` branch is not offered. A PR branch never runs the bench job (see belo
 the build jobs and steps 1, 2, a to e, 3 and E2E would then run unattended on the Pi with the bench secrets. That would be a new owner
 decision, not a config change.
 
-The branch allowance for `agent/devops/bench-workflow` (PR #156, closed) is removed. The bench job runs
+The branch allowance for `agent/devops/bench-workflow` (its pull request is closed) is removed. The bench job runs
 only from `main`. Nothing else may run on the Pi.
 
 Never add `pull_request`, `pull_request_target`, `push` or `issue_comment` to a bench
@@ -304,7 +304,7 @@ From `main`, this works only after the PR is merged (the workflow file is on `ma
 1. Open the repository on GitHub and go to **Actions**.
 2. Pick **Bench (self-hosted)** in the left list.
 3. Click **Run workflow**, set the branch to **main**, and confirm.
-4. The two build jobs run on GitHub-hosted runners. The bench job then runs on the runner `plant-bench-pi`.
+4. The two build jobs run on GitHub-hosted runners. The bench job then runs on the bench runner (label `bench`).
    A run from any other branch starts the two build jobs only; the bench job does not run.
 
 Manual runs from a PR branch do not run the bench job (no branch allowance). Such a run starts only the two
