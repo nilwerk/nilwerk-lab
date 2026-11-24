@@ -13,21 +13,56 @@ import { ANALYTICS_WINDOWS, fmtPct, fmtSigned, fmtVolt, windowIsEmpty, type Anal
 type Plan = 'checking' | 'premium' | 'free' | 'planError';
 type Data = { status: 'idle' } | { status: 'loading' } | { status: 'error' } | { status: 'ready'; byWindow: Record<AnalyticsWindow, AnalyticsResponse> };
 
-/** Bar for the soil mean on a 0-100 scale; the width comes from the response value only. */
-function SoilBar({ mean, label }: { mean: number; label: string }) {
+const clampPct = (n: number): number => Math.min(100, Math.max(0, n));
+
+/** FR-P01 graph: soil moisture range (min to max) with the mean marked, on a 0-100 scale. Every value comes from the response. */
+function RangeGraph({ min, max, mean, label }: { min: number; max: number; mean: number; label: string }) {
   const th = useTheme();
-  const pct = Math.min(100, Math.max(0, mean));
+  const lo = clampPct(min), hi = clampPct(max), mid = clampPct(mean);
   return (
-    <View accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: 100, now: Math.round(pct) }}
-      style={{ height: 8, borderRadius: 4, backgroundColor: th.color.line, overflow: 'hidden' }}>
-      <View style={{ width: `${pct}%`, height: 8, backgroundColor: th.color.accent }} />
+    <View accessibilityRole="image" accessibilityLabel={label}
+      style={{ height: 10, borderRadius: 5, backgroundColor: th.color.line, overflow: 'hidden' }}>
+      <View style={{ position: 'absolute', left: `${lo}%`, width: `${Math.max(0, hi - lo)}%`, top: 0, bottom: 0, backgroundColor: th.color.accentSoft }} />
+      <View style={{ position: 'absolute', left: `${mid}%`, width: 3, marginLeft: -1, top: 0, bottom: 0, backgroundColor: th.color.accent }} />
     </View>
   );
+}
+
+/** One bar of the trend graph (FR-P01): a week's soil mean on a 0-100 scale, with its value written out. */
+function WeekRow({ name, value }: { name: string; value: number }) {
+  const th = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: th.spacing.sm }}>
+      <Text style={{ width: 84, color: th.color.muted, ...th.type.caption }}>{name}</Text>
+      <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: th.color.line, overflow: 'hidden' }}>
+        <View style={{ width: `${clampPct(value)}%`, height: 8, backgroundColor: th.color.accent }} />
+      </View>
+      <Text style={{ width: 56, textAlign: 'right', color: th.color.ink, ...th.type.caption }}>{`${fmtPct(value)} %`}</Text>
+    </View>
+  );
+}
+
+/** FR-P01 trend graph: first-week mean against last-week mean. Both values come from the response (no daily series is invented). */
+function TrendGraph({ first, last, label }: { first: number; last: number; label: string }) {
+  const th = useTheme();
+  return (
+    <View accessibilityRole="image" accessibilityLabel={label} style={{ gap: th.spacing.xs }}>
+      <WeekRow name={t('dashboard.trend.first')} value={first} />
+      <WeekRow name={t('dashboard.trend.last')} value={last} />
+    </View>
+  );
+}
+
+/** The trend is shown only when all three values are present (null weeks come from plants with gaps). */
+function completeTrend(tr: PlantAnalytics['trend']): { change: number; first: number; last: number } | null {
+  const { soilChangePct: change, firstWeekMean: first, lastWeekMean: last } = tr;
+  return change !== null && first !== null && last !== null ? { change, first, last } : null;
 }
 
 function PlantRow({ p, windowDays }: { p: PlantAnalytics; windowDays: AnalyticsWindow }) {
   const th = useTheme();
   const cap = { color: th.color.muted, ...th.type.caption } as const;
+  const trend = completeTrend(p.trend);
   return (
     <View accessibilityLabel={`${p.name} ${windowDays}`} style={{ gap: th.spacing.xs, paddingVertical: th.spacing.sm, borderTopWidth: 1, borderColor: th.color.line }}>
       <Text style={{ color: th.color.ink, ...th.type.bodyStrong }}>{p.name}</Text>
@@ -35,13 +70,18 @@ function PlantRow({ p, windowDays }: { p: PlantAnalytics; windowDays: AnalyticsW
       {p.soilPct ? (
         <>
           <Body>{t('dashboard.plant.soil', { mean: fmtPct(p.soilPct.mean), min: fmtPct(p.soilPct.min), max: fmtPct(p.soilPct.max) })}</Body>
-          <SoilBar mean={p.soilPct.mean} label={t('dashboard.plant.soil', { mean: fmtPct(p.soilPct.mean), min: fmtPct(p.soilPct.min), max: fmtPct(p.soilPct.max) })} />
+          <RangeGraph min={p.soilPct.min} max={p.soilPct.max} mean={p.soilPct.mean}
+            label={t('dashboard.range.label', { min: fmtPct(p.soilPct.min), max: fmtPct(p.soilPct.max), mean: fmtPct(p.soilPct.mean) })} />
         </>
       ) : <Body muted>{t('dashboard.plant.noSoil')}</Body>}
       {p.batteryMv ? <Body>{t('dashboard.plant.battery', { mean: fmtVolt(p.batteryMv.mean), min: fmtVolt(p.batteryMv.min), max: fmtVolt(p.batteryMv.max) })}</Body> : null}
       <Body>{t('dashboard.plant.watering', { count: p.wateringEvents })}</Body>
-      {p.trend.soilChangePct !== null && p.trend.firstWeekMean !== null && p.trend.lastWeekMean !== null ? (
-        <Body>{t('dashboard.plant.trend', { change: fmtSigned(p.trend.soilChangePct), first: fmtPct(p.trend.firstWeekMean), last: fmtPct(p.trend.lastWeekMean) })}</Body>
+      {trend ? (
+        <>
+          <Body>{t('dashboard.plant.trend', { change: fmtSigned(trend.change), first: fmtPct(trend.first), last: fmtPct(trend.last) })}</Body>
+          <TrendGraph first={trend.first} last={trend.last}
+            label={t('dashboard.trend.label', { first: fmtPct(trend.first), last: fmtPct(trend.last) })} />
+        </>
       ) : <Body muted>{t('dashboard.plant.noTrend')}</Body>}
     </View>
   );

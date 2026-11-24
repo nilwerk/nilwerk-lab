@@ -124,7 +124,7 @@ Set before `expo start` (names only; values come from Arsany and are never commi
 | Real sensor connection | **No.** Real BLE client written and mock-tested (4.A3b slice 1), never run on a phone or sensor | section 4 |
 | Real plant data from a device | **No.** v1 bench firmware only prints to the serial console; upload is not wired | [`../v1/FIRMWARE-BENCH.md`](../v1/FIRMWARE-BENCH.md) |
 | Push alerts | Not built. The alerts list (task 4.A5, reached from the plant list, mock readings) exists; no push dispatch in the app or the cloud | `src/plants/alerts.ts`, `AlertsScreen`, cloud README |
-| Premium dashboard (30 / 90-day history, trends) | Not built. The Premium sheet is text only; Premium is switched on by Nilwerk by hand (`profiles.is_premium`) | `PremiumScreen`, FR-P04 |
+| Premium dashboard (30 / 90-day history, trends) | **Merged: screen, graphs and gap handling.** Free accounts see the upgrade state and no analytics request is made. Premium accounts call `GET /functions/v1/analytics`; that endpoint is not deployed yet, so they see the error state (the mock build does the same). Premium is switched on by Nilwerk by hand (`profiles.is_premium`) | `PremiumDashboardScreen`, `src/analytics/`, FR-P01, FR-P04 |
 | Care tips UI | Not built (the tips engine in `cloud/tips/` is a library, no screen, no endpoint) | cloud README |
 | MCP / AI access screens | Not built (no screen; MCP server is task 4.B5) | `docs/interfaces/mcp-tools.json` |
 
