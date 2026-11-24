@@ -21,7 +21,7 @@ Pi is confirmed: the runner `plant-bench-pi` is Idle with label `bench` (Pi setu
 rows. The mapping to steps is in the header of `bench.yml`.
 
 ## Order of the workflow (build first, then install and test; decided by the owner)
-The workflow builds first and tests second. The jobs and steps run in this order (a, 3, c, b: owner option 1):
+The workflow builds first and tests second. The jobs and steps run in this order (a, 3, c, 4, d, b, e; A-138 and A-139, see "Order and window" below):
 
 1. **`build-firmware`** (GitHub-hosted, `ubuntu-latest`, no secrets). Builds the setup-flow firmware with the same
    steps as the `firmware` job of `.github/workflows/ci.yml` for the setup image, and the same overlay list
@@ -36,10 +36,10 @@ The workflow builds first and tests second. The jobs and steps run in this order
    - 2. Download app APK (the `build-apk` artifact of this run), then a check that exactly one APK is there
    - a. Firmware flash
    - 3. Provision and flash board (NVS last)
-   - c. BLE scan (before b; inside the 60 s bench setup window)
-   - b. Serial live stream check (no reset, after c)
+   - c. BLE scan (inside the 300 s bench setup window)
    - 4. Install app APK on the 6P (adb)
    - d. App flow on phone
+   - b. Serial live stream check (no reset, after d; waits for the setup window to close)
    - e. Cloud check
    - Bench E2E
 
@@ -48,7 +48,7 @@ on the Pi only when the app's `node_modules` are installed on the runner; that i
 bench job does not start.
 
 **Step numbers.** The download steps are numbered in the order they run (1 firmware, 2 APK). The letters a to e and
-the numbers 3 and 4 keep their names. Step 3 runs after a and before c and b (see "Provisioning order" below).
+the numbers 3 and 4 keep their names. Step 3 runs after a and before c, 4, d and b (see "Provisioning order" below).
 
 ## Artifacts and where each comes from
 
@@ -115,8 +115,8 @@ firmware is the setup-flow build (`CONFIG_PLANT_SETUP_FLOW=y`, simulator off), b
 | 2. Download app APK, then check | Downloads `plant-monitor-app-debug-*` from the `build-apk` job of this run to `bench-artifacts/app-apk/`. The check step requires exactly one `.apk` there and sets `BENCH_APK_PATH`. Not committed, not uploaded. | Job permission `actions: read`; the `build-apk` job succeeded | the check step fails: `APK not found` |
 | a. Firmware flash | Reads the chip id (must be ESP32-C3). Then reads `flasher_args.json` from step 1 and writes every file in `flash_files` at its listed offset, in offset order, with esptool, to the USB port `BENCH_ESP_PORT` (`/dev/ttyACM0`). Offsets are not hard-coded. | the step 1 artifact (`flasher_args.json` and the files it lists); a device at the port; `esptool` v5 on the runner | fails, no flash |
 | 3. Provision and flash | Reads the board ID from the repo variable `BENCH_BOARD_HW_ID` (value `<board-hw-id>`, not a secret). Reads the provisioning folder from the repo variable `BENCH_PROVISION_DIR` (required, no default; fails if empty). Checks that `<hw_id>.nvs.csv` and `<hw_id>.label.txt` exist in that folder and are mode `0600`. Checks for an ESP32-C3 on `/dev/ttyACM0`. Checks that the NVS tool is exactly 0.3.0 in the Pi venv. Reads the flash plan from the step 1 build-setup folder before any write. It builds the NVS partition from the CSV in a 0700 temp dir, writes each `flash_files` file at its offset in offset order, and writes the NVS partition last. The CSV and label are never printed. The label is checked but not used by the flash. | Repo variables `BENCH_BOARD_HW_ID` and `BENCH_PROVISION_DIR`; the provisioning folder on the Pi with both files at `0600`; the artifact from step 1; `esptool`; the ESP-IDF NVS tool (0.3.0, provisional) | fails before any write |
-| c. BLE scan | Runs after step 3, before step b. `bluetoothctl` scan for 10 s, inside the bench setup window (60 s from the reset; `CONFIG_PLANT_BENCH_SETUP_WINDOW_S`, see "Timing" below). Asserts that the first line of the expect file that is not empty and not a `#` comment, with all whitespace removed, is the start of a device name seen in the scan. Only the name field is read, and the device address never matches. | `bench/ble/expect.txt` (created from the firmware sources: prefix `NW-`; the value `UNSET` stops the step), `bluetoothctl` | fails |
-| b. Serial live stream | Runs after step c (board provisioned and running). **No reset** (no esptool run, no reset, no RTS/DTR toggle). Reads the live serial stream for 75 s (owner decision, option 1). The bench image never deep-sleeps (`CONFIG_PLANT_BENCH_SLEEP_CYCLE` unset), so the wake lines start when the 60 s setup window closes and then keep coming, about every 2 s. Asserts that the first line of the expect file that is not empty and not a `#` comment, `NWBENCH wake=`, is in it. A board that prints no wake line for the whole window fails. | `bench/firmware/expect.txt` (created from the firmware sources; not yet run on hardware); a device at `/dev/ttyACM0` | fails, with "timeout, expected line not seen" |
+| c. BLE scan | Runs after step 3, before step 4. `hcitool lescan` for 10 s (the step uses hcitool, not bluetoothctl), inside the bench setup window (300 s from the reset; `CONFIG_PLANT_BENCH_SETUP_WINDOW_S`, see "Timing" below). Asserts that the first line of the expect file that is not empty and not a `#` comment, with all whitespace removed, is the start of a device name seen in the scan. Only the name field is read, and the device address never matches. | `bench/ble/expect.txt` (created from the firmware sources: prefix `NW-`; the value `UNSET` stops the step), `bluetoothctl` | fails |
+| b. Serial live stream | Runs after step d, before step e (A-139; it ran after c before). Waits until 310 s after the reset of step 3 (`BENCH_RESET_EPOCH`, written by step 3) in `bench/firmware/wait_setup_window.sh`, which fails closed if the wait would be longer than 310 s. The measurement loop starts when `nw_setup_run` returns, about 300 s after the reset (see "Order and window"). **No reset** (no esptool run, no reset, no RTS/DTR toggle). Reads the live serial stream for 75 s (owner decision, option 1). The bench image never deep-sleeps (`CONFIG_PLANT_BENCH_SLEEP_CYCLE` unset), so the wake lines start when the measurement loop starts and then keep coming, one per minute (upload build). Asserts that the first line of the expect file that is not empty and not a `#` comment, `NWBENCH wake=`, is in it. A board that prints no wake line for the whole window fails. | `bench/firmware/expect.txt` (created from the firmware sources; not yet run on hardware); a device at `/dev/ttyACM0` | fails, with "timeout, expected line not seen" |
 | 4. Install app APK on the 6P | Checks that exactly one device with the device id in secret `BENCH_ANDROID_SERIAL` is attached in state `device`, then runs `adb -s <device-id> install -r` with the APK from step 2. The device id is never printed. | Secret `BENCH_ANDROID_SERIAL`; the APK from step 2; `adb` | fails, no install |
 | d. App flow | Runs `bench/app/run_appium.sh` on the phone (Appium 2.x, UiAutomator2) with the real app build. The script signs in with the test account, adds a sensor through the app (scan, setup code, Wi-Fi, name, photo skip, plant details, done) and waits until this run's plant shows a reading on My plants. It reads and prints no sensor value. The screen order and the string keys are in the header of the script and in the PR. Not yet run on a phone. Before the script runs, the step records the test start time (UTC) as `BENCH_TEST_START_UTC` for step e. | `bench/app/run_appium.sh` (created); secrets `BENCH_ANDROID_SERIAL` (phone id), `BENCH_TEST_EMAIL`, `BENCH_TEST_EMAIL_PASSWORD`, `BENCH_BOARD_POP`, `BENCH_WIFI_SSID`, `BENCH_WIFI_PASSWORD` (environment variables only); repository variable `BENCH_BOARD_HW_ID`; Appium 2.x on the runner. Fixed limits in the script: first reading at most 900 s, whole step at most 2400 s, and each wait must fit the job clock (3300 s from the first step's `BENCH_JOB_START_EPOCH`, set by the job's first step); the job step has `timeout-minutes: 45` | fails closed if an input is missing or the setup code is malformed |
 | e. Cloud check | Runs `bench/cloud/check.sh`. It checks only that the device communicated with the cloud: at least one row from this device exists in the EU project and was received after `BENCH_TEST_START_UTC`. It does not read, print or compare any reading value. | `bench/cloud/check.sh` (created; one read of `public.readings` with the secret key, read-only); secret `BENCH_CLOUD_CHECK_CONFIG` (JSON `{url, secret_key}`, owner input); repository variable `BENCH_BOARD_HW_ID`; `BENCH_TEST_START_UTC` from step d | fails |
@@ -131,47 +131,60 @@ firmware is the setup-flow build (`CONFIG_PLANT_SETUP_FLOW=y`, simulator off), b
 Steps 1 and 2 use the workflow token and the run's artifacts. Step 3 uses the repo variables. Steps 4, d and e use the repo secrets by name only; their values
 live in the repository's Actions secrets and are never written to the repo.
 
-**Provisioning order (decided by the owner, option 1).** Step 3 runs after a and before c and b. Steps c, b, 4, d and e therefore
+**Provisioning order (decided by the owner, option 1; A-139 moved b).** Step 3 runs after a and before c, 4, d and b. Steps c, 4, d, b and e therefore
 run on the board as provisioned by step 3 (the build-setup files rewritten, then the NVS partition written last), not
 the board as flashed by step a alone.
 - Step 3 reads nothing that steps c and b write. It uses the step 1 build-setup folder, the repo variables and the USB port.
 - Step 3 ends with a board reset: esptool's default `--after` is `hard-reset` (esptool 5.6.0 source), and this workflow
   does not change it. The board therefore boots the provisioned image right after the NVS write. Step 3 leaves the board running.
-- Steps c and b need the board running after provisioning. Step b sends no reset (no esptool run, no RTS/DTR toggle); neither does
+- Steps c, d and b need the board running after provisioning. Step b sends no reset (no esptool run, no RTS/DTR toggle); neither does
   step c. Do not add a reset to either step.
 - The wake line exists only once the unit is provisioned (`main/main.c:81-87` deep-sleeps an unprovisioned unit before any read).
 - Timing (not measured on hardware): the bench image is the one built by `build-firmware` in this workflow, with
   `sdkconfig.defaults.bench-ci` listed last. That overlay unsets `CONFIG_PLANT_BENCH_SLEEP_CYCLE`, so the measurement
-  loop never ends (`main/main.c:37-41`): after a wake the app prints a `NWBENCH wake=` line about every 2 s
+  loop never ends (`main/main.c:37-41`): after a wake the app prints a `NWBENCH wake=` line once a minute (upload build)
   (`main/main.c:148`) and never reaches the deep sleep at `:155-159`. The board stays on USB. The bench image
   has no 60 s deep sleep.
-- **Order and window (owner decision, option 1; implemented on the bench image only).** Step 3 ends with the reset. The board
+- **Order and window (A-138 and A-139; owner-approved, bench image only).** Step 3 ends with the reset. The board
   opens its BLE setup window on that cold start (`main/main.c`, `button_held_ms_after_cold_start`, and `nw_setup_run`), and the
-  window closes `CONFIG_PLANT_BENCH_SETUP_WINDOW_S` seconds later (60 s on the bench image, `sdkconfig.defaults.bench-ci`; 300 s,
-  `NW_PROV_SETUP_TIMEOUT_MS` in `components/provisioning/include/nw_prov.h`, everywhere else). The window is measured from the
-  boot in `nw_prov_boot`, so it closes about 60 s after the reset. `nw_setup_run` returns when the window closes; only then does the
-  measurement loop start and print `NWBENCH wake=`. BLE stops at the same moment.
-- **Timing margin (estimates, not measured on hardware; no run exists for this head).** Step 3's reset to step c's first command:
-  the runner's step hand-over, about 2 to 5 s. Step c: `bluetoothctl` start plus the 10 s scan, about 12 to 15 s. So c ends about
-  15 to 20 s after the reset, and the window closes about 60 s after the reset: margin about 40 s. Step a is not in this gap. It
-  runs before step 3, and step 3's final reset is the one that opens the window (earlier resets inside step 3 restart it, and the last
-  reset wins). The gap that matters is the delay between step 3's last command and step c's first command. If that delay is more
-  than about 40 s, step c fails with "no device with name prefix" and the step needs the window changed.
-- **Step b after c.** Step b starts about 20 to 25 s after the reset and reads 75 s, so its window ends about 95 to 100 s after the
-  reset. Wake lines start at about 60 s and keep coming (no deep sleep on this image), so step b sees them. Step b passes for any
-  start time while the board runs, as long as its window reaches past the first wake line. No reset is added to step b.
+  window closes `CONFIG_PLANT_BENCH_SETUP_WINDOW_S` seconds later. It is **300 s** on the bench image (`sdkconfig.defaults.bench-ci`,
+  A-137; it was 60 s, and the CI guards in `ci.yml` and `bench.yml` now pin 300). Everywhere else it is `NW_PROV_SETUP_TIMEOUT_MS`
+  (300 s, `components/provisioning/include/nw_prov.h`). The window is measured from the boot in `nw_prov_boot`, so it closes about
+  300 s after the reset. `nw_setup_run` returns; the measurement loop starts then and prints `NWBENCH wake=`. That is at window
+  close, or earlier if a Wi-Fi claim succeeds (`nw_prov_glue.c:182-186`, `nw_prov_idf.c:257`), or later while a Wi-Fi join or
+  claim is in flight (up to about 35 s past 300 s). Step b reads R+310 to R+385, so it still passes in all these cases.
+  Whether BLE stops at the same moment is not stated here (not checked).
+- **Why step b moved (A-139).** With a 60 s window, step b (75 s) could run inside the window's tail and read wake lines
+  that only start at 60 s. With the 300 s window, step b would need to wait about 5 minutes after the reset, or it reads nothing.
+  Moving b to after the app flow d means the wait is zero whenever steps 4 and d took 310 s or more (expected, not measured). Step b still
+  waits when they do not: it sleeps until `BENCH_RESET_EPOCH + 310` s (10 s margin), then reads 75 s. The step is otherwise unchanged.
+- **Timing margin for step c (estimates, not measured on hardware; no run exists for this head).** Step 3's reset to step c's
+  first command: the runner's step hand-over, about 2 to 5 s. Step c: the BLE scan start plus 10 s, about 12 to 15 s. So c ends
+  about 15 to 20 s after the reset, and the window closes about 300 s after it. The margin is about 280 s. Step c fails with
+  "no device with name prefix" only if the window has closed before its scan, which the margin makes unlikely.
+- **Window must cover step d (not measured; the main new risk of 300 s).** Steps 4 and d add the sensor in the app while the
+  window is open. Both must finish within about 300 s of the reset, or the phone cannot connect to the open BLE window and step d
+  fails. Wi-Fi credentials must go out before R+300, when the window closes. Step d's Wi-Fi wait (`bench/app/run_appium.sh`
+  line 385, 360 s) has no window check, so a Wi-Fi step that comes late fails later, without a clear reason. A window check before
+  that wait is a follow-up, not in this change. Step e is not affected. If d regularly runs past the window, the fix is a longer window (in four places: the
+  `sdkconfig.defaults.bench-ci` value, the two `ci.yml`/`bench.yml` guards, and the 310 s wait in step b), not a shorter step b.
+- **Job time budget (A-139, arithmetic from the workflow, not measured).** The bench job has `timeout-minutes: 60` (3600 s) from its
+  first step. Step b adds at most about 80 s (the 75 s read, the esptool version check and a few seconds), plus any wait for
+  the window. That wait is at most about 310 s minus the time from the reset to the start of step b. Because b runs after d,
+  the wait is nonzero only when steps 4 and d took less than about 310 s, so the extra time is at most about 5 minutes in
+  that case and zero otherwise. Step e's fail-closed budget check runs after b and reads the elapsed time, so b's time is
+  counted in it. The 900 s reserve for `check.sh` and Bench E2E is unchanged. Whether the whole job fits in 60 minutes depends on the
+  durations of steps a to d, which have not run yet. If they do not fit, step e fails closed with "nothing tested" (the same
+  rule as before), and the owner decides whether to raise `timeout-minutes`.
 - **Bench upload build (owner decision 2026-11-23, `CONFIG_PLANT_BENCH_UPLOAD_MINUTE` in `sdkconfig.defaults.bench-ci`).** The image
-  uploads once a minute and does not deep-sleep. It prints one `NWBENCH wake=` line per minute, before the upload, so the first line
-  comes about 60 s after the reset, when the setup window closes. Step b (window about 20 to 25 s to 95 to 100 s after the reset) sees
-  that first line; the next one comes after about 120 s. Not checked on hardware. The first line must not wait for the Wi-Fi join.
-- **Smallest fix if the margin is not enough: a window of 70 s, not 90 s.** Lengthening the window moves the first wake line
-  later. At 90 s the first wake line falls about 90 s after the reset, and step b (starting about 20 to 25 s after the reset) would
-  see only about 5 to 10 s of wake lines, a thin margin. At 70 s step c gains about 10 s and step b still has about 25 s of wake lines
-  in its window. Do not raise the window above about 75 s without moving step b.
+  uploads once a minute and does not deep-sleep. It prints one `NWBENCH wake=` line per minute, before the upload, so the first
+  line comes when the measurement loop starts: when `nw_setup_run` returns, at window close (about 300 s after the reset), or
+  earlier on a Wi-Fi claim, or later while a join or claim is in flight (up to about 35 s past 300 s). Step b reads R+310 to R+385,
+  so a 75 s read always holds one line (lines are 60 s apart). Not checked on hardware.
 - **BLE on every cold start, bench image only (owner sign-off needed).** `sdkconfig.defaults.bench-ci` sets
   `CONFIG_PLANT_BENCH_AUTO_SETUP=y` (`main/Kconfig.projbuild`, `depends on PLANT_SETUP_FLOW`). On that image each cold start
   (not a deep-sleep wake) passes the setup request to `nw_setup_run` as if BOOT were held for 3 s
-  (`main/main.c`, `button_held_ms_after_cold_start`). BLE then advertises the `NW-` name for the bench setup window (60 s), with no
+  (`main/main.c`, `button_held_ms_after_cold_start`). BLE then advertises the `NW-` name for the bench setup window (300 s), with no
   button press. The production window (300 s, `NW_PROV_SETUP_TIMEOUT_MS`, `components/provisioning/include/nw_prov.h:16`) is
   unchanged, and so is the host test that checks it (`test/host/test_prov.c`, `test_five_minute_limit`).
   The window is shortened only through `CONFIG_PLANT_BENCH_SETUP_WINDOW_S` (`main/Kconfig.projbuild`, defined only when
@@ -216,7 +229,7 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
   never printed and the file is never uploaded. Also used by the Android APK job (same variable).
 - `BENCH_FIRST_READING_WAIT_S`: **required**, no default, whole seconds from 60 to 3600. Step e sleeps this long before its
   one read of the cloud, so the first upload of the 1-minute bench build can arrive. Step e fails closed if it is missing
-  or out of range. **Note:** the bench job has `timeout-minutes: 60`, which also limits this wait (steps a to d run first). A longer job limit is an owner decision, not made here. The 900 s reserve in the budget check (for `check.sh` and Bench E2E) is an **assumption, not measured**; the owner may tune it.
+  or out of range. **Note:** the bench job has `timeout-minutes: 60`, which also limits this wait (steps a to d and b run first). A longer job limit is an owner decision, not made here. The 900 s reserve in the budget check (for `check.sh` and Bench E2E) is an **assumption, not measured**; the owner may tune it.
 - `BENCH_PROVISION_DIR`: **required**, no default. The folder on the Pi that holds the provisioning files of step 3
   (`<hw_id>.nvs.csv` and `<hw_id>.label.txt`, mode `0600`). The workflow fails closed if it is empty. Its value is
   not written in this repo.
@@ -236,7 +249,7 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 **Owner inputs still needed (not in the repo):**
 - `bench/app/run_appium.sh`: none (the wait limits are fixed in the script; the first reading may take up to 900 s, so Kai
   should confirm that the upload interval fits). The workflow step d passes `BENCH_BOARD_HW_ID` (repository variable).
-  The BLE setup window must be open when step d runs (see the PR).
+  The BLE setup window (300 s from the reset of step 3) must be open while step d adds the sensor.
 - `bench/cloud/check.sh`: the owner sets `BENCH_CLOUD_CHECK_CONFIG` as the JSON object `{url, secret_key}` and approves
   that the check uses the secret key for one read (the key bypasses row-level security).
 - `bench/run_e2e.sh`: whether the mock web flow is the bench E2E. The flow runs `expo export` (a build) and needs the
@@ -254,8 +267,8 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
   Any fixed value (the ESP-IDF default table) is only a default and must be checked against the build's table.
 - Step a flashes the board as soon as both builds succeed. No `bench/` file gates that flash any more (the old gate was
   `bench/firmware/image.bin`). Owner to confirm.
-- Step b timing: the window is 75 s (owner decision, option 1). The bench image stays awake, so wake lines continue
-  through the window. Not checked on hardware. Any change must not add a reset to step b.
+- Step b timing: the read window is 75 s. Step b now waits until 310 s after the reset of step 3 (A-139), capped at 310 s by `bench/firmware/wait_setup_window.sh` (offline test: `bench/firmware/test_wait_setup_window.sh`). The bench image stays awake, so wake lines continue
+  through the read window. Not checked on hardware. Any change must not add a reset to step b.
 - Step 3 and step b use the same port (`/dev/ttyACM0`). After a hard reset the USB port may re-enumerate; step b checks
   that the port exists when it starts. Not checked on hardware.
 

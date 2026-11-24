@@ -65,9 +65,10 @@ menu "Plant Monitor"
         default 300
         depends on PLANT_BENCH_AUTO_SETUP
         help
-            BENCH CI IMAGE ONLY (set to 60 by sdkconfig.defaults.bench-ci). Defined only when PLANT_BENCH_AUTO_SETUP is on, so the
-            production, v1 and upload builds never define it and keep NW_PROV_SETUP_TIMEOUT_MS (300 s). With 60 s the setup window
-            closes about 60 s after reset: bench step c (BLE scan) runs inside it, and the measurement loop starts before bench step b.
+            BENCH CI IMAGE ONLY (set to 300 by sdkconfig.defaults.bench-ci). Defined only when PLANT_BENCH_AUTO_SETUP is on, so the
+            production, v1 and upload builds never define it and keep NW_PROV_SETUP_TIMEOUT_MS (300 s). With 300 s the setup window
+            closes about 300 s after reset, as the product text says. The bench has no person to press the pinhole button, so bench
+            steps c (BLE scan) and d (add sensor in the app, bench.yml) must finish inside it (A-138).
             Never set this on a production, v1 or upload build.
 
     config PLANT_BENCH_SOIL_POWER_ON
