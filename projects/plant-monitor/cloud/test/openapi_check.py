@@ -93,4 +93,23 @@ spec_csv = [x.strip() for x in files.replace("\n", " ").replace(" and ", ",").sp
 code_csv = [m + ".csv" for m in re.findall(r"^  (\w+): \[", exp, re.M)]
 check(spec_csv == code_csv, f"CSV files in the spec == CSV_COLUMNS ({code_csv})")
 check("Cache-Control: no-store" in ex["description"] and '"cache-control": "no-store"' in exp, "no-store in spec and code")
+# 4.B4 slice 2 GET /analytics (FR-P01, FR-P04): built, and the code's statuses and response fields match the spec exactly
+an = oa["paths"]["/analytics"]["get"]
+an_text = open(os.path.join(root, "supabase", "functions", "_shared", "analytics.ts")).read()
+an_all = an_text + open(os.path.join(root, "analytics", "aggregate.ts")).read()
+check("[built, 4.B4 slice 2]" in an["description"] and "[proposed, not built]" not in an["description"], "/analytics marker says built (no 'proposed' left)")
+check(os.path.isfile(os.path.join(root, "supabase", "functions", "analytics", "index.ts")), "supabase/functions/analytics/index.ts exists")
+an_emitted = set(re.findall(r"\b(?:err|json)\((\d{3})", an_text))
+check(an_emitted == set(an["responses"].keys()), f"/analytics: statuses the code can return == spec (code {sorted(an_emitted)}, spec {sorted(an['responses'])})")
+check(an["parameters"][0]["name"] == "window" and an["parameters"][0]["schema"]["enum"] == [30, 90] and an["parameters"][0]["required"], "/analytics: window is required, enum [30, 90]")
+check('"window must be 30 or 90"' in an_text and '"30" ? 30 : raw === "90"' in an_text, "/analytics: invalid window -> 400 bad_request")
+an_plant = an["responses"]["200"]["content"]["application/json"]["schema"]["properties"]["plants"]["items"]
+for k in an_plant["required"]:
+    check(re.search(r"\b%s:" % k, an_text) is not None, f"/analytics: plant field '{k}' is produced")
+for k in an_plant["properties"]["trend"]["required"]:
+    check(re.search(r"\b%s:" % k, an_text) is not None, f"/analytics: trend field '{k}' is produced")
+check(all(r in an_text for r in an["x-requirements"]), f"/analytics cites {an['x-requirements']} in code")
+check("premium_required" in an_text and "err(403, \"premium_required\"" in an_text, "/analytics: 403 premium_required before any read (FR-P04)")
+check(re.search(r"\[functions\.analytics\]\s*\nverify_jwt = false", open(os.path.join(root, "supabase", "config.toml")).read()) is not None, "config.toml: analytics has verify_jwt = false (the handler verifies the JWT itself)")
+check("no-store" in an_text and "Cache-Control: no-store" in an["description"], "/analytics: no-store in spec and code")
 sys.exit(1 if fails else 0)

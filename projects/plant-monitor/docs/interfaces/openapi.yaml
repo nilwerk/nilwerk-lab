@@ -328,9 +328,12 @@ paths:
       summary: 30- or 90-day aggregates, trend, watering events and comparison for the user's plants (premium)
       x-requirements: [FR-P01, FR-P04]
       description: |
-        [proposed, not built] Contract for task 4.B4. Pure logic is built and tested in cloud/analytics/aggregate.ts (no endpoint yet, no edge function,
-        no migration; not deployed). The future function must call public.is_premium() first (FR-P04, ADR-008) and return 403 premium_required
-        before reading any reading. Readings are the caller's own rows only (RLS owner_id = auth.uid()); no parameter can name another user.
+        [built, 4.B4 slice 2] Implemented by the edge function `analytics` (cloud/supabase/functions/analytics; handler in _shared/analytics.ts,
+        aggregates in cloud/analytics/aggregate.ts). No migration. Not deployed. The function calls public.is_premium() as the user first
+        (FR-P04, ADR-008) and returns 403 premium_required before reading any reading. Every query runs as the user under RLS (owner_id = auth.uid()),
+        so no parameter can name another user. Response carries Cache-Control: no-store.
+        PROVISIONAL: wateringEvents uses WATERING_RISE_PCT = 10 and MAX_EVENT_GAP_MS = 2 h. Both values are TO CONFIRM under open decision A-115
+        and are NOT decided yet; the numbers may change before the feature is released.
         Per plant: readingCount (plausible samples in the window), soil percent and battery mV as mean/min/max (null when no usable sample),
         wateringEvents (consecutive plausible soil samples at most 2 h apart whose rise is strictly above WATERING_RISE_PCT = 10, TO CONFIRM),
         trend (mean of the last 7 days minus mean of the first 7 days of the window, soil percent points; null if either week is empty).
@@ -370,6 +373,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/PremiumRequired" }
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
         "500": { $ref: "#/components/responses/Internal" }
 components:
   securitySchemes:
