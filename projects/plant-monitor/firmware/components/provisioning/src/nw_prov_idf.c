@@ -125,24 +125,58 @@ static esp_err_t reply(uint8_t **out, ssize_t *outlen, const char *s)
     return ESP_OK;
 }
 
+static const char *state_name(nw_prov_state_t s)
+{
+    switch (s) {
+    case NW_PROV_S_NORMAL: return "NORMAL";
+    case NW_PROV_S_ADVERTISING: return "ADVERTISING";
+    case NW_PROV_S_SESSION: return "SESSION";
+    case NW_PROV_S_WIFI_CONNECTING: return "WIFI_CONNECTING";
+    case NW_PROV_S_CLAIMING: return "CLAIMING";
+    case NW_PROV_S_CLAIMED: return "CLAIMED";
+    case NW_PROV_S_CLOSED: return "CLOSED";
+    }
+    return "?";
+}
+
+/* Call with the lock held, before any endpoint is handled: the phone can only reach nw-claim / nw-status after the
+ * security-2 handshake, and the ESP-IDF 5.4 wifi_prov events do not report it, so the first endpoint call records it. */
+static void ensure_session(void)
+{
+    nw_prov_state_t before = s_prov.state;
+    nw_prov_on_endpoint(&s_prov, now_ms());
+    if (before == NW_PROV_S_ADVERTISING && s_prov.state == NW_PROV_S_SESSION) ESP_LOGI(TAG, "NWSETUP session: recorded on first endpoint call");
+}
+
 static esp_err_t ep_claim(uint32_t session_id, const uint8_t *in, ssize_t inlen, uint8_t **out, ssize_t *outlen, void *priv)
 {
     (void)session_id; (void)priv;
     char rep[64];
-    if (inlen < 0 || inlen > NW_PROV_REQ_MAX_BYTES) { nw_prov_build_claim_reply(rep, sizeof rep, false); return reply(out, outlen, rep); }
+    ESP_LOGI(TAG, "NWSETUP claim in: len=%d", (int)inlen);
+    if (inlen < 0 || inlen > NW_PROV_REQ_MAX_BYTES) {
+        LOCK(); nw_prov_state_t st = s_prov.state; UNLOCK();
+        ESP_LOGW(TAG, "NWSETUP claim rejected: state=%s reason=LEN", state_name(st));
+        nw_prov_build_claim_reply(rep, sizeof rep, false); return reply(out, outlen, rep);
+    }
     LOCK();
-    nw_prov_on_claim(&s_prov, (const char *)in, (size_t)inlen, rep, sizeof rep, now_ms());
+    ensure_session();
+    int rc = nw_prov_on_claim(&s_prov, (const char *)in, (size_t)inlen, rep, sizeof rep, now_ms());
+    nw_prov_state_t st = s_prov.state;
     UNLOCK();
+    if (rc == NW_PROV_OK) ESP_LOGI(TAG, "NWSETUP claim accepted");
+    else ESP_LOGW(TAG, "NWSETUP claim rejected: state=%s reason=%s", state_name(st), rc == NW_PROV_ERR_STATE ? "ERR_STATE" : "PARSE");
     return reply(out, outlen, rep);       /* rep is always a valid body, ok or bad_request */
 }
 
 static esp_err_t ep_status(uint32_t session_id, const uint8_t *in, ssize_t inlen, uint8_t **out, ssize_t *outlen, void *priv)
 {
-    (void)session_id; (void)in; (void)inlen; (void)priv;
+    (void)session_id; (void)in; (void)priv;
     char b[96];
     LOCK();
+    ensure_session();
     int n = nw_prov_status_json(&s_prov, b, sizeof b);
     UNLOCK();
+    ESP_LOGI(TAG, "NWSETUP status in: inlen=%d reply len=%d", (int)inlen, n);
     if (n < 0) return ESP_FAIL;
     return reply(out, outlen, b);
 }
@@ -156,16 +190,19 @@ static void on_prov_event(void *arg, esp_event_base_t base, int32_t id, void *da
     switch (id) {
     case WIFI_PROV_CRED_RECV: {            /* prov-config received, [verify] fires on apply with the config in data */
         wifi_sta_config_t *c = data;
+        ESP_LOGI(TAG, "NWSETUP wifi cred recv");   /* SSID and passphrase are never logged */
         nw_prov_on_wifi_config(&s_prov, (const char *)c->ssid, (const char *)c->password, now_ms());
         nw_glue_on_apply(&s_glue, now_ms());   /* needs nw-claim first (contract order); else ERR_STATE and nw-status stays idle */
         break;
     }
     case WIFI_PROV_CRED_FAIL: {
         wifi_prov_sta_fail_reason_t *r = data;
+        ESP_LOGW(TAG, "NWSETUP wifi cred fail: reason=%d", (int)*r);
         nw_glue_on_wifi_result(&s_glue, *r == WIFI_PROV_STA_AUTH_ERROR ? NW_PROV_WIFI_AUTH : NW_PROV_WIFI_NO_AP, now_ms());
         break;
     }
     case WIFI_PROV_CRED_SUCCESS:
+        ESP_LOGI(TAG, "NWSETUP wifi cred success");
         nw_glue_on_wifi_result(&s_glue, NW_PROV_WIFI_OK, now_ms());   /* starts the claim POST */
         break;
     default: break;

@@ -80,6 +80,8 @@ void nw_prov_button(nw_prov_t *p, uint32_t held_ms, uint32_t now_ms);
 
 /* Protocol events (call order from ble-provisioning.md section 3, step 3). */
 int nw_prov_on_handshake(nw_prov_t *p, bool ok, uint32_t now_ms);
+/* Any nw-claim / nw-status call from the phone: records the security-2 session if it is still ADVERTISING (IDF glue calls it first). */
+int nw_prov_on_endpoint(nw_prov_t *p, uint32_t now_ms);
 int nw_prov_on_wifi_config(nw_prov_t *p, const char *ssid, const char *passphrase, uint32_t now_ms);
 /* nw-claim write: parses and validates; reply (always filled) is the JSON body to return. Returns NW_PROV_OK or the error (reply says bad_request). */
 int nw_prov_on_claim(nw_prov_t *p, const char *json, size_t len, char *reply, size_t reply_cap, uint32_t now_ms);
