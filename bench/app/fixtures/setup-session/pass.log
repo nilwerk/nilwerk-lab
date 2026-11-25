@@ -1,0 +1,8 @@
+I (1021) plant_monitor: NWSETUP boot: setup mode (button held 0 ms)
+I (1034) plant_monitor: NWSETUP bench auto setup: setup window opens on this cold start (bench image only)
+I (1290) nw_prov_idf: NWSETUP ble advertising
+I (48711) nw_prov_idf: NWSETUP session: setup ok (ADVERTISING -> SESSION)
+I (49102) nw_prov_idf: NWSETUP claim in: len=812
+I (49877) nw_prov_idf: NWSETUP claim accepted
+I (50020) nw_prov_idf: NWSETUP wifi cred recv
+I (51340) nw_prov_idf: NWSETUP wifi cred success

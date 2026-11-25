@@ -1,0 +1,6 @@
+I (1021) plant_monitor: NWSETUP boot: setup mode (button held 0 ms)
+I (1290) nw_prov_idf: NWSETUP ble advertising
+W (31500) nw_prov_idf: NWSETUP session: wrong proof of possession (failed handshakes 1)
+I (48711) nw_prov_idf: NWSETUP session: setup ok (ADVERTISING -> SESSION)
+I (49102) nw_prov_idf: NWSETUP claim in: len=812
+I (49877) nw_prov_idf: NWSETUP claim accepted

@@ -629,6 +629,8 @@ jobs:
         run: timeout 300 bash bench/app/test_appium_health.sh
       - name: appium_session
         run: timeout 300 bash bench/app/test_appium_session.sh
+      - name: check_setup_session
+        run: timeout 300 bash bench/app/test_check_setup_session.sh
 
   summary:
     name: Final status

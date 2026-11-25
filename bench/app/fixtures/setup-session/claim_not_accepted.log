@@ -1,0 +1,5 @@
+I (1021) plant_monitor: NWSETUP boot: setup mode (button held 0 ms)
+I (1290) nw_prov_idf: NWSETUP ble advertising
+I (48711) nw_prov_idf: NWSETUP session: setup ok (ADVERTISING -> SESSION)
+I (49102) nw_prov_idf: NWSETUP claim in: len=812
+W (49877) nw_prov_idf: NWSETUP claim rejected: state=SESSION reason=PARSE
