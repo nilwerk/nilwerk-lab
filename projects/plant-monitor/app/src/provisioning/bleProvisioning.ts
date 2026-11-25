@@ -146,7 +146,8 @@ export function createBleProvisioning(d: BleProvisioningDeps): ProvisioningServi
       // 2. nw-claim (encrypted by the session). The device keeps it until the apply below.
       let reply: unknown;
       try { reply = await sendJson('nw-claim', { v: 1, name: req.name, claim_token: token }); } catch (e) { throw new ProvisioningError(classifyBleError(e)); }
-      if (!reply || (reply as { ok?: unknown }).ok !== true) throw new ProvisioningError('unknown'); // {"ok":false,"error":"bad_request"}
+      // Any reply other than {ok:true} is the sensor refusing the claim (e.g. {"ok":false,"error":"bad_request"}), not an unknown app error.
+      if (!reply || (reply as { ok?: unknown }).ok !== true) throw new ProvisioningError('claim_rejected');
 
       // 3. prov-config + apply. Device joins Wi-Fi and calls POST /device-claim itself; the passphrase goes only to the sensor.
       let applyError: unknown = null;

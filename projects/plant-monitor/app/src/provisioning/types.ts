@@ -19,7 +19,8 @@ export type ProvisioningErrorCode =
   | 'setup_closed'        // 5 failures or 5 minutes: press the pinhole button again
   | 'wifi_auth' | 'wifi_no_ap' | 'wifi_timeout'          // nw-status wifi_failed reasons
   | 'device_owned' | 'claim_token_invalid' | 'claim_network' | 'claim_server' // nw-status claim_failed reasons
-  | 'unknown';
+  | 'claim_rejected'      // the sensor answered nw-claim with something other than {ok:true} (e.g. {"ok":false,"error":"bad_request"})
+  | 'unknown';            // genuinely unclassified failures only
 
 export class ProvisioningError extends Error {
   code: ProvisioningErrorCode;

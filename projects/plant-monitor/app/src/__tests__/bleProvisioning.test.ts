@@ -179,10 +179,10 @@ describe('provision: claim token handoff and nw-status', () => {
     expect(await code(svc.provision(REQ, () => undefined))).toBe('claim_server');
     expect(a.sent).toEqual([]);
   });
-  test('nw-claim answered ok:false or garbage stops before the Wi-Fi is applied', async () => {
+  test('nw-claim answered ok:false or garbage stops before the Wi-Fi is applied (claim_rejected, not unknown)', async () => {
     for (const reply of ['{"v":1,"ok":false,"error":"bad_request"}', 'not json']) {
       const { svc, a } = await setup({ statuses: [], claimReply: reply });
-      expect(await code(svc.provision(REQ, () => undefined))).toBe('unknown');
+      expect(await code(svc.provision(REQ, () => undefined))).toBe('claim_rejected');
       expect(a.calls.some((x) => x.startsWith('provision'))).toBe(false);
     }
   });
