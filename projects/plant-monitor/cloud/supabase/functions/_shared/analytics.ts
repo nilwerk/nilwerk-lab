@@ -38,6 +38,8 @@ export interface AnalyticsPlantWire {
   soil_pct: { mean: number; min: number; max: number } | null;
   battery_mv: { mean: number; min: number; max: number } | null;
   watering_events: number;
+  /** ADR-018 (4.B4b): one item per UTC day of the window, oldest first, empty days included; null = gap, never 0. At most 90 x 4 values. */
+  daily: { date: string; soil_pct_mean: number | null; battery_mv_mean: number | null; reading_count: number }[];
   trend: { soil_change_pct: number | null; first_week_mean: number | null; last_week_mean: number | null };
 }
 
@@ -81,6 +83,7 @@ export async function handleAnalytics(req: Request, deps: AnalyticsDeps, nowMs: 
       plant_id: p.plantId, name: p.name, reading_count: p.readingCount,
       // watering_events thresholds (WATERING_RISE_PCT = 10 points or more, MAX_EVENT_GAP_MS = 2 h) are decided, A-115.
       soil_pct: p.soilPct, battery_mv: p.batteryMv, watering_events: p.wateringEvents,
+      daily: p.daily.map((d) => ({ date: d.date, soil_pct_mean: d.soilPctMean, battery_mv_mean: d.batteryMvMean, reading_count: d.readingCount })),
       trend: { soil_change_pct: p.trend.soilChangePct, first_week_mean: p.trend.firstWeekMean, last_week_mean: p.trend.lastWeekMean },
     })),
   };
