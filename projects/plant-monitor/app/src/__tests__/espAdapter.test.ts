@@ -68,6 +68,50 @@ describe('espAdapter', () => {
   });
 });
 
+// onDisconnected: the drop watch used after a successful apply (bleProvisioning.ts). Its own small fake device, so the mock above stays as it is.
+describe('espAdapter onDisconnected wiring', () => {
+  type Cb = () => void;
+  class WatchDevice {
+    static last: WatchDevice | null = null;
+    name: string;
+    removed = 0;
+    private listeners: Cb[] = [];
+    constructor(o: { name: string }) { this.name = o.name; WatchDevice.last = this; }
+    async connect() { /* connected */ }
+    disconnect() { /* dropped */ }
+    onDisconnected(cb: Cb) { this.listeners.push(cb); return () => { this.removed += 1; }; }
+    fireDisconnect() { this.listeners.forEach((cb) => cb()); }
+  }
+  const watchLib = { ESPDevice: WatchDevice, ESPTransport: { ble: 'ble' }, ESPSecurity: { secure2: 2 }, ESPProvisionManager: { searchESPDevices: async () => [] } } as unknown as Lib;
+
+  test('before connect there is no device: the subscription is a no-op and never calls back', () => {
+    const a = createEspAdapter(() => watchLib);
+    const cb = jest.fn();
+    const unsub = a.onDisconnected!(cb);
+    expect(() => unsub()).not.toThrow();
+    expect(cb).not.toHaveBeenCalled();
+  });
+  test('after connect the callback is registered on the connected device; unsubscribe releases it', async () => {
+    const a = createEspAdapter(() => watchLib);
+    await a.connect('NW-d4e5f6', 'POP', 'wifiprov');
+    const dev = WatchDevice.last!;
+    const cb = jest.fn();
+    const unsub = a.onDisconnected!(cb);
+    dev.fireDisconnect();
+    expect(cb).toHaveBeenCalledTimes(1);
+    unsub();
+    expect(dev.removed).toBe(1);
+  });
+  test('after disconnect() there is no device again: the subscription is a no-op', async () => {
+    const a = createEspAdapter(() => watchLib);
+    await a.connect('NW-d4e5f6', 'POP', 'wifiprov');
+    await a.disconnect();
+    const cb = jest.fn();
+    expect(() => a.onDisconnected!(cb)()).not.toThrow();
+    expect(cb).not.toHaveBeenCalled();
+  });
+});
+
 describe('createFetchClaimApi', () => {
   const TOKEN = 'k3J9aBcDeFgHiJkLmNoPqr';
   const res = (status: number, body?: unknown) => ({ status, ok: status >= 200 && status < 300, json: async () => body }) as Response;

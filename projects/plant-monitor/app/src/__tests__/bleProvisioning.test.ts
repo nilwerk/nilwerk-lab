@@ -208,10 +208,10 @@ describe('provision: claim token handoff and nw-status', () => {
       expect(a.calls.some((x) => x.startsWith('provision'))).toBe(false);
     }
   });
-  test('claimed on the device but no devices row in the cloud -> claim_network (never "claimed")', async () => {
+  test('applied, but no devices row in the cloud -> link_lost, never "claimed" and no Wi-Fi wording', async () => {
     const { svc } = await setup({ statuses: [{ state: 'claimed' }] }, { findClaimedDevice: async () => null }, { confirmTries: 3 });
     const seen: LinkState[] = [];
-    expect(await code(svc.provision(REQ, (s) => seen.push(s)))).toBe('claim_network');
+    expect(await code(svc.provision(REQ, (s) => seen.push(s)))).toBe('link_lost');
     expect(seen).not.toContain('claimed');
   });
   test('C3 re-setup: BLE drops, the cloud only has the OLD row (claimed before this token) -> link_lost, never "claimed"', async () => {
@@ -239,10 +239,10 @@ describe('provision: claim token handoff and nw-status', () => {
     expect(await code(ok.svc.provision(REQ, () => undefined))).toBe('resolved');
     const bad = await setup({ statuses: [], drop: true }, { findClaimedDevice: async () => null }, { maxLinkMs: 3000 });
     expect(await code(bad.svc.provision(REQ, () => undefined))).toBe('link_lost');
-    // no drop and no row: claim_network, after the whole link budget of cloud checks (3 s / 1 s = 3 tries here)
+    // no drop and no row after the apply: link_lost too (one outcome), after the whole link budget of cloud checks (3 s / 1 s = 3 tries here)
     let finds = 0;
     const noDrop = await setup({ statuses: [] }, { findClaimedDevice: async () => { finds += 1; return null; } }, { maxLinkMs: 3000 });
-    expect(await code(noDrop.svc.provision(REQ, () => undefined))).toBe('claim_network');
+    expect(await code(noDrop.svc.provision(REQ, () => undefined))).toBe('link_lost');
     expect(finds).toBe(3);
   });
   test('apply refused and the sensor stays wifi_connecting: wifi_timeout, polled once a second; stuck claiming: claim_network', async () => {
@@ -252,10 +252,21 @@ describe('provision: claim token handoff and nw-status', () => {
     const b = await setup({ statuses: [{ state: 'claiming' }], applyError: new Error('apply refused') }, {}, { maxLinkMs: 3000 });
     expect(await code(b.svc.provision(REQ, () => undefined))).toBe('claim_network');
   });
-  test('a drop while the apply-refused status is polled is a link drop, not wifi_timeout (library text with code E_DEVICE_DISCONNECTED)', async () => {
+  test('a drop while the apply-refused status is polled is link_lost, not claim_network or wifi_timeout (library text with code E_DEVICE_DISCONNECTED)', async () => {
     const libText = Object.assign(new Error('Request to send data to device failed: Device is not connected. Custom endpoint requests require an active provisioning session; if this happens after provision(), the device firmware may have already closed the session or disconnected the transport.'), { code: 'E_DEVICE_DISCONNECTED' });
     const { svc } = await setup({ statuses: [libText], applyError: new Error('apply refused') }, { findClaimedDevice: async () => null }, { confirmTries: 2 });
-    expect(await code(svc.provision(REQ, () => undefined))).toBe('claim_network');
+    expect(await code(svc.provision(REQ, () => undefined))).toBe('link_lost');
+  });
+  test('provision() itself rejects with E_DEVICE_DISCONNECTED: the drop flag is set, polling is skipped, the cloud decides -> link_lost', async () => {
+    const dropped = Object.assign(new Error('Device is not connected.'), { code: 'E_DEVICE_DISCONNECTED' });
+    const { svc, a } = await setup({ statuses: [{ state: 'wifi_connecting' }], applyError: dropped }, { findClaimedDevice: async () => null }, { confirmTries: 2 });
+    expect(await code(svc.provision(REQ, () => undefined))).toBe('link_lost');
+    expect(a.calls.some((x) => x.startsWith('send:nw-status'))).toBe(false);
+  });
+  test('provision() rejects with the drop and the cloud has the row -> resolved (device claimed, then turned BLE off)', async () => {
+    const dropped = Object.assign(new Error('Device is not connected.'), { code: 'E_DEVICE_DISCONNECTED' });
+    const { svc } = await setup({ statuses: [], applyError: dropped });
+    expect(await code(svc.provision(REQ, () => undefined))).toBe('resolved');
   });
   test('apply rejected and status unreadable: library message decides (auth / no AP / unknown -> timeout)', async () => {
     for (const [msg, expected] of [['Wi-Fi authentication failed', 'wifi_auth'], ['AP not found', 'wifi_no_ap'], ['Provisioning timed out', 'wifi_timeout'], ['boom', 'wifi_timeout']] as const) {
