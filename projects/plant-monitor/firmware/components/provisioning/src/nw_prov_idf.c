@@ -1,7 +1,7 @@
 /* ESP-IDF glue for the setup flow (task 4.F2 slice 2). See include/nw_prov_idf.h.
  *
- * STATUS: written against ESP-IDF v5.4 from the author's knowledge of the API; NOT COMPILED, NOT RUN. Every call marked
- * [verify] is a place where the exact signature or event semantics must be checked by the first CI build / bench run.
+ * STATUS: compiled by the CI ESP-IDF build jobs (esp32c3, setup flow on); not run on hardware. The protocomm and wifi_prov
+ * references are in docs/adr/ADR-011 (verification note). Remaining [verify] tags are open items for the bench run.
  * All state machine work goes through nw_glue_* (host-tested). This file only moves events in and out, under one mutex
  * (BLE endpoint handlers, the Wi-Fi/prov event loop and the http task are different FreeRTOS tasks; nw_prov has no locking). */
 #include "nw_prov_idf.h"
@@ -24,7 +24,7 @@
 #include "nw_prov_glue.h"
 #include "nw_prov_store_nvs.h"
 #include "nw_sec2.h"
-#include "protocomm_security.h"   /* PROTOCOMM_SECURITY_SESSION_EVENT and its SETUP_OK / CREDENTIALS_MISMATCH ids [verify] header path */
+#include "protocomm_security.h"   /* PROTOCOMM_SECURITY_SESSION_EVENT and its SETUP_OK / CREDENTIALS_MISMATCH ids */
 #include "sdkconfig.h"
 #include "wifi_provisioning/manager.h"
 #include "wifi_provisioning/scheme_ble.h"
@@ -59,7 +59,7 @@ static void io_ble_set(void *ctx, bool on)
 }
 static void io_wifi_start(void *ctx, const char *ssid, const char *pass)
 {
-    (void)ctx; (void)ssid; (void)pass;   /* [verify] wifi_prov_mgr already called esp_wifi_set_config + esp_wifi_connect on apply */
+    (void)ctx; (void)ssid; (void)pass;   /* wifi_prov_mgr stores the config and joins on apply when the SRP session is DONE (manager.c:1255-1291, v5.4 reviewer check) */
     ESP_LOGI(TAG, "NWSETUP wifi joining");
 }
 
@@ -275,7 +275,7 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     wifi_init_config_t wc = WIFI_INIT_CONFIG_DEFAULT();
     esp_wifi_init(&wc);
     esp_event_handler_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event, NULL);
-    /* [verify] default loop: protocomm posts with esp_event_post (no loop argument) in ESP-IDF v5.4 */
+    /* default loop: protocomm posts with esp_event_post, no loop argument (security2.c:273-274, v5.4 reviewer check) */
     esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event, NULL);
     esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event, NULL);
 
@@ -288,6 +288,7 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
         ESP_LOGE(TAG, "glue init");
         esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event);
         esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event);
+        esp_event_handler_unregister(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event);
         return NW_SETUP_SLEEP_UNTIL_RESET;
     }
     nw_prov_init(&s_prov, &ops);
@@ -317,6 +318,7 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event);
     esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event);
     if (s_mgr_up) { wifi_prov_mgr_stop_provisioning(); wifi_prov_mgr_deinit(); s_mgr_up = false; }   /* BLE off (FR-D09) [verify] deinit frees BT memory */
+    esp_event_handler_unregister(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event);   /* after the manager stops, so its end events still reach the handler */
     bool have_record = false;
     { nw_prov_record_t r; if (s_glue.io.store.load && s_glue.io.store.load(s_glue.io.store_ctx, &r) == 0) { have_record = true; memset(&r, 0, sizeof r); } }
     nw_glue_next_t next = nw_glue_next_after_boot(&s_prov, rc, have_record);   /* PR #172: failed boot decision sleeps, never normal */
