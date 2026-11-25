@@ -200,7 +200,7 @@
   "setup.done.title": "All set!",
   "setup.done.body": "{plantName} is connected. The first reading arrives within the hour. The sensor measures every 15 minutes.",
   "setup.done.time": "Setup time {time} (target: 3 minutes or less)",
-  "setup.done.seePlant": "Done",
+  "setup.done.seePlant": "Go to my plants",
   "setup.done.another": "Add another sensor",
   "validation.tooLong": "Use at most {max} characters.",
   "validation.deviceName.required": "Give the sensor a name.",
