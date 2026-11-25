@@ -221,14 +221,26 @@ scroll_down() {
 }
 
 # field <label> <env name>: focuses the field labelled <label> and types the value of <env name>. The value is never printed.
+# find_field <label>: finds the field by scrolling down. Network names appear and push the fields below them down, so the
+# field is often below the fold: look, then scroll one step, up to 6 times. Returns 1 if it is never on screen.
+find_field() {
+  local s
+  for s in 1 2 3 4 5 6; do
+    wait_el 3 desc "$1" && return 0
+    scroll_down
+  done
+  return 1
+}
+
 field() {
-  wait_el 6 desc "$1" || { scroll_down; wait_el 6 desc "$1" || scroll_down; }
-  wait_el 30 desc "$1" || fail "field \"$1\" not shown on the screen"
+  # Close a keyboard left open by the previous entry before searching (it hides the lower half of the screen).
+  hide_keyboard "$1"
+  find_field "$1" || fail "field \"$1\" not shown on the screen, even after scrolling down"
   post_el click
   # The keyboard opens and the screen re-lays out, so the element found before the tap can be stale (HTTP 404 on clear).
   # Look the field up again after the tap, then clear it.
   sleep 1
-  wait_el 10 desc "$1" || fail "field \"$1\" lost after the tap (the keyboard may cover it)"
+  find_field "$1" || fail "field \"$1\" lost after the tap (the keyboard may cover it)"
   python3 -I - "$2" "$work/value.json" <<'PY' || fail "the input for $2 is not set (value not printed)"
 import json, os, sys
 with open(sys.argv[2], "w", encoding="utf-8") as f:
@@ -245,9 +257,12 @@ PY
         --data-binary @"$work/value.json" "$appium_url/session/$sid/element/$el/value")" || code="000"
     fi
     [ "$code" = "200" ] && break
-    echo "d. app flow: ${step_name}: field \"$1\" changed under the step (HTTP $code), looking it up again (try $try of 3)"
+    echo "d. app flow: ${step_name}: field \"$1\" changed under the step (HTTP $code), closing the keyboard and scrolling down again (try $try of 3)"
+    hide_keyboard "$1"
+    find_field "$1" || break
+    post_el click
     sleep 1
-    wait_el 10 desc "$1" || break
+    find_field "$1" || break
   done
   rm -f "$work/value.json"
   [ "$code" = "200" ] || fail "typing into \"$1\" was not accepted (HTTP $code)"
