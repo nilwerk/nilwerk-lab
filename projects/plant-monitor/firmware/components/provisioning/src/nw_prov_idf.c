@@ -24,7 +24,7 @@
 #include "nw_prov_glue.h"
 #include "nw_prov_store_nvs.h"
 #include "nw_sec2.h"
-#include "protocomm_security.h"   /* PROTOCOMM_SECURITY_SESSION_EVENT and its SETUP_OK / CREDENTIALS_MISMATCH ids */
+#include "protocomm_security.h"   /* PROTOCOMM_SECURITY_SESSION_EVENT and its ids (SETUP_OK, CREDENTIALS_MISMATCH, INVALID_SECURITY_PARAMS in v5.4) */
 #include "sdkconfig.h"
 #include "wifi_provisioning/manager.h"
 #include "wifi_provisioning/scheme_ble.h"
@@ -79,19 +79,34 @@ static void post_task(void *arg)
         .transport_type = HTTP_TRANSPORT_OVER_SSL,
     };
     int status = -1;
+    int terr = (int)ESP_FAIL;              /* transport error code, logged only when no HTTP status was read (init failure keeps ESP_FAIL) */
     esp_http_client_handle_t c = esp_http_client_init(&cfg);
     if (c) {
         esp_http_client_set_header(c, "Content-Type", "application/json");
-        if (esp_http_client_open(c, (int)job->len) == ESP_OK &&
-            esp_http_client_write(c, job->body, (int)job->len) == (int)job->len &&
-            esp_http_client_fetch_headers(c) >= 0) {          /* [verify] return value semantics for chunked replies */
-            status = esp_http_client_get_status_code(c);
-            got = esp_http_client_read_response(c, resp, sizeof resp - 1);
-            if (got < 0) got = 0;
+        esp_err_t oe = esp_http_client_open(c, (int)job->len);
+        if (oe != ESP_OK) {
+            terr = (int)oe;
+        } else {
+            int wr = esp_http_client_write(c, job->body, (int)job->len);
+            if (wr != (int)job->len) {
+                terr = wr < 0 ? wr : (int)ESP_FAIL;          /* negative: error; positive: short write */
+            } else {
+                int fh = esp_http_client_fetch_headers(c);   /* [verify] return value semantics for chunked replies */
+                if (fh < 0) {
+                    terr = fh;
+                } else {
+                    status = esp_http_client_get_status_code(c);
+                    got = esp_http_client_read_response(c, resp, sizeof resp - 1);
+                    if (got < 0) got = 0;
+                }
+            }
         }
         esp_http_client_cleanup(c);
     }
     resp[got] = 0;
+    /* Logs only the HTTP status or the transport code: never the body, the token, the Wi-Fi password or the SSID. */
+    if (status >= 0) ESP_LOGI(TAG, "NWSETUP claim post: status=%d", status);
+    else ESP_LOGW(TAG, "NWSETUP claim post: transport error=%d", terr);
     LOCK();
     if (status < 0) nw_glue_on_transport_error(&s_glue, now_ms());
     else nw_glue_on_http_response(&s_glue, status, resp, (size_t)got, now_ms());
@@ -156,8 +171,21 @@ static void on_session_event(void *arg, esp_event_base_t base, int32_t id, void 
     } else if (id == PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH) {
         nw_prov_on_handshake(&s_prov, false, now_ms());
         ESP_LOGW(TAG, "NWSETUP session: wrong proof of possession (failed handshakes %u)", (unsigned)s_prov.failed_handshakes);
+    } else if (id == PROTOCOMM_SECURITY_SESSION_INVALID_SECURITY_PARAMS) {
+        /* Logging only (protocomm posts it for an empty username or a bad client public key). No state change. */
+        ESP_LOGW(TAG, "NWSETUP session: invalid security params (no state change, state=%s)", state_name(s_prov.state));
     }
     UNLOCK();
+}
+
+/* Why setup ended, for the end line only (task 4.F2 logging). "closed" = 5 failed handshakes (guessing limit);
+ * "window" = CLOSED without the guessing limit, i.e. the setup window ran out (also the no-verifier path). */
+static const char *end_reason(nw_prov_state_t st, unsigned failed, int boot_rc)
+{
+    if (boot_rc != NW_PROV_OK) return "boot failed";
+    if (st == NW_PROV_S_CLAIMED) return "claimed";
+    if (st == NW_PROV_S_CLOSED) return failed >= NW_PROV_MAX_FAILED_HANDSHAKES ? "closed" : "window";
+    return "not in setup";
 }
 
 static esp_err_t ep_claim(uint32_t session_id, const uint8_t *in, ssize_t inlen, uint8_t **out, ssize_t *outlen, void *priv)
@@ -278,6 +306,7 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     /* default loop: protocomm posts with esp_event_post, no loop argument (security2.c:273-274, v5.4 reviewer check) */
     esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event, NULL);
     esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event, NULL);
+    esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_INVALID_SECURITY_PARAMS, on_session_event, NULL);
 
     char hw[NW_PROV_HWID_LEN + 1];
     make_hw_id(hw);
@@ -288,6 +317,7 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
         ESP_LOGE(TAG, "glue init");
         esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event);
         esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event);
+        esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_INVALID_SECURITY_PARAMS, on_session_event);
         esp_event_handler_unregister(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event);
         return NW_SETUP_SLEEP_UNTIL_RESET;
     }
@@ -317,11 +347,14 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     }
     esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event);
     esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event);
+    esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_INVALID_SECURITY_PARAMS, on_session_event);
     if (s_mgr_up) { wifi_prov_mgr_stop_provisioning(); wifi_prov_mgr_deinit(); s_mgr_up = false; }   /* BLE off (FR-D09) [verify] deinit frees BT memory */
     esp_event_handler_unregister(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event);   /* after the manager stops, so its end events still reach the handler */
     bool have_record = false;
     { nw_prov_record_t r; if (s_glue.io.store.load && s_glue.io.store.load(s_glue.io.store_ctx, &r) == 0) { have_record = true; memset(&r, 0, sizeof r); } }
     nw_glue_next_t next = nw_glue_next_after_boot(&s_prov, rc, have_record);   /* PR #172: failed boot decision sleeps, never normal */
-    ESP_LOGI(TAG, "NWSETUP end: %s", next == NW_GLUE_NEXT_NORMAL ? "normal mode" : "sleep until reset");
+    LOCK(); nw_prov_state_t end_st = s_prov.state; unsigned end_failed = s_prov.failed_handshakes; UNLOCK();
+    ESP_LOGI(TAG, "NWSETUP end: reason=%s state=%s -> %s", end_reason(end_st, end_failed, rc), state_name(end_st),
+             next == NW_GLUE_NEXT_NORMAL ? "normal mode" : "sleep until reset");
     return next == NW_GLUE_NEXT_NORMAL ? NW_SETUP_NORMAL : NW_SETUP_SLEEP_UNTIL_RESET;
 }

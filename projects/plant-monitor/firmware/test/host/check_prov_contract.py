@@ -74,5 +74,17 @@ check(contract_text_ok(doc, nvs, idf), "doc: wifiprov, nw-claim before apply, NV
 # self-test: the check must fail when a name is wrong
 check(not contract_text_ok(doc.replace("nw_sec2", "nw_xxx"), nvs, idf), "self-test: renamed nw_sec2 in doc is detected")
 check(not contract_text_ok(doc, nvs.replace('"rec"', '"zzz"'), idf), "self-test: renamed rec in firmware is detected")
+# 6. claim-logging tags (task 4.F2 logging, no behaviour change): the log lines exist, and no log line carries a secret
+def log_tags_ok(s):
+    return ('"NWSETUP claim post: status=%d"' in s and '"NWSETUP claim post: transport error=%d"' in s
+            and '"NWSETUP end: reason=%s state=%s -> %s"' in s and "end_reason(" in s
+            and "PROTOCOMM_SECURITY_SESSION_INVALID_SECURITY_PARAMS" in s)
+SECRET_WORDS = re.compile(r"claim_token|device_token|password|passphrase|ssid|resp\b|job->body|\bbody\b", re.I)
+def secret_in_logs(s):
+    return [l.strip() for l in s.splitlines() if "ESP_LOG" in l and SECRET_WORDS.search(l.split("/*")[0])]
+check(log_tags_ok(idf), "claim post status/transport, setup end reason, invalid-params session event are logged")
+check(secret_in_logs(idf) == [], "no ESP_LOG line names a token, password, SSID or response body")
+check(log_tags_ok(idf.replace('"NWSETUP claim post: status=%d"', '"x"')) is False, "self-test: missing claim post status tag is detected")
+check(len(secret_in_logs(idf + '\nESP_LOGI(TAG, "%s", resp);\n')) == 1, "self-test: a log of the response body is detected")
 print(f"{len(fails)} failed")
 sys.exit(1 if fails else 0)
