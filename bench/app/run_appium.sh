@@ -225,6 +225,10 @@ field() {
   wait_el 6 desc "$1" || { scroll_down; wait_el 6 desc "$1" || scroll_down; }
   wait_el 30 desc "$1" || fail "field \"$1\" not shown on the screen"
   post_el click
+  # The keyboard opens and the screen re-lays out, so the element found before the tap can be stale (HTTP 404 on clear).
+  # Look the field up again after the tap, then clear it.
+  sleep 1
+  wait_el 10 desc "$1" || fail "field \"$1\" lost after the tap (the keyboard may cover it)"
   python3 -I - "$2" "$work/value.json" <<'PY' || fail "the input for $2 is not set (value not printed)"
 import json, os, sys
 with open(sys.argv[2], "w", encoding="utf-8") as f:
