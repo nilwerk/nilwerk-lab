@@ -21,6 +21,23 @@ def const(name):
 # 1. service UUID written in the contract == firmware constant
 m = re.search(r"Service UUID \| \*{0,2}`?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`?", doc)
 check(bool(m) and m.group(1) == const("NW_PROV_SERVICE_UUID"), f"service UUID doc={m.group(1) if m else None} fw={const('NW_PROV_SERVICE_UUID')}")
+# 1b. the byte array that the BLE scheme advertises (nw_prov_idf.c, big-endian order) must spell the same UUID
+src_idf = (root / "components/provisioning/src/nw_prov_idf.c").read_text()
+BE_RE = r"static const uint8_t be\[16\] = \{([^}]*)\}"
+def adv_uuid(s):
+    mb = re.search(BE_RE, s)
+    bytes_be = [int(x, 16) for x in re.findall(r"0x([0-9a-fA-F]{2})", mb.group(1))] if mb else []
+    hx = "".join(f"{b:02x}" for b in bytes_be)
+    return f"{hx[:8]}-{hx[8:12]}-{hx[12:16]}-{hx[16:20]}-{hx[20:]}" if len(hx) == 32 else None
+def with_be(s, arr):
+    return re.sub(BE_RE, lambda m: "static const uint8_t be[16] = {" + arr + "}", s)
+as_uuid = adv_uuid(src_idf)
+check(as_uuid == const("NW_PROV_SERVICE_UUID"), f"advertised UUID bytes (nw_prov_idf.c) = {as_uuid} fw={const('NW_PROV_SERVICE_UUID')}")
+# self-tests (playbook rule 5, PR #212 review C1-C3): main's array (...6f836a588c4c) must be detected as drift, the PR's array must pass
+MAIN_BE = "0xb5,0x36,0x72,0xdd,0x52,0x27,0x40,0xa0,0x8b,0x6f,0x6f,0x83,0x6a,0x58,0x8c,0x4c"
+PR_BE = "0xb5,0x36,0x72,0xdd,0x52,0x27,0x40,0xa0,0x8b,0x6f,0x6f,0x83,0x6f,0x8a,0x58,0x4c"
+check(adv_uuid(with_be(src_idf, PR_BE)) == const("NW_PROV_SERVICE_UUID"), "self-test: PR byte array passes (spells 6f8a584c)")
+check(adv_uuid(with_be(src_idf, MAIN_BE)) != const("NW_PROV_SERVICE_UUID"), "self-test: main byte array (6a588c4c) is detected as drift")
 # 2. numbers in the contract text
 check("| `name` | 1-80 characters" in doc and const("NW_PROV_NAME_MIN_CHARS") == "1" and const("NW_PROV_NAME_MAX_CHARS") == "80", "name 1-80 characters")
 check("22 characters base64url" in doc and const("NW_PROV_CLAIM_TOKEN_LEN") == "22", "claim_token 22 characters base64url")
