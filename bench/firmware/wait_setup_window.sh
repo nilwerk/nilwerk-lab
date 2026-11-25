@@ -5,8 +5,9 @@
 # (that means the epoch is in the future, so it is wrong). Offline test: bench/firmware/test_wait_setup_window.sh.
 set -uo pipefail
 reset_epoch="${BENCH_RESET_EPOCH:-}"
-if ! [[ "$reset_epoch" =~ ^[0-9]+$ ]]; then
-  echo "::error::b. serial check: reset time of step 3 not recorded, nothing tested"
+# No leading zero: bash reads a 0-prefixed number as octal (01700000000 is another number, 08 is an error), so such a value is refused.
+if ! [[ "$reset_epoch" =~ ^[1-9][0-9]*$ ]]; then
+  echo "::error::b. serial check: reset time of step 3 not recorded (missing, or not a whole number without a leading zero), nothing tested"
   exit 1
 fi
 # At most 11 digits (year 5138 or so): checked before any arithmetic, because bash arithmetic wraps silently on a 19-digit value.

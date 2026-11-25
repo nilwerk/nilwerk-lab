@@ -6,7 +6,7 @@ checks (the end-to-end bench setup) that GitHub-hosted runners cannot do.
 
 - Runner name: the name chosen when the runner was registered (shown in the repository's runner list)
 - Label: `bench` (the bench job uses `runs-on: [self-hosted, bench]`)
-- Host: Debian GNU/Linux 13 (trixie), 64-bit, arm64 (`aarch64`). See "Bench host and runner" below.
+- Host: Debian GNU/Linux 13 (trixie), 64-bit, arm64 (`aarch64`).
 - Workflow: `.github/workflows/bench.yml`
 
 **Supersedes** the hardware-in-the-loop design in `projects/plant-monitor/docs/ci-firmware-in-the-loop.md`
@@ -204,7 +204,7 @@ run `esptool version` and fail if the major is not 5, and steps a and 3 use the 
 checked against the esptool 5.6.0 source on PyPI (`version` prints `5.6.0`; `chip-id` is the v5 command).
 The ESP-IDF NVS tool is pinned to **esp-idf-nvs-partition-gen 0.3.0** from the Pi venv `~/nvs-venv` (`nvs_venv` and
 `nvs_pin` in `bench.yml`; the version check is in step 3). The pin is **PROVISIONAL**: it is not yet checked
-against the ESP-IDF v5.4 constraints file (the fetch failed from the Pi and from the Mac). The v5.4 check is open.
+against the ESP-IDF v5.4 constraints file (the fetch failed from the Pi and from a developer machine). The v5.4 check is open.
 Step 3 fails unless the installed version is exactly 0.3.0, installs nothing from the network, and calls the tool as
 `python3 -I -m esp_idf_nvs_partition_gen generate <csv> <bin> <size>`, the form the 0.3.0 package accepts.
 
@@ -247,7 +247,7 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 - The expect files begin with a `#` header. Steps b and c skip `#` lines.
 
 **Owner inputs still needed (not in the repo):**
-- `bench/app/run_appium.sh`: none (the wait limits are fixed in the script; the first reading may take up to 900 s, so Kai
+- `bench/app/run_appium.sh`: none (the wait limits are fixed in the script; the first reading may take up to 900 s, so the DevOps role
   should confirm that the upload interval fits). The workflow step d passes `BENCH_BOARD_HW_ID` (repository variable).
   The BLE setup window (300 s from the reset of step 3) must be open while step d adds the sensor.
 - `bench/cloud/check.sh`: the owner sets `BENCH_CLOUD_CHECK_CONFIG` as the JSON object `{url, secret_key}` and approves
@@ -260,7 +260,7 @@ workflow-level permissions stay `contents: read`. The two build jobs have `conte
 
 **Open points (checked on 22 Nov 2026 by reading the workflow only):**
 - Step 3 writes the NVS partition from the CSV at the offset of the `nvs` entry in the partition table binary. The
-  flash plan (offsets and sizes) comes from the build. Check the offsets with Mira if the build layout changes.
+  flash plan (offsets and sizes) comes from the build. Check the offsets with the firmware role if the build layout changes.
 - The ESP-IDF NVS tool must be in the venv `$HOME/nvs-venv` of the runner user, at exactly 0.3.0 (step 3 fails otherwise).
   The pin to 0.3.0 is provisional; the v5.4 check is open.
 - The NVS offset and size are not set in this repo. Step 3 reads them from the `nvs` entry of the partition table binary in the build.

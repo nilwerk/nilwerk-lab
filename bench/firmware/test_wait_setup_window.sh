@@ -43,5 +43,8 @@ run_case "(f) now R (wait 310 s, at the limit) sleeps 310" "$R" "$R" 0 310
 run_case "(g1) 19-digit epoch 9999999999999999999 fails closed, no sleep" "9999999999999999999" "$R" 1 none
 run_case "(g2) 20-digit epoch fails closed, no sleep" "99999999999999999999" "$R" 1 none
 run_case "(g3) 11-digit epoch (valid length, far future) fails closed by the 310 s cap, not the digit check" "99999999999" "$R" 1 none
-run_case "(g4) 11-digit epoch in the past, no wait" "00000000001" "$R" 0 none
+run_case "(g4) leading zero 01700000000 (octal misread) fails closed, no sleep" "01700000000" "$R" 1 none
+run_case "(g5) 12-digit epoch fails closed by the digit check, no sleep" "123456789012" "$R" 1 none
+run_case "(g6) zero epoch 0 fails closed, no sleep" "0" "$R" 1 none
+run_case "(g7) 11-digit epoch, valid, waits 110 s" "10000000001" "$((10000000001 + 200))" 0 110
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
