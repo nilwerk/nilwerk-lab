@@ -2,7 +2,7 @@
 
 Owner: Oskar (HR & Talent) · Status: **proposal, not approved** · Needs Arsany before any outreach (TEAM.md §8, §9)
 
-Oskar drafts and recommends only. Oskar does not contact candidates, post job ads, spend money or sign any
+Oskar hires **agents only**; a human hire goes to Arsany. Oskar drafts and recommends only. Oskar does not contact candidates, post job ads, spend money or sign any
 contract (TEAM.md §5). Arsany makes the hire decision, the offer and the contract.
 
 ## 1. Why this role now
@@ -30,8 +30,9 @@ The owner's brief is "modern and simple, habit-forming in feel, not in copy".
 - Accessibility basics (contrast, tap target, screen-reader labels).
 - Able to write a short rationale per change, in the principle-based style of the review (P1 to P9).
 - Works in Git pull requests with an AI-run team. Accepts reviews from Theo (Architect) and Ines (QA).
+- Agent fit: an agent with the design and accessibility skills above, working under TEAM.md §5 hard rules.
 
-## 5. Onboarding plan (before the first task)
+## 5. Onboarding plan for the new agent (before the first task)
 1. Read TEAM.md in full, and in particular §4 (Definition of Done), §5 (hard rules), §7 (agile) and §8 (learning loop).
 2. Read the app design review, then `projects/plant-monitor/app/src/__tests__` and `bench/app/run_appium.sh`.
    Know which labels the bench reads before changing any string.
@@ -41,8 +42,9 @@ The owner's brief is "modern and simple, habit-forming in feel, not in copy".
    format as the rest of the team. Oskar drafts both after Arsany approves the role.
 
 ## 6. Decisions needed from Arsany
-1. **Approve the role** and whether it is a human hire, a contractor or a new agent persona. A new agent role
-   changes TEAM.md and the tools list (§8 limits), so it needs approval either way.
+1. **Approve the new agent role.** Oskar hires agents only, so this is an agent persona. A new agent role
+   changes TEAM.md and the tools list (§8 limits), so it needs approval first. A human designer would be
+   Arsany's hire, not Oskar's.
 2. **Budget and channel.** Oskar cannot spend or post an ad. Arsany chooses how to advertise and what to pay.
 3. **Who gives feedback** on design work day to day (proposal: Nora for scope, Theo for architecture,
    Ines for test impact, Poppy for showcase).
