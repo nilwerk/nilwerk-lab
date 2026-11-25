@@ -234,10 +234,21 @@ import json, os, sys
 with open(sys.argv[2], "w", encoding="utf-8") as f:
     json.dump({"text": os.environ[sys.argv[1]]}, f)
 PY
-  post_el clear
-  local code
-  code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
-    --data-binary @"$work/value.json" "$appium_url/session/$sid/element/$el/value")" || code="000"
+  # The field can be re-laid out between the lookup and the clear (HTTP 404: the element id is gone). Look it up again
+  # and retry the clear and the typing up to 3 times. The label is logged, the typed value never is.
+  local code try
+  for try in 1 2 3; do
+    code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+      --data-binary '{}' "$appium_url/session/$sid/element/$el/clear")" || code="000"
+    if [ "$code" = "200" ]; then
+      code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+        --data-binary @"$work/value.json" "$appium_url/session/$sid/element/$el/value")" || code="000"
+    fi
+    [ "$code" = "200" ] && break
+    echo "d. app flow: ${step_name}: field \"$1\" changed under the step (HTTP $code), looking it up again (try $try of 3)"
+    sleep 1
+    wait_el 10 desc "$1" || break
+  done
   rm -f "$work/value.json"
   [ "$code" = "200" ] || fail "typing into \"$1\" was not accepted (HTTP $code)"
   hide_keyboard "$1"
