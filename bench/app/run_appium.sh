@@ -422,8 +422,9 @@ wait_any 180 "$photo" "${T[setup.linkError.wifi.title]}" "${T[setup.linkError.ow
 if [ "$hit" != "$photo" ]; then
   # Log the reason line under the error title (a screen string, never a secret). It names the cause: no connection,
   # server refused, setup code expired, or the sensor already belongs to someone.
-  reason="$(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell uiautomator dump /sdcard/link.xml >/dev/null 2>&1; timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell cat /sdcard/link.xml 2>/dev/null | grep -o 'text="[^"]*"' | grep -i "connection\|server\|expired\|belongs\|Wi-Fi\|link the\|again" | head -3 | tr '\n' ' ')"
-  echo "d. app flow: ${step_name}: link reason on screen: ${reason:-none found}"
+  # grep finds nothing on some screens: that must not stop the step (pipefail + set -e would end it silently).
+  reason="$(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell uiautomator dump /sdcard/link.xml >/dev/null 2>&1; timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell cat /sdcard/link.xml 2>/dev/null | grep -o 'text="[^"]*"' | grep -v 'text=""' | head -8 | tr '\n' ' ')" || reason=""
+  echo "d. app flow: ${step_name}: texts on the link screen: ${reason:-none read}"
   fail "the sensor could not be linked (stopped on \"$hit\")"
 fi
 tap "${T[setup.photo.skip]}"
