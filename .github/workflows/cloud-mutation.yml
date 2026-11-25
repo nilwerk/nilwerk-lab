@@ -6,8 +6,11 @@ name: Cloud mutation suite
 # Each script exits 1 if any mutant survives, so a red job = a test gap.
 #
 # Three ways in:
-#   workflow_call      from ci.yml job `cloud-mutation` (pull_request that touches cloud/, or manual CI run); ci.yml's Final status counts it
-#   schedule           nightly on main, so drift is caught even when no cloud PR runs it (standalone, NOT part of Final status)
+#   workflow_call      from ci.yml job `cloud-mutation`: on a pull_request that changes a security-relevant cloud file (auth/token/claim/
+#                      idempotency, export, RLS/security migrations, or a mutation script; see `cloudmut` in ci.yml's detect job), on a change
+#                      to the shared build config, and on a manual CI run. Every other cloud PR skips it. ci.yml's Final status counts it.
+#   schedule           nightly on main (02:17 UTC): runs both suites on main, so the cloud PRs that skip the run above are still covered
+#                      and drift is caught when no PR runs it (standalone, NOT part of Final status)
 #   workflow_dispatch  manual run of this suite alone
 # Password from the CI_POSTGRES_PASSWORD repository secret (throw-away CI-only Postgres service).
 

@@ -77,9 +77,22 @@ jobs:
           # Their tests run in cloud-db (Node 22 + Postgres), see the comment there.
           gate cloud "find $P/cloud/supabase/functions -name index.ts 2>/dev/null | grep -q ." "$P/cloud/" $CT
           gate clouddb "test -f $P/cloud/test.sh" "$P/cloud/" $CT
-          # cloudmut = the ~15 min mutation suites (cloud-mutation.yml). Narrower than clouddb on purpose: only files under cloud/ (not contract docs)
-          # trigger it on a PR. ALL (ci.yml / tool versions changed, manual run) still turns it on. Push to main skips it, see the job's `if`.
-          gate cloudmut "test -f $P/cloud/test/mutation.sh" "$P/cloud/"
+          # cloudmut = the ~15 min mutation suites (cloud-mutation.yml). On a PR it runs only when a security-relevant cloud file changed:
+          # the token/auth/claim/idempotency code and the export code (_shared + the edge functions that call it), a mutation script, or an
+          # RLS / policy / grant / SECURITY DEFINER migration (judged by the migration's SQL, so new ones count too). Any other cloud/ change
+          # (analytics, tips, app-facing code) skips it; the nightly run on main (cloud-mutation.yml schedule) covers those.
+          # ALL (ci.yml / cloud-mutation.yml / .github/actions / tool versions changed, manual run) still turns it on. Push to main skips it, see the job's `if`.
+          CLOUDMUT_RE="^$P/cloud/(test/mutation\.sh|tips/test/mutation\.sh|supabase/functions/(_shared/(env|handlers|lib|mcp|supabase|export)\.ts|(claim-token|device-claim|ingest|delete-account|export|mcp)/index\.ts))\$"
+          cloudmut_touched() {
+            [ "$ALL" = true ] && return 0
+            echo "$CHANGED" | grep -Eq "$CLOUDMUT_RE" && return 0
+            local f
+            for f in $(echo "$CHANGED" | grep -E "^$P/cloud/supabase/migrations/.*\.sql\$" || true); do
+              { git show "$HEAD_SHA:$f" || true; git show "$BASE_SHA:$f" || true; } 2>/dev/null
+            done | grep -Eqi 'row level security|create policy|alter policy|security definer|grant |revoke '
+          }
+          if test -f "$P/cloud/test/mutation.sh" && cloudmut_touched; then echo "cloudmut=true" >> "$GITHUB_OUTPUT"
+          else echo "cloudmut=false" >> "$GITHUB_OUTPUT"; echo "::notice::cloudmut skipped: no auth, export, RLS or mutation-script change under cloud/"; fi
           gate ml "find $P/ml -name '*.py' 2>/dev/null | grep -q ." "$P/ml/"
           gate pcb "ls $P/pcb/*.kicad_pro" "$P/pcb/"
           # sim = ngspice netlists (.cir/.sp), a run_all.sh, or a Python check script that drives ngspice (ldo_dropout.py)
@@ -403,8 +416,9 @@ jobs:
   cloud-mutation:
     name: cloud mutation suite (full)
     needs: detect
-    # Runs on a pull_request that changes cloud/ (or the shared build config) and on a manual CI run; NOT on push to main (the PR already ran it,
-    # the nightly schedule in cloud-mutation.yml covers drift). Docs-only PRs: detect says cloudmut=false, so this job is skipped and costs nothing.
+    # Runs on a pull_request that changes a security-relevant cloud file (`cloudmut` in detect: auth/token/claim/export code, RLS and security
+    # migrations, the mutation scripts), on a change to the shared build config, and on a manual CI run. Other cloud PRs and docs-only PRs
+    # skip it (cloudmut=false, no cost). NOT on push to main: the nightly schedule in cloud-mutation.yml runs both suites there.
     if: needs.detect.outputs.cloudmut == 'true' && github.event_name != 'push'
     uses: ./.github/workflows/cloud-mutation.yml
     secrets: inherit   # pass CI_POSTGRES_PASSWORD into the reusable workflow (A-114)
