@@ -27,6 +27,9 @@
 #include "sdkconfig.h"
 #include "wifi_provisioning/manager.h"
 #include "wifi_provisioning/scheme_ble.h"
+#include "host/ble_gap.h"
+#include "host/ble_hs_adv.h"
+#include "host/ble_uuid.h"
 
 static const char *TAG = "nw_setup";
 
@@ -186,6 +189,31 @@ static bool load_sec2(wifi_prov_security2_params_t *p, uint8_t *salt, size_t *sl
     return true;
 }
 
+/* The wifi_prov BLE scheme advertises the 128-bit setup UUID in the main packet and the "NW-xxxxxx" name only in the
+ * scan response. A phone that does not merge scan responses (passive scan) then never sees the name, and the app
+ * filters on it. Move the name into the main packet (14 bytes) and the UUID into the scan response (18 bytes):
+ * each packet stays inside the 31-byte limit. The app reads the name first, so it must be in the main packet. */
+static void nw_prov_put_name_in_main_adv(const char *name, const uint8_t *uuid_le)
+{
+    struct ble_hs_adv_fields adv = {0};
+    adv.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
+    adv.name = (const uint8_t *)name;
+    adv.name_len = (uint8_t)strlen(name);
+    adv.name_is_complete = 1;
+    int rc = ble_gap_adv_set_fields(&adv);
+    if (rc != 0) { ESP_LOGE(TAG, "NWSETUP ble: main adv set_fields failed (%d)", rc); return; }
+
+    static ble_uuid128_t setup_uuid;
+    memcpy(setup_uuid.value, uuid_le, 16);
+    setup_uuid.u.type = BLE_UUID_TYPE_128;
+    struct ble_hs_adv_fields rsp = {0};
+    rsp.uuids128 = &setup_uuid;
+    rsp.num_uuids128 = 1;
+    rsp.uuids128_is_complete = 1;
+    rc = ble_gap_adv_rsp_set_fields(&rsp);
+    if (rc != 0) { ESP_LOGE(TAG, "NWSETUP ble: scan response set_fields failed (%d)", rc); }
+}
+
 static bool start_ble(void)
 {
     static uint8_t salt[32], ver[384];
@@ -205,6 +233,7 @@ static bool start_ble(void)
     wifi_prov_mgr_endpoint_create("nw-status");
     { esp_err_t pe = wifi_prov_mgr_start_provisioning(WIFI_PROV_SECURITY_2, &sec2, name, NULL);
       if (pe != ESP_OK) { ESP_LOGE(TAG, "NWSETUP BLE: start_provisioning failed (%d)", (int)pe); return false; } }
+    nw_prov_put_name_in_main_adv(name, uuid);
     wifi_prov_mgr_endpoint_register("nw-claim", ep_claim, NULL);
     wifi_prov_mgr_endpoint_register("nw-status", ep_status, NULL);
     ESP_LOGI(TAG, "NWSETUP ble advertising");   /* only here: the manager is up (the state machine's request is logged in io_ble_set) */
