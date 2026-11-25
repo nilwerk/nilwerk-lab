@@ -55,7 +55,7 @@ Tools, all read-only: `list_plants`, `get_plant_status(plant_id)`, `get_history(
 * Format: `nwk_` + 32 random bytes, base64url without padding (43 characters, 47 in total). Shown once, when created.
 * Storage: `public.api_keys` (migration 1). `key_hash` = SHA-256 of the whole key string (bytea, unique). `prefix` = the first 8 characters, for display. `owner_id`, `revoked_at`, `last_used_at`. The key itself is never stored, logged or returned after creation.
 * Check on every request, before any read: the function computes `sha256(key)` and calls `mcp_resolve_key` (service_role only). Unknown or revoked keys give the same answer (401 `key_revoked_or_unknown`). A missing or malformed key gives 401 `unauthorized` without any database call. Revoking = setting `revoked_at`; the next call with that key fails.
-* Creating keys (`POST /api-keys`, openapi) is **not built** here (app side).
+* Creating and revoking keys (`POST /api-keys`, `DELETE /api-keys/{id}`, openapi) is built in task 4.B2d (edge function `api-keys`, not deployed, not run against a live project).
 
 **Errors:** HTTP 401 `unauthorized` / `key_revoked_or_unknown`. For a free user, a `tools/call` returns a tool error `premium_required` (FR-P04) and any other method HTTP 403 `premium_required`. Tool errors: `invalid_input`, `not_found` (another user's plant is indistinguishable from an unknown one), `tips_unavailable`, `server_error`, `unknown_tool`. Database messages are never returned.
 

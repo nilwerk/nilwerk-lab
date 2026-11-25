@@ -371,6 +371,7 @@
   "mcp.keys.revoke.no": "Keep it",
   "mcp.created.title": "Your new key",
   "mcp.created.warning": "Copy it now. It is shown only once and cannot be shown again.",
+  "mcp.created.share": "Never share your key. On a phone, Copy opens the share menu: choose Copy there, not an app or a person.",
   "mcp.created.copy": "Copy key",
   "mcp.created.copied": "Key copied.",
   "mcp.created.copyError": "Could not copy. Select the key above and copy it by hand.",

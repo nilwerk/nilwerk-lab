@@ -126,7 +126,7 @@ Set before `expo start` (names only; values come from Arsany and are never commi
 | Push alerts | Not built. The alerts list (task 4.A5, reached from the plant list, mock readings) exists; no push dispatch in the app or the cloud | `src/plants/alerts.ts`, `AlertsScreen`, cloud README |
 | Premium dashboard (30 / 90-day history, trends) | **Merged: screen, graphs and gap handling.** Free accounts see the upgrade state and no analytics request is made. Premium accounts call `GET /functions/v1/analytics`; that endpoint is not deployed yet, so they see the error state (the mock build does the same). Premium is switched on by Nilwerk by hand (`profiles.is_premium`) | `PremiumDashboardScreen`, `src/analytics/`, FR-P01, FR-P04 |
 | Care tips UI | Not built (the tips engine in `cloud/tips/` is a library, no screen, no endpoint) | cloud README |
-| MCP / AI access screens | Screen built (Profile, premium only) and tested with a mocked backend only. Create and revoke have no server yet (the `/api-keys` function is not built), so it cannot work against a live project; never run on a phone. The MCP server itself is task 4.B5 | `docs/interfaces/mcp-tools.json` |
+| MCP / AI access screens | Screen built (Profile, premium only) and tested with a mocked backend only. Create and revoke are served by the `api-keys` function (built, not deployed, not run against a live project), so the screen is still untested end to end; never run on a phone. The MCP server itself is task 4.B5 | `docs/interfaces/mcp-tools.json` |
 
 ## 4. Can we connect the app to the sensor today?
 

@@ -6,6 +6,8 @@ import type { Deps, RpcResult } from "./lib.ts";
 import { envFirst, PUBLISHABLE_KEY_NAMES, SECRET_KEY_NAMES } from "./env.ts";
 import type { AnalyticsDeps } from "./analytics.ts";
 import { buildAnalyticsDeps, type AnalyticsClient } from "./analytics_deps.ts";
+import type { ApiKeysDeps } from "./api_keys.ts";
+import { buildApiKeysDeps, type KeysClient } from "./api_keys_deps.ts";
 
 const env = (...names: readonly string[]): string => envFirst((n) => Deno.env.get(n), names);
 
@@ -81,4 +83,20 @@ export function makeAnalyticsDeps(): AnalyticsDeps {
   });
   // The query logic lives in analytics_deps.ts (no npm: import, so Node tests can load it with a fake client).
   return buildAnalyticsDeps(asUser as unknown as (jwt: string) => AnalyticsClient);
+}
+
+/**
+ * Deps for POST/DELETE /api-keys (4.B2d; FR-P03, FR-P04, NFR-06). The premium check and the ownership read carry the USER's JWT (RLS applies).
+ * The two writes use the service-role client because db-schema.sql grants authenticated no insert/update on api_keys; each is filtered by the
+ * verified caller's id. UNVERIFIED against a live project.
+ */
+export function makeApiKeysDeps(): ApiKeysDeps {
+  const url = env("SUPABASE_URL");
+  const pubKey = env(...PUBLISHABLE_KEY_NAMES);
+  const asUser = (jwt: string) => createClient(url, pubKey, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const admin = () => createClient(url, env(...SECRET_KEY_NAMES), { auth: { persistSession: false, autoRefreshToken: false } });
+  return buildApiKeysDeps(asUser as unknown as (jwt: string) => KeysClient, admin as unknown as () => KeysClient, (n) => crypto.getRandomValues(new Uint8Array(n)));
 }

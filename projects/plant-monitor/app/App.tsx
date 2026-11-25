@@ -140,7 +140,7 @@ export default function App() {
   const analytics = useMemo<AnalyticsService>(() => (!mock && isConfigured(cfg)
     ? createAnalyticsClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
     : unconfiguredAnalytics), [cfg, mock, service]);
-  // 4.A8: MCP key client (FR-P03). The /api-keys edge function is not built yet (proposed route); mock and unconfigured builds report not_configured and fetch nothing.
+  // 4.A8: MCP key client (FR-P03). The /api-keys edge function is built (4.B2d) but not deployed; mock and unconfigured builds report not_configured and fetch nothing.
   const apiKeys = useMemo<ApiKeysService>(() => (!mock && isConfigured(cfg)
     ? createApiKeysClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
     : unconfiguredApiKeys), [cfg, mock, service]);

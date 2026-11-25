@@ -137,6 +137,18 @@ unset NW_TEST_DB_URL
 echo "== analytics adapter (test/functions/analytics_deps.test.ts) with a fake client"
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/analytics_deps.test.ts
 
+# --- 5f. POST/DELETE /api-keys 4.B2d (FR-P03, FR-P04, NFR-06): premium gate as the user before any write, hash-only storage, revoke own key, MCP key check, RLS list
+echo "== api-keys endpoint (test/functions/api_keys.test.ts) against local Postgres"
+newdb nw_test_apikeys yes
+if [ -n "${DATABASE_URL:-}" ]; then export NW_TEST_DB_URL="$BASE/nw_test_apikeys"
+else export NW_TEST_DB_URL="postgresql://postgres@/nw_test_apikeys?host=$TMP&port=$PORT"; fi
+node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/api_keys.test.ts
+unset NW_TEST_DB_URL
+
+# --- 5g. api-keys database adapter 4.B2d (no DB: fake PostgREST client records calls): premium RPC as the user, service client only for the two writes
+echo "== api-keys adapter (test/functions/api_keys_deps.test.ts) with a fake client"
+node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec test/functions/api_keys_deps.test.ts
+
 # --- 6. care-tips engine 4.B3 slice 1 (pure TypeScript, no DB): guardrail rules, premium gate, injected weather/assistant (FR-P02, FR-P04)
 if [ "${NW_ONLY:-}" != api ]; then
 echo "== care-tips engine (tips/test/*.test.ts: ALL test files, not only tips.test.ts)"
@@ -147,5 +159,5 @@ fi
 echo "== analytics (analytics/test/*.test.ts: pure functions, hand-computed fixtures)"
 node --experimental-strip-types --disable-warning=ExperimentalWarning --test --test-reporter=spec analytics/test/*.test.ts
 
-for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api nw_test_export nw_test_mcp nw_test_analytics nw_test_ct_src nw_test_ct_mig; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
+for d in nw_test_rls nw_test_ret nw_test_contract nw_test_api nw_test_export nw_test_mcp nw_test_analytics nw_test_apikeys nw_test_ct_src nw_test_ct_mig; do psqlx postgres -c "drop database if exists $d" >/dev/null; done
 echo "ALL CLOUD TESTS PASSED"
