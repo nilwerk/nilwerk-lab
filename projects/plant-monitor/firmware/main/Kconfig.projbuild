@@ -128,6 +128,18 @@ menu "Plant Monitor"
         range 3000 60000
         depends on PLANT_UPLOAD
 
+    config PLANT_BOOTGUARD
+        bool "Boot-loop guard and safe fallback (task 4.F7b): count failed boots, fall back to a long deep sleep"
+        default n
+        help
+            OFF until the bench proves it; never enable on production before the bench check (tests/procedures/4.F7-boot-loop-guard.md, a DRAFT).
+            When on, app_main asks the guard first. After 5 boots that never reached the end of a cycle, the next boot enters a fallback: no BLE,
+            no Wi-Fi, one log line (NWBOOTGUARD ...), deep sleep for 6 h, then exactly one probation boot. An unconfirmed OTA image that loops is rolled
+            back at boot 6; a failed rollback falls to the same sleep. Values 5 / 21600 s / 12 bytes are owner-accepted (decision recorded in the Needs Arsany sheet, not in this repo).
+            State is 12 bytes of RTC_NOINIT memory (lost on a full power loss; whether a brownout keeps it is UNVERIFIED).
+            NOT COMPILED FOR ESP-IDF YET (no CI build line sets this option, no local build), NOT RUN ON HARDWARE. No existing sdkconfig overlay sets it; the only overlay
+            that does is sdkconfig.defaults.bootguard, for a manual build.
+
     config PLANT_FW_VERSION
         string "Firmware version string sent as fw in /device-claim (max 32 chars)"
         default "0.4.2-dev"
