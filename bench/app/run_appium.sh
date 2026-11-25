@@ -210,8 +210,19 @@ tap() {
   post_el click
 }
 
+# scroll_down: one swipe up, to bring a field below the fold into view (the Wi-Fi step's password field is under the list).
+scroll_down() {
+  local size w h
+  size="$(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell wm size 2>/dev/null | tr -d '\r' | grep -o '[0-9][0-9]*x[0-9][0-9]*' | tail -1)" || size=""
+  w="${size%x*}"; h="${size#*x}"
+  [ -n "$w" ] && [ -n "$h" ] || { w=1440; h=2560; }
+  timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell input swipe $(( w / 2 )) $(( h * 7 / 10 )) $(( w / 2 )) $(( h * 3 / 10 )) 400 >/dev/null 2>&1 || true
+  sleep 1
+}
+
 # field <label> <env name>: focuses the field labelled <label> and types the value of <env name>. The value is never printed.
 field() {
+  wait_el 6 desc "$1" || { scroll_down; wait_el 6 desc "$1" || scroll_down; }
   wait_el 30 desc "$1" || fail "field \"$1\" not shown on the screen"
   post_el click
   python3 -I - "$2" "$work/value.json" <<'PY' || fail "the input for $2 is not set (value not printed)"
