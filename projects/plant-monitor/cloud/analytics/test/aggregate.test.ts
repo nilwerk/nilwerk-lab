@@ -97,7 +97,10 @@ test("one reading: mean = min = max, no events, trend null", () => {
 
 test("plant with no readings: explicit zeros and nulls, no crash", () => {
   const got = aggregatePlant({ id: "d", name: "Ficus" }, BASIL, NOW_MS, 30);
-  assert.deepEqual(got, {
+  const { daily, ...rest } = got;   // the daily series is tested in daily.test.ts (4.B4b); here only that it has one item per day, all empty
+  assert.equal(daily.length, 30);
+  assert.ok(daily.every((d) => d.readingCount === 0 && d.soilPctMean === null && d.batteryMvMean === null));
+  assert.deepEqual(rest, {
     plantId: "d", name: "Ficus", windowDays: 30, readingCount: 0, soilPct: null, batteryMv: null, wateringEvents: 0,
     trend: { soilChangePct: null, firstWeekMean: null, lastWeekMean: null },
   });

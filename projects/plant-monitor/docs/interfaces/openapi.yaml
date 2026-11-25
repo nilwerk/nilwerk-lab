@@ -353,6 +353,13 @@ paths:
         wateringEvents (consecutive plausible soil samples at most 2 h apart whose rise is 10 soil percent points or more, decided A-115),
         trend (mean of the last 7 days minus mean of the first 7 days of the window, soil percent points; null if either week is empty).
         Plants are sorted by name. Plants with no readings are listed with zeros and nulls.
+        [built, 4.B4b] (ADR-018, owner decision A-131) Each plant also carries a `daily` array for the 30/90-day line chart:
+        one item per UTC calendar day of the window (the `window_days` dates ending today, oldest first, at most 90, empty days included),
+        {date YYYY-MM-DD (UTC), soil_pct_mean, battery_mv_mean (null for a day with no value), reading_count}. Same plausible-only, own-rows-only,
+        premium-gated rules as the aggregates (FR-P04, NFR-06). Additive: existing clients ignore it. Clients treat null as a gap, never as 0.
+        Built in cloud/analytics/aggregate.ts (`dailySeries`), mapped in _shared/analytics.ts. No new read and no migration. Not deployed:
+        the live function does not return `daily` until the next deploy. Counts of the days need not add up to `reading_count` (ADR-018, open point 1).
+        [proposed, A-140] UTC calendar days, and the first rolling-window day not being listed (so daily counts may not add up to reading_count), await the owner's confirmation.
       security: [{ userJwt: [] }]
       parameters:
         - { name: window, in: query, required: true, schema: { type: integer, enum: [30, 90] } }
@@ -370,7 +377,7 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [plant_id, name, reading_count, soil_pct, battery_mv, watering_events, trend]
+                      required: [plant_id, name, reading_count, soil_pct, battery_mv, watering_events, daily, trend]
                       properties:
                         plant_id: { type: string, format: uuid }
                         name: { type: string }
@@ -378,6 +385,19 @@ paths:
                         soil_pct: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/Stat" }] }
                         battery_mv: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/Stat" }] }
                         watering_events: { type: integer, minimum: 0 }
+                        daily:
+                          description: "[built, 4.B4b] ADR-018. One item per UTC calendar day of the window, oldest first, empty days included (length = window_days, at most 90)."
+                          type: array
+                          minItems: 30
+                          maxItems: 90
+                          items:
+                            type: object
+                            required: [date, soil_pct_mean, battery_mv_mean, reading_count]
+                            properties:
+                              date: { type: string, format: date, description: "YYYY-MM-DD, UTC calendar day" }
+                              soil_pct_mean: { type: [number, "null"], description: "null = no soil reading that day (a gap, not 0)" }
+                              battery_mv_mean: { type: [number, "null"], description: "null = no battery reading that day" }
+                              reading_count: { type: integer, minimum: 0 }
                         trend:
                           type: object
                           required: [soil_change_pct, first_week_mean, last_week_mean]

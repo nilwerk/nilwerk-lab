@@ -96,6 +96,61 @@ test("NFR-07-style paging: reads every page until an empty one; the offset advan
   assert.deepEqual(offsets, [0, 500, 1000, 1203], "pages at 0, 500, 1000, then the empty page at the end");
 });
 
+test("4.B4b ADR-018: 200 carries `daily` per plant in snake_case; the rows read do not change (same calls, same pages, same since)", async () => {
+  // NOW = 2026-11-20T00:00Z. 30-day dates: 2026-10-22 .. 2026-11-20 (Oct 22-31 = 10, Nov 1-20 = 20). Plant x has 3 plausible rows:
+  // Nov 19 12:00 soil 40 vbat 3900; Nov 19 18:00 soil 50 vbat 3800 -> Nov 19: soil 45, battery 3850, count 2; Nov 20 00:00:00 soil 30 vbat null -> Nov 20: soil 30, battery null, count 1.
+  const rows: ReadingRow[] = [
+    { ts: "2026-11-19T12:00:00Z", plant_id: "x", moisture_pct: 40, vbat_mv: 3900, plausible: true },
+    { ts: "2026-11-19T18:00:00Z", plant_id: "x", moisture_pct: 50, vbat_mv: 3800, plausible: true },
+    { ts: "2026-11-20T00:00:00Z", plant_id: "x", moisture_pct: 30, vbat_mv: null, plausible: true },
+  ];
+  const sinces: string[] = [];
+  const { deps, calls } = spyDeps({
+    plants: async () => { calls.push("plants"); return [{ id: "x", name: "X" }, { id: "y", name: "Y" }]; },
+    readingsPage: async (_j, since, offset, limit) => { calls.push(`readingsPage@${offset}`); sinces.push(since); return rows.slice(offset, offset + limit); },
+  });
+  for (const w of [30, 90]) {
+    calls.length = 0; sinces.length = 0;
+    const r = await handleAnalytics(req(`?window=${w}`, "jwt-p"), deps, NOW_MS);
+    assert.equal(r.status, 200);
+    // exactly the old read path: token, premium, plants, one page with the 3 rows, one empty page. No second read.
+    assert.deepEqual(calls, ["getUserId", "isPremium", "plants", "readingsPage@0", "readingsPage@3"], `window ${w}`);
+    assert.deepEqual(sinces, new Array(2).fill(new Date(NOW_MS - w * 86_400_000).toISOString()), "same since as before");
+    const body = await r.json() as { plants: { plant_id: string; daily: Record<string, unknown>[] }[] };
+    assert.equal(body.plants.length, 2);
+    for (const p of body.plants) {
+      assert.equal(p.daily.length, w);                                       // at most 90 x 4 values per plant
+      for (const d of p.daily) assert.deepEqual(Object.keys(d).sort(), ["battery_mv_mean", "date", "reading_count", "soil_pct_mean"]);
+    }
+    const x = body.plants.find((p) => p.plant_id === "x")!, y = body.plants.find((p) => p.plant_id === "y")!;
+    assert.deepEqual(x.daily[w - 1], { date: "2026-11-20", soil_pct_mean: 30, battery_mv_mean: null, reading_count: 1 });
+    assert.deepEqual(x.daily[w - 2], { date: "2026-11-19", soil_pct_mean: 45, battery_mv_mean: 3850, reading_count: 2 });
+    assert.deepEqual(x.daily[w - 3], { date: "2026-11-18", soil_pct_mean: null, battery_mv_mean: null, reading_count: 0 });
+    assert.equal(x.daily[0].date, w === 30 ? "2026-10-22" : "2026-08-23");
+    assert.ok(y.daily.every((d) => d.soil_pct_mean === null && d.battery_mv_mean === null && d.reading_count === 0), "a plant without readings: all null and 0");
+  }
+});
+
+test("4.B4b ADR-018 test 15: more than 1000 rows (3 pages) give the same day values as the same rows in one page", async () => {
+  // 2,500 plausible rows 15 min apart ending at NOW - 15 min (26 days), moisture = 30 + (i % 3), battery 3900. All inside the 90-day window.
+  const rows: ReadingRow[] = Array.from({ length: 2500 }, (_, i) => ({ ts: new Date(NOW_MS - (2500 - i) * 900_000).toISOString(), plant_id: "x", moisture_pct: 30 + (i % 3), vbat_mv: 3900, plausible: true }));
+  const run = async (cap: number) => {
+    const { deps } = spyDeps({ plants: async () => [{ id: "x", name: "X" }], readingsPage: async (_j, _s, off, lim) => rows.slice(off, off + Math.min(lim, cap)) });
+    return await (await handleAnalytics(req("?window=90", "jwt-p"), deps, NOW_MS)).json() as { plants: { daily: { reading_count: number }[] }[] };
+  };
+  const paged = await run(1000), single = await run(10_000);
+  assert.deepEqual(paged.plants[0].daily, single.plants[0].daily);
+  assert.equal(paged.plants[0].daily.reduce((n, d) => n + d.reading_count, 0), 2500, "every row lands in exactly one day");
+});
+
+test("4.B4b: a free user still gets 403 and no read (the daily series adds no read before the gate)", async () => {
+  const { deps, calls } = spyDeps({ isPremium: async () => false });
+  const r = await handleAnalytics(req("?window=90", "jwt-e"), deps, NOW_MS);
+  assert.equal(r.status, 403);
+  assert.ok(!(await r.text()).includes("daily"));
+  assert.deepEqual(calls, ["getUserId"], "only the token check ran: isPremium is the stub that says no, nothing else was called");
+});
+
 // ---------------------------------------------------------------- integration tests (local PostgreSQL, RLS as the user)
 const url = process.env.NW_TEST_DB_URL;
 const db = url ? { skip: false } : { skip: "NW_TEST_DB_URL not set (run via cloud/test.sh)" };
@@ -154,7 +209,7 @@ function dbDeps(calls: string[] = []): AnalyticsDeps {
   };
 }
 
-const WIRE_PLANT_KEYS = ["battery_mv", "plant_id", "name", "reading_count", "soil_pct", "trend", "watering_events"].sort();
+const WIRE_PLANT_KEYS = ["battery_mv", "daily", "plant_id", "name", "reading_count", "soil_pct", "trend", "watering_events"].sort();
 const WIRE_TREND_KEYS = ["first_week_mean", "last_week_mean", "soil_change_pct"].sort();
 
 test("setup: three users, two premium and one free; each has its own plants and readings", db, () => {
@@ -182,7 +237,9 @@ test("FR-P01: premium user, window=30 -> 200 with the contract shape, hand-compu
   assert.deepEqual(body.plants.map((p) => p.name), ["Aloe", "Basil"], "sorted by name");
   const [aloe, basil] = body.plants;
   // Aloe: no readings -> explicit zeros and nulls
-  assert.deepEqual(aloe, {
+  const { daily: aloeDaily, ...aloeRest } = aloe;   // the daily series has its own tests below (4.B4b)
+  assert.equal(aloeDaily.length, 30);
+  assert.deepEqual(aloeRest, {
     plant_id: PLANT_ALOE, name: "Aloe", reading_count: 0, soil_pct: null, battery_mv: null, watering_events: 0,
     trend: { soil_change_pct: null, first_week_mean: null, last_week_mean: null },
   });
@@ -235,4 +292,40 @@ test("500 on a database failure as the user (a table that does not exist), no da
   const r = await handleAnalytics(req("?window=30", "jwt-p"), broken, NOW_MS);
   const text = await r.text();
   assert.equal(r.status, 500); assert.deepEqual(JSON.parse(text), { error: "internal" }); assert.ok(!text.includes("no_such_table"));
+});
+
+test("4.B4b: daily series over the real database (RLS as the user): hand-computed days for Basil, nothing of F's", db, async () => {
+  // NOW = 2026-11-20T00:00Z. 30-day dates: 2026-10-22 .. 2026-11-20. Basil samples: every 15 min from Oct 26 00:00 to Nov 19 23:45 (g = 0..2399, 96 per day).
+  // Oct 22-25: empty (4 days). Oct 26: 96 samples, all 40 -> soil 40, battery 3900, count 96.
+  // Nov 15: g = 20 d x 96 + 0..95; moisture is 40 for g < 2000, g = 2000 is Nov 15 20:00 -> 80 samples at 40, 16 at 60: (80 x 40 + 16 x 60) / 96 = 4160 / 96.
+  // Nov 16-19: all 60. Nov 19 also holds the implausible 99 at 23:07: excluded, count stays 96. Nov 20 (today, 00:00:00): no sample, the 01:00 row is in the future -> empty.
+  // 25 populated days x 96 = 2,400 = reading_count (the window starts before the first sample, so here the daily counts do add up).
+  const body = await (await handleAnalytics(req("?window=30", "jwt-p"), dbDeps(), NOW_MS)).json() as { plants: any[] };
+  const basil = body.plants.find((p) => p.name === "Basil"), aloe = body.plants.find((p) => p.name === "Aloe");
+  assert.equal(basil.daily.length, 30);
+  assert.equal(basil.daily[0].date, "2026-10-22"); assert.equal(basil.daily[29].date, "2026-11-20");
+  const at = (d: string) => basil.daily.find((x: any) => x.date === d);
+  for (const d of ["2026-10-22", "2026-10-25", "2026-11-20"]) assert.deepEqual(at(d), { date: d, soil_pct_mean: null, battery_mv_mean: null, reading_count: 0 });
+  assert.deepEqual(at("2026-10-26"), { date: "2026-10-26", soil_pct_mean: 40, battery_mv_mean: 3900, reading_count: 96 });
+  assert.ok(Math.abs(at("2026-11-15").soil_pct_mean - 4160 / 96) < 1e-9);
+  assert.deepEqual(at("2026-11-19"), { date: "2026-11-19", soil_pct_mean: 60, battery_mv_mean: 3900, reading_count: 96 });
+  assert.equal(basil.daily.reduce((n: number, x: any) => n + x.reading_count, 0), 2400);
+  assert.ok(aloe.daily.length === 30 && aloe.daily.every((x: any) => x.reading_count === 0 && x.soil_pct_mean === null));
+  // NFR-06: F's rows (soil 5, battery 3000, Nov 18 00:00-09:00) appear in no day of P's series
+  assert.ok(!basil.daily.some((x: any) => x.soil_pct_mean === 5 || x.battery_mv_mean === 3000));
+  const fern = (await (await handleAnalytics(req("?window=30", "jwt-f"), dbDeps(), NOW_MS)).json() as { plants: any[] }).plants[0];
+  assert.deepEqual(fern.daily.find((x: any) => x.date === "2026-11-18"), { date: "2026-11-18", soil_pct_mean: 5, battery_mv_mean: 3000, reading_count: 10 });
+  assert.equal(fern.daily.reduce((n: number, x: any) => n + x.reading_count, 0), 10);
+});
+
+test("4.B4b: window=90 over the real database: 90 items from 2026-08-23 to 2026-11-20, rows read unchanged (4 pages)", db, async () => {
+  const calls: string[] = [];
+  const body = await (await handleAnalytics(req("?window=90", "jwt-p"), dbDeps(calls), NOW_MS)).json() as { plants: any[] };
+  assert.deepEqual(calls.filter((c) => c.startsWith("readingsPage")), ["readingsPage@0", "readingsPage@1000", "readingsPage@2000", "readingsPage@2401"]);
+  const basil = body.plants.find((p) => p.name === "Basil");
+  assert.equal(basil.daily.length, 90);
+  assert.equal(basil.daily[0].date, "2026-08-23"); assert.equal(basil.daily[89].date, "2026-11-20");
+  // Aug 23 .. Oct 25 = 64 empty days (Aug 23-31 = 9, Sep = 30, Oct 1-25 = 25), then 25 populated days, then today empty: 64 + 25 + 1 = 90
+  assert.equal(basil.daily.filter((x: any) => x.reading_count === 0).length, 65);
+  assert.equal(basil.daily.reduce((n: number, x: any) => n + x.reading_count, 0), 2400);
 });

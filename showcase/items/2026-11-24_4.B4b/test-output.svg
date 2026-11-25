@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="200" viewBox="0 0 720 200" role="img" aria-label="Test run output: analytics tests 34 of 34 and endpoint tests 18 of 18 pass, all cloud tests passed">
+<rect width="720" height="200" fill="#10151c"/>
+<g font-family="monospace" font-size="15" fill="#d8e0ea">
+<text x="20" y="36">== analytics endpoint (against local Postgres)</text>
+<text x="20" y="60" fill="#6fd08c">tests 18   pass 18   fail 0</text>
+<text x="20" y="96">== analytics (pure functions, hand-computed fixtures)</text>
+<text x="20" y="120" fill="#6fd08c">tests 34   pass 34   fail 0</text>
+<text x="20" y="168" fill="#6fd08c" font-weight="bold">ALL CLOUD TESTS PASSED</text>
+</g></svg>

@@ -25,6 +25,13 @@ export interface AnalyticsReading {
 export interface AnalyticsPlant { id: string; name: string }
 
 export interface Stat { mean: number; min: number; max: number }
+/** One UTC calendar day of the daily series (ADR-018, 4.B4b). Null means "no value that day" (a gap), never 0. */
+export interface DailyPoint {
+  date: string;                  // YYYY-MM-DD, UTC
+  soilPctMean: number | null;
+  batteryMvMean: number | null;
+  readingCount: number;          // plausible readings of the plant on that day (0 for an empty day)
+}
 export interface PlantAnalytics {
   plantId: string;
   name: string;
@@ -33,6 +40,7 @@ export interface PlantAnalytics {
   soilPct: Stat | null;        // null when no usable soil reading
   batteryMv: Stat | null;      // null when no usable battery reading
   wateringEvents: number;
+  daily: DailyPoint[];         // exactly windowDays items, oldest first, ending with today (UTC), empty days included (ADR-018)
   trend: {
     soilChangePct: number | null;  // lastWeekMean - firstWeekMean, in soil percent points; null if either week is empty
     firstWeekMean: number | null;
@@ -51,10 +59,10 @@ function mean(values: number[]): number | null {
   return values.length === 0 ? null : values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-interface Sample { t: number; moisturePct: number | null; vbatMv: number | null }
+export interface Sample { t: number; moisturePct: number | null; vbatMv: number | null }
 
 /** Plausible readings of one plant with a parseable time in [startMs, nowMs], sorted by time. Anything else is dropped. */
-function samplesInWindow(readings: AnalyticsReading[], plantId: string, startMs: number, nowMs: number): Sample[] {
+export function samplesInWindow(readings: AnalyticsReading[], plantId: string, startMs: number, nowMs: number): Sample[] {
   const out: Sample[] = [];
   for (const r of readings) {
     if (r.plantId !== plantId || !r.plausible) continue;
@@ -63,6 +71,39 @@ function samplesInWindow(readings: AnalyticsReading[], plantId: string, startMs:
     out.push({ t, moisturePct: r.moisturePct, vbatMv: r.vbatMv });
   }
   return out.sort((a, b) => a.t - b.t);
+}
+
+/**
+ * Daily series (ADR-018, FR-P01, owner decision A-131): one item per UTC calendar day, the `windowDays` dates ending with the UTC date of
+ * `nowMs` (today, partial), oldest first. Empty days are included. A mean is null when the day has no value for that sensor, never 0 or NaN.
+ * `samples` come from samplesInWindow (plausible, own plant, inside the rolling window), so the filters exist once. Samples before the first
+ * listed date (the part of the rolling window's first day before 00:00 UTC) are in no item (ADR-018, open point 1). UTC: no local zone is stored.
+ */
+export function dailySeries(samples: Sample[], nowMs: number, windowDays: number): DailyPoint[] {
+  const todayStart = Math.floor(nowMs / DAY_MS) * DAY_MS;      // 00:00:00.000 UTC of today (nowMs is non-negative epoch time)
+  const firstStart = todayStart - (windowDays - 1) * DAY_MS;
+  const soil: number[][] = Array.from({ length: windowDays }, () => []);
+  const battery: number[][] = Array.from({ length: windowDays }, () => []);
+  const count: number[] = new Array(windowDays).fill(0);
+  for (const s of samples) {
+    if (s.t < firstStart || s.t > nowMs) continue;
+    const i = Math.floor((s.t - firstStart) / DAY_MS);
+    if (i < 0 || i >= windowDays) continue;
+    count[i]++;
+    if (s.moisturePct !== null) soil[i].push(s.moisturePct);
+    if (s.vbatMv !== null) battery[i].push(s.vbatMv);
+  }
+  return Array.from({ length: windowDays }, (_, i) => ({
+    date: new Date(firstStart + i * DAY_MS).toISOString().slice(0, 10),
+    soilPctMean: mean(soil[i]),
+    batteryMvMean: mean(battery[i]),
+    readingCount: count[i],
+  }));
+}
+
+/** Daily series of one plant straight from readings (plausible only, that plant only; same filters as aggregatePlant). */
+export function dailySeriesForPlant(readings: AnalyticsReading[], plantId: string, nowMs: number, windowDays: number): DailyPoint[] {
+  return dailySeries(samplesInWindow(readings, plantId, nowMs - windowDays * DAY_MS, nowMs), nowMs, windowDays);
 }
 
 /** Count consecutive soil samples whose rise is WATERING_RISE_PCT or more and whose gap is at most MAX_EVENT_GAP_MS (A-115). */
@@ -98,6 +139,7 @@ export function aggregatePlant(plant: AnalyticsPlant, readings: AnalyticsReading
     soilPct: stat(soil),
     batteryMv: stat(battery),
     wateringEvents: countWateringEvents(samples),
+    daily: dailySeries(samples, nowMs, windowDays),
     trend: {
       soilChangePct: firstWeekMean === null || lastWeekMean === null ? null : lastWeekMean - firstWeekMean,
       firstWeekMean,
