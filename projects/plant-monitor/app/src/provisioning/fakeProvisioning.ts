@@ -14,7 +14,7 @@ export interface FakeProvisioningOptions {
   /** Bluetooth permission refused / adapter off / no implementation */
   failScan?: 'permission_denied' | 'bluetooth_off' | 'not_available';
   /** error to throw once at the claim stage, e.g. 'claim_network' */
-  claimFailsOnce?: 'claim_network' | 'claim_server' | 'claim_token_invalid';
+  claimFailsOnce?: 'claim_network' | 'claim_server' | 'claim_token_invalid' | 'claim_rejected';
 }
 
 export const FAKE_SENSOR: FakeSensor = { hwId: 'nw-a1b2c3d4e5f6', pop: '7KQ2M9XD' };

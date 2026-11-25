@@ -132,6 +132,7 @@ export function LinkErrorStep({ time, code, ssid, onReenter, onOther, onRetry, o
   const [reset, setReset] = useState(false);
   const wifi = code === 'wifi_auth' || code === 'wifi_no_ap' || code === 'wifi_timeout';
   const owned = code === 'device_owned';
+  // claim_rejected is NOT retryable in place: the sensor refused the claim on this session, and the copy says "Start setup again" (new session, new token).
   const retryable = code === 'claim_network' || code === 'claim_server';
   const title = wifi ? t('setup.linkError.wifi.title') : owned ? t('setup.linkError.owned.title') : t('setup.linkError.claim.title');
   const key = `setup.linkError.${code}`;

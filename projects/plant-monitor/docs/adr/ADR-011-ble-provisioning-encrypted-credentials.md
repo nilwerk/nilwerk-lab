@@ -21,3 +21,13 @@ Recommendation: A, with B only if Arsany explicitly wants roaming. The sensor ne
 
 ## Consequences
 + Stronger than PoP-only setup; credentials never in plaintext over the air or in our database. - Heavier crypto on the C3 during setup (SRP6a big-number math, a few seconds, setup only); app library must support security 2 (risk O-13); setup mode must be hardened against guessing; Wi-Fi password in device flash is plaintext unless NVS encryption is enabled (O-3). Interfaces: `interfaces/ble-provisioning.md` (endpoints `nw-claim`, `nw-hub`). Tests: 5.5 (setup on iOS/Android, wrong PoP rejected), 5.9 (no plaintext credential in cloud, capture shows no SSID/passphrase over BLE).
+
+## Verification note (4.F2, PR #215, 2026-11-25)
+Item 1 above said the ESP-IDF API was "from my knowledge, verify in week 1". Checked against ESP-IDF tag v5.4 (sparse clone, reviewer's local check; not re-run in the firmware CI):
+- `components/protocomm/src/common/protocomm.c:120`: endpoints added with `protocomm_add_endpoint` get `REQ_EP`. `protocomm.c:199-204`: the `REQ_EP` handler runs only after `pc->sec->decrypt` succeeds.
+- `components/protocomm/src/security/security2.c:452-467`: `sec2_decrypt` refuses unless the session state is `DONE`. `security2.c:220`: the SRP exchange. `security2.c:273-274`: the state becomes `DONE` and `PROTOCOMM_SECURITY_SESSION_SETUP_OK` is posted with `esp_event_post` on the default loop.
+- `components/protocomm/include/security/protocomm_security.h:16, 23-27`: the `PROTOCOMM_SECURITY_SESSION_EVENT` base and its `SETUP_OK` and `CREDENTIALS_MISMATCH` ids.
+- `components/wifi_provisioning/src/manager.c:323-339`: the manager sets the protocomm security for the chosen security version.
+
+Consequence for this ADR: a wrong PoP fails inside the SRP exchange, so it is counted by `CREDENTIALS_MISMATCH` and never reaches an endpoint. The firmware drives the 5-failed-handshake limit from those two events (`nw_prov_idf.c`, `on_session_event`). Security impact: the setup state is global, so a failed handshake drops the session and the next attempt starts from ADVERTISING. ADR-011 accepts this as the guessing-DoS trade-off in item 2 (a wrong PoP can end setup for everyone in range; the owner accepted the 5-attempt limit).
+Still open: the bench check in `tests/procedures/4.F2-claim-diagnostics.md` (NOT RUN). The FR-D09 requirement text is not in this checkout; see the PR for the question raised to the Lead.

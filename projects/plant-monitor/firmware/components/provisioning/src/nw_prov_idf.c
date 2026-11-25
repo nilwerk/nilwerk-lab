@@ -1,7 +1,7 @@
 /* ESP-IDF glue for the setup flow (task 4.F2 slice 2). See include/nw_prov_idf.h.
  *
- * STATUS: written against ESP-IDF v5.4 from the author's knowledge of the API; NOT COMPILED, NOT RUN. Every call marked
- * [verify] is a place where the exact signature or event semantics must be checked by the first CI build / bench run.
+ * STATUS: compiled by the CI ESP-IDF build jobs (esp32c3, setup flow on); not run on hardware. The protocomm and wifi_prov
+ * references are in docs/adr/ADR-011 (verification note). Remaining [verify] tags are open items for the bench run.
  * All state machine work goes through nw_glue_* (host-tested). This file only moves events in and out, under one mutex
  * (BLE endpoint handlers, the Wi-Fi/prov event loop and the http task are different FreeRTOS tasks; nw_prov has no locking). */
 #include "nw_prov_idf.h"
@@ -24,6 +24,7 @@
 #include "nw_prov_glue.h"
 #include "nw_prov_store_nvs.h"
 #include "nw_sec2.h"
+#include "protocomm_security.h"   /* PROTOCOMM_SECURITY_SESSION_EVENT and its SETUP_OK / CREDENTIALS_MISMATCH ids */
 #include "sdkconfig.h"
 #include "wifi_provisioning/manager.h"
 #include "wifi_provisioning/scheme_ble.h"
@@ -58,7 +59,7 @@ static void io_ble_set(void *ctx, bool on)
 }
 static void io_wifi_start(void *ctx, const char *ssid, const char *pass)
 {
-    (void)ctx; (void)ssid; (void)pass;   /* [verify] wifi_prov_mgr already called esp_wifi_set_config + esp_wifi_connect on apply */
+    (void)ctx; (void)ssid; (void)pass;   /* wifi_prov_mgr stores the config and joins on apply when the SRP session is DONE (manager.c:1255-1291, v5.4 reviewer check) */
     ESP_LOGI(TAG, "NWSETUP wifi joining");
 }
 
@@ -125,24 +126,67 @@ static esp_err_t reply(uint8_t **out, ssize_t *outlen, const char *s)
     return ESP_OK;
 }
 
+static const char *state_name(nw_prov_state_t s)
+{
+    switch (s) {
+    case NW_PROV_S_NORMAL: return "NORMAL";
+    case NW_PROV_S_ADVERTISING: return "ADVERTISING";
+    case NW_PROV_S_SESSION: return "SESSION";
+    case NW_PROV_S_WIFI_CONNECTING: return "WIFI_CONNECTING";
+    case NW_PROV_S_CLAIMING: return "CLAIMING";
+    case NW_PROV_S_CLAIMED: return "CLAIMED";
+    case NW_PROV_S_CLOSED: return "CLOSED";
+    }
+    return "?";
+}
+
+/* ---- protocomm security-2 session result -> state machine (FR-D03: 5 failed handshakes end setup mode) ----
+ * protocomm posts these on the default event loop (security2.c:273-274 in ESP-IDF v5.4): SETUP_OK when the SRP handshake
+ * succeeds (the session becomes DONE, which is the only state in which endpoints are decrypted: protocomm.c:199-214,
+ * security2.c:467); CREDENTIALS_MISMATCH when the PoP is wrong. Registered in nw_setup_run(), removed after the loop. */
+static void on_session_event(void *arg, esp_event_base_t base, int32_t id, void *data)
+{
+    (void)arg; (void)data;
+    if (base != PROTOCOMM_SECURITY_SESSION_EVENT) return;
+    LOCK();
+    if (id == PROTOCOMM_SECURITY_SESSION_SETUP_OK) {
+        nw_prov_state_t before = s_prov.state;
+        nw_prov_on_handshake(&s_prov, true, now_ms());
+        ESP_LOGI(TAG, "NWSETUP session: setup ok (%s -> %s)", state_name(before), state_name(s_prov.state));
+    } else if (id == PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH) {
+        nw_prov_on_handshake(&s_prov, false, now_ms());
+        ESP_LOGW(TAG, "NWSETUP session: wrong proof of possession (failed handshakes %u)", (unsigned)s_prov.failed_handshakes);
+    }
+    UNLOCK();
+}
+
 static esp_err_t ep_claim(uint32_t session_id, const uint8_t *in, ssize_t inlen, uint8_t **out, ssize_t *outlen, void *priv)
 {
     (void)session_id; (void)priv;
     char rep[64];
-    if (inlen < 0 || inlen > NW_PROV_REQ_MAX_BYTES) { nw_prov_build_claim_reply(rep, sizeof rep, false); return reply(out, outlen, rep); }
+    ESP_LOGI(TAG, "NWSETUP claim in: len=%d", (int)inlen);
+    if (inlen < 0 || inlen > NW_PROV_REQ_MAX_BYTES) {
+        LOCK(); nw_prov_state_t st = s_prov.state; UNLOCK();
+        ESP_LOGW(TAG, "NWSETUP claim rejected: state=%s reason=LEN", state_name(st));
+        nw_prov_build_claim_reply(rep, sizeof rep, false); return reply(out, outlen, rep);
+    }
     LOCK();
-    nw_prov_on_claim(&s_prov, (const char *)in, (size_t)inlen, rep, sizeof rep, now_ms());
+    int rc = nw_prov_on_claim(&s_prov, (const char *)in, (size_t)inlen, rep, sizeof rep, now_ms());
+    nw_prov_state_t st = s_prov.state;
     UNLOCK();
+    if (rc == NW_PROV_OK) ESP_LOGI(TAG, "NWSETUP claim accepted");
+    else ESP_LOGW(TAG, "NWSETUP claim rejected: state=%s reason=%s", state_name(st), rc == NW_PROV_ERR_STATE ? "ERR_STATE" : "PARSE");
     return reply(out, outlen, rep);       /* rep is always a valid body, ok or bad_request */
 }
 
 static esp_err_t ep_status(uint32_t session_id, const uint8_t *in, ssize_t inlen, uint8_t **out, ssize_t *outlen, void *priv)
 {
-    (void)session_id; (void)in; (void)inlen; (void)priv;
+    (void)session_id; (void)in; (void)priv;
     char b[96];
     LOCK();
     int n = nw_prov_status_json(&s_prov, b, sizeof b);
     UNLOCK();
+    ESP_LOGI(TAG, "NWSETUP status in: inlen=%d reply len=%d", (int)inlen, n);
     if (n < 0) return ESP_FAIL;
     return reply(out, outlen, b);
 }
@@ -156,16 +200,19 @@ static void on_prov_event(void *arg, esp_event_base_t base, int32_t id, void *da
     switch (id) {
     case WIFI_PROV_CRED_RECV: {            /* prov-config received, [verify] fires on apply with the config in data */
         wifi_sta_config_t *c = data;
+        ESP_LOGI(TAG, "NWSETUP wifi cred recv");   /* SSID and passphrase are never logged */
         nw_prov_on_wifi_config(&s_prov, (const char *)c->ssid, (const char *)c->password, now_ms());
         nw_glue_on_apply(&s_glue, now_ms());   /* needs nw-claim first (contract order); else ERR_STATE and nw-status stays idle */
         break;
     }
     case WIFI_PROV_CRED_FAIL: {
         wifi_prov_sta_fail_reason_t *r = data;
+        ESP_LOGW(TAG, "NWSETUP wifi cred fail: reason=%d", (int)*r);
         nw_glue_on_wifi_result(&s_glue, *r == WIFI_PROV_STA_AUTH_ERROR ? NW_PROV_WIFI_AUTH : NW_PROV_WIFI_NO_AP, now_ms());
         break;
     }
     case WIFI_PROV_CRED_SUCCESS:
+        ESP_LOGI(TAG, "NWSETUP wifi cred success");
         nw_glue_on_wifi_result(&s_glue, NW_PROV_WIFI_OK, now_ms());   /* starts the claim POST */
         break;
     default: break;
@@ -228,13 +275,22 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     wifi_init_config_t wc = WIFI_INIT_CONFIG_DEFAULT();
     esp_wifi_init(&wc);
     esp_event_handler_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event, NULL);
+    /* default loop: protocomm posts with esp_event_post, no loop argument (security2.c:273-274, v5.4 reviewer check) */
+    esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event, NULL);
+    esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event, NULL);
 
     char hw[NW_PROV_HWID_LEN + 1];
     make_hw_id(hw);
     nw_glue_io_t io = {.ble_set = io_ble_set, .wifi_start = io_wifi_start, .http_post = io_http_post};
     nw_prov_ops_t ops;
     nw_prov_store_nvs(&io.store);
-    if (nw_glue_init(&s_glue, &io, hw, CONFIG_PLANT_FW_VERSION, &ops) != NW_PROV_OK) { ESP_LOGE(TAG, "glue init"); return NW_SETUP_SLEEP_UNTIL_RESET; }
+    if (nw_glue_init(&s_glue, &io, hw, CONFIG_PLANT_FW_VERSION, &ops) != NW_PROV_OK) {
+        ESP_LOGE(TAG, "glue init");
+        esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event);
+        esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event);
+        esp_event_handler_unregister(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event);
+        return NW_SETUP_SLEEP_UNTIL_RESET;
+    }
     nw_prov_init(&s_prov, &ops);
 #ifdef CONFIG_PLANT_BENCH_SETUP_WINDOW_S
     s_prov.setup_window_ms = CONFIG_PLANT_BENCH_SETUP_WINDOW_S * 1000u;   /* bench CI image only (sdkconfig.defaults.bench-ci): 300 s */
@@ -259,7 +315,10 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
         if (next != NW_GLUE_NEXT_STAY) break;
         vTaskDelay(pdMS_TO_TICKS(500));
     }
+    esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event);
+    esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event);
     if (s_mgr_up) { wifi_prov_mgr_stop_provisioning(); wifi_prov_mgr_deinit(); s_mgr_up = false; }   /* BLE off (FR-D09) [verify] deinit frees BT memory */
+    esp_event_handler_unregister(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event);   /* after the manager stops, so its end events still reach the handler */
     bool have_record = false;
     { nw_prov_record_t r; if (s_glue.io.store.load && s_glue.io.store.load(s_glue.io.store_ctx, &r) == 0) { have_record = true; memset(&r, 0, sizeof r); } }
     nw_glue_next_t next = nw_glue_next_after_boot(&s_prov, rc, have_record);   /* PR #172: failed boot decision sleeps, never normal */

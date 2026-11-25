@@ -210,19 +210,62 @@ tap() {
   post_el click
 }
 
+# scroll_down: one swipe up, to bring a field below the fold into view (the Wi-Fi step's password field is under the list).
+scroll_down() {
+  local size w h
+  size="$(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell wm size 2>/dev/null | tr -d '\r' | grep -o '[0-9][0-9]*x[0-9][0-9]*' | tail -1)" || size=""
+  w="${size%x*}"; h="${size#*x}"
+  [ -n "$w" ] && [ -n "$h" ] || { w=1440; h=2560; }
+  timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell input swipe $(( w / 2 )) $(( h * 7 / 10 )) $(( w / 2 )) $(( h * 3 / 10 )) 400 >/dev/null 2>&1 || true
+  sleep 1
+}
+
 # field <label> <env name>: focuses the field labelled <label> and types the value of <env name>. The value is never printed.
+# find_field <label>: finds the field by scrolling down. Network names appear and push the fields below them down, so the
+# field is often below the fold: look, then scroll one step, up to 6 times. Returns 1 if it is never on screen.
+find_field() {
+  local s
+  for s in 1 2 3 4 5 6; do
+    wait_el 3 desc "$1" && return 0
+    # Close the keyboard first: an open keyboard blocks the swipe, so the list does not move.
+    hide_keyboard "$1"
+    scroll_down
+  done
+  return 1
+}
+
 field() {
-  wait_el 30 desc "$1" || fail "field \"$1\" not shown on the screen"
+  # Close a keyboard left open by the previous entry before searching (it hides the lower half of the screen).
+  hide_keyboard "$1"
+  find_field "$1" || fail "field \"$1\" not shown on the screen, even after scrolling down"
   post_el click
+  # The keyboard opens and the screen re-lays out, so the element found before the tap can be stale (HTTP 404 on clear).
+  # Look the field up again after the tap, then clear it.
+  sleep 1
+  find_field "$1" || fail "field \"$1\" lost after the tap (the keyboard may cover it)"
   python3 -I - "$2" "$work/value.json" <<'PY' || fail "the input for $2 is not set (value not printed)"
 import json, os, sys
 with open(sys.argv[2], "w", encoding="utf-8") as f:
     json.dump({"text": os.environ[sys.argv[1]]}, f)
 PY
-  post_el clear
-  local code
-  code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
-    --data-binary @"$work/value.json" "$appium_url/session/$sid/element/$el/value")" || code="000"
+  # The field can be re-laid out between the lookup and the clear (HTTP 404: the element id is gone). Look it up again
+  # and retry the clear and the typing up to 3 times. The label is logged, the typed value never is.
+  local code try
+  for try in 1 2 3; do
+    code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+      --data-binary '{}' "$appium_url/session/$sid/element/$el/clear")" || code="000"
+    if [ "$code" = "200" ]; then
+      code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+        --data-binary @"$work/value.json" "$appium_url/session/$sid/element/$el/value")" || code="000"
+    fi
+    [ "$code" = "200" ] && break
+    echo "d. app flow: ${step_name}: field \"$1\" changed under the step (HTTP $code), closing the keyboard and scrolling down again (try $try of 3)"
+    hide_keyboard "$1"
+    find_field "$1" || break
+    post_el click
+    sleep 1
+    find_field "$1" || break
+  done
   rm -f "$work/value.json"
   [ "$code" = "200" ] || fail "typing into \"$1\" was not accepted (HTTP $code)"
   hide_keyboard "$1"
@@ -376,7 +419,14 @@ tap "${T[setup.name.submit]}"
 photo="${T[setup.photo.title]}"
 wait_any 180 "$photo" "${T[setup.linkError.wifi.title]}" "${T[setup.linkError.owned.title]}" "${T[setup.linkError.claim.title]}" \
   || fail "linking did not reach the photo step in time"
-[ "$hit" = "$photo" ] || fail "the sensor could not be linked (stopped on \"$hit\")"
+if [ "$hit" != "$photo" ]; then
+  # Log the reason line under the error title (a screen string, never a secret). It names the cause: no connection,
+  # server refused, setup code expired, or the sensor already belongs to someone.
+  # grep finds nothing on some screens: that must not stop the step (pipefail + set -e would end it silently).
+  reason="$(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell uiautomator dump /sdcard/link.xml >/dev/null 2>&1; timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell cat /sdcard/link.xml 2>/dev/null | grep -o 'text="[^"]*"' | grep -v 'text=""' | head -8 | tr '\n' ' ')" || reason=""
+  echo "d. app flow: ${step_name}: texts on the link screen: ${reason:-none read}"
+  fail "the sensor could not be linked (stopped on \"$hit\")"
+fi
 tap "${T[setup.photo.skip]}"
 wait_el 30 text "${T[setup.details.title]}" || fail "the plant details step did not open"
 field "${T[setup.details.name]}" BENCH_PLANT_NAME
