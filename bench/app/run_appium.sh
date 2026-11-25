@@ -227,6 +227,8 @@ find_field() {
   local s
   for s in 1 2 3 4 5 6; do
     wait_el 3 desc "$1" && return 0
+    # Close the keyboard first: an open keyboard blocks the swipe, so the list does not move.
+    hide_keyboard "$1"
     scroll_down
   done
   return 1
