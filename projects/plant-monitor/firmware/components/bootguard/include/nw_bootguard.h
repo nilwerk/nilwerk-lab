@@ -5,7 +5,7 @@
  * (a unit that resets in a loop must not burn its cell on endless Wi-Fi/BLE attempts) and NFR-12 (fallback is plain deep sleep, radios off, 50 uA
  * limit unchanged). FR-D04: offline samples stay in the RTC ring, which this guard never touches.
  *
- * NOT RUN ON HARDWARE. Every number marked [proposed] is a design proposal, not a decision (open point for Arsany).
+ * NOT RUN ON HARDWARE. Every number marked [proposed] is a design value; the owner's decisions on the values are recorded in the Needs Arsany sheet, not in this repo.
  *
  * How it works (per boot, adapter order):
  *   1. nw_bootguard_boot(&rtc_guard, ota_or_null): counts this boot as "unconfirmed" and answers RUN, FALLBACK or ROLLBACK.
@@ -14,10 +14,11 @@
  *   3. FALLBACK: no BLE, no Wi-Fi, no sensors. Log the one line from nw_bootguard_log_line(), deep sleep for out.sleep_s, nothing else.
  *   4. ROLLBACK: the running image is an unconfirmed OTA image and it is looping (or its window is used up): switch to the previous slot and reboot.
  *      A looping image rolls back at the START of boot N+1 (boot 6 with N = 5), after N failed boots. This is earlier than the decided 8-boot OTA
- *      window (A-116) and is NEW behaviour, accepted by the owner. It stays off until the bench proves it (Kconfig PLANT_BOOTGUARD).
+ *      window (NW_OTA_MAX_UNCONFIRMED_BOOTS, nw_ota.h) and is NEW behaviour, owner-accepted (decision recorded in the Needs Arsany sheet, not in this repo).
+ *      It stays off until the bench proves it (Kconfig PLANT_BOOTGUARD).
  *
  * ADAPTER (task 4.F7b): components/bootguard/src/nw_bootguard_idf.c implements the rules below. It is compiled only with CONFIG_PLANT_BOOTGUARD (default n);
- * no CI build line sets that option, so it is NOT compiled by CI and NOT run on hardware. The CI build compiles THIS pure file for the ESP32-C3 (nw_bootguard.c.obj,
+ * no CI build line sets that option, so it is NOT compiled for ESP-IDF yet and NOT run on hardware. The CI build compiles THIS pure file for the ESP32-C3 (nw_bootguard.c.obj,
  * libbootguard.a), linked into no image. Reset-reason mapping and the sleep-path table are in nw_bootguard_map.h and tested on the host.
  * ADAPTER RULES (the contract the adapter follows, not verified on a board):
  *   (a) EVERY deliberate sleep path calls nw_bootguard_confirm_good() first: the normal end of a cycle, the low-battery skip (FR-D06), the BLE setup
@@ -40,12 +41,12 @@
 /* Unconfirmed boots in a row that stop the retries: after this many failed boots the NEXT boot falls back instead of running.
  * [proposed] 5. Not an NFR value. Reasoning: 5 quick resets cost about 5 x 25 mA x ~1 s = ~35 uAh, small next to one hourly report; it is above one
  * stray reset or two (button, brownout on a weak USB port) and below the OTA window of 8 boots (NW_OTA_MAX_UNCONFIRMED_BOOTS, A-116 decided 8), so a
- * looping new image is rolled back by this guard before the slow 8-boot window ends. Open point for Arsany. */
+ * looping new image is rolled back by this guard before the slow 8-boot window ends. Owner-accepted (decision recorded in the Needs Arsany sheet, not in this repo). */
 #define NW_BOOTGUARD_MAX_FAILED_BOOTS 5u
 
 /* Long sleep in fallback. [proposed] 21600 s = 6 h. Reasoning: 4 probation tries per day (up to 0.17 mAh each)
  * (estimate, 0.52 to 1.2 mAh/day in total vs 5.9 mAh/day in normal duty, power budget section 12) while a unit that recovers is back within 6 h; 24 h would save about 0.5 mAh/day more but delays alerts (FR-E03)
- * and a recovered unit by a day. Open point for Arsany. */
+ * and a recovered unit by a day. Owner-accepted (decision recorded in the Needs Arsany sheet, not in this repo). */
 #define NW_BOOTGUARD_FALLBACK_SLEEP_S 21600u
 
 /* Retained across deep sleep and software resets (RTC_NOINIT_ATTR in the adapter, see nw_bootguard_idf.c), 12 bytes. RTC memory, not NVS, as nw_cycle_state_t does: a counter

@@ -1,5 +1,5 @@
 /* ESP-IDF adapter for the boot-loop guard (task 4.F7b, FR-D05, NFR-01, NFR-12). Compiled only with CONFIG_PLANT_BOOTGUARD (default n).
- * NOT COMPILED BY CI (no build line sets the option), NOT RUN ON HARDWARE. */
+ * NOT COMPILED FOR ESP-IDF YET (no CI build line sets the option, no local build), NOT RUN ON HARDWARE. */
 #ifndef NW_BOOTGUARD_IDF_H
 #define NW_BOOTGUARD_IDF_H
 

@@ -1,5 +1,5 @@
 /* ESP-IDF adapter for the boot-loop guard (task 4.F7b, FR-D05, NFR-01, NFR-12). See nw_bootguard.h for the contract and nw_bootguard_idf.h for the API.
- * Compiled only with CONFIG_PLANT_BOOTGUARD. NOT COMPILED BY CI (no build line sets the option), NOT RUN ON HARDWARE.
+ * Compiled only with CONFIG_PLANT_BOOTGUARD. NOT COMPILED FOR ESP-IDF YET (no CI build line sets the option, no local build), NOT RUN ON HARDWARE.
  *
  * Deliberate sleep paths and whether they call confirm_good (header rules a and c; the table is nw_bg_path_confirms, pinned by test_bootguard_map):
  *   normal end of the cycle (upload path and bench loop)      main.c, NW_BG_PATH_NORMAL_END            confirms
