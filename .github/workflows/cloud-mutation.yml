@@ -1,8 +1,8 @@
 name: Cloud mutation suite
 
 # Full mutation suites of the cloud backend (about 15 min, too slow for every PR):
-#   projects/plant-monitor/cloud/test/mutation.sh        62 mutants (token hash/auth, claim, idempotency, RLS, delete, export)
-#   projects/plant-monitor/cloud/tips/test/mutation.sh   67 mutants (care-tips guardrails)
+#   projects/plant-monitor/cloud/test/mutation.sh        67 mutants (token hash/auth, claim, idempotency, RLS, delete, export)
+#   projects/plant-monitor/cloud/tips/test/mutation.sh   66 mutants (care-tips guardrails)
 # Each script exits 1 if any mutant survives, so a red job = a test gap.
 #
 # Three ways in:
