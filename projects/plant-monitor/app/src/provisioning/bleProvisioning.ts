@@ -206,7 +206,8 @@ export function createBleProvisioning(d: BleProvisioningDeps): ProvisioningServi
         if (!dropped && waited > maxLinkMs) throw new ProvisioningError(sawClaiming ? 'claim_network' : 'wifi_timeout');
 
         // 5. a devices row claimed AFTER the token was issued (a row of an earlier setup of the same sensor does not count) must be visible under RLS before we say "claimed" (contract section 3 step 5)
-        const hit = await confirmInCloud(name, issuedAtMs);
+        // Once a drop was seen, the cloud window is the same link budget as the applied path (the sensor may still be joining Wi-Fi and claiming).
+        const hit = await confirmInCloud(name, issuedAtMs, dropped ? Math.ceil(maxLinkMs / pollMs) : confirmTries);
         if (!hit) throw new ProvisioningError(dropped ? 'link_lost' : 'claim_network');
         onState('claimed');
         return hit;
