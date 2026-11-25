@@ -17,7 +17,10 @@ name: Bench (self-hosted)
 # (sdkconfig.defaults.bench-ci; A-138 changed it from 60 s). Step b (serial live-stream check, NWBENCH wake line) runs
 # LATE, after the app flow d (A-139, owner-approved recommendation a): the measurement loop starts when nw_setup_run returns
 # (main.c), which is at window close or somewhat earlier or later (see step b). Step b waits until 310 s after the reset
-# (the reset time is recorded by step 3), then reads the stream for 75 s. Bench step order: 1, 2, a, 3, c, 4, d, b, e, E2E, d2.
+# (the reset time is recorded by step 3), then reads the stream for 75 s. Bench step order: 1, 2, a, 3, s1, c, 4, d, d+, s2, b, e, E2E, s3, s3+, d2.
+# Artifacts (added with the UI dump and serial log change): d+ uploads the masked My plants UI dump only when d fails;
+# s1 starts the serial reader after step 3, s2 stops it before b, s3 checks the serial log for known secret values
+# (fail closed: the log is deleted and not uploaded), s3+ uploads the log, always, and d2 reads that log as BENCH_SETUP_LOG.
 # d2 (setup session and claim lines, bench/app/check_setup_session.sh) is the last step, so a failure there never skips b, e or E2E.
 #   build-firmware   GitHub-hosted, no secrets. Builds the setup-flow firmware. Artifact: plant-monitor-firmware-setup.
 #   build-apk        GitHub-hosted, no secrets. Builds the Android debug APK. Artifact: plant-monitor-app-debug-<sha7>.
@@ -712,6 +715,39 @@ jobs:
           # Reset time of this step (A-139): step b waits for the setup window to close, counted from here. Not a secret.
           echo "BENCH_RESET_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
 
+      - name: "s1. Serial capture start (reader for the artifact, after step 3, before c)"
+        # Starts the one reader that writes the serial log for the artifact. It starts after step 3: esptool resets the board
+        # when step 3 ends (hard_reset), and a reader on the port during a flash makes esptool fail ("Serial data stream
+        # stopped", docs/bench-pi.md section 10). So this reader starts AFTER the reset of step 3, not before it (see the report).
+        # Step s2 stops it before step b, which opens the port itself. Output: ${RUNNER_TEMP}/bench-serial/serial.log (never printed;
+        # checked by s3, then uploaded). The reader is capped at 50 min. A missing port only warns; nothing is captured.
+        env:
+          BENCH_ESP_PORT: /dev/ttyACM0     # USB serial port of the ESP32-C3 on the bench Pi
+        run: |
+          set -uo pipefail
+          dir="${RUNNER_TEMP}/bench-serial"
+          rm -rf -- "$dir"
+          mkdir -p "$dir"
+          chmod 700 "$dir"
+          : > "$dir/serial.log"
+          chmod 600 "$dir/serial.log"
+          if [ ! -e "$BENCH_ESP_PORT" ]; then
+            echo "::warning::s1. serial capture not started: no device at ${BENCH_ESP_PORT} (nothing captured)"
+            exit 0
+          fi
+          if ! stty -F "$BENCH_ESP_PORT" 115200 raw -echo; then
+            echo "::warning::s1. serial capture not started: stty failed on ${BENCH_ESP_PORT} (nothing captured)"
+            exit 0
+          fi
+          timeout 3000 cat "$BENCH_ESP_PORT" >> "$dir/serial.log" 2>/dev/null &
+          echo $! > "$dir/reader.pid"
+          sleep 1
+          if kill -0 "$(cat "$dir/reader.pid")" 2>/dev/null; then
+            echo "s1. serial capture: reader running (output goes to the artifact, not printed)"
+          else
+            echo "::warning::s1. serial capture: the reader did not stay up (nothing captured)"
+          fi
+
       - name: "c. BLE scan (10 s), runs before b"
         # Runs after step 3 and before step b. The bench image opens its BLE setup window on every cold start, and that window
         # is 300 s (CONFIG_PLANT_BENCH_SETUP_WINDOW_S, sdkconfig.defaults.bench-ci; A-138, was 60 s). BLE advertises only inside
@@ -837,8 +873,11 @@ jobs:
           BENCH_BOARD_HW_ID: ${{ vars.BENCH_BOARD_HW_ID }}
           APPIUM_PLATFORM_NAME: Android
           APPIUM_AUTOMATION_NAME: UiAutomator2
+          # Where run_appium.sh writes the masked UI dump of the screen at a failure (uploaded by step d+, if: failure()).
+          BENCH_UI_DUMP_DIR: ${{ runner.temp }}/bench-ui-dump
         run: |
           set -euo pipefail
+          rm -rf -- "${RUNNER_TEMP}/bench-ui-dump"
           script="bench/app/run_appium.sh"
           if [ ! -f "$script" ]; then
             echo "::error::d. app flow: not configured: nothing tested (missing ${script})"
@@ -878,6 +917,35 @@ jobs:
           # Test start time (UTC), read by step e to find rows received after the test started.
           echo "BENCH_TEST_START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
           bash "$script"
+
+      - name: "d+. Upload My plants UI dump (only when step d fails)"
+        # Uploads the UI dump of the screen at the failure, written by bench/app/run_appium.sh through bench/app/mask_ui_dump.py.
+        # The masking runs before the file is written: the PoP, the test e-mail, the test password, the Wi-Fi password and
+        # the soil-moisture reading are never in it. The folder holds nothing else. No file is uploaded on a pass.
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bench-ui-dump-${{ github.run_id }}
+          path: ${{ runner.temp }}/bench-ui-dump/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: "s2. Serial capture stop (before b; always)"
+        # Stops the one reader that step s1 started, so step b can open the port alone, as it did before. It runs always and
+        # never fails the job: a missing reader is only a message.
+        if: always()
+        run: |
+          dir="${RUNNER_TEMP}/bench-serial"
+          pidfile="${dir}/reader.pid"
+          if [ ! -f "$pidfile" ]; then echo "s2. serial capture: no reader was started, nothing to stop"; exit 0; fi
+          pid="$(cat "$pidfile" 2>/dev/null || true)"
+          if [ -n "$pid" ]; then
+            kill "$pid" 2>/dev/null || true
+            for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+            if kill -0 "$pid" 2>/dev/null; then echo "::warning::s2. serial capture: the reader did not stop after TERM (step b may see a busy port)"; fi
+          fi
+          rm -f -- "$pidfile"
+          echo "s2. serial capture: reader stopped"
 
       - name: "b. Serial live stream check (75 s, no reset), runs after d, after the setup window"
         # Runs after step d and before step e (A-139, owner-approved recommendation a; it was after c). No reset here: this step
@@ -1012,12 +1080,70 @@ jobs:
             exit 1
           fi
 
+      - name: "s3. Serial redaction check (fail closed) and serial log upload (always, last)"
+        # Runs last, always. Checks the serial log for the known secret values the bench masks: BENCH_BOARD_POP,
+        # BENCH_WIFI_PASSWORD, BENCH_TEST_EMAIL_PASSWORD and the secret_key inside BENCH_CLOUD_CHECK_CONFIG. Each value is
+        # checked as set, in upper case and in lower case. FAIL CLOSED: if a value is found, or a value is not set (the check
+        # cannot run), the log is DELETED and this step fails, so the upload below finds no file. Values are never printed,
+        # only the name of the secret that matched. This step is last so that a failure here cannot skip steps b, e or E2E.
+        if: always()
+        env:
+          BENCH_BOARD_POP: ${{ secrets.BENCH_BOARD_POP }}
+          BENCH_WIFI_PASSWORD: ${{ secrets.BENCH_WIFI_PASSWORD }}
+          BENCH_TEST_EMAIL_PASSWORD: ${{ secrets.BENCH_TEST_EMAIL_PASSWORD }}
+          BENCH_CLOUD_CHECK_CONFIG: ${{ secrets.BENCH_CLOUD_CHECK_CONFIG }}
+        run: |
+          set -uo pipefail
+          log="${RUNNER_TEMP}/bench-serial/serial.log"
+          if [ ! -e "$log" ]; then
+            echo "s3. serial redaction check: no serial log (no reader ran), nothing to check"
+            exit 0
+          fi
+          work="$(mktemp -d "${RUNNER_TEMP}/serial-check.XXXXXX")"
+          chmod 700 "$work"
+          trap 'rm -rf "$work"' EXIT
+          # The secret_key is read from the JSON config inside the environment variable (never printed).
+          key="$(printf '%s' "$BENCH_CLOUD_CHECK_CONFIG" | python3 -I -c 'import json,sys; c=json.load(sys.stdin); v=c.get("secret_key","") if isinstance(c,dict) else ""; sys.stdout.write(v if isinstance(v,str) else "")' 2>/dev/null)" || key=""
+          fail_closed() {
+            rm -f -- "$log"
+            echo "::error::s3. serial redaction check failed: $1. The serial log is deleted and NOT uploaded."
+            exit 1
+          }
+          check() { # check <secret name> <value>
+            local name="$1" value="$2" rc
+            [ -n "$value" ] || fail_closed "secret ${name} is not set, so the log cannot be checked"
+            case "$value" in *$'\n'*|*$'\r'*) fail_closed "secret ${name} has a line break" ;; esac
+            printf '%s\n' "$value" "${value^^}" "${value,,}" > "$work/pattern"
+            grep -q -F -f "$work/pattern" "$log"; rc=$?
+            if [ "$rc" = "0" ]; then fail_closed "the serial log contains the value of ${name}"; fi
+            if [ "$rc" != "1" ]; then fail_closed "grep exited ${rc} while checking ${name}"; fi
+            echo "s3. serial redaction check: ${name} not found in the log"
+          }
+          check BENCH_BOARD_POP "${BENCH_BOARD_POP:-}"
+          check BENCH_WIFI_PASSWORD "${BENCH_WIFI_PASSWORD:-}"
+          check BENCH_TEST_EMAIL_PASSWORD "${BENCH_TEST_EMAIL_PASSWORD:-}"
+          check "secret_key of BENCH_CLOUD_CHECK_CONFIG" "$key"
+          echo "s3. serial redaction check: passed (no known secret value in the serial log)"
+
+      - name: "s3+. Upload serial log (always; only when the redaction check left the file)"
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bench-serial-log-${{ github.run_id }}
+          path: ${{ runner.temp }}/bench-serial/serial.log
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: "d2. Setup session and claim log check (correct PoP, from the app flow)"
         # Asserts the lines of PR #215 (task 4.F2) in the serial log of the app flow: "NWSETUP session: setup ok" once, before
         # "NWSETUP claim in: len=", then "NWSETUP claim accepted"; and no session or claim line after "NWSETUP session: wrong
         # proof of possession". Rules and exact strings: bench/app/check_setup_session.sh (offline test: bench/app/test_check_setup_session.sh).
-        # Input: BENCH_SETUP_LOG, a path to the serial log written during step d. Step d has no serial capture yet, so the
-        # variable is not set and this step fails closed with "capture missing". Nothing is printed from the log.
+        # Input: BENCH_SETUP_LOG, a path to the serial log written during step d. Set here to the serial capture of this run
+        # (step s1 to s2, checked by s3 before this step; if s3 found a secret the file is gone and this step fails closed with
+        # "capture missing"). Before the capture existed the variable was unset and the step always failed with "capture missing".
+        # Nothing is printed from the log.
+        env:
+          BENCH_SETUP_LOG: ${{ runner.temp }}/bench-serial/serial.log
         run: |
           set -uo pipefail
           bash bench/app/check_setup_session.sh "${BENCH_SETUP_LOG:-}"
