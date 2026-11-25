@@ -1,0 +1,4 @@
+I (1021) plant_monitor: NWSETUP boot: setup mode (button held 0 ms)
+I (1290) nw_prov_idf: NWSETUP ble advertising
+I (49102) nw_prov_idf: NWSETUP claim in: len=812
+I (49877) nw_prov_idf: NWSETUP claim accepted
