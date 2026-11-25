@@ -16,7 +16,8 @@ Every role agent reads, before a task: its role file (`team/roles/<role>.md`), i
 | Yara · 3D | `skills/pcb-cad.md` (CAD and print parts) | `guidelines/prototype/enclosure.md`, `guidelines/by-role/mechanical.md` |
 | Poppy · PR & Social | — | `guidelines/by-role/pr-social.md` (facts and claim sources) |
 | Nora · Lead | all (read) | `guidelines/prototype/`, `team/TEAM.md` |
-| Oskar · HR & Talent | none online yet (to be chosen) | `team/PERSONAS.md` (this role), `team/TEAM.md`; owns the team overview and keeps it current |
+| Oskar · HR & Talent | none online yet (to be chosen per agent during onboarding) | `team/PERSONAS.md`, `team/TEAM.md`, `team/roles/hr.md` |
+| Lena · UI/UX (pending approval) | `artifact-design` (Claude skill, to try) | `projects/plant-monitor/docs/design/app-design-review-2026-11-25.md`, `team/roles/ui-ux-designer.md` |
 
 ## Vendored skills per role (`skills/vendor/<name>/SKILL.md`)
 | Role | Use these | For |
