@@ -26,7 +26,7 @@ static int k_erase(void *c) { fk_t *f = c; f->stored = false; return 0; }
 
 typedef struct { nw_glue_t g; nw_prov_t p; fk_t f; } rig_t;
 
-static void rig_no_handshake(rig_t *r)
+static void rig(rig_t *r)
 {
     memset(r, 0, sizeof *r);
     nw_glue_io_t io = {.ctx = &r->f, .ble_set = k_ble, .wifi_start = k_wifi, .http_post = k_post,
@@ -36,10 +36,6 @@ static void rig_no_handshake(rig_t *r)
     nw_prov_init(&r->p, &ops);
     nw_glue_attach(&r->g, &r->p);
     CHECK_EQ(nw_prov_boot(&r->p, 0, 0), NW_PROV_OK);
-}
-static void rig(rig_t *r)
-{
-    rig_no_handshake(r);
     CHECK_EQ(nw_prov_on_handshake(&r->p, true, 0), NW_PROV_OK);
 }
 static void to_wifi(rig_t *r, uint32_t t)
@@ -212,23 +208,6 @@ static void test_pr172_failed_boot_decision_sleeps_until_reset(void)
     CHECK_EQ(rc, NW_PROV_OK); CHECK_EQ(nw_glue_next_after_boot(&p3, rc, true), NW_GLUE_NEXT_NORMAL);
 }
 
-/* Bench finding (4.F2): the ESP-IDF glue never called nw_prov_on_handshake, so nw-claim was refused with ERR_STATE on every real
- * run. This drives the endpoint path the way ep_claim does (nw_prov_on_endpoint first, no manual handshake call). */
-static void test_endpoint_call_records_session_without_manual_handshake(void)
-{
-    rig_t r; char rep[64];
-    rig_no_handshake(&r);
-    CHECK_EQ(r.p.state, NW_PROV_S_ADVERTISING);
-    CHECK_EQ(nw_prov_on_claim(&r.p, CLAIM_JSON, strlen(CLAIM_JSON), rep, sizeof rep, 0), NW_PROV_ERR_STATE);   /* gap without the endpoint hook */
-    CHECK_EQ(nw_prov_on_endpoint(&r.p, 1), NW_PROV_OK);
-    CHECK_EQ(r.p.state, NW_PROV_S_SESSION);
-    CHECK_EQ(nw_prov_on_claim(&r.p, CLAIM_JSON, strlen(CLAIM_JSON), rep, sizeof rep, 2), NW_PROV_OK);
-    CHECK(strstr(rep, "\"ok\":true") != NULL);
-    CHECK_EQ(nw_prov_on_wifi_config(&r.p, "HomeNet-2G", "correct-horse", 3), NW_PROV_OK);
-    CHECK_EQ(nw_glue_on_apply(&r.g, 3), NW_PROV_OK);
-    CHECK_EQ(r.f.wifi_calls, 1);
-}
-
 /* WO glue item 6: the glue must not touch the state machine constants. Items 5 (traceability) is checked by test_prov / contract check. */
 static void test_item6_constants_unchanged(void)
 {
@@ -243,7 +222,7 @@ int main(void)
     test_item2_claim_body_fields(); test_item2_escaping_and_limits();
     test_item3_http_mapping(); test_item3_token_parser();
     test_item4_behaviour_after_closed(); test_pr172_failed_boot_decision_sleeps_until_reset();
-    test_item6_constants_unchanged(); test_endpoint_call_records_session_without_manual_handshake();
+    test_item6_constants_unchanged();
     printf("glue host tests: %d checks, %d failed\n", nwtest_checked, nwtest_failed);
     return nwtest_failed ? 1 : 0;
 }

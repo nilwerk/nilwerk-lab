@@ -24,6 +24,7 @@
 #include "nw_prov_glue.h"
 #include "nw_prov_store_nvs.h"
 #include "nw_sec2.h"
+#include "protocomm_security.h"   /* PROTOCOMM_SECURITY_SESSION_EVENT and its SETUP_OK / CREDENTIALS_MISMATCH ids [verify] header path */
 #include "sdkconfig.h"
 #include "wifi_provisioning/manager.h"
 #include "wifi_provisioning/scheme_ble.h"
@@ -139,13 +140,24 @@ static const char *state_name(nw_prov_state_t s)
     return "?";
 }
 
-/* Call with the lock held, before any endpoint is handled: the phone can only reach nw-claim / nw-status after the
- * security-2 handshake, and the ESP-IDF 5.4 wifi_prov events do not report it, so the first endpoint call records it. */
-static void ensure_session(void)
+/* ---- protocomm security-2 session result -> state machine (FR-D03: 5 failed handshakes end setup mode) ----
+ * protocomm posts these on the default event loop (security2.c:273-274 in ESP-IDF v5.4): SETUP_OK when the SRP handshake
+ * succeeds (the session becomes DONE, which is the only state in which endpoints are decrypted: protocomm.c:199-214,
+ * security2.c:467); CREDENTIALS_MISMATCH when the PoP is wrong. Registered in nw_setup_run(), removed after the loop. */
+static void on_session_event(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
-    nw_prov_state_t before = s_prov.state;
-    nw_prov_on_endpoint(&s_prov, now_ms());
-    if (before == NW_PROV_S_ADVERTISING && s_prov.state == NW_PROV_S_SESSION) ESP_LOGI(TAG, "NWSETUP session: recorded on first endpoint call");
+    (void)arg; (void)data;
+    if (base != PROTOCOMM_SECURITY_SESSION_EVENT) return;
+    LOCK();
+    if (id == PROTOCOMM_SECURITY_SESSION_SETUP_OK) {
+        nw_prov_state_t before = s_prov.state;
+        nw_prov_on_handshake(&s_prov, true, now_ms());
+        ESP_LOGI(TAG, "NWSETUP session: setup ok (%s -> %s)", state_name(before), state_name(s_prov.state));
+    } else if (id == PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH) {
+        nw_prov_on_handshake(&s_prov, false, now_ms());
+        ESP_LOGW(TAG, "NWSETUP session: wrong proof of possession (failed handshakes %u)", (unsigned)s_prov.failed_handshakes);
+    }
+    UNLOCK();
 }
 
 static esp_err_t ep_claim(uint32_t session_id, const uint8_t *in, ssize_t inlen, uint8_t **out, ssize_t *outlen, void *priv)
@@ -159,7 +171,6 @@ static esp_err_t ep_claim(uint32_t session_id, const uint8_t *in, ssize_t inlen,
         nw_prov_build_claim_reply(rep, sizeof rep, false); return reply(out, outlen, rep);
     }
     LOCK();
-    ensure_session();
     int rc = nw_prov_on_claim(&s_prov, (const char *)in, (size_t)inlen, rep, sizeof rep, now_ms());
     nw_prov_state_t st = s_prov.state;
     UNLOCK();
@@ -173,7 +184,6 @@ static esp_err_t ep_status(uint32_t session_id, const uint8_t *in, ssize_t inlen
     (void)session_id; (void)in; (void)priv;
     char b[96];
     LOCK();
-    ensure_session();
     int n = nw_prov_status_json(&s_prov, b, sizeof b);
     UNLOCK();
     ESP_LOGI(TAG, "NWSETUP status in: inlen=%d reply len=%d", (int)inlen, n);
@@ -265,6 +275,9 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     wifi_init_config_t wc = WIFI_INIT_CONFIG_DEFAULT();
     esp_wifi_init(&wc);
     esp_event_handler_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, on_prov_event, NULL);
+    /* [verify] default loop: protocomm posts with esp_event_post (no loop argument) in ESP-IDF v5.4 */
+    esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event, NULL);
+    esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event, NULL);
 
     char hw[NW_PROV_HWID_LEN + 1];
     make_hw_id(hw);
@@ -296,6 +309,8 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
         if (next != NW_GLUE_NEXT_STAY) break;
         vTaskDelay(pdMS_TO_TICKS(500));
     }
+    esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event);
+    esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event);
     if (s_mgr_up) { wifi_prov_mgr_stop_provisioning(); wifi_prov_mgr_deinit(); s_mgr_up = false; }   /* BLE off (FR-D09) [verify] deinit frees BT memory */
     bool have_record = false;
     { nw_prov_record_t r; if (s_glue.io.store.load && s_glue.io.store.load(s_glue.io.store_ctx, &r) == 0) { have_record = true; memset(&r, 0, sizeof r); } }

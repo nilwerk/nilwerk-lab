@@ -83,15 +83,6 @@ int nw_prov_on_handshake(nw_prov_t *p, bool ok, uint32_t now_ms)
     return NW_PROV_OK;
 }
 
-int nw_prov_on_endpoint(nw_prov_t *p, uint32_t now_ms)
-{
-    /* nw-claim / nw-status are only routed after the security-2 handshake, and wifi_prov_mgr (ESP-IDF 5.4) has no
-     * session-established event, so the first endpoint call records the session. */
-    nw_prov_tick(p, now_ms);
-    if (p->state == NW_PROV_S_ADVERTISING) return nw_prov_on_handshake(p, true, now_ms);
-    return NW_PROV_OK;
-}
-
 int nw_prov_on_wifi_config(nw_prov_t *p, const char *ssid, const char *passphrase, uint32_t now_ms)
 {
     nw_prov_tick(p, now_ms);
