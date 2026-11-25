@@ -39,10 +39,10 @@ Request without a hub: `{"v":1,"hub":null}` (hub is needed for the local dashboa
 | `password` | 24+ random characters from the hub registrar |
 Reply: `{"v":1,"ok":true}`.
 
-### `nw-status` (read; app polls every 1 s after `prov-config` apply)
+### `nw-status` (read; the app reads it only when the `prov-config` apply is refused, see section 3)
 `{"v":1,"state":"<state>","reason":null}` with `state` in:
 `wifi_connecting` -> `wifi_failed` (reason `auth` | `no_ap` | `timeout`) | `claiming` -> `claimed` | `claim_failed` (reason `claim_token_invalid` | `device_owned` | `network` | `server`).
-Before `prov-config` apply, `nw-status` reads `{"v":1,"state":"idle","reason":null}` [added in 4.F2; the app only polls after apply, so it never sees this]. After `wifi_failed` the device forgets the failed SSID/passphrase and needs a new `prov-config` before the next apply; after `claim_failed` it forgets the used token and needs a new `nw-claim`. The 300 s device cut-off is not enforced while a Wi-Fi join or claim call is in flight, only before and after it.
+Before `prov-config` apply, `nw-status` reads `{"v":1,"state":"idle","reason":null}` [added in 4.F2; the app reads it only after a refused apply, so it never sees this]. After `wifi_failed` the device forgets the failed SSID/passphrase and needs a new `prov-config` before the next apply; after `claim_failed` it forgets the used token and needs a new `nw-claim`. The 300 s device cut-off is not enforced while a Wi-Fi join or claim call is in flight, only before and after it.
 On `claimed` the device turns BLE off, stores everything in NVS and does one hub test publish (hub result is not reported here; the app checks the hub dashboard/status).
 `wifi_failed` and `claim_failed` leave setup mode open for a retry until the 300 s device cut-off (A-070, ADR-011). The 3-minute budget of NFR-03 is the user-time target and is measured separately; it does not change the device limit.
 
@@ -51,7 +51,8 @@ On `claimed` the device turns BLE off, stores everything in NVS and does one hub
 2. User powers the sensor / presses button; app scans `NW-*`, user scans the QR (gives PoP).
 3. App: security 2 handshake -> `nw-claim` (any time after the handshake, before apply) and `prov-config` (SSID, passphrase) + apply; `nw-hub` is optional and not implemented in v1 (review of PR #126, C2).
 4. Sensor joins Wi-Fi, calls `POST /device-claim` (with `hw_id`, `claim_token`, `name`, `fw`), stores the returned device token.
-5. App polls `nw-status` until `claimed`, then confirms via the cloud (devices row visible under RLS), then collects photo and plant details (written to `plants`, `plant_images`, `devices.plant_id` through supabase-js).
+5. After a successful apply the app sends nothing more over BLE: the Android SDK has dropped its security session on success (lib-2.4.4 `ESPDevice.java:1189`), and a new handshake is rejected by the device, which drops the link. The app waits for the devices row in the cloud (visible under RLS) for the link budget (90 s), then collects photo and plant details (written to `plants`, `plant_images`, `devices.plant_id` through supabase-js). Not confirmed in that time = app error `link_lost`. Claim errors reported by the device (`device_owned`, `claim_token_invalid`) are therefore no longer shown after a successful apply: accepted trade-off, recorded in the ADR entry (Architect).
+   If the apply is refused, the app reads `nw-status` for the device's reason (`wifi_failed`, `claim_failed`) as in section 2.
 
 ## 4. Security notes (NFR-06, NFR-10)
 NVS storage (device side, plaintext flash, Q-H6 / A-013): namespace `nw_prov`, one versioned blob `rec` holds the claim record (`nw_prov_record_t`: ssid, passphrase, name, device_token; `firmware/components/provisioning/include/nw_prov_store_nvs.h`, `src/nw_prov_store_nvs.c` `NS`/`KEY`). Namespace `nw_sec2`, blob keys `salt` and `verifier`, hold the per-unit SRP6a data written by the factory tool; read-only on the device, and if either is missing BLE stays off (`src/nw_prov_idf.c` `load_sec2`, buffers 32 B salt / 384 B verifier). Not run on hardware.

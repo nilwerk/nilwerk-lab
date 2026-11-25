@@ -30,7 +30,8 @@ describe('string catalogue (A-024)', () => {
   test('dynamic setup keys exist (error codes, link errors, location and soil lists)', () => {
     const codes = ['permission_denied', 'bluetooth_off', 'not_available', 'wrong_code', 'setup_closed', 'not_found', 'unknown'];
     for (const c of codes) expect(hasKey(`setup.error.${c}`)).toBe(true);
-    for (const c of ['wifi_auth', 'wifi_no_ap', 'wifi_timeout', 'device_owned', 'claim_network', 'claim_server', 'claim_token_invalid', 'claim_rejected', 'unknown']) expect(hasKey(`setup.linkError.${c}`)).toBe(true);
+    for (const c of ['wifi_auth', 'wifi_no_ap', 'wifi_timeout', 'device_owned', 'claim_network', 'claim_server', 'claim_token_invalid', 'claim_rejected', 'link_lost', 'unknown']) expect(hasKey(`setup.linkError.${c}`)).toBe(true);
+    expect(hasKey('setup.linkError.lost.title')).toBe(true);
     for (const l of LOCATION_TYPES) expect(hasKey(`setup.location.${l}`)).toBe(true);
     for (const l of SOIL_TYPES) expect(hasKey(`setup.soil.${l}`)).toBe(true);
   });

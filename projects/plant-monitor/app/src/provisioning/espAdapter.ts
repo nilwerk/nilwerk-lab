@@ -54,5 +54,6 @@ export function createEspAdapter(loadLib: () => Lib = () => require('@orbital-sy
     sendData: (endpoint, body) => cur().sendData(endpoint, body),
     async provision(ssid, passphrase) { await cur().provision(ssid, passphrase); },
     async disconnect() { const d = current; current = null; if (d) d.disconnect(); },
+    onDisconnected(callback) { return current ? current.onDisconnected(callback) : () => undefined; },
   };
 }
