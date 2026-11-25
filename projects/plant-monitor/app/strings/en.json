@@ -151,6 +151,8 @@
   "setup.linkError.claim_network": "No connection to the server. Check the sensor's Wi-Fi and your internet.",
   "setup.linkError.claim_server": "The server could not link the sensor. Please try again.",
   "setup.linkError.claim_token_invalid": "The setup code expired. Start setup again.",
+  "setup.linkError.claim_rejected": "The sensor did not accept the link request. Start setup again. If it keeps happening, reset the sensor with the pinhole button and report the code.",
+  "setup.linkError.unknown": "Something went wrong while linking the sensor. Start setup again.",
   "setup.linkError.retry": "Try again",
   "setup.linkError.startOver": "Start over",
   "setup.photo.title": "Take a photo",

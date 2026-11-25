@@ -206,6 +206,19 @@ describe('device setup flow', () => {
     await header('Take a photo');
   });
 
+  test('sensor rejects the link request: plain message, no in-place retry, start over works', async () => {
+    await mount(createFakeSetup({ claimFailsOnce: 'claim_rejected' }));
+    await toName();
+    await type('Sensor name', 'Basil');
+    await tap('Connect sensor');
+    expect(await header('Linking to your account failed')).toBeTruthy();
+    expect(await screen.findByText(/The sensor did not accept the link request\. Start setup again\./)).toBeTruthy();
+    expect(screen.queryByText('Try again')).toBeNull();
+    expect(screen.queryByText(/setup\.linkError/)).toBeNull();
+    await tap('Start over');
+    expect(await header('Add a sensor')).toBeTruthy();
+  });
+
   test('plant details: required fields are validated, a failed save asks the user to check the plant list and can be retried', async () => {
     const { fake } = await mount();
     await toPhoto();

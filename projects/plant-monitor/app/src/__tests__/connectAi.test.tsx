@@ -2,7 +2,7 @@
 // Requirements: FR-P03 (create / revoke key, setup text), FR-P04 (free: locked, no key request), NFR-06 (key never stored or listed again).
 // Mocked backend: an in-memory ApiKeysService and an in-memory auth service. No Supabase call, no network, no phone.
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../auth/AuthContext';
 import { createFakeAuth } from '../auth/fakeAuth';
@@ -38,6 +38,16 @@ const mount = async (auth: ReturnType<typeof authWith>, apiKeys: ApiKeysService,
   await render(<SafeAreaProvider initialMetrics={frame}><AuthProvider service={auth}><ConnectAiScreen apiKeys={apiKeys} onBack={() => undefined} onPremium={onPremium} copy={copy} /></AuthProvider></SafeAreaProvider>);
   return { onPremium, copy };
 };
+
+// The first render of this screen lazily loads and transforms the React Native / Expo modules it uses.
+// On a cold jest cache that one-time cost is ~3 s here (more on a loaded CI runner), and it landed inside
+// the first test (the free-locked test), which then hit the 5 s test timeout. The warm-up runs once in its own
+// hook with its own budget, so every test below measures only its own work (~0.1 s each).
+beforeAll(async () => {
+  await mount(authWith(false), backend());
+  await screen.findByText(t('mcp.locked.title'));
+  await cleanup();
+}, 60000);
 
 describe('connect your AI: free account is locked (FR-P04)', () => {
   test('free: locked message, no key request of any kind, no create button', async () => {
