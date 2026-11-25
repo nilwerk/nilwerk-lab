@@ -257,6 +257,13 @@ describe('provision: claim token handoff and nw-status', () => {
     const { svc } = await setup({ statuses: [libText], applyError: new Error('apply refused') }, { findClaimedDevice: async () => null }, { confirmTries: 2 });
     expect(await code(svc.provision(REQ, () => undefined))).toBe('link_lost');
   });
+  test('apply refused, then the link drops: the cloud window is the link budget (maxLinkMs / pollMs tries), not the 8 default', async () => {
+    const libText = Object.assign(new Error('Request to send data to device failed: Device is not connected. Custom endpoint requests require an active provisioning session.'), { code: 'E_DEVICE_DISCONNECTED' });
+    let finds = 0;
+    const { svc } = await setup({ statuses: [libText], applyError: new Error('apply refused') }, { findClaimedDevice: async () => { finds += 1; return null; } }, { maxLinkMs: 5000 });
+    expect(await code(svc.provision(REQ, () => undefined))).toBe('link_lost');
+    expect(finds).toBe(5); // 5000 ms / 1000 ms, the same budget as the applied path
+  });
   test('provision() itself rejects with E_DEVICE_DISCONNECTED: the drop flag is set, polling is skipped, the cloud decides -> link_lost', async () => {
     const dropped = Object.assign(new Error('Device is not connected.'), { code: 'E_DEVICE_DISCONNECTED' });
     const { svc, a } = await setup({ statuses: [{ state: 'wifi_connecting' }], applyError: dropped }, { findClaimedDevice: async () => null }, { confirmTries: 2 });
