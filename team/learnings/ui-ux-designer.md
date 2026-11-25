@@ -26,3 +26,4 @@ Each source is marked with what to check before a rule depends on it.
 Rule 5. **Use the platform numbers (44 pt, 48 dp), not the 24 px legal floor, for app buttons.** *Why:* the app's buttons are 44 px today and the review says tap targets must be large (P4). *Source:* WCAG summary above; app design review, section 1 (P4).
 Rule 6. **Test any swipe step with a single-tap path.** *Why:* WCAG 2.2 SC 2.5.7. *Source:* WCAG summary above.
 Rule 7. **Keep onboarding short and optional, and make progress real.** *Why:* Apple HIG onboarding and progress guidance. *Source:* Apple HIG links above.
+5. **Open a PR for every finished change, without asking each time.** *Why:* TEAM.md §7 standing rule (owner instruction, 25 Nov 2026). *Source:* TEAM.md §7.
