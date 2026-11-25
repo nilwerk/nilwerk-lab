@@ -21,6 +21,13 @@ def const(name):
 # 1. service UUID written in the contract == firmware constant
 m = re.search(r"Service UUID \| \*{0,2}`?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`?", doc)
 check(bool(m) and m.group(1) == const("NW_PROV_SERVICE_UUID"), f"service UUID doc={m.group(1) if m else None} fw={const('NW_PROV_SERVICE_UUID')}")
+# 1b. the byte array that the BLE scheme advertises (nw_prov_idf.c, big-endian order) must spell the same UUID
+src_idf = (root / "components/provisioning/src/nw_prov_idf.c").read_text()
+mb = re.search(r"static const uint8_t be\[16\] = \{([^}]*)\}", src_idf)
+bytes_be = [int(x, 16) for x in re.findall(r"0x([0-9a-fA-F]{2})", mb.group(1))] if mb else []
+hx = "".join(f"{b:02x}" for b in bytes_be)
+as_uuid = f"{hx[:8]}-{hx[8:12]}-{hx[12:16]}-{hx[16:20]}-{hx[20:]}" if len(hx) == 32 else None
+check(as_uuid == const("NW_PROV_SERVICE_UUID"), f"advertised UUID bytes (nw_prov_idf.c) = {as_uuid} fw={const('NW_PROV_SERVICE_UUID')}")
 # 2. numbers in the contract text
 check("| `name` | 1-80 characters" in doc and const("NW_PROV_NAME_MIN_CHARS") == "1" and const("NW_PROV_NAME_MAX_CHARS") == "80", "name 1-80 characters")
 check("22 characters base64url" in doc and const("NW_PROV_CLAIM_TOKEN_LEN") == "22", "claim_token 22 characters base64url")

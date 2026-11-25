@@ -196,7 +196,7 @@ static bool start_ble(void)
     if (wifi_prov_mgr_init(cfg) != ESP_OK) { ESP_LOGE(TAG, "NWSETUP BLE: wifi_prov_mgr_init failed"); return false; }
     s_mgr_up = true;
     static uint8_t uuid[16];               /* wifi_prov_scheme_ble wants the UUID in little-endian order [verify] */
-    static const uint8_t be[16] = {0xb5,0x36,0x72,0xdd,0x52,0x27,0x40,0xa0,0x8b,0x6f,0x6f,0x83,0x6a,0x58,0x8c,0x4c};  /* NW_PROV_SERVICE_UUID */
+    static const uint8_t be[16] = {0xb5,0x36,0x72,0xdd,0x52,0x27,0x40,0xa0,0x8b,0x6f,0x6f,0x83,0x6f,0x8a,0x58,0x4c};  /* NW_PROV_SERVICE_UUID */
     for (int i = 0; i < 16; i++) uuid[i] = be[15 - i];
     wifi_prov_scheme_ble_set_service_uuid(uuid);
     char name[NW_PROV_ADV_NAME_LEN + 1];
