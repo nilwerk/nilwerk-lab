@@ -284,7 +284,12 @@ nw_setup_result_t nw_setup_run(uint32_t button_held_ms)
     nw_glue_io_t io = {.ble_set = io_ble_set, .wifi_start = io_wifi_start, .http_post = io_http_post};
     nw_prov_ops_t ops;
     nw_prov_store_nvs(&io.store);
-    if (nw_glue_init(&s_glue, &io, hw, CONFIG_PLANT_FW_VERSION, &ops) != NW_PROV_OK) { ESP_LOGE(TAG, "glue init"); return NW_SETUP_SLEEP_UNTIL_RESET; }
+    if (nw_glue_init(&s_glue, &io, hw, CONFIG_PLANT_FW_VERSION, &ops) != NW_PROV_OK) {
+        ESP_LOGE(TAG, "glue init");
+        esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_SETUP_OK, on_session_event);
+        esp_event_handler_unregister(PROTOCOMM_SECURITY_SESSION_EVENT, PROTOCOMM_SECURITY_SESSION_CREDENTIALS_MISMATCH, on_session_event);
+        return NW_SETUP_SLEEP_UNTIL_RESET;
+    }
     nw_prov_init(&s_prov, &ops);
 #ifdef CONFIG_PLANT_BENCH_SETUP_WINDOW_S
     s_prov.setup_window_ms = CONFIG_PLANT_BENCH_SETUP_WINDOW_S * 1000u;   /* bench CI image only (sdkconfig.defaults.bench-ci): 300 s */
