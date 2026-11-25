@@ -24,6 +24,9 @@
 #ifdef CONFIG_PLANT_UPLOAD
 #include "nw_upload_idf.h"
 #endif
+#ifdef CONFIG_PLANT_BOOTGUARD
+#include "nw_bootguard_idf.h"   /* 4.F7b boot-loop guard, default off, NOT run on hardware */
+#endif
 #ifdef CONFIG_PLANT_SETUP_FLOW
 #include "driver/gpio.h"
 #include "esp_system.h"
@@ -90,10 +93,16 @@ static uint32_t button_held_ms_after_cold_start(void)
 
 void app_main(void)
 {
+#ifdef CONFIG_PLANT_BOOTGUARD
+    nw_bootguard_idf_start();   /* first, before any radio or sensor; returns only on RUN (fallback / rollback never return) */
+#endif
     wake_count++;
 #ifdef CONFIG_PLANT_SETUP_FLOW
     if (esp_reset_reason() != ESP_RST_DEEPSLEEP) {          /* setup decision only on a cold start; a sample wake never opens BLE (FR-D09) */
         if (nw_setup_run(button_held_ms_after_cold_start()) == NW_SETUP_SLEEP_UNTIL_RESET) {
+#ifdef CONFIG_PLANT_BOOTGUARD
+            nw_bootguard_idf_confirm(NW_BG_PATH_BLE_SETUP_TIMEOUT);   /* deliberate sleep (FR-D03): without this 6 wakes would trip the fallback */
+#endif
 #ifdef CONFIG_PLANT_BENCH_AUTO_SETUP
             /* DEBUG (bench image only): do not deep-sleep here, so the board stays on USB and its serial log can be read. */
             printf("NWSETUP bench debug: deep sleep skipped (setup closed, never provisioned)\n");
@@ -152,6 +161,9 @@ void app_main(void)
         print_bench_line(0, &soil, &aht, &bh, vbat, vadc, &bat, e_soil, e_aht, e_bh, e_bat);   /* before the upload: step b sees it at once */
 #endif
         uint32_t sleep_s = nw_upload_idf_wake(&soil, e_soil, &aht, e_aht, &bh, e_bh, vbat, e_bat);
+#ifdef CONFIG_PLANT_BOOTGUARD
+        nw_bootguard_idf_confirm(NW_BG_PATH_NORMAL_END);   /* normal end; the low-battery skip (FR-D06) leaves through this same exit */
+#endif
 #ifdef CONFIG_PLANT_BENCH_UPLOAD_MINUTE
         wake_count++;
         vTaskDelay(pdMS_TO_TICKS(sleep_s * 1000));
@@ -178,6 +190,9 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 
+#ifdef CONFIG_PLANT_BOOTGUARD
+    nw_bootguard_idf_confirm(NW_BG_PATH_NORMAL_END);   /* bench loop finished */
+#endif
     printf("NWBENCH sleep s=%d (IO3 must read 0 V now)\n", SLEEP_S);
     fflush(stdout);
     PREPARE_DEEP_SLEEP();

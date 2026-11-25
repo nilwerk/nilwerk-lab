@@ -63,6 +63,12 @@ M = [  # (old, new, what)
  ("uint8_t seen = st->failed_boots;\n            nw_bootguard_init(st);\n            return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_LOOP, seen);", "nw_bootguard_init(st);\n            return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_LOOP, st->failed_boots);", "loop rollback log shows the cleared count"),
  ("uint8_t seen = st->failed_boots;\n        nw_bootguard_init(st);\n        return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_WINDOW, seen);", "nw_bootguard_init(st);\n        return out_of(NW_BG_ROLLBACK, NW_BG_WHY_OTA_WINDOW, st->failed_boots);", "window rollback log shows the cleared count"),
  ("(unsigned)out->failed,", "(unsigned)0,", "log line hides the failed count"),
+ # rollback failed (adapter rule b)
+ ("    st->failed_boots = NW_BOOTGUARD_MAX_FAILED_BOOTS;\n    st->in_fallback = 1;\n    seal(st);\n    return out_of(NW_BG_FALLBACK, NW_BG_WHY_ROLLBACK_FAILED, st->failed_boots);", "    seal(st);\n    return out_of(NW_BG_FALLBACK, NW_BG_WHY_ROLLBACK_FAILED, st->failed_boots);", "failed rollback leaves a cleared counter (no probation, looping image retries at once)"),
+ ("    return out_of(NW_BG_FALLBACK, NW_BG_WHY_ROLLBACK_FAILED, st->failed_boots);", "    return out_of(NW_BG_RUN, NW_BG_WHY_ROLLBACK_FAILED, st->failed_boots);", "failed rollback answers RUN"),
+ ("    return out_of(NW_BG_FALLBACK, NW_BG_WHY_ROLLBACK_FAILED, st->failed_boots);", "    return out_of(NW_BG_FALLBACK, NW_BG_WHY_COUNT, st->failed_boots);", "failed rollback reason lost"),
+ ("    st->in_fallback = 1;\n    seal(st);\n    return out_of(NW_BG_FALLBACK, NW_BG_WHY_ROLLBACK_FAILED", "    st->in_fallback = 1;\n    return out_of(NW_BG_FALLBACK, NW_BG_WHY_ROLLBACK_FAILED", "failed rollback state not re-sealed"),
+ ("\"ota_loop\", \"ota_window\", \"rollback_failed\" };", "\"ota_loop\", \"ota_window\", \"rollback\" };", "rollback_failed log text wrong"),
  # one log line
  ("    if (out->action == NW_BG_RUN) return 0;", "", "a normal boot logs a fallback line"),
  ("\"NWBOOTGUARD %s why=%s failed=%u limit=%u sleep_s=%u ble=off wifi=off\"", "\"NWBOOTGUARD %s why=%s failed=%u limit=%u sleep_s=%u ble=off wifi=off\\n\"", "log line ends with a newline (two lines)"),

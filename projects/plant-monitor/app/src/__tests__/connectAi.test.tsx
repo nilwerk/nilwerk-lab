@@ -98,6 +98,14 @@ describe('connect your AI: premium generate, shown once, copy (FR-P03)', () => {
     expect(copy).toHaveBeenCalledWith(SECRET);
   });
 
+  test('the one-time key box carries the "never share your key" hint (the phone copy goes through the share sheet, accepted for the demo with this hint, A-133)', async () => {
+    await mount(authWith(true), backend());
+    expect(screen.queryByText(t('mcp.created.share'))).toBeNull();
+    await fireEvent.press(await screen.findByRole('button', { name: t('mcp.keys.create') }));
+    expect(await screen.findByText(t('mcp.created.share'))).toBeTruthy();
+    expect(t('mcp.created.share')).toMatch(/never share your key/i);
+  });
+
   test('a key exists afterwards: the list shows name, prefix and Active, never the full key', async () => {
     const b = backend();
     await mount(authWith(true), b);

@@ -10,7 +10,7 @@ name: Bench (self-hosted)
 #                      only from main (guard below). No branch allowance.
 # NO schedule, pull_request, pull_request_target, push or issue_comment triggers, on purpose.
 # Owner decision (21 Nov): nothing else may run on the Pi. The former branch allowance
-# (for PR #156, now closed) was removed in the PR #162 fix round. Manual runs from main only.
+# (for a PR that is now closed) was removed in a later fix round. Manual runs from main only.
 #
 # Order (build first, then install and test together). Decided by the owner (option 1): step 3 (provisioning) runs
 # after a. Step c (BLE scan) runs inside the bench image's BLE setup window, which is 300 s from the reset of step 3

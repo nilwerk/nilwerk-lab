@@ -48,6 +48,7 @@ function CreatedKey({ created, copy, onDone }: { created: CreatedApiKey; copy: C
       <View style={{ padding: th.spacing.md, borderRadius: th.radius.md, backgroundColor: th.color.surface, borderWidth: 1, borderColor: th.color.line }}>
         <Text selectable accessibilityLabel={t('mcp.created.title')} style={{ color: th.color.ink, ...th.type.body, fontFamily: th.fontFamily.mono }}>{created.key}</Text>
       </View>
+      <Body muted>{t('mcp.created.share')}</Body>
       <Button label={t('mcp.created.copy')} onPress={press} />
       {msg ? <Notice kind={msg.kind} text={msg.text} /> : null}
       <Button label={t('mcp.created.done')} variant="secondary" onPress={onDone} />

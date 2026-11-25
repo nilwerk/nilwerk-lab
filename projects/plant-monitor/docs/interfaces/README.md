@@ -7,7 +7,7 @@ Builders code against these files. A change to any of them needs an ADR (role fi
 |---|---|---|
 | `db-schema.sql` | Postgres tables, RLS on every table, alert/offline/retention + roll-up functions | Leo (4.B1, 4.B2), Sana, Ines |
 | `db-schema.test.sql` | Smoke test of the above (RLS, premium window, alerts, retention, cascade) | Ines, Kai |
-| `openapi.yaml` + `device-report.schema.json` | `/claim-token`, `/device-claim`, `/ingest`, `/device-release`, `/plants/{id}` (delete), `/api-keys`, `/export`, `/account` | Mira (4.F2/4.F3), Leo (4.A*, 4.B2) |
+| `openapi.yaml` + `device-report.schema.json` | `/claim-token`, `/device-claim`, `/ingest`, `/device-release`, `/plants/{id}` (delete), `/api-keys` (built, 4.B2d), `/export`, `/account` | Mira (4.F2/4.F3), Leo (4.A*, 4.B2) |
 | `hub-mqtt.md` | Device -> Pi hub MQTT topics and payloads (ADR-012) | Mira (4.F6), hub tasks 4.H1/4.H2 |
 | `ble-provisioning.md` | BLE setup endpoints and payloads (ADR-011) | Mira (4.F2), Leo (4.A3) |
 | `mcp-tools.json` | MCP tools, premium and key rules | Sana (4.B5) |
