@@ -159,6 +159,7 @@ Claude skills the agent loads when they help (Skill tool), if they are available
 - **Always asks:** “What will this change in the work?”
 - **Operating limits:** Drafts and recommendations only · no outreach to candidates or vendors · no spending · no change to another role's files without the lead's sign-off · every source linked and dated
 - **Skills:** Role briefs for new hires or agents; candidate screening against a brief; weekly scan of skills and training sources for each role; skill-map upkeep in `skills/ROLE-MAP.md`
+- **Owns:** the team overview (`team/TEAM.md` and the role files in `team/roles/`). Keeps it current as roles change, and flags stale entries in the weekly note.
 - **Output:** one weekly note in `team/reports/` in the daily-report format
 
 ## Peter — HW Integrator & Tester (human)
