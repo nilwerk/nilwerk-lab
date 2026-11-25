@@ -124,7 +124,29 @@ appium_url="${APPIUM_URL:-http://localhost:4723}"
 work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/bench-appium.XXXXXX")"
 chmod 700 "$work"
 sid=""
+# UI dump on a failed step (BENCH_UI_DUMP_DIR, set by the workflow; uploaded with if: failure()). Written only when a session
+# exists and the run failed. The page source is masked by mask_ui_dump.py before it is written (PoP, e-mail, passwords and
+# readings are never in the file). Never fails the run: a missing dump is only a warning.
+dump_ui_on_failure() {
+  local rc="$1"
+  if [ "$rc" = "0" ] || [ -z "$sid" ] || [ -z "${BENCH_UI_DUMP_DIR:-}" ]; then return 0; fi
+  if ! mkdir -p "$BENCH_UI_DUMP_DIR" || ! chmod 700 "$BENCH_UI_DUMP_DIR"; then
+    echo "::warning::d. app flow: UI dump folder is not usable; no dump written"; return 0
+  fi
+  if ! curl -sS --max-time 30 -o "$work/source.json" "$appium_url/session/$sid/source" 2>/dev/null; then
+    echo "::warning::d. app flow: UI dump: Appium did not return the page source; no dump written"; return 0
+  fi
+  if python3 -I "$(dirname "${BASH_SOURCE[0]}")/mask_ui_dump.py" "$work/source.json" "$BENCH_UI_DUMP_DIR/ui-at-failure.xml"; then
+    echo "d. app flow: UI dump of the screen at the failure written (masked; file ui-at-failure.xml in the artifact)"
+  else
+    echo "::warning::d. app flow: UI dump withheld: masking did not pass; no dump written"
+    rm -f "$BENCH_UI_DUMP_DIR/ui-at-failure.xml"
+  fi
+  return 0
+}
 cleanup() {
+  local rc=$?
+  dump_ui_on_failure "$rc"
   if [ -n "$sid" ]; then curl -sS --max-time 30 -o /dev/null -X DELETE "$appium_url/session/$sid" || true; fi
   rm -rf "$work"
 }
