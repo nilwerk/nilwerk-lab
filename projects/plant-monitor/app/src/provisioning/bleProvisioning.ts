@@ -44,6 +44,12 @@ export function classifyBleError(e: unknown): ProvisioningErrorCode {
   return 'unknown';
 }
 
+/** A BLE link drop, by the library's code or its text. Used for the drop flag, so every drop path sets the same flag. */
+function isLinkDrop(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return (e as { code?: string } | null)?.code === 'E_DEVICE_DISCONNECTED' || /disconnect/i.test(msg);
+}
+
 /** Loose mapping of a failed provision() call when nw-status cannot be read. */
 function classifyWifiError(e: unknown): ProvisioningErrorCode {
   const msg = e instanceof Error ? e.message : String(e);
@@ -158,26 +164,28 @@ export function createBleProvisioning(d: BleProvisioningDeps): ProvisioningServi
       const stopWatching = d.adapter.onDisconnected?.(() => { dropped = true; }) ?? (() => undefined);
       try {
         let applyError: unknown = null;
-        try { await d.adapter.provision(req.ssid, req.passphrase); } catch (e) { applyError = e; }
+        try { await d.adapter.provision(req.ssid, req.passphrase); } catch (e) { applyError = e; if (isLinkDrop(e)) dropped = true; }
 
         if (applyError === null) {
           // Applied. The library has dropped its security session on success (esp-idf-provisioning-android lib-2.4.4, ESPDevice.java:1189 "session = null"),
           // so the next custom-endpoint request would run a new SRP handshake that the device rejects by dropping the link. Nothing more is sent over BLE:
           // the cloud decides, and the window is the whole link budget because the sensor still has to join Wi-Fi and claim.
+          // One outcome for "applied, not confirmed": the app cannot tell from here whether the link dropped, so it does not blame Wi-Fi or the server.
           onState('claiming');
           const hit = await confirmInCloud(name, issuedAtMs, Math.ceil(maxLinkMs / pollMs));
-          if (!hit) throw new ProvisioningError(dropped ? 'link_lost' : 'claim_network');
+          if (!hit) throw new ProvisioningError('link_lost');
           onState('claimed');
           return hit;
         }
 
-        // Apply failed. The library keeps its session on failure, so nw-status can still be read for the device's own reason.
+        // Apply refused. The library keeps its session on failure, so nw-status can still be read for the device's own reason.
+        // A drop already seen (from provision() or the drop watch) ends the polling: the link is gone, so ask the cloud.
         let sawClaiming = false;
         let waited = 0;
         let lastWasDisconnect = false;
-        while (waited <= maxLinkMs) {
+        while (!dropped && waited <= maxLinkMs) {
           let status: Status | null = null;
-          try { status = parseStatus(await d.adapter.sendData('nw-status', '')); lastWasDisconnect = false; } catch (e) { lastWasDisconnect = classifyBleError(e) === 'not_found'; }
+          try { status = parseStatus(await d.adapter.sendData('nw-status', '')); lastWasDisconnect = false; } catch (e) { if (isLinkDrop(e)) dropped = true; lastWasDisconnect = dropped || classifyBleError(e) === 'not_found'; }
           if (status) {
             const state = status.state as string;
             const reason = typeof status.reason === 'string' ? status.reason : '';
@@ -195,7 +203,7 @@ export function createBleProvisioning(d: BleProvisioningDeps): ProvisioningServi
           }
           await sleep(pollMs); waited += pollMs;
         }
-        if (waited > maxLinkMs) throw new ProvisioningError(sawClaiming ? 'claim_network' : 'wifi_timeout');
+        if (!dropped && waited > maxLinkMs) throw new ProvisioningError(sawClaiming ? 'claim_network' : 'wifi_timeout');
 
         // 5. a devices row claimed AFTER the token was issued (a row of an earlier setup of the same sensor does not count) must be visible under RLS before we say "claimed" (contract section 3 step 5)
         const hit = await confirmInCloud(name, issuedAtMs);
