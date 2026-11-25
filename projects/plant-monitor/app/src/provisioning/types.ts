@@ -20,6 +20,7 @@ export type ProvisioningErrorCode =
   | 'wifi_auth' | 'wifi_no_ap' | 'wifi_timeout'          // nw-status wifi_failed reasons
   | 'device_owned' | 'claim_token_invalid' | 'claim_network' | 'claim_server' // nw-status claim_failed reasons
   | 'claim_rejected'      // the sensor answered nw-claim with something other than {ok:true} (e.g. {"ok":false,"error":"bad_request"})
+  | 'link_lost'           // the BLE link dropped after the Wi-Fi details were applied and the server had not confirmed the link (not a Wi-Fi error)
   | 'unknown';            // genuinely unclassified failures only
 
 export class ProvisioningError extends Error {

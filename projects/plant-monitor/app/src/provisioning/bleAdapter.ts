@@ -25,4 +25,6 @@ export interface BleAdapter {
   /** prov-config (SSID + passphrase) and apply. The library cannot split config and apply, so nw-claim is sent before this call. */
   provision(ssid: string, passphrase: string): Promise<void>;
   disconnect(): Promise<void>;
+  /** Called when the sensor drops the BLE link without us asking. Returns an unsubscribe function. Optional: without it no drop is seen. */
+  onDisconnected?(callback: () => void): () => void;
 }

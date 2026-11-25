@@ -148,6 +148,8 @@
   "setup.linkError.howToReset": "How to reset",
   "setup.linkError.resetHint": "Press the pinhole button on the sensor until the LED blinks, then start setup again.",
   "setup.linkError.claim.title": "Linking to your account failed",
+  "setup.linkError.lost.title": "Lost the connection to the sensor",
+  "setup.linkError.link_lost": "The connection to the sensor closed before the server confirmed the link. Check your plant list first. If the sensor is not there, press the pinhole button and start setup again.",
   "setup.linkError.claim_network": "No connection to the server. Check the sensor's Wi-Fi and your internet.",
   "setup.linkError.claim_server": "The server could not link the sensor. Please try again.",
   "setup.linkError.claim_token_invalid": "The setup code expired. Start setup again.",
