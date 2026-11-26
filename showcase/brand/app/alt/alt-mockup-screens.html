@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alternative design, rest of the screens (mock data)</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --surface:#fff; --ink:#15181d; --muted:#5b616b; --line:#e2ded5; --control:#7d838c;
+    --accent:#0f7a5c; --accentSoft:#e3f2ec; --dry:#b4541a; --drySoft:#fcf2ea; --wet:#1f6aa5; --wetSoft:#e1edf7;
+    --low:#8a5d00; --lowSoft:#f5ecd3; --ok:#0f7a5c; --okSoft:#e3f2ec; --danger:#b3261e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 24px;background:#e7e3da;font-family:Inter,system-ui,sans-serif;color:var(--ink)}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 24px}
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+  .cap{font-size:13px;color:var(--muted);margin-top:10px;max-width:390px}
+  .phone{width:390px;height:844px;background:var(--bg);border-radius:36px;border:10px solid #1d2026;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .status{height:44px;flex:none}
+  .head{display:flex;align-items:center;gap:12px;padding:4px 20px 10px}
+  .icon{width:48px;height:48px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+  .head h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px;flex:1}
+  .body{flex:1;overflow:hidden;padding:0 20px;display:flex;flex-direction:column;gap:12px}
+  .foot{padding:12px 20px 18px;background:var(--bg);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .tabs{height:72px;flex:none;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;font-size:13px;font-weight:600;color:var(--muted)}
+  .tabs .on{color:var(--accent)}
+  .badge{display:inline-block;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--danger);color:#fff;font-size:11px;margin-left:4px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .section{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:6px 2px 0;font-weight:600}
+  .rowline{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:16px}
+  .rowline:last-child{border-bottom:0}
+  .rowline .k{color:var(--muted);font-size:13px}
+  .btn{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:10px;font-weight:600;font-size:16px;border:1px solid transparent}
+  .fill{background:var(--accent);color:#fff}
+  .line{background:var(--surface);border-color:var(--control);color:var(--ink)}
+  .quiet{color:var(--danger);font-weight:600;min-height:44px;display:flex;align-items:center;justify-content:center}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .seg{display:flex;background:#ebe8e1;border-radius:12px;padding:3px}
+  .seg div{flex:1;text-align:center;padding:9px 0;font-size:14px;font-weight:600;color:var(--muted);border-radius:9px}
+  .seg .on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .day{font-size:13px;font-weight:600;color:var(--muted);margin-top:4px}
+  .alert{display:flex;gap:12px;align-items:flex-start}
+  .dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none}
+  .alert .n{font-weight:700;font-size:16px}
+  .alert .s{font-size:14px;color:var(--muted);margin-top:2px}
+  .time{font-size:12px;color:var(--muted);margin-left:auto;white-space:nowrap}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .th{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden}
+  .th .d{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;padding:2px 5px;border-radius:6px}
+  .th.fail{outline:2px solid var(--danger);outline-offset:-2px}
+  .viewer{background:#0d0f12;color:#f2f2f2;flex:1;display:flex;flex-direction:column;border-radius:0}
+  .stage{flex:1;margin:0 -20px;display:flex;align-items:center;justify-content:center;position:relative}
+  .pill{background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:10px 14px;font-size:14px;font-weight:600}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:22px 22px 0 0;padding:10px 20px 22px;box-shadow:0 -10px 30px rgba(0,0,0,.12)}
+  .sheet .handle{width:42px;height:5px;border-radius:99px;background:#cfcac0;margin:0 auto 12px}
+  .dim{position:absolute;inset:0;background:rgba(21,24,29,.35)}
+  .price{font-size:30px;font-weight:700;letter-spacing:-.5px}
+  .tick{color:var(--ok);font-weight:700;margin-right:8px}
+  .legal{font-size:12px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+  <h1>Alternative design, rest of the screens</h1>
+  <p class="sub">Mock data only. Photos are placeholder tiles, not images. Layout only, not shipped. Spec: ALT-SCREENS.md.</p>
+
+  <div class="row">
+
+    <!-- 1. Profile -->
+    <div>
+      <div class="phone">
+        <div class="status"></div>
+        <div class="head"><h2>Profile</h2></div>
+        <div class="body" style="overflow:hidden">
+          <div class="section">Account</div>
+          <div class="card">
+            <div class="rowline"><span class="k">E-mail</span><span>arsany@example.com</span></div>
+            <div class="rowline"><span class="k">Display name</span><span>Arsany</span></div>
+          </div>
+          <div class="section">Plan</div>
+          <div class="card">
+            <div class="rowline"><div><div>Free</div><div class="k">See Premium for more</div></div><span style="color:var(--accent);font-weight:600">€4.99 / mo</span></div>
+          </div>
+          <div class="section">Sensors and data</div>
+          <div class="card">
+            <div class="rowline"><span>Add a sensor</span><span>›</span></div>
+            <div class="rowline"><span>Export my data</span><span>›</span></div>
+            <div class="rowline"><span>AI connection</span><span>›</span></div>
+          </div>
+          <div class="section">Session</div>
+          <div class="card">
+            <div class="rowline"><span>Sign out</span><span>›</span></div>
+          </div>
+          <div class="quiet">Delete account</div>
+        </div>
+        <div class="tabs"><span>Plants</span><span class="on">Profile</span></div>
+      </div>
+      <div class="cap"><b>Profile.</b> Grouped sections (F-A). The price shows before Premium is opened (your decision). Delete account is a separate red text action.</div>
+    </div>
+
+    <!-- 2. Alerts -->
+    <div>
+      <div class="phone">
+        <div class="status"></div>
+        <div class="head"><h2>Alerts</h2></div>
+        <div class="body">
+          <div class="chips"><span class="chip on">All 4</span><span class="chip">Too dry 2</span><span class="chip">Too wet 0</span><span class="chip">Low battery 1</span></div>
+          <div class="day">Today</div>
+          <div class="card alert"><span class="dot" style="background:var(--dry)"></span>
+            <div><div class="n">Basil</div><div class="s">Too dry. Soil at 18 %, below the limit.</div></div><span class="time">08:10</span></div>
+          <div class="card alert"><span class="dot" style="background:var(--low)"></span>
+            <div><div class="n">Fern sensor</div><div class="s">Battery low, 14 %.</div></div><span class="time">07:55</span></div>
+          <div class="day">Yesterday</div>
+          <div class="card alert"><span class="dot" style="background:var(--dry)"></span>
+            <div><div class="n">Fern</div><div class="s">Too dry. Soil at 27 %.</div></div><span class="time">19:30</span></div>
+          <div class="card alert"><span class="dot" style="background:var(--ok)"></span>
+            <div><div class="n">Monstera</div><div class="s">Back in the healthy range.</div></div><span class="time">14:02</span></div>
+        </div>
+        <div class="tabs"><span>Plants</span><span class="on">Alerts<span class="badge">2</span></span><span>Profile</span></div>
+      </div>
+      <div class="cap"><b>Alerts.</b> Filters with counts, grouped by day, newest first. Tap a card to open the plant; back returns here, not to Plants. Third tab with a badge (recommended).</div>
+    </div>
+
+    <!-- 3. Gallery -->
+    <div>
+      <div class="phone">
+        <div class="status"></div>
+        <div class="head"><div class="icon">‹</div><h2 style="font-size:19px">Photos · Basil</h2></div>
+        <div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:var(--muted);font-size:13px">12 photos</span>
+            <div class="seg" style="width:180px"><div class="on">Newest</div><div>Oldest</div></div>
+          </div>
+          <div class="day">Mon 24 Nov</div>
+          <div class="grid">
+            <div class="th" style="background:linear-gradient(135deg,#9bc9a8,#3f8a66)"><span class="d">07:40</span></div>
+            <div class="th" style="background:linear-gradient(135deg,#b7d9c2,#5d9a78)"><span class="d">19:12</span></div>
+            <div class="th" style="background:linear-gradient(135deg,#d8e7d0,#8fb37f)"><span class="d">21:03</span></div>
+          </div>
+          <div class="day">Sun 23 Nov</div>
+          <div class="grid">
+            <div class="th" style="background:linear-gradient(135deg,#a7c7d9,#4f7f9c)"><span class="d">09:20</span></div>
+            <div class="th fail" style="background:linear-gradient(135deg,#cfd6dc,#8d98a1)"><span class="d">Retry</span></div>
+            <div class="th" style="background:linear-gradient(135deg,#c2dcb0,#6c9557)"><span class="d">18:45</span></div>
+          </div>
+        </div>
+        <div class="foot">
+          <div class="btn fill">Add photo</div>
+          <div class="legal">Real build: "Photos are not available yet" until the picker is approved.</div>
+        </div>
+        <div class="tabs" style="height:0;border:0"></div>
+      </div>
+      <div class="cap"><b>Gallery.</b> Day headers and a date on every photo (FR-A05). Segmented sort. A failed upload shows a red outline and Retry. Add photo sits in the footer.</div>
+    </div>
+
+    <!-- 4. Viewer -->
+    <div>
+      <div class="phone">
+        <div class="status" style="background:#0d0f12"></div>
+        <div class="viewer">
+          <div class="head" style="color:#fff"><div class="icon" style="background:rgba(255,255,255,.12);border-color:transparent;color:#fff">‹</div><span style="flex:1;font-weight:600">3 of 12</span><div class="icon" style="background:rgba(255,255,255,.12);border-color:transparent;color:#fff">⋯</div></div>
+          <div class="stage">
+            <div style="width:88%;aspect-ratio:3/4;border-radius:16px;background:linear-gradient(160deg,#9bc9a8,#2c5e47)"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:12px;padding:10px 0"><span class="pill">‹ Previous</span><span class="pill">Next ›</span></div>
+          <div style="text-align:center;padding:4px 20px 26px;color:#cfd6dc;font-size:14px">Mon 24 Nov, 07:40 · swipe, pinch to zoom</div>
+        </div>
+      </div>
+      <div class="cap"><b>Photo viewer.</b> Full screen. Previous and Next buttons sit beside the swipe, so moving between photos does not depend on a drag (SC 2.5.7). Back returns to the same grid position.</div>
+    </div>
+
+    <!-- 5. Premium sheet over plant detail -->
+    <div>
+      <div class="phone">
+        <div class="status"></div>
+        <div class="head"><div class="icon">‹</div><h2 style="font-size:19px">Basil</h2></div>
+        <div class="body" style="opacity:.5">
+          <div class="card" style="height:150px"></div>
+          <div class="card" style="height:90px"></div>
+          <div class="btn fill">Photos (12)</div>
+        </div>
+        <div class="dim"></div>
+        <div class="sheet">
+          <div class="handle"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-size:20px;font-weight:700">Premium</div><div class="price">€4.99<span style="font-size:15px;color:var(--muted)"> / month</span></div></div>
+            <div class="icon" style="width:36px;height:36px;font-size:16px">✕</div>
+          </div>
+          <div style="margin-top:12px;font-size:15px;line-height:24px">
+            <div><span class="tick">✓</span>Unlimited identification and diagnosis</div>
+            <div><span class="tick">✓</span>Full care schedules and light meter</div>
+            <div><span class="tick">✓</span>Plant sitter sharing</div>
+          </div>
+          <div class="btn fill" style="margin-top:14px">Continue to the store</div>
+          <div class="legal" style="margin-top:10px">Restore purchases · Price is shown before you buy</div>
+        </div>
+      </div>
+      <div class="cap"><b>Premium sheet.</b> A sheet, not a full screen. Price first, a three-line feature list, and the next step is the store. Close with X or the system back, which closes the sheet first.</div>
+    </div>
+
+  </div>
+</body>
+</html>
