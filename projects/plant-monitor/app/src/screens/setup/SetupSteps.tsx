@@ -165,6 +165,7 @@ export function PhotoStep({ time, cancelled, supported = true, onTake, onPick, o
 }
 
 export function DetailsStep({ time, busy, error, onSave, onBack }: { time: string; busy: boolean; error: boolean; onSave: (d: PlantDetails) => void; onBack?: () => void }) {
+  const th = useTheme();
   const [d, setD] = useState<PlantDetails>({ name: '', location: 'house', area: '', soil: 'potting', species: '', city: '' });
   const [shown, setShown] = useState(false);
   const set = <K extends keyof PlantDetails>(k: K, v: PlantDetails[K]) => setD((p) => ({ ...p, [k]: v }));
@@ -175,12 +176,12 @@ export function DetailsStep({ time, busy, error, onSave, onBack }: { time: strin
     <Screen title={t('setup.details.title')} onBack={onBack}>
       <Progress n={5} time={time} />
       <Field label={t('setup.details.name')} value={d.name} onChangeText={(v) => set('name', v)} error={e('name')} />
-      <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.location')} style={{ gap: 8 }}>
+      <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.location')} style={{ gap: th.spacing.sm }}>
         <Body muted>{t('setup.details.location')}</Body>
         {LOCATION_TYPES.map((l: LocationType) => <Choice key={l} label={t(`setup.location.${l}`)} selected={d.location === l} onPress={() => set('location', l)} />)}
       </View>
       <Field label={t('setup.details.area')} value={d.area} onChangeText={(v) => set('area', v)} error={e('area')} />
-      <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.soil')} style={{ gap: 8 }}>
+      <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.soil')} style={{ gap: th.spacing.sm }}>
         <Body muted>{t('setup.details.soil')}</Body>
         {SOIL_TYPES.map((s: SoilType) => <Choice key={s} label={t(`setup.soil.${s}`)} selected={d.soil === s} onPress={() => set('soil', s)} />)}
       </View>

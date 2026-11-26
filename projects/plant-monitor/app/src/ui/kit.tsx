@@ -65,7 +65,7 @@ export function BottomSheet({ visible, title, closeLabel, onClose, children }: {
   const th = useTheme();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' }}>
+      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: th.color.scrim }}>
         <Pressable accessibilityRole="button" accessibilityLabel={closeLabel} onPress={onClose} style={{ flex: 1 }} />
         <View accessibilityViewIsModal style={{ maxHeight: '85%', borderTopLeftRadius: th.radius.xl, borderTopRightRadius: th.radius.xl, backgroundColor: th.color.bg, padding: th.spacing.lg, gap: th.spacing.md }}>
           <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: th.radius.pill, backgroundColor: th.color.control }} />
@@ -76,4 +76,52 @@ export function BottomSheet({ visible, title, closeLabel, onClose, children }: {
       </View>
     </Modal>
   );
+}
+
+export { BackButton } from './primitives';
+
+/** Column of cards or rows with the shared gap (no per-screen layout styles). */
+export function Stack({ children, gap = 'sm' }: { children: React.ReactNode; gap?: 'xs' | 'sm' | 'md' | 'lg' }) {
+  const th = useTheme();
+  return <View style={{ gap: th.spacing[gap] }}>{children}</View>;
+}
+
+/** Horizontal row that wraps (buttons, chips, small tiles). */
+export function WrapRow({ children, gap = 'sm' }: { children: React.ReactNode; gap?: 'xs' | 'sm' | 'md' }) {
+  const th = useTheme();
+  return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing[gap] }}>{children}</View>;
+}
+
+/** One horizontal bar with its label and a value written out (0 to 100 scale). Values come from the caller. */
+export function BarRow({ label, value, valueText }: { label: string; value: number; valueText: string }) {
+  const th = useTheme();
+  const pct = Math.min(100, Math.max(0, value));
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: th.spacing.sm }}>
+      <View style={{ width: 84 }}><Caption>{label}</Caption></View>
+      <View style={{ flex: 1, height: 8, borderRadius: th.radius.sm, backgroundColor: th.color.line, overflow: 'hidden' }}>
+        <View style={{ width: `${pct}%`, height: 8, backgroundColor: th.color.ink }} />
+      </View>
+      <View style={{ width: 56, alignItems: 'flex-end' }}><Text style={{ color: th.color.ink, ...th.type.caption }}>{valueText}</Text></View>
+    </View>
+  );
+}
+
+/** Min to max range with the mean marked, on a 0 to 100 scale. Accessible as an image with the given label. */
+export function RangeMeter({ min, max, mean, label }: { min: number; max: number; mean: number; label: string }) {
+  const th = useTheme();
+  const clamp = (n: number) => Math.min(100, Math.max(0, n));
+  const lo = clamp(min), hi = clamp(max), mid = clamp(mean);
+  return (
+    <View accessibilityRole="image" accessibilityLabel={label} style={{ height: 10, borderRadius: th.radius.sm, backgroundColor: th.color.line, overflow: 'hidden' }}>
+      <View style={{ position: 'absolute', left: `${lo}%`, width: `${Math.max(0, hi - lo)}%`, top: 0, bottom: 0, backgroundColor: th.color.accentSoft }} />
+      <View style={{ position: 'absolute', left: `${mid}%`, width: 3, marginLeft: -1, top: 0, bottom: 0, backgroundColor: th.color.ink }} />
+    </View>
+  );
+}
+
+/** A divided list item: a top hairline, then its children. */
+export function ListItem({ children, testID }: { children: React.ReactNode; testID?: string }) {
+  const th = useTheme();
+  return <View testID={testID} style={{ gap: th.spacing.xs, paddingVertical: th.spacing.sm, borderTopWidth: 1, borderColor: th.color.line }}>{children}</View>;
 }

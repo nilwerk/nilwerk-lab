@@ -4,12 +4,23 @@ import { Pressable, ScrollView, Text, TextInput, View, type TextInputProps } fro
 import { useTheme } from './useTheme';
 import { t } from '../i18n';
 
+/** Back arrow in a 48 px round control (the same on every screen). The label is the shared a11y.back string. */
+export function BackButton({ onPress }: { onPress: () => void }) {
+  const th = useTheme();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.back')} onPress={onPress}
+      style={{ width: th.minTouchTarget, height: th.minTouchTarget, borderRadius: th.radius.pill, borderWidth: 1, borderColor: th.color.control, backgroundColor: th.color.surface, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: th.color.ink, ...th.type.h2 }}>{'\u2190'}</Text>
+    </Pressable>
+  );
+}
+
 export function Screen({ title, children, onBack }: { title: string; children: React.ReactNode; onBack?: () => void }) {
   const th = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: th.color.bg }} accessibilityLabel={t('a11y.screenTitle', { title })}>
       <ScrollView contentContainerStyle={{ padding: th.spacing.lg, gap: th.spacing.lg }} keyboardShouldPersistTaps="handled">
-        {onBack ? <Button label={t('common.back')} a11yLabel={t('a11y.back')} variant="ghost" onPress={onBack} /> : null}
+        {onBack ? <BackButton onPress={onBack} /> : null}
         <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h1 }}>{title}</Text>
         {children}
       </ScrollView>
@@ -33,7 +44,7 @@ export function Button({ label, onPress, variant = 'primary', disabled, busy, a1
     primary: { bg: c.accent, fg: c.accentInk, border: c.accent },
     danger: { bg: c.danger, fg: c.dangerInk, border: c.danger },
     secondary: { bg: c.surface, fg: c.ink, border: c.control },
-    ghost: { bg: 'transparent', fg: c.accent, border: 'transparent' },
+    ghost: { bg: 'transparent', fg: c.ink, border: 'transparent' }, // accent is a fill only; text is ink
   }[variant];
   const off = disabled || busy;
   return (

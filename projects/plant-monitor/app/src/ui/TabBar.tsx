@@ -19,7 +19,7 @@ export function TabBar({ active, onSelect, openAlerts = 0 }: { active: Tab; onSe
             accessibilityState={{ selected: on }} onPress={() => onSelect(tab)}
             style={{ flex: 1, minHeight: th.minTouchTarget, alignItems: 'center', justifyContent: 'center', borderTopWidth: 3, borderColor: on ? th.color.accent : 'transparent' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: th.spacing.xs }}>
-              <Text style={{ color: on ? th.color.accent : th.color.muted, ...(on ? th.type.bodyStrong : th.type.body) }}>{t(`nav.${tab}`)}</Text>
+              <Text style={{ color: on ? th.color.ink : th.color.muted, ...(on ? th.type.bodyStrong : th.type.body) }}>{t(`nav.${tab}`)}</Text>
               {badge ? (
                 <View accessible={false} style={{ minWidth: 22, paddingHorizontal: th.spacing.xs, borderRadius: th.radius.pill, backgroundColor: th.color.danger, alignItems: 'center' }}>
                   <Text style={{ color: th.color.dangerInk, ...th.type.caption }}>{String(openAlerts)}</Text>
