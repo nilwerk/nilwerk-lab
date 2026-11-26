@@ -31,7 +31,6 @@ import { ConnectAiScreen } from './src/screens/ConnectAiScreen';
 import { createApiKeysClient, unconfiguredApiKeys, type ApiKeysService } from './src/mcp/apiKeysApi';
 import { createAnalyticsClient, unconfiguredAnalytics, type AnalyticsService } from './src/analytics/analyticsApi';
 import { PlantsProvider, usePlants } from './src/plants/PlantsContext';
-import { plantChips } from './src/plants/status';
 import { createFakePlants } from './src/plants/fakePlants';
 import { unconfiguredPlants } from './src/plants/unconfiguredPlants';
 import { createRealPlants } from './src/plants/realPlants';
@@ -65,13 +64,9 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
   const [gallery, setGallery] = useState<PlantSummary | null>(null);
   const [removed, setRemoved] = useState<Removed | null>(null);
   const signedOut = state.status === 'signedOut';
-  // open alerts = plants with a state other than OK or no sensor (counted from the list the app already loads)
-  const plantsSvc = usePlants();
+  useEffect(() => { if (signedOut) setOpenAlerts(0); }, [signedOut]);
+  // Alerts badge: cached. Written by the plant list and the alerts screen when they load; not re-read on every navigation.
   const [openAlerts, setOpenAlerts] = useState(0);
-  useEffect(() => {
-    if (state.status !== 'signedIn') return;
-    plantsSvc.listPlants().then((ps) => setOpenAlerts(ps.filter((p) => plantChips(p).some((c) => c !== 'ok' && c !== 'noSensor')).length), () => setOpenAlerts(0));
-  }, [state.status, plantsSvc, route]);
   // a signed-out user starts again at the welcome screen, so the next sign-in lands on the plants tab
   useEffect(() => { if (signedOut) { setRoute('welcome'); setPlantId(null); setToRemove(null); setGallery(null); setRemoved(null); } }, [signedOut]);
 
@@ -109,9 +104,9 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
   } else if (route === 'profile') {
     screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} onAddSensor={() => setRoute('setup')} onDashboard={() => setRoute('dashboard')} onConnectAi={() => setRoute('connectAi')} />;
   } else if (route === 'alerts') {
-    screen = <AlertsScreen onBack={() => setRoute('plants')} />;
+    screen = <AlertsScreen onBack={() => setRoute('plants')} onCount={setOpenAlerts} />;
   } else {
-    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onAlerts={() => setRoute('alerts')} />;
+    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onAlerts={() => setRoute('alerts')} onCount={setOpenAlerts} />;
   }
   const tab: Tab | null = !signedIn ? null : route === 'profile' ? 'profile' : route === 'alerts' ? 'alerts' : route === 'plants' || route === 'welcome' || route === 'signUp' || route === 'signIn' ? 'plants' : null;
   return (

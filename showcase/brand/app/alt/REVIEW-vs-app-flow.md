@@ -35,11 +35,11 @@ Verdict in five lines:
 | Decision | Status in the app | Code, test and bench for the change |
 |---|---|---|
 | Five setup steps, as on main | Already true | None. |
-| Three tabs (Plants, Alerts with badge, Profile) | Built in the alternative build | `TabBar.tsx` (new tab and badge), `App.tsx` (alerts route maps to the tab; open-alert count from `listPlants`), `strings/en.json` (`nav.alerts`, `nav.alertsBadge`). Tests: the existing tab tests pass; `altBuild.test.ts` covers the label. Bench: step 2 taps `nav.profile` and step 3 taps `nav.plants`: labels unchanged. Needs bench owner check that the bench's tap on the tab bar still matches. **Decision for the owner:** the open-alert count calls `listPlants` on every route change. On the real backend that is one extra request per navigation. Option: cache the count and refresh it only on the plant list. |
+| Three tabs (Plants, Alerts with badge, Profile) | Built in the alternative build | `TabBar.tsx` (new tab and badge), `App.tsx` (alerts route maps to the tab; open-alert count from `listPlants`), `strings/en.json` (`nav.alerts`, `nav.alertsBadge`). Tests: the existing tab tests pass; `altBuild.test.ts` covers the label. Bench: step 2 taps `nav.profile` and step 3 taps `nav.plants`: labels unchanged. Needs bench owner check that the bench's tap on the tab bar still matches. **Resolved (owner answer):** the badge count is cached. It is written when the plant list or the alerts screen loads, and not re-read on every navigation. Code: `App.tsx` (one cached value), `PlantsScreen.tsx` and `AlertsScreen.tsx` (`onCount`), `status.ts` (`countOpenAlertPlants`). Test: `altBuild.test.ts` (hand-computed: three of five plants). Bench: step 3 reads the list; not affected by the badge. |
 | Gallery: grid of three per row, day headers, date on each photo | Built in the alternative build | `PlantGalleryScreen.tsx` (`dayGroups`, three per row). Tests: `altBuild.test.ts` (hand-written groups). Bench: not in the bench. The "date on each photo" is kept as the tile caption. |
-| Photo picker (`expo-image-picker`) | Approved in the spec, not built | Needs a dependency review and a requirement check (the spec says the build PR does that). Upload would go to Storage; it must be checked against the contract, not assumed. Not built here. Bench: not in the bench. |
-| Setup details on one screen this round | Already true | None. |
-| Plan price on Profile | Not built | **Needs owner decision:** the price value and its source. The price must come from `strings/en.json` or a contract, and must not be in `showcase/`. No value was invented. |
+| Photo picker (`expo-image-picker`) | Approved in the spec, not built (open question below) | Needs a dependency review and a requirement check (the spec says the build PR does that). Upload would go to Storage; it must be checked against the contract, not assumed. Not built here. Bench: not in the bench. |
+| Setup details on one screen this round | Already true in the app. **Waiting on Leo** (the app developer) to decide whether the photo and the details are one screen or two, as the mock shows. The build is left as it is. | None until Leo decides. Bench step 2 (`setup.details.*`) depends on the answer. |
+| Plan price on Profile | Built in the app only (owner answer). Both plan prices are shown on Profile, values from `strings/en.json`. | Code: `ProfileScreen.tsx` (two lines under the plan row), `strings/en.json` (`profile.price.*`). Test: `altBuild.test.ts` (strings). Bench: not in the bench. Prices are not written in `showcase/`. Open: the currency and the billing period are not stated in the answer (see open questions). |
 | Designer role approved | Recorded in the spec | Not a code item. |
 
 ## Things in the mock that need a decision (not decided here)
@@ -67,3 +67,15 @@ The mock uses Basil at 18 %, Monstera at 62 % and Fern at 27 %. The app's fixtur
 - No device run, no bench run.
 - No endpoint was added. The open-alert count uses the existing `listPlants`.
 - No change to backend, Supabase or contracts.
+
+## Open questions (not built; for the team to recommend)
+
+Arsany asked the team to recommend on these. They are not built in this branch. Routing: Theo (architecture, requirements) and Leo (app).
+
+1. **"NEEDS WATER" card and its button** (mock, My plants). Needs a rule for which plant is named first, and a target screen for the button. Requirement check first (the design review item D-C is a related rule). Recommend: Theo and Leo.
+2. **"+" button on My plants.** The app adds sensors from Profile only. A header button needs a decision on where setup starts. Recommend: Theo and Leo.
+3. **Photo picker.** `expo-image-picker` is approved in principle. The dependency, the camera and library permissions, and the upload path in the contract need a review before code. Recommend: Theo (contract) and Leo (dependency).
+4. **Photo viewer** (previous, next, swipe, pinch). Needs signed Storage URLs and a requirement check (FR-A05). Recommend: Theo and Leo.
+5. **Setup details: one screen or two.** Waiting on Leo.
+6. **Plan price: currency and billing period.** The owner gave the two values for Free and Premium. The currency symbol and the billing period (per month or per year) are not in the answer. Needs the owner to confirm before release.
+7. **Route stack, system back and sheets.** The bench check is in `ROUTE-SHEETS-BENCH-CHECK.md`. The check needs a device run before any code.

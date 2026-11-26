@@ -397,5 +397,8 @@
   "mcp.setup.copied": "Setup text copied.",
   "mcp.setup.copyError": "Could not copy. Select the text above and copy it by hand.",
   "mcp.keys.name.required": "Give the key a name.",
-  "mcp.keys.name.long": "Use at most {max} characters."
+  "mcp.keys.name.long": "Use at most {max} characters.",
+  "profile.price.free": "Free: 0",
+  "profile.price.premium": "Premium: 7.99",
+  "profile.price.heading": "Plans"
 }

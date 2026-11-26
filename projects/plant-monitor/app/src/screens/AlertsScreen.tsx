@@ -25,7 +25,7 @@ export function alertCopy(a: RuleAlert): string {
   }
 }
 
-export function AlertsScreen({ onBack }: { onBack: () => void }) {
+export function AlertsScreen({ onBack, onCount }: { onBack: () => void; onCount?: (n: number) => void }) {
   const th = useTheme();
   const svc = usePlants();
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -38,11 +38,13 @@ export function AlertsScreen({ onBack }: { onBack: () => void }) {
       const now = new Date();
       // plants without a sensor cannot raise alerts (alertsForPlant returns none), so they are not fetched
       const details = await Promise.all(plants.filter((p) => p.deviceId !== null).map((p) => svc.getPlantDetail(p.id)));
-      setRows(details.flatMap((d) => alertsForPlant(d.plant, d.hourly, now).map((alert) => ({ plantId: d.plant.id, plantName: d.plant.name, alert }))));
+      const next = details.flatMap((d) => alertsForPlant(d.plant, d.hourly, now).map((alert) => ({ plantId: d.plant.id, plantName: d.plant.name, alert })));
+      setRows(next);
+      onCount?.(new Set(next.map((r) => r.plantId)).size);
     } catch (e) {
       setError(t(e instanceof PlantsError && e.code === 'not_configured' ? 'plants.error.notConnected' : 'alerts.error.load'));
     }
-  }, [svc]);
+  }, [svc, onCount]);
   useEffect(() => { load(); }, [load]);
 
   return (

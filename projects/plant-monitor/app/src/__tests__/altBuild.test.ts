@@ -1,5 +1,6 @@
 // #238 alternative build: gallery day groups (hand-written example) and the badge label of the Alerts tab.
 import { dayGroups } from '../screens/PlantGalleryScreen';
+import { countOpenAlertPlants } from '../plants/status';
 import { t } from '../i18n';
 import type { PlantPhoto } from '../plants/types';
 
@@ -21,5 +22,31 @@ describe('gallery day groups (hand-written example)', () => {
 describe('Alerts tab label', () => {
   test('with open alerts the tab reads the count', () => {
     expect(t('nav.alertsBadge', { label: t('nav.alerts'), n: 2 })).toBe('Alerts, 2 open');
+  });
+});
+
+describe('cached Alerts badge count (hand-computed example)', () => {
+  // Fixture by hand: Basil OK, Cactus too dry, Fern low battery, Orchid offline, Rubber tree no sensor.
+  // Plants with a state other than OK or no sensor: Cactus, Fern, Orchid = 3.
+  const plants = [
+    { deviceId: 'd1', openAlerts: [] },
+    { deviceId: 'd2', openAlerts: ['too_dry'] },
+    { deviceId: 'd3', openAlerts: ['low_battery'] },
+    { deviceId: 'd4', openAlerts: ['device_offline'] },
+    { deviceId: null, openAlerts: [] },
+  ] as Array<{ deviceId: string | null; openAlerts: never[] | ['too_dry'] | ['low_battery'] | ['device_offline'] }>;
+  test('three plants have an open state', () => {
+    expect(countOpenAlertPlants(plants)).toBe(3);
+  });
+  test('no plants, or only OK and no-sensor plants, give 0', () => {
+    expect(countOpenAlertPlants([])).toBe(0);
+    expect(countOpenAlertPlants([{ deviceId: 'd1', openAlerts: [] }, { deviceId: null, openAlerts: [] }])).toBe(0);
+  });
+});
+
+describe('plan prices (strings only)', () => {
+  test('Free 0 and Premium 7.99 come from strings/en.json', () => {
+    expect(t('profile.price.free')).toBe('Free: 0');
+    expect(t('profile.price.premium')).toBe('Premium: 7.99');
   });
 });

@@ -57,6 +57,11 @@ export function ProfileScreen({ onPremium, onDelete, onAddSensor, onDashboard, o
       <View style={row}>
         <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('profile.plan')}</Text>
         <Body>{profile ? t(profile.isPremium ? 'profile.plan.premium' : 'profile.plan.free') : t('common.loading')}</Body>
+        {/* #238 decision: the plan prices are shown on Profile before Premium is opened. Values are in strings/en.json only. */}
+        <View style={{ gap: th.spacing.xs }} accessibilityLabel={t('profile.price.heading')}>
+          <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('profile.price.free')}</Text>
+          <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('profile.price.premium')}</Text>
+        </View>
         {profile && !profile.isPremium ? <Button label={t('profile.whatIsPremium')} variant="ghost" onPress={onPremium} /> : null}
         {profile && profile.isPremium ? <Button label={t('profile.dashboard')} variant="secondary" onPress={onDashboard} /> : null}
         {profile && profile.isPremium ? <Button label={t('profile.connectAi')} variant="secondary" onPress={onConnectAi} /> : null}

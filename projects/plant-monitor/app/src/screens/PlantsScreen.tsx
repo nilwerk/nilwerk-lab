@@ -8,12 +8,12 @@ import { StatusChip } from '../ui/StatusChip';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
-import { plantChips } from '../plants/status';
+import { countOpenAlertPlants, plantChips } from '../plants/status';
 import { PlantsError, type PlantSummary } from '../plants/types';
 
 export const loadErrorKey = (e: unknown) => (e instanceof PlantsError && e.code === 'not_configured' ? 'plants.error.notConnected' : 'plants.error.load');
 
-export function PlantsScreen({ onOpen, onAlerts }: { onOpen: (plantId: string) => void; onAlerts: () => void }) {
+export function PlantsScreen({ onOpen, onAlerts, onCount }: { onOpen: (plantId: string) => void; onAlerts: () => void; onCount?: (n: number) => void }) {
   const th = useTheme();
   const svc = usePlants();
   const [plants, setPlants] = useState<PlantSummary[] | null>(null);
@@ -21,8 +21,8 @@ export function PlantsScreen({ onOpen, onAlerts }: { onOpen: (plantId: string) =
 
   const load = useCallback(async () => {
     setError(null);
-    try { setPlants(await svc.listPlants()); } catch (e) { setError(t(loadErrorKey(e))); }
-  }, [svc]);
+    try { const ps = await svc.listPlants(); setPlants(ps); onCount?.(countOpenAlertPlants(ps)); } catch (e) { setError(t(loadErrorKey(e))); }
+  }, [svc, onCount]);
   useEffect(() => { load(); }, [load]);
 
   return (
