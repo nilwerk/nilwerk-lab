@@ -206,3 +206,5 @@ export function BarMeter({ percent, tone = 'accent' }: { percent: number; tone?:
     </View>
   );
 }
+
+export { FadeIn } from './primitives';

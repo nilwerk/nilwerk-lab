@@ -2,7 +2,7 @@
 // NFR-06 (reads/writes only the caller's own profiles row under RLS).
 import React, { useCallback, useEffect, useState } from 'react';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
-import { Card, Caption } from '../ui/kit';
+import { Card, Caption, ListRow } from '../ui/kit';
 import { Column } from '../ui/kit';
 import { LegalLine } from '../ui/LegalLine';
 import { t } from '../i18n';
@@ -46,11 +46,13 @@ export function ProfileScreen({ onPremium, onDelete, onAddSensor, onDashboard, o
   };
 
   return (
-    <Screen title={t('profile.title')}>
+    <Screen fade title={t('profile.title')}>
       {error ? <Notice kind="error" text={error} /> : null}
       <Card>
-        <Caption>{t('profile.email')}</Caption>
-        <Body>{state.user?.email ?? ''}</Body>
+        <ListRow last>
+          <Caption>{t('profile.email')}</Caption>
+          <Body>{state.user?.email ?? ''}</Body>
+        </ListRow>
       </Card>
       <Card>
         <Caption>{t('profile.plan')}</Caption>

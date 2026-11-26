@@ -38,7 +38,7 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = 
   );
 
   return (
-    <Screen title={p?.name ?? t('plants.title')} onBack={onBack}>
+    <Screen fade title={p?.name ?? t('plants.title')} onBack={onBack}>
       {error ? <Notice kind="error" text={error} /> : null}
       {error ? <Button label={t('common.tryAgain')} variant="secondary" onPress={load} /> : null}
       {!detail && !error ? <Body muted>{t('common.loading')}</Body> : null}
