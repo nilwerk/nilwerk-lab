@@ -12,6 +12,10 @@ describe.each(['light', 'dark'] as const)('contrast (%s)', (s) => {
     ['danger on dangerSoft (error notice)', c.danger, c.dangerSoft], ['ok on okSoft (info notice)', c.ok, c.okSoft],
   ];
   test.each(pairs)('%s >= 4.5', (_n, fg, bg) => expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5));
+  // WCAG 2.2 SC 1.4.11: borders that identify inputs, radio choices and secondary buttons need 3:1 against bg and surface.
+  test('control borders are at least 3:1 on bg and surface', () => {
+    for (const bg of [c.bg, c.surface]) expect(contrast(c.control, bg)).toBeGreaterThanOrEqual(3);
+  });
   test('every status colour is AA on bg, surface and its soft background', () => {
     for (const k of Object.keys(statusMeta) as PlantStatus[]) {
       const st = statusStyle(k, s);
@@ -20,5 +24,6 @@ describe.each(['light', 'dark'] as const)('contrast (%s)', (s) => {
   });
 });
 
-test('touch target token is at least 44', () => expect(minTouchTarget).toBeGreaterThanOrEqual(44));
+// 48 dp is the Android minimum (developer.android.com accessibility guide); 44 pt is the iOS minimum. 48 satisfies both.
+test('touch target token is at least 48', () => expect(minTouchTarget).toBeGreaterThanOrEqual(48));
 test('getTheme falls back to light for unknown scheme', () => expect(getTheme(null).name).toBe('light'));

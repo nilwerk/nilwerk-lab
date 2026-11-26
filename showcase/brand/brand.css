@@ -1,4 +1,4 @@
-/* Nilwerk brand tokens v0.1 - PROPOSAL, pending Arsany's approval.
+/* Nilwerk brand tokens v0.1 - PROPOSAL, pending owner approval.
    Source: the values already live on nilwerk.de (CSS custom properties --bg, --ink, --accent ...),
    renamed with an --nw- prefix. Fonts: Google Fonts, open licence (SIL OFL 1.1). Load them with
    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -10,7 +10,8 @@
   --nw-surface: #ffffff;     /* cards */
   --nw-ink: #15181d;         /* text, logo plate */
   --nw-muted: #5b616b;       /* secondary text */
-  --nw-line: #e2ded5;        /* hairlines */
+  --nw-line: #e2ded5;        /* hairlines (decorative only, not for control borders) */
+  --nw-control: #7d838c;     /* borders of inputs, radio choices, secondary buttons: 3:1 on bg and surface (WCAG 1.4.11) */
   --nw-accent: #0f7a5c;      /* Nilwerk green */
   --nw-accent-ink: #ffffff;  /* text on accent */
   --nw-accent-soft: #e3f2ec; /* chips, highlights */
@@ -46,12 +47,13 @@
   --nw-accent-soft: #16302a;
   --nw-warn: #e58a4f;
   --nw-trace: #2f363f;
+  --nw-control: #7b818a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --nw-bg: #101317; --nw-surface: #181c22; --nw-ink: #ecebe7; --nw-muted: #a2a7af;
     --nw-line: #2a3038; --nw-accent: #3fc79a; --nw-accent-ink: #0c1512;
-    --nw-accent-soft: #16302a; --nw-warn: #e58a4f; --nw-trace: #2f363f;
+    --nw-accent-soft: #16302a; --nw-warn: #e58a4f; --nw-trace: #2f363f; --nw-control: #7b818a;
   }
 }

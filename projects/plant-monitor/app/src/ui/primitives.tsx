@@ -32,7 +32,7 @@ export function Button({ label, onPress, variant = 'primary', disabled, busy, a1
   const look = {
     primary: { bg: c.accent, fg: c.accentInk, border: c.accent },
     danger: { bg: c.danger, fg: c.dangerInk, border: c.danger },
-    secondary: { bg: c.surface, fg: c.ink, border: c.line },
+    secondary: { bg: c.surface, fg: c.ink, border: c.control },
     ghost: { bg: 'transparent', fg: c.accent, border: 'transparent' },
   }[variant];
   const off = disabled || busy;
@@ -64,7 +64,7 @@ export function Field({ label, error, ...input }: { label: string; error?: strin
         {...input}
         style={{
           minHeight: th.minTouchTarget, paddingHorizontal: th.spacing.md, borderRadius: th.radius.md, borderWidth: 1,
-          borderColor: error ? th.color.danger : th.color.line, backgroundColor: th.color.surface, color: th.color.ink, ...th.type.body,
+          borderColor: error ? th.color.danger : th.color.control, backgroundColor: th.color.surface, color: th.color.ink, ...th.type.body,
         }}
       />
       {error ? <Text accessibilityRole="alert" style={{ color: th.color.danger, ...th.type.caption }}>{error}</Text> : null}
@@ -92,7 +92,7 @@ export function Choice({ label, a11yLabel, selected, onPress }: { label: string;
       accessibilityLabel={a11yLabel ?? label}
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={{ minHeight: th.minTouchTarget, justifyContent: 'center', paddingHorizontal: th.spacing.md, borderRadius: th.radius.md, borderWidth: selected ? 2 : 1, borderColor: selected ? th.color.accent : th.color.line, backgroundColor: selected ? th.color.accentSoft : th.color.surface }}
+      style={{ minHeight: th.minTouchTarget, justifyContent: 'center', paddingHorizontal: th.spacing.md, borderRadius: th.radius.md, borderWidth: selected ? 2 : 1, borderColor: selected ? th.color.accent : th.color.control, backgroundColor: selected ? th.color.accentSoft : th.color.surface }}
     >
       <Text style={{ color: th.color.ink, ...(selected ? th.type.bodyStrong : th.type.body) }}>{selected ? `✓ ${label}` : label}</Text>
     </Pressable>
