@@ -524,8 +524,17 @@ jobs:
             exit 1
           fi
           # Read the chip id first. Stop unless it is an ESP32-C3.
-          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip-id 2>&1)"
+          # A failed chip-id must not end the step silently (set -e would exit before the output is printed): keep the exit code.
+          chip_rc=0
+          chip_out="$("$esptool" --port "$BENCH_ESP_PORT" chip-id 2>&1)" || chip_rc=$?
           echo "$chip_out"
+          if [ "$chip_rc" != "0" ]; then
+            echo "::error::a. firmware flash: chip-id failed (rc ${chip_rc}), see the output above"
+            echo "port state for ${BENCH_ESP_PORT} (a busy port shows as a process here):"
+            ls -l "$BENCH_ESP_PORT" || true
+            (fuser -v "$BENCH_ESP_PORT" 2>&1 || lsof "$BENCH_ESP_PORT" 2>&1) || true
+            exit 1
+          fi
           if ! grep -q "ESP32-C3" <<<"$chip_out"; then
             echo "::error::a. firmware flash: chip is not an ESP32-C3, not flashing"
             exit 1
