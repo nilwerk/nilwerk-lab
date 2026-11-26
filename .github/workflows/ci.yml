@@ -633,7 +633,7 @@ jobs:
         run: timeout 300 bash bench/app/test_check_setup_session.sh
       - name: mask_ui_dump
         run: timeout 300 bash bench/app/test_mask_ui_dump.sh
-      - name: bench_artifacts (workflow text: upload if: failure() and always(), redaction check)
+      - name: "bench_artifacts (workflow text: upload if: failure() and always(), redaction check)"
         run: timeout 300 bash bench/app/test_bench_artifacts.sh
 
   summary:

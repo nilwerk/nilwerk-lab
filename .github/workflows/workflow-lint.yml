@@ -1,0 +1,30 @@
+# Parse check for every workflow file. A YAML error in a workflow makes GitHub fail the run in 0 s with
+# "workflow file issue", and ci.yml cannot report its own breakage, so this check lives in its own file.
+# It runs on every PR and on push to main, with no paths filter, so it always reports a check.
+name: Workflow lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  yaml-parse:
+    name: Workflow YAML parses
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse every .github/workflows/*.yml
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(.github/workflows/*.yml .github/workflows/*.yaml)
+          [ "${#files[@]}" -gt 0 ] || { echo "::error::no workflow files found"; exit 1; }
+          for f in "${files[@]}"; do
+            python3 -I -c "import sys, yaml; d = yaml.safe_load(open(sys.argv[1], encoding='utf-8')); assert isinstance(d, dict) and isinstance(d.get('jobs'), dict) and d['jobs'], 'no jobs mapping'; print(sys.argv[1], 'OK', list(d['jobs']))" "$f" \
+              || { echo "::error file=$f::workflow file does not parse or has no jobs"; exit 1; }
+          done
