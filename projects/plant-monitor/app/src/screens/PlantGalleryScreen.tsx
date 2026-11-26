@@ -19,6 +19,17 @@ export function sortPhotos(photos: PlantPhoto[], order: PhotoOrder): PlantPhoto[
   return [...photos].sort((a, b) => dir * (Date.parse(a.takenAt) - Date.parse(b.takenAt)));
 }
 
+/** Photos (already sorted) grouped by their day, keeping the order of the sort. */
+export function dayGroups(photos: PlantPhoto[]): Array<{ day: string; photos: PlantPhoto[] }> {
+  const out: Array<{ day: string; photos: PlantPhoto[] }> = [];
+  for (const ph of photos) {
+    const day = fmtDay(ph.takenAt);
+    const last = out[out.length - 1];
+    if (last && last.day === day) last.photos.push(ph); else out.push({ day, photos: [ph] });
+  }
+  return out;
+}
+
 export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onBack: () => void }) {
   const th = useTheme();
   const svc = usePlants();
@@ -54,20 +65,22 @@ export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onB
             <Button label={t('gallery.sortNewest')} variant={order === 'newest' ? 'secondary' : 'ghost'} onPress={() => setOrder('newest')} />
             <Button label={t('gallery.sortOldest')} variant={order === 'oldest' ? 'secondary' : 'ghost'} onPress={() => setOrder('oldest')} />
           </View>
-          <View testID="gallery-grid" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>
-            {sorted.map((ph) => {
-              const day = fmtDay(ph.takenAt);
-              return (
-                <View key={ph.id} testID="gallery-photo" accessible accessibilityLabel={t('gallery.photoA11y', { date: day })}
-                  style={{ flexBasis: '47%', flexGrow: 1, gap: th.spacing.xs }}>
-                  <View style={{ aspectRatio: 1, borderRadius: th.radius.md, borderWidth: 1, borderColor: th.color.line, backgroundColor: th.color.surface, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: th.color.muted, ...th.type.caption }}>{day}</Text>
+          {/* #238 decision: grid of three per row, grouped under a header per day (the order follows the sort) */}
+          {dayGroups(sorted).map((g) => (
+            <View key={g.day} testID="gallery-day" style={{ gap: th.spacing.sm }}>
+              <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.bodyStrong }}>{g.day}</Text>
+              <View testID="gallery-grid" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>
+                {g.photos.map((ph) => (
+                  <View key={ph.id} testID="gallery-photo" accessible accessibilityLabel={t('gallery.photoA11y', { date: g.day })}
+                    style={{ flexBasis: '30%', flexGrow: 0, flexShrink: 0, gap: th.spacing.xs }}>
+                    <View style={{ aspectRatio: 1, borderRadius: th.radius.md, borderWidth: 1, borderColor: th.color.line, backgroundColor: th.color.surface, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: th.color.muted, ...th.type.caption }}>{g.day}</Text>
+                    </View>
                   </View>
-                  <Text style={{ color: th.color.ink, ...th.type.caption }}>{t('gallery.takenOn', { date: day })}</Text>
-                </View>
-              );
-            })}
-          </View>
+                ))}
+              </View>
+            </View>
+          ))}
         </>
       ) : null}
     </Screen>

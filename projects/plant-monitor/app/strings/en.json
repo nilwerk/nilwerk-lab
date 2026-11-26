@@ -217,6 +217,8 @@
   "status.noSensor": "No sensor yet",
   "nav.plants": "Plants",
   "nav.profile": "Profile",
+  "nav.alerts": "Alerts",
+  "nav.alertsBadge": "{label}, {n} open",
   "plants.title": "My plants",
   "plants.refresh": "Refresh",
   "plants.empty.title": "No plants yet",
