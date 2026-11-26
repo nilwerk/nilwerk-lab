@@ -35,3 +35,15 @@ export function ageParts(iso: string | null, now: Date): { key: string; n?: numb
   if (min < 1440) return { key: 'plant.updated.hours', n: Math.floor(min / 60) };
   return { key: 'plant.updated.days', n: Math.floor(min / 1440) };
 }
+
+/** Counts for the "needs attention" strip on My plants. Computed on the client from the plant list the screen already loads (no endpoint). A plant counts once per state. */
+export function attentionCounts(plants: Array<Pick<PlantSummary, 'deviceId' | 'openAlerts'>>): { dry: number; wet: number; lowBattery: number } {
+  const n = { dry: 0, wet: 0, lowBattery: 0 };
+  for (const p of plants) {
+    const chips = plantChips(p);
+    if (chips.includes('dry')) n.dry += 1;
+    if (chips.includes('wet')) n.wet += 1;
+    if (chips.includes('lowBattery')) n.lowBattery += 1;
+  }
+  return n;
+}

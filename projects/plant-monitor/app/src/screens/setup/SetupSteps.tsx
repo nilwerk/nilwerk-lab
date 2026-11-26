@@ -173,7 +173,7 @@ export function DetailsStep({ time, busy, error, onSave, onBack }: { time: strin
   const e = (k: keyof typeof errs) => (shown ? msg(errs[k]) : null);
   return (
     <Screen title={t('setup.details.title')} onBack={onBack}>
-      <Progress n={5} time={time} />
+      <Progress n={4} time={time} />
       <Field label={t('setup.details.name')} value={d.name} onChangeText={(v) => set('name', v)} error={e('name')} />
       <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.location')} style={{ gap: 8 }}>
         <Body muted>{t('setup.details.location')}</Body>
@@ -207,7 +207,7 @@ export function DoneStep({ plantName, time, onDone, onAnother }: { plantName: st
 export function MoveChoiceStep({ time, busy, onKeep, onMove }: { time: string; busy: boolean; onKeep: () => void; onMove: () => void }) {
   return (
     <Screen title={t('setup.move.title')}>
-      <Progress n={5} time={time} />
+      <Progress n={4} time={time} />
       <Body>{t('setup.move.body')}</Body>
       <Button label={t('setup.move.keep')} variant="secondary" disabled={busy} onPress={onKeep} />
       <Body muted>{t('setup.move.keepHint')}</Body>

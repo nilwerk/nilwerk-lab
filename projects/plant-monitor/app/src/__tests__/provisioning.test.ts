@@ -64,7 +64,7 @@ describe('setup state machine', () => {
     expect(order).toEqual(['ready', 'connect', 'wifi', 'name', 'linking', 'photo', 'details', 'done']);
     expect(s.sensorName).toBe('Basil');
     expect(elapsedSeconds(s, 999999)).toBe(160);
-    expect(Math.max(...Object.values(STEP_NUMBER))).toBe(5);
+    expect(Math.max(...Object.values(STEP_NUMBER))).toBe(4);
   });
   test('the Wi-Fi password is dropped from state once the sensor has it', () => {
     const s = run([{ type: 'chooseDevice', deviceName: 'N' }, { type: 'connected' }, { type: 'wifiChosen', ssid: 'Home', passphrase: 'secret' }, { type: 'startLink', sensorName: 'a' }, { type: 'linked', deviceId: 'd' }]);

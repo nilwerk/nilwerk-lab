@@ -8,16 +8,21 @@ import { StatusChip } from '../ui/StatusChip';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
-import { plantChips } from '../plants/status';
+import { attentionCounts, plantChips } from '../plants/status';
 import { PlantsError, type PlantSummary } from '../plants/types';
 
 export const loadErrorKey = (e: unknown) => (e instanceof PlantsError && e.code === 'not_configured' ? 'plants.error.notConnected' : 'plants.error.load');
 
-export function PlantsScreen({ onOpen, onAlerts }: { onOpen: (plantId: string) => void; onAlerts: () => void }) {
+/** Lists longer than this keep the title at the top while scrolling (v3, sticky title). */
+const LONG_LIST = 4;
+export const isLongList = (n: number) => n > LONG_LIST;
+
+export function PlantsScreen({ onOpen, onAlerts, onAddSensor }: { onOpen: (plantId: string) => void; onAlerts: () => void; onAddSensor: () => void }) {
   const th = useTheme();
   const svc = usePlants();
   const [plants, setPlants] = useState<PlantSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [howOpen, setHowOpen] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -25,15 +30,38 @@ export function PlantsScreen({ onOpen, onAlerts }: { onOpen: (plantId: string) =
   }, [svc]);
   useEffect(() => { load(); }, [load]);
 
+  // Counts come from the plant list this screen already loaded (no endpoint). Shown only when at least one count is above zero.
+  const counts = plants ? attentionCounts(plants) : null;
+  const needsAttention = counts !== null && counts.dry + counts.wet + counts.lowBattery > 0;
+
   return (
-    <Screen title={t('plants.title')}>
+    <Screen title={t('plants.title')} stickyTitle={!!plants && isLongList(plants.length)}>
       {error ? <Notice kind="error" text={error} /> : null}
       {error ? <Button label={t('common.tryAgain')} variant="secondary" onPress={load} /> : null}
       {plants === null && !error ? <Body muted>{t('common.loading')}</Body> : null}
+      {counts && needsAttention ? (
+        <View accessibilityRole="summary" style={{ padding: th.spacing.md, gap: th.spacing.xs, borderRadius: th.radius.lg, borderWidth: 1, borderColor: th.color.line, backgroundColor: th.color.surface }}>
+          <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('plants.attention.title')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>
+            {counts.dry > 0 ? <Text style={{ color: th.color.ink, ...th.type.bodyStrong }}>{t('plants.attention.dry', { n: counts.dry })}</Text> : null}
+            {counts.wet > 0 ? <Text style={{ color: th.color.ink, ...th.type.bodyStrong }}>{t('plants.attention.wet', { n: counts.wet })}</Text> : null}
+            {counts.lowBattery > 0 ? <Text style={{ color: th.color.ink, ...th.type.bodyStrong }}>{t('plants.attention.lowBattery', { n: counts.lowBattery })}</Text> : null}
+          </View>
+        </View>
+      ) : null}
       {plants && plants.length === 0 ? (
-        <View style={{ gap: th.spacing.sm }}>
+        <View style={{ gap: th.spacing.md }}>
           <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('plants.empty.title')}</Text>
           <Body muted>{t('plants.empty.body')}</Body>
+          <Button label={t('plants.empty.addFirst')} variant="primary" onPress={onAddSensor} />
+          <Button label={howOpen ? t('plants.empty.howHide') : t('plants.empty.howLink')} variant="ghost" onPress={() => setHowOpen((v) => !v)} />
+          {howOpen ? (
+            <View style={{ gap: th.spacing.sm, padding: th.spacing.md, borderRadius: th.radius.md, backgroundColor: th.color.surface, borderWidth: 1, borderColor: th.color.line }}>
+              <Body>{t('plants.empty.how1')}</Body>
+              <Body>{t('plants.empty.how2')}</Body>
+              <Body>{t('plants.empty.how3')}</Body>
+            </View>
+          ) : null}
         </View>
       ) : null}
       {plants && plants.length > 0 ? <Button label={t('plants.alerts.button')} variant="secondary" onPress={onAlerts} /> : null}

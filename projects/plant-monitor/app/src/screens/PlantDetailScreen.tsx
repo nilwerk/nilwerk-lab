@@ -14,6 +14,7 @@ import { ageParts, plantChips } from '../plants/status';
 import { PlantsError, type PlantDetail, type PlantSummary } from '../plants/types';
 
 const fmt = (v: number | null | undefined, digits: number) => (v === null || v === undefined ? null : v.toFixed(digits));
+const heroText = (moisturePct: number | null | undefined) => (moisturePct === null || moisturePct === undefined ? t('plant.latest.none') : t('plant.latest.soilValue', { value: Math.round(moisturePct) }));
 
 export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = () => new Date() }: { plantId: string; onBack: () => void; onRemove: (d: PlantDetail) => void; onGallery: (p: PlantSummary) => void; now?: () => Date }) {
   const th = useTheme();
@@ -49,8 +50,12 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>{plantChips(p).map((c) => <StatusChip key={c} kind={c} />)}</View>
           <Text style={{ color: th.color.muted, ...th.type.caption }}>{t(age.key, age.n === undefined ? undefined : { n: age.n })}</Text>
           <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('plant.latest.title')}</Text>
+          {/* v3: the soil value is the hero number; it is not repeated in the grid below */}
+          <View accessibilityRole="summary" style={{ gap: th.spacing.xs }}>
+            <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('plant.latest.soil')}</Text>
+            <Text style={{ color: th.color.ink, ...th.type.number }}>{heroText(l?.moisturePct)}</Text>
+          </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>
-            {cell('plant.latest.soil', 'plant.latest.soilValue', fmt(l?.moisturePct, 0))}
             {cell('plant.latest.temp', 'plant.latest.tempValue', fmt(l?.tempC, 1))}
             {cell('plant.latest.humidity', 'plant.latest.humidityValue', fmt(l?.rhPct, 0))}
             {cell('plant.latest.light', 'plant.latest.lightValue', fmt(l?.lux, 0))}
@@ -58,8 +63,8 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = 
           </View>
           <MoistureChart points={detail.hourly} dry={p.dryThresholdPct} wet={p.wetThresholdPct} />
           <HourlyTable points={detail.hourly} />
-          <Button label={t('plant.photos.button')} variant="secondary" onPress={() => onGallery(p)} />
-          <Button label={t('plant.remove.button')} variant="danger" onPress={() => onRemove(detail)} />
+          <Button label={t('plant.photos.button')} variant="primary" onPress={() => onGallery(p)} />
+          <Button label={t('plant.remove.button')} variant="dangerQuiet" onPress={() => onRemove(detail)} />
         </>
       ) : null}
     </Screen>

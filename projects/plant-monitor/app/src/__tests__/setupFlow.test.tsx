@@ -89,10 +89,10 @@ describe('device setup flow', () => {
 
   test('progress and timer are announced on each step', async () => {
     await mount();
-    expect(screen.getByLabelText('Step 1 of 5. Time so far 0:00.')).toBeTruthy();
+    expect(screen.getByLabelText('Step 1 of 4. Time so far 0:00.')).toBeTruthy();
     clock = 25000;
     await toWifi();
-    expect(await screen.findByLabelText(/^Step 2 of 5\. Time so far 0:2\d\.$/)).toBeTruthy();
+    expect(await screen.findByLabelText(/^Step 2 of 4\. Time so far 0:2\d\.$/)).toBeTruthy();
   });
 
   test('no sensor found: plain advice, can try again', async () => {

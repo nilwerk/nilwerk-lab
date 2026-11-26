@@ -3,8 +3,9 @@
 import type { ProvisioningErrorCode } from '../../provisioning/types';
 
 export type SetupStep = 'ready' | 'connect' | 'wifi' | 'name' | 'linking' | 'linkError' | 'photo' | 'details' | 'done';
-export const STEP_NUMBER: Record<SetupStep, number> = { ready: 1, connect: 1, wifi: 2, name: 3, linking: 3, linkError: 3, photo: 4, details: 5, done: 5 };
-export const STEP_COUNT = 5;
+// v3: four visible steps. 1 find and connect, 2 Wi-Fi, 3 name and link, 4 photo and plant details (the last screen is the finish).
+export const STEP_NUMBER: Record<SetupStep, number> = { ready: 1, connect: 1, wifi: 2, name: 3, linking: 3, linkError: 3, photo: 4, details: 4, done: 4 };
+export const STEP_COUNT = 4;
 /** NFR-03: set up in at most 3 minutes. */
 export const TARGET_SECONDS = 180;
 

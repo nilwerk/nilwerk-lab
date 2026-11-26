@@ -4,13 +4,20 @@ import { Pressable, ScrollView, Text, TextInput, View, type TextInputProps } fro
 import { useTheme } from './useTheme';
 import { t } from '../i18n';
 
-export function Screen({ title, children, onBack }: { title: string; children: React.ReactNode; onBack?: () => void }) {
+/** stickyTitle: the back button and title stay at the top while a long list scrolls (only used on long lists). */
+export function Screen({ title, children, onBack, stickyTitle }: { title: string; children: React.ReactNode; onBack?: () => void; stickyTitle?: boolean }) {
   const th = useTheme();
+  const head = (
+    <>
+      {onBack ? <Button label={t('common.back')} a11yLabel={t('a11y.back')} variant="ghost" onPress={onBack} /> : null}
+      <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h1 }}>{title}</Text>
+    </>
+  );
   return (
     <View style={{ flex: 1, backgroundColor: th.color.bg }} accessibilityLabel={t('a11y.screenTitle', { title })}>
-      <ScrollView contentContainerStyle={{ padding: th.spacing.lg, gap: th.spacing.lg }} keyboardShouldPersistTaps="handled">
-        {onBack ? <Button label={t('common.back')} a11yLabel={t('a11y.back')} variant="ghost" onPress={onBack} /> : null}
-        <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h1 }}>{title}</Text>
+      <ScrollView contentContainerStyle={{ padding: th.spacing.lg, gap: th.spacing.lg }} keyboardShouldPersistTaps="handled"
+        stickyHeaderIndices={stickyTitle ? [0] : undefined}>
+        {stickyTitle ? <View style={{ backgroundColor: th.color.bg, gap: th.spacing.lg, paddingBottom: th.spacing.sm }}>{head}</View> : head}
         {children}
       </ScrollView>
     </View>
@@ -22,7 +29,7 @@ export function Body({ children, muted }: { children: React.ReactNode; muted?: b
   return <Text style={{ color: muted ? th.color.muted : th.color.ink, ...th.type.body }}>{children}</Text>;
 }
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerQuiet';
 
 export function Button({ label, onPress, variant = 'primary', disabled, busy, a11yLabel }: {
   label: string; onPress: () => void; variant?: Variant; disabled?: boolean; busy?: boolean; a11yLabel?: string;
@@ -34,6 +41,7 @@ export function Button({ label, onPress, variant = 'primary', disabled, busy, a1
     danger: { bg: c.danger, fg: c.dangerInk, border: c.danger },
     secondary: { bg: c.surface, fg: c.ink, border: c.control },
     ghost: { bg: 'transparent', fg: c.accent, border: 'transparent' },
+    dangerQuiet: { bg: 'transparent', fg: c.danger, border: 'transparent' }, // text-style danger action (contrast danger on bg 5.95:1)
   }[variant];
   const off = disabled || busy;
   return (

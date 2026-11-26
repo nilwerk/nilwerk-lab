@@ -103,7 +103,7 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
   } else if (route === 'alerts') {
     screen = <AlertsScreen onBack={() => setRoute('plants')} />;
   } else {
-    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onAlerts={() => setRoute('alerts')} />;
+    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onAlerts={() => setRoute('alerts')} onAddSensor={() => setRoute('setup')} />;
   }
   const tab: Tab | null = !signedIn ? null : route === 'profile' ? 'profile' : route === 'plants' || route === 'alerts' || route === 'welcome' || route === 'signUp' || route === 'signIn' ? 'plants' : null;
   return (

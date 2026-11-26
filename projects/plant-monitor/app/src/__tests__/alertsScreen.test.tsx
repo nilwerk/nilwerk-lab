@@ -62,7 +62,7 @@ describe('alerts screen', () => {
 describe('entry from the plant list', () => {
   test('the plant list has a View alerts button that opens the alerts screen', async () => {
     const onAlerts = jest.fn();
-    await withPlants(<PlantsScreen onOpen={() => undefined} onAlerts={onAlerts} />);
+    await withPlants(<PlantsScreen onOpen={() => undefined} onAlerts={onAlerts} onAddSensor={() => undefined} />);
     fireEvent.press(await screen.findByRole('button', { name: 'View alerts' }));
     expect(onAlerts).toHaveBeenCalledTimes(1);
   });

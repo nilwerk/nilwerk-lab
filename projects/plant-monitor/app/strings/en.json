@@ -395,5 +395,15 @@
   "mcp.setup.copied": "Setup text copied.",
   "mcp.setup.copyError": "Could not copy. Select the text above and copy it by hand.",
   "mcp.keys.name.required": "Give the key a name.",
-  "mcp.keys.name.long": "Use at most {max} characters."
+  "mcp.keys.name.long": "Use at most {max} characters.",
+  "plants.attention.title": "Needs attention",
+  "plants.attention.dry": "{n} too dry",
+  "plants.attention.wet": "{n} too wet",
+  "plants.attention.lowBattery": "{n} low battery",
+  "plants.empty.addFirst": "Add your first plant",
+  "plants.empty.howLink": "How the sensor works",
+  "plants.empty.howHide": "Hide how the sensor works",
+  "plants.empty.how1": "The sensor measures every 15 minutes.",
+  "plants.empty.how2": "It tells you when the soil is too dry or too wet, or when its battery is low.",
+  "plants.empty.how3": "There is no limit on plants or sensors."
 }
