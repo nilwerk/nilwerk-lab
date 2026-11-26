@@ -39,6 +39,7 @@ No new data is exposed: the means and counts are derived from rows the caller al
 
 ## Consequences
 - **The client must treat `null` as a gap**, not as 0. A day with `reading_count` 0 draws no point and breaks the line; it is not "dry" and not "empty battery". The app model (`analyticsModel.ts`) must validate the array (length equals `window_days`, dates ascending and consecutive, counts non-negative) and reject a malformed series as it does other contract violations.
+- **Absent versus malformed (architect rule, amended 2026-11-26 with the 4.A6b fix round).** A response with no `daily` key on a plant (an older backend, or a rolled-back function) is not a contract violation for the client's other data: the plant's aggregates are shown, and the chart is replaced by a "not available yet" notice. A `daily` value that is present but malformed (not an array, wrong length, non-consecutive dates, a bad value) still rejects the whole response, as above. The server contract is unchanged: `daily` stays in `required` for the built endpoint, so a missing key is a deploy or version fault to fix on the server, not something the client should rely on.
 - A day with readings but no soil value (sensor fault) has `reading_count` > 0 and `soil_pct_mean` null. The chart shows a gap for soil on that day.
 - Today's point is a partial day and can move between requests. The client may mark it.
 - Display in the owner's local time is the client's concern; the series is UTC. Near midnight the local day and the UTC day differ (see open point 2).
