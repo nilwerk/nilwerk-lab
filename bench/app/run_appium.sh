@@ -474,21 +474,44 @@ tap "${T[nav.plants]}"
 wait_el 30 text "${T[plants.title]}" || fail "My plants did not open"
 row_re="$(python3 -I - "${T[plants.row.a11y]}" "$BENCH_PLANT_NAME" "$BENCH_PLANT_AREA" <<'PY'
 import re, sys
+# lit: escape regex metacharacters but keep spaces plain. UiAutomator2 (Java regex in descriptionMatches) does not match "\\ " (escaped space), so re.escape alone made every look fail.
+def lit(s):
+    return re.escape(s).replace("\\ ", " ")
 template, name, area = sys.argv[1], sys.argv[2], sys.argv[3]
 # Row label "{name}, {area}, {status}, soil moisture {value}". {value} must be a number, not "No reading". Not printed.
-values = {"name": re.escape(name), "area": re.escape(area), "status": ".*", "value": "[0-9]+ %"}
+values = {"name": lit(name), "area": lit(area), "status": ".*", "value": "[0-9]+ %"}
 out, pos = "", 0
 for m in re.finditer(r"\{(\w+)\}", template):
-    out += re.escape(template[pos:m.start()]) + values[m.group(1)]
+    out += lit(template[pos:m.start()]) + values[m.group(1)]
     pos = m.end()
-print(out + re.escape(template[pos:]))
+print(out + lit(template[pos:]))
 PY
 )" || fail "the plant row label could not be built from strings/en.json"
 job_fits "$FIRST_READING_MAX_S" "the wait for the first reading"
 first_deadline=$(( $(date +%s) + FIRST_READING_MAX_S ))
-while ! probe descMatches "$row_re"; do
+# Find this run's row. It can be below the fold when the list is long: after a failed look, swipe up to 6 times (one look
+# after each swipe). Between rounds the list goes back to the top, so the Refresh button is on screen for the tap.
+scroll_up() {
+  local size w h
+  size="$(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell wm size 2>/dev/null | tr -d '\r' | grep -o '[0-9][0-9]*x[0-9][0-9]*' | tail -1)" || size=""
+  w="${size%x*}"; h="${size#*x}"
+  [ -n "$w" ] && [ -n "$h" ] || { w=1440; h=2560; }
+  timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell input swipe $(( w / 2 )) $(( h * 3 / 10 )) $(( w / 2 )) $(( h * 7 / 10 )) 400 >/dev/null 2>&1 || true
+  sleep 1
+}
+row_found() {
+  local s
+  probe descMatches "$row_re" && return 0
+  for s in 1 2 3 4 5 6; do
+    scroll_down
+    probe descMatches "$row_re" && return 0
+  done
+  return 1
+}
+until row_found; do
   budget
   [ "$(date +%s)" -lt "$first_deadline" ] || fail "no reading for this run's plant on My plants within ${FIRST_READING_MAX_S} s"
+  for s in 1 2 3 4 5 6; do scroll_up; done
   tap "${T[plants.refresh]}"
   sleep 30
 done
