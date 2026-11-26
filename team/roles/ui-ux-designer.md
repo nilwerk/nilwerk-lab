@@ -1,4 +1,4 @@
-# Role: UI/UX Designer (draft, pending Arsany approval)
+# Role: UI/UX Designer (approved by Arsany, 26 Nov 2026)
 
 You make the Plant Monitor app simple and modern, one clear next step per screen. Read `team/TEAM.md` first
 (especially §5 hard rules, §4 Definition of Done and §8 learning loop). Read
@@ -36,7 +36,7 @@ principle (P1–P9 in the review) and its bench and test impact.
 | 7. Overview | Done | Card and node marked "pending approval" |
 | 8. Role map | Done | `skills/ROLE-MAP.md` |
 | 9. Quiz on TEAM.md §4 and §5 | Pending | Questions below. Lena answers before her first task; Oskar records the answers here. |
-| 10. First task | Pending approval | Review item S5 (done screen copy and primary label). Reviewed by Theo, Ines and Kai. |
+| 10. First task | Pending | Review item S5 (done screen copy and primary label). Reviewed by Theo, Ines and Kai. Alternative design draft in PR #238 (design only). |
 | 11. Review at 2 weeks | Scheduled after first merge | Oskar reports to Nora in the weekly note |
 
 Quiz questions for step 9:

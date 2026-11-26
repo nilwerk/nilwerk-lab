@@ -12,7 +12,7 @@ v3 fixes structure. This alternative changes **what the user does next**, so eac
 |---|---|---|---|
 | My plants | Needs-attention strip above the list | A single "Needs water" card at the top with one filled action that opens the first plant that needs it. Rows keep the status chip and gain a moisture meter with dry and wet limits marked. | P1, P2, P7 |
 | Plant detail | Hero number, then chart, then grid | Hero number, one plain next-step sentence built from the status, then the chart. Missing days are drawn as a gap, not a zero. | P1, P2, P3 |
-| Setup | Four steps, "Step n of 4" | Four segments that fill as each stage completes, with the elapsed clock kept. Matches v3's four stages, so the two PRs do not disagree. | P2 |
+| Setup | Five steps on main, "Step n of 5" | Five segments that fill as each stage completes, with the elapsed clock kept. Same five stages as main. v3's four-stage change is not used. | P2 |
 | Setup done | Primary "Done" | Primary "Go to my plants" with a short success block (plant name, setup time). | P3, P1 |
 | Empty state | Primary "Add your first plant" | Same button. Sensor explainer stays one tap away. | P5 |
 
@@ -29,8 +29,11 @@ v3 fixes structure. This alternative changes **what the user does next**, so eac
 - Chart: a day with no reading is a gap in the line with the label "No reading", never a zero. This is the second social angle in Poppy's note, so it must be shown in the app before any claim is made.
 - "Photos" is the filled action. "Remove plant" stays a text-style danger action.
 
+**Profile**
+- The plan price is shown on Profile before Premium is tapped, using the price the store returns. If no price is available, show "Price available at checkout" rather than leaving the row empty.
+
 **Setup**
-- Four segments, one per stage: find and connect, Wi-Fi, name and link, photo and details. Segments fill as stages finish.
+- Five segments, one per stage: 1 find sensor, 2 connect code, 3 Wi-Fi, 4 name and link, 5 photo and plant details. Segments fill as stages finish.
 - The elapsed clock stays on the right (NFR-03 needs it).
 - No QR scan in this round (needs a dependency and a requirement check, review item S3).
 
@@ -42,7 +45,7 @@ v3 fixes structure. This alternative changes **what the user does next**, so eac
 | Meter on each row | Step 3 | None. Accessible label unchanged. | `plants.test.tsx` finds rows by name |
 | Next-step line | None (plant detail not in bench) | New keys only (`plant.next.*`) | `strings.test.ts` needs the new keys |
 | Gap in chart | None | `plant.chart.noReading` (new key) | New unit test for the gap case |
-| Four segments | Step 2 does not read `a11y.setupProgress` | Progress label text | `setupFlow.test.tsx` "Step n of 4" lines |
+| Five segments | Step 2 does not read `a11y.setupProgress` | Progress label text | `setupFlow.test.tsx` "Step n of 5" lines |
 | "Go to my plants" | Step 2 taps `setup.done.*` | Value of `setup.done.seePlant` changes; bench reads it at run time | Keep "All set!" and the time text |
 
 **Bench rule:** any label or key change needs Peter's bench check and Ines's review first (playbook rule 2). None of this has been run on a device.
@@ -61,12 +64,12 @@ Angles that may go to a post only after their backing output exists (unchanged f
 
 No post drafts are added here. Owner approval goes through a Needs Arsany row.
 
-## 5. Decisions for Arsany
+## 5. Decisions
 
-1. **Setup steps:** four (matches v3, this design) or five (matches the current main and review item S1)?
-2. **Tab bar:** keep two tabs, or move Alerts and Premium into tabs (research suggests four)? Changes navigation for every bench step, so needs a decision first.
-3. **Price visibility:** show plan price on Profile before a user taps Premium? (Store reviews mention this as a trust issue.)
-4. **Lena's role:** approve the role (her first task is pending in the role file), or keep this as a draft from the agent team?
+1. **Setup steps:** five, matching main (decided by Arsany, 26 Nov). Done.
+2. **Tab bar:** still open. Keep two tabs, or move Alerts and Premium into tabs? Changes navigation for every bench step.
+3. **Price visibility:** show the plan price on Profile before Premium is tapped (decided by Arsany, yes). Rule in section 2.
+4. **Lena's role:** approved by Arsany (26 Nov). The role file status is updated in this PR.
 
 ## 6. What is not in this PR
 
