@@ -54,9 +54,11 @@ function PlantRow({ plant, onOpen }: { plant: PlantSummary; onOpen: () => void }
             <Type variant="h3" flex>{plant.name}</Type>
             <Caption>{plant.area ?? t('plants.noArea')}</Caption>
           </Column>
-          <Type variant="bodyStrong">{value}</Type>
+          <Row gap="sm" wrap>
+            <Type variant="bodyStrong">{value}</Type>
+            {chips.map((c) => <StatusChip key={c} kind={c} />)}
+          </Row>
         </Row>
-        <Row wrap>{chips.map((c) => <StatusChip key={c} kind={c} />)}</Row>
       </Card>
     </Pressable>
   );

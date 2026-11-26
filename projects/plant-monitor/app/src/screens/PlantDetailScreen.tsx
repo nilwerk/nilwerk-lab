@@ -45,11 +45,15 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = 
       {p ? (
         <>
           <PlantMeta plant={p} />
-          <Row wrap>{plantChips(p).map((c) => <StatusChip key={c} kind={c} />)}</Row>
           <Caption>{t(age.key, age.n === undefined ? undefined : { n: age.n })}</Caption>
+          {/* hero reading: the soil value with its status word beside it; the other readings follow in the grid */}
+          <Row between wrap>
+            <Type variant="number">{fmt(l?.moisturePct, 0) === null ? t('plant.latest.none') : t('plant.latest.soilValue', { value: fmt(l?.moisturePct, 0) ?? '' })}</Type>
+            <Row gap="xs">{plantChips(p).map((c) => <StatusChip key={c} kind={c} />)}</Row>
+          </Row>
+          <Caption>{t('plant.reading.soilLabel')}</Caption>
           <SectionTitle>{t('plant.latest.title')}</SectionTitle>
           <Row wrap>
-            {cell('plant.latest.soil', 'plant.latest.soilValue', fmt(l?.moisturePct, 0))}
             {cell('plant.latest.temp', 'plant.latest.tempValue', fmt(l?.tempC, 1))}
             {cell('plant.latest.humidity', 'plant.latest.humidityValue', fmt(l?.rhPct, 0))}
             {cell('plant.latest.light', 'plant.latest.lightValue', fmt(l?.lux, 0))}
@@ -57,7 +61,7 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = 
           </Row>
           <MoistureChart points={detail.hourly} dry={p.dryThresholdPct} wet={p.wetThresholdPct} />
           <HourlyTable points={detail.hourly} />
-          <Button label={t('plant.photos.button')} variant="secondary" onPress={() => onGallery(p)} />
+          <Button label={t('plant.photos.button')} variant="primary" onPress={() => onGallery(p)} />
           <Button label={t('plant.remove.button')} variant="danger" onPress={() => onRemove(detail)} />
         </>
       ) : null}

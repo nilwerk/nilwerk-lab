@@ -402,5 +402,6 @@
   "profile.price.premium": "Premium: 7.99",
   "profile.price.heading": "Plans",
   "sheet.good": "Good",
-  "sheet.low": "Low"
+  "sheet.low": "Low",
+  "plant.reading.soilLabel": "Soil moisture now"
 }
