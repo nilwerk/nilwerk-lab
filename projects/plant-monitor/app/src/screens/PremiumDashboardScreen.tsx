@@ -1,8 +1,9 @@
-// S41 Premium dashboard (task 4.A6). Requirements: FR-P01 (30- and 90-day aggregates, trends, watering events, plant comparison),
-// FR-P04 (premium only: the plan is read first and free accounts never trigger the analytics call; the server still answers 403 premium_required and that shows the upgrade state too), NFR-06 (own plants only).
+// S41 Premium dashboard (task 4.A6, daily line chart 4.A6b). Requirements: FR-P01 (30- and 90-day line chart from the daily series (4.A6b),
+// aggregates, trends, watering events, plant comparison), FR-P04 (premium only: the plan is read first and free accounts never trigger the analytics call; the server still answers 403 premium_required and that shows the upgrade state too), NFR-06 (own plants only).
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
+import { DailyLineChart } from '../ui/DailyLineChart';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
@@ -87,6 +88,32 @@ function PlantRow({ p, windowDays }: { p: PlantAnalytics; windowDays: AnalyticsW
   );
 }
 
+/** FR-P01 (4.A6b): one line chart per plant of the 30- or 90-day window, switched with the buttons. Both windows were already fetched; no request is added. */
+function DailySection({ byWindow }: { byWindow: Record<AnalyticsWindow, AnalyticsResponse> }) {
+  const th = useTheme();
+  const [days, setDays] = useState<AnalyticsWindow>(30);
+  const data = byWindow[days];
+  return (
+    <View accessibilityLabel={t('dashboard.daily.title')} style={{ gap: th.spacing.sm }}>
+      <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h2 }}>{t('dashboard.daily.title')}</Text>
+      <Body muted>{t('dashboard.daily.intro')}</Body>
+      <View style={{ flexDirection: 'row', gap: th.spacing.sm }}>
+        {ANALYTICS_WINDOWS.map((w) => (
+          <Button key={w} label={t('dashboard.daily.switch', { days: w })} variant={w === days ? 'primary' : 'secondary'} onPress={() => setDays(w)} />
+        ))}
+      </View>
+      {data.plants.length === 0 ? <Body muted>{t('dashboard.noPlants')}</Body>
+        : windowIsEmpty(data) ? <Body muted>{t('dashboard.noReadings')}</Body>
+        : data.plants.map((p) => (
+          <View key={p.plantId} style={{ gap: th.spacing.xs, paddingVertical: th.spacing.sm, borderTopWidth: 1, borderColor: th.color.line }}>
+            <Text style={{ color: th.color.ink, ...th.type.bodyStrong }}>{p.name}</Text>
+            <DailyLineChart daily={p.daily} />
+          </View>
+        ))}
+    </View>
+  );
+}
+
 function WindowSection({ data }: { data: AnalyticsResponse }) {
   const th = useTheme();
   const title = t('dashboard.window.title', { days: data.windowDays });
@@ -158,6 +185,7 @@ export function PremiumDashboardScreen({ analytics, onBack, onPremium }: { analy
           <Button label={t('common.tryAgain')} variant="secondary" onPress={load} />
         </>
       ) : null}
+      {data.status === 'ready' ? <DailySection byWindow={data.byWindow} /> : null}
       {data.status === 'ready' ? ANALYTICS_WINDOWS.map((w) => <WindowSection key={w} data={data.byWindow[w]} />) : null}
     </Screen>
   );
