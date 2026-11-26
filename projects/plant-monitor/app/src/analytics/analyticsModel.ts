@@ -31,8 +31,10 @@ export interface PlantAnalytics {
   batteryMv: Stat | null;
   wateringEvents: number;
   trend: PlantTrend;
-  /** exactly windowDays items, oldest first, ending with today (UTC), empty days included (ADR-018) */
-  daily: DailyPoint[];
+  /** exactly windowDays items, oldest first, ending with today (UTC), empty days included (ADR-018).
+   *  null when the response has no `daily` key at all (an older backend): the chart says "not available yet", the aggregates still show.
+   *  A `daily` value that is present but malformed rejects the whole response (ADR-018 Consequences). */
+  daily: DailyPoint[] | null;
 }
 
 export interface AnalyticsResponse {
@@ -88,7 +90,8 @@ function parsePlant(v: unknown, windowDays: AnalyticsWindow): PlantAnalytics | u
   if (!isObj(v)) return undefined;
   if (typeof v.plant_id !== 'string' || typeof v.name !== 'string') return undefined;
   if (!isNum(v.reading_count) || v.reading_count < 0 || !isNum(v.watering_events) || v.watering_events < 0) return undefined;
-  const soil = parseStat(v.soil_pct), battery = parseStat(v.battery_mv), trend = parseTrend(v.trend), daily = parseDaily(v.daily, windowDays);
+  const soil = parseStat(v.soil_pct), battery = parseStat(v.battery_mv), trend = parseTrend(v.trend);
+  const daily = v.daily === undefined ? null : parseDaily(v.daily, windowDays);   // absent key: null; present but malformed: undefined
   if (soil === undefined || battery === undefined || trend === undefined || daily === undefined) return undefined;
   return { plantId: v.plant_id, name: v.name, readingCount: v.reading_count, soilPct: soil, batteryMv: battery, wateringEvents: v.watering_events, trend, daily };
 }

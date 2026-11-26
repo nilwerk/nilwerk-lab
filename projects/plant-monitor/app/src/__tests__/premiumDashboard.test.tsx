@@ -26,9 +26,9 @@ const gapSeries = (windowDays: AnalyticsWindow): DailyPoint[] => series(windowDa
   if (i === 12) return { ...d, soilPctMean: 0, readingCount: 13 };
   return d;
 });
-const fixture = (windowDays: AnalyticsWindow, plants: Array<Base & { daily?: DailyPoint[] }> = [basil]): AnalyticsResponse => ({
+const fixture = (windowDays: AnalyticsWindow, plants: Array<Base & { daily?: DailyPoint[] | null }> = [basil]): AnalyticsResponse => ({
   windowDays,
-  plants: plants.map(({ daily, ...p }) => ({ ...p, daily: daily ?? series(windowDays, p.soilPct ? p.soilPct.mean : null) })),
+  plants: plants.map(({ daily, ...p }) => ({ ...p, daily: daily !== undefined ? daily : series(windowDays, p.soilPct ? p.soilPct.mean : null) })),
 });
 const emptyPlant: Base = { ...basil, readingCount: 0, soilPct: null, batteryMv: null, wateringEvents: 0, trend: { soilChangePct: null, firstWeekMean: null, lastWeekMean: null } };
 
@@ -176,6 +176,17 @@ describe('premium dashboard: daily line chart (FR-P01, 4.A6b)', () => {
     fireEvent.press(screen.getByRole('button', { name: t('dashboard.daily.switch', { days: 90 }) }));
     expect(await screen.findByTestId('daily-chart')).toBeTruthy();
     expect(screen.queryByText(t('dashboard.daily.noValues', { days: 30 }))).toBeNull();
+  });
+
+  test('absent daily series (older backend): "not available yet" in place of the chart; the aggregates and the other plants still render, no error state', async () => {
+    const mixed: Array<Base & { daily?: DailyPoint[] | null }> = [{ ...basil, daily: null }, { ...basil, plantId: 'p-b', name: 'Mint' }];
+    await mountScreen(svcWith(true), analyticsStub(async (w) => fixture(w, mixed)));
+    expect(await screen.findAllByText(t('dashboard.daily.notAvailable'))).toHaveLength(1);
+    expect(screen.getAllByText('Mint')).toHaveLength(3);
+    expect(screen.getAllByTestId('daily-chart')).toHaveLength(1);                       // Mint's chart only
+    expect(screen.getAllByText('Basil')).toHaveLength(3);                                // daily section name + the two window sections (aggregates still render)
+    expect(screen.getAllByText('Soil moisture: mean 42.5 %, min 20.0 %, max 60.0 %')).toHaveLength(4);
+    expect(screen.queryByText(t('dashboard.error'))).toBeNull();
   });
 
   test('a plant with no readings at all in the window is listed as "no readings", not as an empty chart', async () => {

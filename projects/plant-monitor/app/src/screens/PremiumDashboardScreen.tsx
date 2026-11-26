@@ -107,7 +107,7 @@ function DailySection({ byWindow }: { byWindow: Record<AnalyticsWindow, Analytic
         : data.plants.map((p) => (
           <View key={p.plantId} style={{ gap: th.spacing.xs, paddingVertical: th.spacing.sm, borderTopWidth: 1, borderColor: th.color.line }}>
             <Text style={{ color: th.color.ink, ...th.type.bodyStrong }}>{p.name}</Text>
-            <DailyLineChart daily={p.daily} />
+            {p.daily === null ? <Body muted>{t('dashboard.daily.notAvailable')}</Body> : <DailyLineChart daily={p.daily} />}
           </View>
         ))}
     </View>

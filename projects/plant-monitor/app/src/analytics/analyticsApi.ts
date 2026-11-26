@@ -1,6 +1,6 @@
 // Client for GET /analytics?window=30|90 (task 4.A6 consumes 4.B4). Requirements: FR-P01, FR-P04 (403 premium_required is shown as the upgrade state),
-// NFR-06 (the user's JWT is sent; the server only returns the caller's rows). Route: the edge function name is not deployed yet (4.B4 HTTP endpoint is
-// not built; see docs/interfaces/openapi.yaml /analytics), so the URL below is a proposed path and is unverified until the function exists.
+// NFR-06 (the user's JWT is sent; the server only returns the caller's rows). Route: the edge function is in the repo (4.B4, 4.B4b) but not deployed,
+// so the URL below is a proposed path and is unverified until a deployed function returns `daily` (docs/interfaces/openapi.yaml /analytics).
 // Unit-tested with a fake fetch only. No live call is made from tests.
 import { parseAnalyticsResponse, type AnalyticsResponse, type AnalyticsWindow } from './analyticsModel';
 
