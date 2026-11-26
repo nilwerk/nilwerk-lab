@@ -26,7 +26,7 @@ export function PlantsScreen({ onOpen, onAlerts, onCount }: { onOpen: (plantId: 
   useEffect(() => { load(); }, [load]);
 
   return (
-    <Screen fade title={t('plants.title')}>
+    <Screen title={t('plants.title')}>
       {error ? <Notice kind="error" text={error} /> : null}
       {error ? <Button label={t('common.tryAgain')} variant="secondary" onPress={load} /> : null}
       {plants === null && !error ? <Body muted>{t('common.loading')}</Body> : null}

@@ -1,6 +1,6 @@
 // Small themed building blocks. Colours/spacing only from theme.ts tokens, text only via t() (playbook: no inline values, no inline strings).
 import React from 'react';
-import { AccessibilityInfo, Animated, Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from './useTheme';
 import { t } from '../i18n';
 
@@ -15,29 +15,14 @@ export function BackButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-/** Short fade-in for a screen's content (220 ms, native driver). When the system asks for reduced motion the content is shown at once. */
-export function FadeIn({ children }: { children: React.ReactNode }) {
-  const opacity = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
-      if (!alive) return;
-      if (reduce) opacity.setValue(1);
-      else Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-    }, () => { if (alive) opacity.setValue(1); });
-    return () => { alive = false; };
-  }, [opacity]);
-  return <Animated.View style={{ opacity }}>{children}</Animated.View>;
-}
-
-export function Screen({ title, children, onBack, fade }: { title: string; children: React.ReactNode; onBack?: () => void; fade?: boolean }) {
+export function Screen({ title, children, onBack }: { title: string; children: React.ReactNode; onBack?: () => void }) {
   const th = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: th.color.bg }} accessibilityLabel={t('a11y.screenTitle', { title })}>
       <ScrollView contentContainerStyle={{ padding: th.spacing.lg, gap: th.spacing.lg }} keyboardShouldPersistTaps="handled">
         {onBack ? <BackButton onPress={onBack} /> : null}
         <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h1 }}>{title}</Text>
-        {fade ? <FadeIn>{children}</FadeIn> : children}
+        {children}
       </ScrollView>
     </View>
   );
