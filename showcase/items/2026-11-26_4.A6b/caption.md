@@ -10,6 +10,6 @@
 
 **Images.** None. No real render of the chart exists yet. The item has no picture rather than a mock-up.
 
-**Verified.** The app's test suite passes (500 tests, 36 suites, from a real run on the PR branch), and the typecheck is clean. The tests use a mocked backend and cover the 30- and 90-day windows, a gap day, an all-null window and the premium gate.
+**Verified.** The app test suite passes (503 tests, 36 suites, from a real run on the PR branch), and the typecheck is clean. The tests use a mocked backend and cover the 30- and 90-day windows, a gap day, an all-null window and the premium gate.
 
 **Unverified.** Not run on a phone, not checked at phone width, not run against a live backend. The analytics endpoint is not deployed yet, so the chart has not been seen with real data.
