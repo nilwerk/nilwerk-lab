@@ -1,10 +1,9 @@
 // S03 Profile. Requirements: FR-A01 (profile, sign out, entry to delete), FR-P04 (plan mirrors profiles.is_premium; the server decides; the premium dashboard and Connect-your-AI (FR-P03) entries show only for premium),
 // NFR-06 (reads/writes only the caller's own profiles row under RLS).
 import React, { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { Card, Caption } from '../ui/kit';
-import { useTheme } from '../ui/useTheme';
+import { Stack } from '../ui/layout';
 import { LegalLine } from '../ui/LegalLine';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
@@ -12,7 +11,6 @@ import type { Profile } from '../auth/types';
 import { validateDisplayName } from '../validation';
 
 export function ProfileScreen({ onPremium, onDelete, onAddSensor, onDashboard, onConnectAi, contactEmail }: { onPremium: () => void; onDelete: () => void; onAddSensor: () => void; onDashboard: () => void; onConnectAi: () => void; contactEmail: string }) {
-  const th = useTheme();
   const { service, state } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState('');
@@ -58,10 +56,10 @@ export function ProfileScreen({ onPremium, onDelete, onAddSensor, onDashboard, o
         <Caption>{t('profile.plan')}</Caption>
         <Body>{profile ? t(profile.isPremium ? 'profile.plan.premium' : 'profile.plan.free') : t('common.loading')}</Body>
         {/* #238 decision: the plan prices are shown on Profile before Premium is opened. Values are in strings/en.json only. */}
-        <View style={{ gap: th.spacing.xs }} accessibilityLabel={t('profile.price.heading')}>
+        <Stack gap="xs" accessibilityLabel={t('profile.price.heading')}>
           <Caption>{t('profile.price.free')}</Caption>
           <Caption>{t('profile.price.premium')}</Caption>
-        </View>
+        </Stack>
         {profile && !profile.isPremium ? <Button label={t('profile.whatIsPremium')} variant="ghost" onPress={onPremium} /> : null}
         {profile && profile.isPremium ? <Button label={t('profile.dashboard')} variant="secondary" onPress={onDashboard} /> : null}
         {profile && profile.isPremium ? <Button label={t('profile.connectAi')} variant="secondary" onPress={onConnectAi} /> : null}

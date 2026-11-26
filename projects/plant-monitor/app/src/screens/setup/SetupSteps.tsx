@@ -2,9 +2,10 @@
 // FR-D07 (reset hint), FR-A04 (6 plant fields), FR-A05 (setup photo), FR-A02 (add another, no cap), NFR-03 (3-minute target), NFR-06 (Wi-Fi password only to the sensor).
 // A-023: no hub pairing step (S17 is v1.1). Presentational only: all Bluetooth and cloud work happens in SetupFlow through the service interfaces.
 import React, { useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { Body, Button, Choice, Field, Notice, Screen } from '../../ui/primitives';
 import { useTheme } from '../../ui/useTheme';
+import { Row, Stack, Type } from '../../ui/layout';
 import { t } from '../../i18n';
 import { parseLabel, advertisedName } from '../../provisioning/label';
 import { LOCATION_TYPES, SOIL_TYPES, type DiscoveredDevice, type LocationType, type PlantDetails, type ProvisioningErrorCode, type SoilType, type WifiNetwork } from '../../provisioning/types';
@@ -15,12 +16,11 @@ const msg = (e: FieldResult) => (e ? t(e.key, e.params) : null);
 const errorText = (code: ProvisioningErrorCode) => t(`setup.error.${code}`) === `setup.error.${code}` ? t('setup.error.unknown') : t(`setup.error.${code}`);
 
 export function Progress({ n, time }: { n: number; time: string }) {
-  const th = useTheme();
   return (
-    <View accessibilityLabel={t('a11y.setupProgress', { n, total: STEP_COUNT, time })} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('setup.step', { n, total: STEP_COUNT })}</Text>
-      <Text style={{ color: th.color.muted, ...th.type.label }}>{time}</Text>
-    </View>
+    <Row between accessibilityLabel={t('a11y.setupProgress', { n, total: STEP_COUNT, time })}>
+      <Type variant="caption" tone="muted">{t('setup.step', { n, total: STEP_COUNT })}</Type>
+      <Type variant="label" tone="muted">{time}</Type>
+    </Row>
   );
 }
 
@@ -175,15 +175,15 @@ export function DetailsStep({ time, busy, error, onSave, onBack }: { time: strin
     <Screen title={t('setup.details.title')} onBack={onBack}>
       <Progress n={5} time={time} />
       <Field label={t('setup.details.name')} value={d.name} onChangeText={(v) => set('name', v)} error={e('name')} />
-      <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.location')} style={{ gap: 8 }}>
+      <Stack gap="sm" accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.location')}>
         <Body muted>{t('setup.details.location')}</Body>
         {LOCATION_TYPES.map((l: LocationType) => <Choice key={l} label={t(`setup.location.${l}`)} selected={d.location === l} onPress={() => set('location', l)} />)}
-      </View>
+      </Stack>
       <Field label={t('setup.details.area')} value={d.area} onChangeText={(v) => set('area', v)} error={e('area')} />
-      <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.soil')} style={{ gap: 8 }}>
+      <Stack gap="sm" accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.soil')}>
         <Body muted>{t('setup.details.soil')}</Body>
         {SOIL_TYPES.map((s: SoilType) => <Choice key={s} label={t(`setup.soil.${s}`)} selected={d.soil === s} onPress={() => set('soil', s)} />)}
-      </View>
+      </Stack>
       <Field label={t('setup.details.species')} value={d.species} onChangeText={(v) => set('species', v)} error={e('species')} />
       <Field label={t('setup.details.city')} value={d.city} onChangeText={(v) => set('city', v)} error={e('city')} />
       {error ? <Notice kind="error" text={t('setup.details.saveError')} /> : null}

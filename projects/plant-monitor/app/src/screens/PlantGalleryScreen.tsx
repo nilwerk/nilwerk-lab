@@ -2,11 +2,10 @@
 // No limit on the number of photos: every photo is rendered (plain map, no windowed list, so the test with 60 photos sees all of them).
 // Not in this slice: upload ("+ Add", 4.A3 camera/library), full-screen view, long-press delete, signed image URLs (the mock has no image bytes).
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { PlantMeta } from '../ui/PlantMeta';
-import { EmptyState, SectionTitle } from '../ui/kit';
-import { useTheme } from '../ui/useTheme';
+import { Caption, EmptyState, SectionTitle } from '../ui/kit';
+import { Frame, GridCell, Row, Stack, Type } from '../ui/layout';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { fmtDay } from '../plants/format';
@@ -32,7 +31,6 @@ export function dayGroups(photos: PlantPhoto[]): Array<{ day: string; photos: Pl
 }
 
 export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onBack: () => void }) {
-  const th = useTheme();
   const svc = usePlants();
   const [photos, setPhotos] = useState<PlantPhoto[] | null>(null);
   const [order, setOrder] = useState<PhotoOrder>('newest');
@@ -58,26 +56,23 @@ export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onB
       ) : null}
       {photos && photos.length > 0 ? (
         <>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm, alignItems: 'center' }}>
-            <Text testID="gallery-count" style={{ color: th.color.muted, ...th.type.caption, flexGrow: 1 }}>{t('gallery.count', { n: photos.length })}</Text>
+          <Row wrap>
+            <Type testID="gallery-count" tone="muted" variant="caption" flex>{t('gallery.count', { n: photos.length })}</Type>
             <Button label={t('gallery.sortNewest')} variant={order === 'newest' ? 'secondary' : 'ghost'} onPress={() => setOrder('newest')} />
             <Button label={t('gallery.sortOldest')} variant={order === 'oldest' ? 'secondary' : 'ghost'} onPress={() => setOrder('oldest')} />
-          </View>
+          </Row>
           {/* #238 decision: grid of three per row, grouped under a header per day (the order follows the sort) */}
           {dayGroups(sorted).map((g) => (
-            <View key={g.day} testID="gallery-day" style={{ gap: th.spacing.sm }}>
+            <Stack key={g.day} testID="gallery-day">
               <SectionTitle>{g.day}</SectionTitle>
-              <View testID="gallery-grid" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>
+              <Row wrap testID="gallery-grid">
                 {g.photos.map((ph) => (
-                  <View key={ph.id} testID="gallery-photo" accessible accessibilityLabel={t('gallery.photoA11y', { date: g.day })}
-                    style={{ flexBasis: '30%', flexGrow: 0, flexShrink: 0, gap: th.spacing.xs }}>
-                    <View style={{ aspectRatio: 1, borderRadius: th.radius.md, borderWidth: 1, borderColor: th.color.line, backgroundColor: th.color.surface, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ color: th.color.muted, ...th.type.caption }}>{g.day}</Text>
-                    </View>
-                  </View>
+                  <GridCell key={ph.id} testID="gallery-photo" accessibilityLabel={t('gallery.photoA11y', { date: g.day })}>
+                    <Frame><Caption>{g.day}</Caption></Frame>
+                  </GridCell>
                 ))}
-              </View>
-            </View>
+              </Row>
+            </Stack>
           ))}
         </>
       ) : null}

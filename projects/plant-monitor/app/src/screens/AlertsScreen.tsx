@@ -1,11 +1,10 @@
 // S30 Alerts list (4.A5; S31 alert detail is not built). Requirements: FR-A07 (alerts for too dry, too wet, low battery, offline; push delivery is NOT built), FR-D06 (low battery 3.4 V), FR-A06 (reached from the plant list).
 // Rules: src/plants/alerts.ts (pure, unit-tested). Data: the plants service, so in the mock build every plant, reading and alert is MOCK (the shell shows app.mockBanner).
 import React, { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { StatusChip } from '../ui/StatusChip';
 import { Card, EmptyState } from '../ui/kit';
-import { useTheme } from '../ui/useTheme';
+import { Stack, Type } from '../ui/layout';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { alertsForPlant, type RuleAlert } from '../plants/alerts';
@@ -27,7 +26,6 @@ export function alertCopy(a: RuleAlert): string {
 }
 
 export function AlertsScreen({ onBack, onCount }: { onBack: () => void; onCount?: (n: number) => void }) {
-  const th = useTheme();
   const svc = usePlants();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +55,15 @@ export function AlertsScreen({ onBack, onCount }: { onBack: () => void; onCount?
       {rows && rows.length === 0 ? (
         <EmptyState title={t('alerts.empty.title')} body={t('alerts.empty.body')} />
       ) : null}
-      {rows?.map((r) => (
-        <Card key={`${r.plantId}-${r.alert.kind}`}>
-          <Text style={{ color: th.color.ink, ...th.type.h3 }}>{r.plantName}</Text>
-          <StatusChip kind={CHIP[r.alert.kind]} />
-          <Text style={{ color: th.color.ink, ...th.type.body }}>{alertCopy(r.alert)}</Text>
-        </Card>
-      ))}
+      <Stack>
+        {rows?.map((r) => (
+          <Card key={`${r.plantId}-${r.alert.kind}`}>
+            <Type variant="h3" header>{r.plantName}</Type>
+            <StatusChip kind={CHIP[r.alert.kind]} />
+            <Type>{alertCopy(r.alert)}</Type>
+          </Card>
+        ))}
+      </Stack>
       {rows && rows.length > 0 ? <Button label={t('alerts.refresh')} variant="ghost" onPress={load} /> : null}
     </Screen>
   );

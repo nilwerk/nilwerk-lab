@@ -2,14 +2,16 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from './useTheme';
+import { BackArrow } from './layout';
 import { t } from '../i18n';
 
+/** Screen frame: a fixed header with a back arrow (outside the scroll area, 48 px target), then the scrolling content and the title. */
 export function Screen({ title, children, onBack }: { title: string; children: React.ReactNode; onBack?: () => void }) {
   const th = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: th.color.bg }} accessibilityLabel={t('a11y.screenTitle', { title })}>
+      {onBack ? <View style={{ paddingHorizontal: th.spacing.lg, paddingTop: th.spacing.md }}><BackArrow onPress={onBack} /></View> : null}
       <ScrollView contentContainerStyle={{ padding: th.spacing.lg, gap: th.spacing.lg }} keyboardShouldPersistTaps="handled">
-        {onBack ? <Button label={t('common.back')} a11yLabel={t('a11y.back')} variant="ghost" onPress={onBack} /> : null}
         <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h1 }}>{title}</Text>
         {children}
       </ScrollView>
