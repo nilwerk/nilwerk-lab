@@ -1,0 +1,27 @@
+# NOTICE: Expo agent skills (vendored copy)
+
+Source: https://github.com/expo/skills (plugin path plugins/expo/skills/)
+Commit: 6d0506afe7df9334b60ad4b1ceb35969836f01a0 (default branch, committed 2026-11-26, "feat(skill): expo-mascot (#298)")
+Copied: 26 Nov 2026 by Oskar (HR & Talent), NILWERK-LAB agent team. Text files only, nothing changed inside the skill text.
+Public page: https://expo.dev/expo-skills
+
+## Licences
+- Repository and the skills listed below: MIT License, Copyright (c) 2025-present 650 Industries, Inc. (aka Expo). Text in `LICENSE` (this folder).
+- `expo-animation/`: its own LICENSE file, MIT License, Copyright (c) 2026 Emil Kowalski. Text in `expo-animation/LICENSE-emil-kowalski-MIT.txt`. Keep it with the files.
+- The expo.dev page itself shows no licence text; the licence above is taken from the repository's LICENSE file.
+
+## Vendored files (skill folder: files)
+- expo-router: SKILL.md, references/ (form-sheet, route-structure, search, tabs, toolbar-and-headers, zoom-transitions)
+- expo-native-ui: SKILL.md, references/ (controls, gradients, icons, media, storage, visual-effects, webgpu-three)
+- expo-design-system: SKILL.md, references/ (audit, native-slop)
+- expo-ui: SKILL.md, references/ (drop-in-replacements, jetpack-compose, swift-ui, universal)
+- expo-animation: SKILL.md, RECIPES.md, LICENSE-emil-kowalski-MIT.txt
+- expo-dev-client: SKILL.md
+
+Not vendored: the other 16 skills in the repo (for example eas-*, expo-upgrade, expo-data-fetching, expo-module), scripts/, agents/ and eval-harness/. They are backend, store, deployment or outside the design work (see the selection in `team/roles/ui-ux-designer.md`).
+
+## Local changes
+None to skill text. The per-folder `agents/openai.yaml` and `scripts/` were not copied.
+
+## Upstream check
+To update: clone https://github.com/expo/skills, compare the same paths, and update the commit SHA above in one PR.
