@@ -489,9 +489,29 @@ PY
 )" || fail "the plant row label could not be built from strings/en.json"
 job_fits "$FIRST_READING_MAX_S" "the wait for the first reading"
 first_deadline=$(( $(date +%s) + FIRST_READING_MAX_S ))
-while ! probe descMatches "$row_re"; do
+# Find this run's row. It can be below the fold when the list is long: after a failed look, swipe up to 6 times (one look
+# after each swipe). Between rounds the list goes back to the top, so the Refresh button is on screen for the tap.
+scroll_up() {
+  local size w h
+  size="$(timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell wm size 2>/dev/null | tr -d '\r' | grep -o '[0-9][0-9]*x[0-9][0-9]*' | tail -1)" || size=""
+  w="${size%x*}"; h="${size#*x}"
+  [ -n "$w" ] && [ -n "$h" ] || { w=1440; h=2560; }
+  timeout 20 adb -s "$BENCH_ANDROID_SERIAL" shell input swipe $(( w / 2 )) $(( h * 3 / 10 )) $(( w / 2 )) $(( h * 7 / 10 )) 400 >/dev/null 2>&1 || true
+  sleep 1
+}
+row_found() {
+  local s
+  probe descMatches "$row_re" && return 0
+  for s in 1 2 3 4 5 6; do
+    scroll_down
+    probe descMatches "$row_re" && return 0
+  done
+  return 1
+}
+until row_found; do
   budget
   [ "$(date +%s)" -lt "$first_deadline" ] || fail "no reading for this run's plant on My plants within ${FIRST_READING_MAX_S} s"
+  for s in 1 2 3 4 5 6; do scroll_up; done
   tap "${T[plants.refresh]}"
   sleep 30
 done
