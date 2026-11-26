@@ -474,14 +474,17 @@ tap "${T[nav.plants]}"
 wait_el 30 text "${T[plants.title]}" || fail "My plants did not open"
 row_re="$(python3 -I - "${T[plants.row.a11y]}" "$BENCH_PLANT_NAME" "$BENCH_PLANT_AREA" <<'PY'
 import re, sys
+# lit: escape regex metacharacters but keep spaces plain. UiAutomator2 (Java regex in descriptionMatches) does not match "\\ " (escaped space), so re.escape alone made every look fail.
+def lit(s):
+    return re.escape(s).replace("\\ ", " ")
 template, name, area = sys.argv[1], sys.argv[2], sys.argv[3]
 # Row label "{name}, {area}, {status}, soil moisture {value}". {value} must be a number, not "No reading". Not printed.
-values = {"name": re.escape(name), "area": re.escape(area), "status": ".*", "value": "[0-9]+ %"}
+values = {"name": lit(name), "area": lit(area), "status": ".*", "value": "[0-9]+ %"}
 out, pos = "", 0
 for m in re.finditer(r"\{(\w+)\}", template):
-    out += re.escape(template[pos:m.start()]) + values[m.group(1)]
+    out += lit(template[pos:m.start()]) + values[m.group(1)]
     pos = m.end()
-print(out + re.escape(template[pos:]))
+print(out + lit(template[pos:]))
 PY
 )" || fail "the plant row label could not be built from strings/en.json"
 job_fits "$FIRST_READING_MAX_S" "the wait for the first reading"
