@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plant Monitor, final alternative design (mock data)</title>
+<style>
+  :root{
+    --bg:#f5f4f0; --surface:#ffffff; --ink:#14171c; --muted:#5d636d; --line:#e4e1d9; --control:#7d838c;
+    --accent:#0f7a5c; --accent2:#1f9d76; --accentSoft:#e2f3ec; --accentInk:#ffffff;
+    --dry:#b4541a; --drySoft:#fcefe4; --wet:#1f6aa5; --wetSoft:#e1edf7;
+    --low:#8a5d00; --lowSoft:#f6eccd; --ok:#0f7a5c; --okSoft:#e2f3ec; --danger:#b3261e; --dangerSoft:#fbe5e3;
+    --shadow:0 1px 2px rgba(20,23,28,.05),0 8px 24px rgba(20,23,28,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#e9ece6,#dfe4dc);font-family:Inter,system-ui,-apple-system,sans-serif;color:var(--ink);padding:40px 28px 80px}
+  h1{font-size:28px;letter-spacing:-.6px;margin:0 0 6px}
+  h2{font-size:20px;letter-spacing:-.3px;margin:48px 0 6px}
+  .lede{color:var(--muted);font-size:15px;line-height:23px;max-width:760px;margin:0 0 20px}
+  .note{font-size:13px;color:var(--muted);max-width:760px}
+
+  /* journey */
+  .lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:18px}
+  .lane{background:var(--surface);border-radius:20px;padding:18px 18px 8px;box-shadow:var(--shadow)}
+  .lane h3{margin:0 0 4px;font-size:16px}
+  .lane .goal{font-size:13px;color:var(--muted);margin:0 0 14px;line-height:19px}
+  .step{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+  .step:first-of-type{border-top:0}
+  .n{width:26px;height:26px;border-radius:50%;background:var(--accentSoft);color:var(--accent);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+  .step b{font-size:14px}
+  .step p{margin:2px 0 0;font-size:13px;color:var(--muted);line-height:18px}
+  .back{font-size:12px;color:var(--accent);margin-top:4px;font-weight:600}
+
+  /* flow map */
+  .map{background:var(--surface);border-radius:22px;padding:22px;box-shadow:var(--shadow);margin-top:18px;overflow:auto}
+  .map svg{display:block;width:100%;min-width:900px;height:auto}
+
+  /* phones */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:28px 22px;margin-top:18px}
+  .cell h4{margin:0 0 10px;font-size:14px;letter-spacing:.2px}
+  .cell .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);background:var(--accentSoft);border-radius:999px;padding:4px 9px;margin-bottom:8px}
+  .cell .what{font-size:12.5px;color:var(--muted);line-height:18px;margin-top:10px;min-height:36px}
+  .phone{width:360px;height:760px;background:var(--bg);border-radius:46px;border:9px solid #17191e;box-shadow:0 20px 40px rgba(20,23,28,.18);overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .notch{height:40px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:12px;font-weight:600;color:var(--ink)}
+  .notch i{display:inline-block;width:88px;height:24px;background:#17191e;border-radius:14px;position:absolute;left:50%;top:10px;transform:translateX(-50%)}
+  .top{padding:6px 20px 12px;display:flex;align-items:center;gap:12px}
+  .top h2{font-size:24px;margin:0;flex:1;letter-spacing:-.5px}
+  .top h2 small{display:block;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:0;margin-top:2px}
+  .round{width:40px;height:40px;border-radius:50%;background:var(--surface);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex:none}
+  .round svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .body{flex:1;overflow:hidden;padding:0 18px;display:flex;flex-direction:column;gap:12px;position:relative}
+  .scrollhint{position:absolute;left:0;right:0;bottom:0;height:90px;background:linear-gradient(transparent,var(--bg))}
+  .cta{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:16px;font-weight:600;font-size:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--accentInk);box-shadow:0 6px 16px rgba(15,122,92,.25)}
+  .cta.line{background:var(--surface);color:var(--ink);box-shadow:none;border:1px solid var(--control)}
+  .cta.quiet{background:none;color:var(--danger);box-shadow:none;min-height:44px}
+  .card{background:var(--surface);border-radius:20px;padding:14px 16px;box-shadow:var(--shadow)}
+  .section{font-size:11.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:4px 4px -4px}
+  .line-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+  .line-row:last-child{border-bottom:0}
+  .k{color:var(--muted);font-size:12.5px}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700}
+  .chip.dry{background:var(--drySoft);color:var(--dry)}
+  .chip.ok{background:var(--okSoft);color:var(--ok)}
+  .chip.wet{background:var(--wetSoft);color:var(--wet)}
+  .chip.low{background:var(--lowSoft);color:var(--low)}
+  .pills{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;background:var(--surface);box-shadow:var(--shadow);color:var(--ink)}
+  .pill.on{background:var(--ink);color:#fff}
+  .seg{display:flex;background:#e9e6df;border-radius:14px;padding:3px}
+  .seg div{flex:1;text-align:center;padding:8px 0;font-size:13px;font-weight:600;color:var(--muted);border-radius:11px}
+  .seg .on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .hero{padding:4px 2px 0}
+  .hero .num{font-size:60px;font-weight:800;letter-spacing:-2px;line-height:1}
+  .hero .num span{font-size:22px;color:var(--muted);font-weight:600;margin-left:2px}
+  .nextstep{background:linear-gradient(135deg,var(--accentSoft),#fff);border-radius:18px;padding:14px 16px;font-size:15px;line-height:22px;box-shadow:var(--shadow)}
+  .meter{position:relative;height:9px;background:#ebe8e1;border-radius:99px;margin-top:8px}
+  .meter .f{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+  .meter .t{position:absolute;top:-3px;width:2px;height:15px;background:var(--ink);opacity:.4;border-radius:2px}
+  .chart{height:110px;display:flex;align-items:flex-end;gap:8px;position:relative;padding:0 2px;border-bottom:1px solid var(--line)}
+  .bar{flex:1;border-radius:7px 7px 0 0;background:linear-gradient(180deg,#5aa7d6,var(--wet))}
+  .gapc{flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
+  .gapc span{position:absolute;bottom:4px;font-size:9.5px;color:var(--muted);transform:rotate(-90deg);transform-origin:center;white-space:nowrap;bottom:14px}
+  .days{display:flex;gap:8px;font-size:10.5px;color:var(--muted);text-align:center;padding-top:5px}
+  .days div{flex:1}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tile{background:var(--surface);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
+  .tile .kk{font-size:11.5px;color:var(--muted)}
+  .tile .vv{font-size:17px;font-weight:700;margin-top:2px}
+  .thumb{height:120px;border-radius:20px;background:linear-gradient(135deg,#a9d8bd,#2f6f56);position:relative;overflow:hidden}
+  .thumb span{position:absolute;left:12px;bottom:10px;font-size:12px;font-weight:700;color:#fff;background:rgba(0,0,0,.28);padding:4px 9px;border-radius:999px}
+  .alert{display:flex;gap:12px;align-items:center}
+  .dot{width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex:none}
+  .dot svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .alert .n{font-weight:700;font-size:15px}
+  .alert .s{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:17px}
+  .time{font-size:11.5px;color:var(--muted);margin-left:auto;white-space:nowrap;align-self:flex-start}
+  .day{font-size:12px;font-weight:700;color:var(--muted);margin:4px 4px -4px;letter-spacing:.2px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .th{aspect-ratio:1/1;border-radius:14px;position:relative;overflow:hidden}
+  .th i{position:absolute;left:5px;bottom:5px;font-style:normal;background:rgba(0,0,0,.5);color:#fff;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:7px}
+  .th.fail{box-shadow:inset 0 0 0 2px var(--danger)}
+  .th.fail b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--danger);font-size:11px;background:rgba(255,255,255,.7)}
+  .viewer{position:absolute;inset:0;background:#0c0e11;color:#eef1ee;display:flex;flex-direction:column;padding-top:40px}
+  .stage{flex:1;display:flex;align-items:center;justify-content:center;padding:0 22px}
+  .stage div{width:100%;aspect-ratio:3/4;border-radius:24px;background:linear-gradient(160deg,#8fd0ae,#1e4f3d)}
+  .vnav{display:flex;justify-content:space-between;align-items:center;padding:0 18px 4px}
+  .vnav .ic{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center}
+  .vnav .ic svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .vbtns{display:flex;gap:10px;justify-content:center;padding:12px 0 4px}
+  .vbtns span{background:rgba(255,255,255,.14);border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600}
+  .vcap{text-align:center;color:#c9d3cc;font-size:13px;padding:8px 20px 28px}
+  .tabbar{position:absolute;left:14px;right:14px;bottom:18px;height:70px;border-radius:26px;background:rgba(255,255,255,.92);box-shadow:0 10px 30px rgba(20,23,28,.16),0 0 0 1px rgba(20,23,28,.04);display:flex;justify-content:space-around;align-items:center;padding:0 8px;backdrop-filter:blur(8px)}
+  .tabbar .t{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);min-width:78px;padding:6px 10px;border-radius:18px;position:relative}
+  .tabbar .t svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar .t.on{color:var(--accent);background:var(--accentSoft)}
+  .tabbar .badge{position:absolute;top:2px;right:14px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+  .sheetwrap{position:absolute;inset:0;background:rgba(20,23,28,.32)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:10px 20px 26px;box-shadow:0 -12px 34px rgba(20,23,28,.16)}
+  .handle{width:40px;height:5px;border-radius:99px;background:#d2cdc3;margin:0 auto 14px}
+  .price{font-size:34px;font-weight:800;letter-spacing:-.8px}
+  .ticks div{font-size:14px;line-height:26px}
+  .ticks b{color:var(--ok);margin-right:8px}
+  .field{background:var(--surface);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow)}
+  .field .l{font-size:11.5px;color:var(--muted)}
+  .field .v{font-size:16px;margin-top:3px}
+  .stepper{display:flex;gap:6px}
+  .stepper i{flex:1;height:6px;border-radius:99px;background:#e0ddd5}
+  .stepper i.on{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .stepper i.now{background:var(--accent);opacity:.45}
+  .prog{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);font-weight:600}
+  .opt{display:flex;justify-content:space-between;align-items:center;padding:15px 16px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow);font-size:15px;border:2px solid transparent}
+  .opt.sel{border-color:var(--accent)}
+  .opt em{font-style:normal;color:var(--accent);font-weight:800}
+  .check{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;box-shadow:0 10px 24px rgba(15,122,92,.3)}
+  .rowcheck{display:flex;gap:12px;align-items:center;padding:12px 0;font-size:15px;border-bottom:1px solid var(--line)}
+  .rowcheck:last-child{border-bottom:0}
+  .rowcheck i{width:26px;height:26px;border-radius:50%;background:var(--okSoft);color:var(--ok);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:13px}
+  .rowcheck i.cur{background:var(--accent);color:#fff}
+  .rowcheck i.todo{background:#ebe8e1;color:var(--muted)}
+  .legal{font-size:11.5px;color:var(--muted);text-align:center;line-height:17px}
+  .bench-note{font-size:12px;color:var(--muted);background:var(--surface);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
+  .danger-box{background:var(--dangerSoft);border-radius:18px;padding:14px;font-size:14px;line-height:20px;color:#6d1a15}
+</style>
+</head>
+<body>
+
+<h1>Plant Monitor: final alternative design</h1>
+<p class="lede">All screens, the user journeys between them, and the back behaviour. Mock data only: plant names, numbers and prices are invented, and photos are gradient tiles, not images. Design only; nothing here is built or tested on a device. Spec in <code>ALT-DESIGN.md</code> and <code>ALT-SCREENS.md</code>.</p>
+
+<!-- ============ JOURNEY MAP ============ -->
+<h2>1. User journey map</h2>
+<p class="note">Arrows show forward moves. Back behaviour is the same everywhere: the system back and the on-screen back go to the previous screen in the stack. Sheets close first.</p>
+<div class="map">
+<svg viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter,system-ui,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f7a5c"/></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a929c"/></marker>
+    <filter id="s" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#14171c" flood-opacity=".08"/></filter>
+  </defs>
+  <!-- lanes -->
+  <text x="20" y="28" font-size="13" font-weight="700" fill="#5d636d" letter-spacing=".6">FIRST TIME</text>
+  <text x="20" y="200" font-size="13" font-weight="700" fill="#5d636d" letter-spacing=".6">DAILY USE (TABS)</text>
+  <text x="20" y="380" font-size="13" font-weight="700" fill="#5d636d" letter-spacing=".6">PHOTOS</text>
+  <text x="20" y="500" font-size="13" font-weight="700" fill="#5d636d" letter-spacing=".6">ACCOUNT (from Profile tab)</text>
+
+  <g filter="url(#s)" font-size="13">
+    <rect x="20" y="40" width="130" height="58" rx="16" fill="#fff"/><text x="85" y="65" text-anchor="middle" font-weight="700">Welcome</text><text x="85" y="84" text-anchor="middle" fill="#5d636d" font-size="11">first screen</text>
+    <rect x="180" y="40" width="130" height="58" rx="16" fill="#fff"/><text x="245" y="65" text-anchor="middle" font-weight="700">Sign up</text><text x="245" y="84" text-anchor="middle" fill="#5d636d" font-size="11">account</text>
+    <rect x="340" y="40" width="150" height="58" rx="16" fill="#fff"/><text x="415" y="65" text-anchor="middle" font-weight="700">Setup 1–5</text><text x="415" y="84" text-anchor="middle" fill="#5d636d" font-size="11">find, Wi-Fi, name, photo</text>
+    <rect x="520" y="40" width="130" height="58" rx="16" fill="#e2f3ec"/><text x="585" y="65" text-anchor="middle" font-weight="700" fill="#0f7a5c">Done</text><text x="585" y="84" text-anchor="middle" fill="#0f7a5c" font-size="11">Go to my plants</text>
+    <rect x="690" y="40" width="130" height="58" rx="16" fill="#fff"/><text x="755" y="65" text-anchor="middle" font-weight="700">Plants</text><text x="755" y="84" text-anchor="middle" fill="#5d636d" font-size="11">home tab</text>
+  </g>
+  <path d="M150 69 H180 M310 69 H340 M490 69 H520 M650 69 H690" stroke="#0f7a5c" stroke-width="2" marker-end="url(#a)" fill="none"/>
+
+  <g filter="url(#s)" font-size="13">
+    <rect x="690" y="220" width="130" height="58" rx="16" fill="#fff"/><text x="755" y="245" text-anchor="middle" font-weight="700">Plant detail</text><text x="755" y="264" text-anchor="middle" fill="#5d636d" font-size="11">hero, next step</text>
+    <rect x="520" y="220" width="130" height="58" rx="16" fill="#fff"/><text x="585" y="245" text-anchor="middle" font-weight="700">Alerts</text><text x="585" y="264" text-anchor="middle" fill="#5d636d" font-size="11">tab, badge</text>
+    <rect x="340" y="220" width="130" height="58" rx="16" fill="#fff"/><text x="405" y="245" text-anchor="middle" font-weight="700">Profile</text><text x="405" y="264" text-anchor="middle" fill="#5d636d" font-size="11">tab</text>
+  </g>
+  <path d="M755 98 V220" stroke="#0f7a5c" stroke-width="2" marker-end="url(#a)" fill="none"/>
+  <path d="M650 249 H690" stroke="#8a929c" stroke-width="2" marker-end="url(#b)" fill="none" stroke-dasharray="5 4"/>
+  <text x="668" y="240" font-size="10" fill="#5d636d" text-anchor="middle">tap alert</text>
+  <path d="M690 262 H650" stroke="#8a929c" stroke-width="2" marker-end="url(#b)" fill="none" stroke-dasharray="5 4"/>
+  <text x="670" y="290" font-size="10" fill="#5d636d" text-anchor="middle">back → Alerts</text>
+
+  <g filter="url(#s)" font-size="13">
+    <rect x="690" y="400" width="130" height="58" rx="16" fill="#fff"/><text x="755" y="425" text-anchor="middle" font-weight="700">Gallery</text><text x="755" y="444" text-anchor="middle" fill="#5d636d" font-size="11">grid, day headers</text>
+    <rect x="520" y="400" width="130" height="58" rx="16" fill="#fff"/><text x="585" y="425" text-anchor="middle" font-weight="700">Photo viewer</text><text x="585" y="444" text-anchor="middle" fill="#5d636d" font-size="11">prev / next, zoom</text>
+    <rect x="340" y="400" width="130" height="58" rx="16" fill="#fff"/><text x="405" y="425" text-anchor="middle" font-weight="700">Add photo</text><text x="405" y="444" text-anchor="middle" fill="#5d636d" font-size="11">picker (approved)</text>
+  </g>
+  <path d="M755 278 V400" stroke="#0f7a5c" stroke-width="2" marker-end="url(#a)" fill="none"/>
+  <path d="M690 429 H650" stroke="#0f7a5c" stroke-width="2" marker-end="url(#a)" fill="none"/>
+
+  <g filter="url(#s)" font-size="13">
+    <rect x="340" y="520" width="150" height="34" rx="14" fill="#fff"/><text x="415" y="542" text-anchor="middle" font-weight="700">Premium sheet</text>
+    <rect x="520" y="520" width="150" height="34" rx="14" fill="#fff"/><text x="595" y="542" text-anchor="middle" font-weight="700">Export data</text>
+    <rect x="690" y="520" width="130" height="34" rx="14" fill="#fbe5e3"/><text x="755" y="542" text-anchor="middle" font-weight="700" fill="#b3261e">Delete account</text>
+  </g>
+</svg>
+</div>
+
+<div class="lanes" style="margin-top:20px">
+  <div class="lane">
+    <h3>A. First-time setup</h3>
+    <p class="goal">Goal: add a sensor and a plant in under 3 minutes (target, NFR-03).</p>
+    <div class="step"><span class="n">1</span><div><b>Welcome</b><p>Read three benefits, tap Get started.</p><div class="back">Back: none (first screen)</div></div></div>
+    <div class="step"><span class="n">2</span><div><b>Sign up</b><p>Email and password, inline errors.</p><div class="back">Back: Welcome</div></div></div>
+    <div class="step"><span class="n">3</span><div><b>Setup 1–5</b><p>Find sensor, code, Wi-Fi, name and link, photo and details.</p><div class="back">Back: previous step. Step 1 back: Plants. Setup is never a dead end.</div></div></div>
+    <div class="step"><span class="n">4</span><div><b>Done</b><p>Tap Go to my plants.</p><div class="back">Back: none (stack reset to Plants)</div></div></div>
+  </div>
+  <div class="lane">
+    <h3>B. Daily check</h3>
+    <p class="goal">Goal: see which plant needs water and act.</p>
+    <div class="step"><span class="n">1</span><div><b>Plants (home)</b><p>The "needs water" card names the first plant.</p></div></div>
+    <div class="step"><span class="n">2</span><div><b>Plant detail</b><p>Read the hero number and the next step, then water.</p><div class="back">Back: Plants, same scroll row</div></div></div>
+    <div class="step"><span class="n">3</span><div><b>Alerts (tab)</b><p>Badge shows open alerts. Filter by type.</p></div></div>
+    <div class="step"><span class="n">4</span><div><b>Tap an alert</b><p>Opens the plant.</p><div class="back">Back: Alerts, not Plants</div></div></div>
+  </div>
+  <div class="lane">
+    <h3>C. Photo a plant</h3>
+    <p class="goal">Goal: keep a dated photo history per plant.</p>
+    <div class="step"><span class="n">1</span><div><b>Plant detail</b><p>Tap the thumbnail or Photos (n).</p></div></div>
+    <div class="step"><span class="n">2</span><div><b>Gallery</b><p>Newest or Oldest. Grid with day headers. Tap a photo.</p><div class="back">Back: plant detail</div></div></div>
+    <div class="step"><span class="n">3</span><div><b>Photo viewer</b><p>Previous and Next buttons, swipe, pinch to zoom.</p><div class="back">Back: grid, same position</div></div></div>
+    <div class="step"><span class="n">4</span><div><b>Add photo</b><p>Picker: camera or library. Upload shows progress, then Done or Retry.</p></div></div>
+  </div>
+  <div class="lane">
+    <h3>D. Account and Premium</h3>
+    <p class="goal">Goal: see the plan and price, manage the account.</p>
+    <div class="step"><span class="n">1</span><div><b>Profile (tab)</b><p>Grouped sections. Plan price shown before Premium.</p></div></div>
+    <div class="step"><span class="n">2</span><div><b>Premium sheet</b><p>Price first, three features, Continue to the store.</p><div class="back">Back: sheet closes first, then Profile</div></div></div>
+    <div class="step"><span class="n">3</span><div><b>Export data</b><p>Offered before delete, as the first option.</p></div></div>
+    <div class="step"><span class="n">4</span><div><b>Delete account</b><p>Type your e-mail to enable the button.</p><div class="back">Back: Profile (nothing is deleted until confirmed)</div></div></div>
+  </div>
+</div>
+
+<!-- ============ SCREENS ============ -->
+<h2>2. All screens</h2>
+<p class="note">Every phone is the same frame. Tabs: Plants, Alerts, Profile, shown only on the three tab roots and their sub-screens. Setup, gallery, viewer and sheets hide them.</p>
+
+<!-- phone template uses the same tab bar markup -->
+<div class="grid">
+
+<!-- 1 Welcome -->
+<div class="cell"><span class="tag">Onboarding</span><h4>1 · Welcome</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div style="flex:1"><h2 style="font-size:30px">Know when your plants are thirsty</h2></div></div>
+  <div class="body" style="gap:14px">
+    <div class="thumb" style="height:210px;background:linear-gradient(160deg,#d6eee2,#8ccab0)"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;height:120px;border-radius:34px;background:#fff;box-shadow:0 12px 30px rgba(15,122,92,.25);display:flex;align-items:center;justify-content:center;font-size:52px">🌿</div></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:10px">
+      <div class="line-row" style="border:0;padding:4px 0"><span>Reads soil every 15 minutes</span></div>
+      <div class="line-row" style="border:0;padding:4px 0"><span>Alerts for too dry, too wet and low battery</span></div>
+      <div class="line-row" style="border:0;padding:4px 0"><span>No limit on plants</span></div>
+    </div>
+  </div>
+  <div style="padding:14px 18px 26px;display:flex;flex-direction:column;gap:10px">
+    <div class="cta">Get started</div>
+    <div class="cta line">I have an account</div>
+    <div class="legal">Privacy and terms: links at the bottom of Sign up</div>
+  </div>
+</div>
+<div class="what">Three benefits, each a real product fact. One primary action. Back: none.</div></div>
+
+<!-- 2 Sign up -->
+<div class="cell"><span class="tag">Onboarding</span><h4>2 · Sign up</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><h2>Create account</h2></div>
+  <div class="body" style="gap:12px">
+    <div class="field"><div class="l">E-mail</div><div class="v">arsany@example.com</div></div>
+    <div class="field" style="box-shadow:inset 0 0 0 2px var(--danger),var(--shadow)"><div class="l" style="color:var(--danger)">Password</div><div class="v">••••</div><div style="font-size:12px;color:var(--danger);margin-top:4px">Use at least 8 characters.</div></div>
+    <div class="card" style="font-size:13px;color:var(--muted);line-height:19px">Password rule: 8+ characters. Shows green when met.</div>
+    <div class="legal" style="margin-top:4px">Already have an account? <b style="color:var(--accent)">Sign in</b></div>
+  </div>
+  <div style="padding:14px 18px 26px"><div class="cta">Create account</div></div>
+</div>
+<div class="what">Labels stay above fields. Errors sit under the field and use text, not only colour. Back: Welcome.</div></div>
+
+<!-- 3 Setup 1 -->
+<div class="cell"><span class="tag">Setup · 1 of 5</span><h4>3 · Find sensor</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><div style="flex:1"><div class="prog"><span>Step 1 of 5</span><span>0:00</span></div><div class="stepper" style="margin-top:8px"><i class="now"></i><i></i><i></i><i></i><i></i></div></div></div>
+  <div class="body" style="gap:14px">
+    <h2 style="margin:6px 0 0;font-size:26px;letter-spacing:-.6px">Put the sensor in the soil</h2>
+    <div class="card" style="display:flex;flex-direction:column;gap:12px;font-size:15px">
+      <div><b style="color:var(--accent)">1</b>&nbsp; Press the pinhole button once</div>
+      <div><b style="color:var(--accent)">2</b>&nbsp; Keep the phone close</div>
+      <div><b style="color:var(--accent)">3</b>&nbsp; Tap Find my sensor</div>
+    </div>
+    <div class="legal">Permission note and "not found" help sit under the button.</div>
+  </div>
+  <div style="padding:14px 18px 26px;display:flex;flex-direction:column;gap:10px"><div class="cta">Find my sensor</div></div>
+</div>
+<div class="what">One headline, three numbered steps, one primary action. Back: Plants (leave setup).</div></div>
+
+<!-- 4 Setup 2 connect -->
+<div class="cell"><span class="tag">Setup · 2 of 5</span><h4>4 · Connect code</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><div style="flex:1"><div class="prog"><span>Step 2 of 5</span><span>0:41</span></div><div class="stepper" style="margin-top:8px"><i class="on"></i><i class="now"></i><i></i><i></i><i></i></div></div></div>
+  <div class="body" style="gap:14px">
+    <h2 style="margin:6px 0 0;font-size:26px;letter-spacing:-.6px">Enter the sensor code</h2>
+    <div class="card"><div class="k">Found: Plant sensor (3 bars)</div></div>
+    <div class="field" style="box-shadow:inset 0 0 0 2px var(--accent),var(--shadow)"><div class="l">Code from the label</div><div class="v" style="font-family:ui-monospace,monospace;letter-spacing:2px">PM7K-2QX4</div></div>
+    <div class="legal" style="text-align:left">Camera scan comes later. Typing stays as the fallback.</div>
+  </div>
+  <div style="padding:14px 18px 26px"><div class="cta">Connect</div></div>
+</div>
+<div class="what">One field, label-based. Scan is not shown until the camera is built (review S3).</div></div>
+
+<!-- 5 Setup 3 wifi -->
+<div class="cell"><span class="tag">Setup · 3 of 5</span><h4>5 · Wi-Fi</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><div style="flex:1"><div class="prog"><span>Step 3 of 5</span><span>1:12</span></div><div class="stepper" style="margin-top:8px"><i class="on"></i><i class="on"></i><i class="now"></i><i></i><i></i></div></div></div>
+  <div class="body" style="gap:10px">
+    <h2 style="margin:6px 0 0;font-size:26px;letter-spacing:-.6px">Choose your Wi-Fi</h2>
+    <div class="opt sel"><span>Home network</span><em>✓</em></div>
+    <div class="opt"><span>Guest network</span><span></span></div>
+    <div class="opt"><span>Other network</span><span style="color:var(--muted)">›</span></div>
+    <div class="field" style="margin-top:4px"><div class="l">Password</div><div class="v">••••••••••</div></div>
+  </div>
+  <div style="padding:14px 18px 26px"><div class="cta">Continue</div></div>
+</div>
+<div class="what">Radio list with a clear selected state. Back: step 2.</div></div>
+
+<!-- 6 Setup 4 link -->
+<div class="cell"><span class="tag">Setup · 4 of 5</span><h4>6 · Name and link</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><div style="flex:1"><div class="prog"><span>Step 4 of 5</span><span>1:48</span></div><div class="stepper" style="margin-top:8px"><i class="on"></i><i class="on"></i><i class="on"></i><i class="now"></i><i></i></div></div></div>
+  <div class="body" style="gap:12px">
+    <h2 style="margin:6px 0 0;font-size:26px;letter-spacing:-.6px">Linking your sensor</h2>
+    <div class="card" style="padding:6px 16px">
+      <div class="rowcheck"><i>✓</i><span>Wi-Fi joined</span></div>
+      <div class="rowcheck"><i class="cur">2</i><span>Sensor linked</span></div>
+      <div class="rowcheck"><i class="todo">3</i><span>Plant saved</span></div>
+    </div>
+    <div class="field"><div class="l">Sensor name</div><div class="v">Basil sensor</div></div>
+  </div>
+  <div style="padding:14px 18px 26px"><div class="cta">Continue</div></div>
+</div>
+<div class="what">Three-row checklist shows each stage (S4). Clock kept (NFR-03). Back: step 3.</div></div>
+
+<!-- 7 Setup 5 details -->
+<div class="cell"><span class="tag">Setup · 5 of 5</span><h4>7 · Photo and details</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><div style="flex:1"><div class="prog"><span>Step 5 of 5</span><span>2:20</span></div><div class="stepper" style="margin-top:8px"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="now"></i></div></div></div>
+  <div class="body" style="gap:10px">
+    <div class="section">Plant</div>
+    <div class="field"><div class="l">Name</div><div class="v">Basil</div></div>
+    <div class="field"><div class="l">Where it stands</div><div class="v">Kitchen window</div></div>
+    <div class="section">Care <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></div>
+    <div class="pills"><span class="pill on">Potting soil</span><span class="pill">Sandy</span><span class="pill">Clay</span></div>
+    <div class="legal" style="text-align:left">Photo: add one now or later. <b style="color:var(--accent)">Skip for now</b></div>
+  </div>
+  <div style="padding:14px 18px 26px"><div class="cta">Save plant</div></div>
+</div>
+<div class="what">One screen, two sections; optional fields marked (decision: one screen this round). Back: step 4.</div></div>
+
+<!-- 8 Done -->
+<div class="cell"><span class="tag">Setup · done</span><h4>8 · Done</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="body" style="align-items:center;justify-content:center;text-align:center;gap:16px">
+    <div class="check">✓</div>
+    <h2 style="margin:0;font-size:30px;letter-spacing:-.8px">All set!</h2>
+    <div class="card" style="width:100%;text-align:left"><b>Basil is connected</b><div class="k" style="margin-top:3px">Setup time 2:48 (target: 3 minutes or less)</div></div>
+  </div>
+  <div style="padding:14px 18px 26px"><div class="cta">Go to my plants</div></div>
+</div>
+<div class="what">Primary label names the next screen. Facts only in the success block. Back: none (stack resets).</div></div>
+
+<!-- 9 Plants home -->
+<div class="cell"><span class="tag">Tab · Plants</span><h4>9 · Plants (home)</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><h2>My plants<small>Thursday, 26 Nov</small></h2><div class="round"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div></div>
+  <div class="body" style="gap:12px;padding-bottom:110px">
+    <div style="background:linear-gradient(135deg,#fcefe4,#fff);border-radius:22px;padding:16px;box-shadow:var(--shadow)">
+      <div style="font-size:12px;font-weight:700;color:var(--dry);letter-spacing:.3px">NEEDS WATER</div>
+      <div style="font-size:19px;font-weight:700;margin-top:4px">2 plants are too dry</div>
+      <div class="k" style="margin-top:3px">Basil is furthest below its limit.</div>
+      <div class="cta" style="margin-top:12px;min-height:44px;font-size:15px">Check Basil first</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">Basil</b><span class="chip dry">Too dry</span></div>
+      <div class="k" style="margin-top:2px">Kitchen window · 18 %</div>
+      <div class="meter"><div class="f" style="width:18%;background:var(--dry)"></div><div class="t" style="left:25%"></div><div class="t" style="left:70%"></div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">Monstera</b><span class="chip ok">OK</span></div>
+      <div class="k" style="margin-top:2px">Living room · 62 %</div>
+      <div class="meter"><div class="f" style="width:62%;background:var(--ok)"></div><div class="t" style="left:25%"></div><div class="t" style="left:70%"></div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">Fern</b><span class="chip dry">Too dry</span></div>
+      <div class="k" style="margin-top:2px">Bathroom · 27 %</div>
+      <div class="meter"><div class="f" style="width:27%;background:var(--dry)"></div><div class="t" style="left:25%"></div><div class="t" style="left:70%"></div></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t on"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Plants</div>
+    <div class="t"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>Alerts<span class="badge">2</span></div>
+    <div class="t"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</div>
+  </div>
+</div>
+<div class="what">Top card names the most urgent action, one button. Each row: status in text and colour, meter with limits. Back: none (tab root).</div></div>
+
+<!-- 10 Plant detail -->
+<div class="cell"><span class="tag">Plant</span><h4>10 · Plant detail</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><h2>Basil<small>Kitchen window</small></h2><div class="round"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></div></div>
+  <div class="body" style="gap:12px;padding-bottom:100px">
+    <div style="display:flex;gap:12px;align-items:center">
+      <div style="width:74px;height:74px;border-radius:20px;background:linear-gradient(135deg,#a9d8bd,#2f6f56);flex:none"></div>
+      <div class="hero" style="flex:1"><div class="num">18<span>%</span></div><div style="margin-top:6px"><span class="chip dry">Too dry</span></div></div>
+    </div>
+    <div class="nextstep">Soil is below the dry limit. Water it.</div>
+    <div class="card" style="padding:12px">
+      <div class="chart">
+        <div class="bar" style="height:30%"></div><div class="bar" style="height:42%"></div><div class="bar" style="height:55%"></div>
+        <div class="gapc"><span>No reading</span></div>
+        <div class="bar" style="height:38%"></div><div class="bar" style="height:22%"></div><div class="bar" style="height:18%"></div>
+      </div>
+      <div class="days"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="kk">Temperature</div><div class="vv">22 °C</div></div>
+      <div class="tile"><div class="kk">Humidity</div><div class="vv">41 %</div></div>
+      <div class="tile"><div class="kk">Light</div><div class="vv">Medium</div></div>
+      <div class="tile"><div class="kk">Battery</div><div class="vv">86 %</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 18px 96px;background:linear-gradient(transparent,var(--bg) 30%);display:flex;flex-direction:column;gap:6px">
+    <div class="cta">Photos (12)</div>
+    <div class="cta quiet">Remove plant</div>
+  </div>
+</div>
+<div class="what">Hero number and next step first. The Tuesday gap reads "No reading", never a dry day. Back: Plants or Alerts, whichever was before.</div></div>
+
+<!-- 11 Alerts -->
+<div class="cell"><span class="tag">Tab · Alerts</span><h4>11 · Alerts</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><h2>Alerts<small>Last 7 days</small></h2></div>
+  <div class="body" style="gap:12px;padding-bottom:110px">
+    <div class="pills"><span class="pill on">All 4</span><span class="pill">Too dry 2</span><span class="pill">Too wet 0</span><span class="pill">Low battery 1</span></div>
+    <div class="day">Today</div>
+    <div class="card alert"><span class="dot" style="background:var(--drySoft);color:var(--dry)"><svg viewBox="0 0 24 24"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg></span><div><div class="n">Basil</div><div class="s">Too dry. Soil at 18 %, below the limit.</div></div><span class="time">08:10</span></div>
+    <div class="card alert"><span class="dot" style="background:var(--lowSoft);color:var(--low)"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10v4"/></svg></span><div><div class="n">Fern sensor</div><div class="s">Battery low, 14 %.</div></div><span class="time">07:55</span></div>
+    <div class="day">Yesterday</div>
+    <div class="card alert"><span class="dot" style="background:var(--drySoft);color:var(--dry)"><svg viewBox="0 0 24 24"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg></span><div><div class="n">Fern</div><div class="s">Too dry. Soil at 27 %.</div></div><span class="time">19:30</span></div>
+    <div class="card alert"><span class="dot" style="background:var(--okSoft);color:var(--ok)"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><div><div class="n">Monstera</div><div class="s">Back in the healthy range.</div></div><span class="time">14:02</span></div>
+  </div>
+  <div class="tabbar">
+    <div class="t"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Plants</div>
+    <div class="t on"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>Alerts<span class="badge">2</span></div>
+    <div class="t"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</div>
+  </div>
+</div>
+<div class="what">Filters with counts, grouped by day. Tapping a card opens the plant; back returns to Alerts. Empty state: "Check my plants". Back: none (tab root).</div></div>
+
+<!-- 12 Profile -->
+<div class="cell"><span class="tag">Tab · Profile</span><h4>12 · Profile</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><h2>Profile</h2></div>
+  <div class="body" style="gap:10px;padding-bottom:110px">
+    <div class="section">Account</div>
+    <div class="card"><div class="line-row"><span class="k">E-mail</span><span>arsany@example.com</span></div><div class="line-row"><span class="k">Display name</span><span>Arsany</span></div></div>
+    <div class="section">Plan</div>
+    <div class="card"><div class="line-row"><div><div>Free</div><div class="k">See Premium for more</div></div><span style="color:var(--accent);font-weight:700">€4.99 / mo</span></div></div>
+    <div class="section">Sensors and data</div>
+    <div class="card"><div class="line-row"><span>Add a sensor</span><span>›</span></div><div class="line-row"><span>Export my data</span><span>›</span></div><div class="line-row"><span>AI connection</span><span>›</span></div></div>
+    <div class="section">Session</div>
+    <div class="card"><div class="line-row"><span>Sign out</span><span>›</span></div></div>
+    <div class="cta quiet" style="min-height:40px">Delete account</div>
+  </div>
+  <div class="tabbar">
+    <div class="t"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Plants</div>
+    <div class="t"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>Alerts<span class="badge">2</span></div>
+    <div class="t on"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</div>
+  </div>
+</div>
+<div class="what">Grouped sections. Plan price is shown before Premium is opened (decided). Delete is a separate red action. Back: none (tab root).</div></div>
+
+<!-- 13 Premium sheet -->
+<div class="cell"><span class="tag">Sheet</span><h4>13 · Premium</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><h2>Profile</h2></div>
+  <div class="body" style="opacity:.45;gap:10px"><div class="card" style="height:120px"></div><div class="card" style="height:80px"></div></div>
+  <div class="sheetwrap"></div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div><div style="font-size:14px;font-weight:700;color:var(--accent)">PREMIUM</div><div class="price">€4.99<span style="font-size:15px;color:var(--muted);font-weight:600"> / month</span></div></div>
+      <div class="round" style="width:34px;height:34px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+    </div>
+    <div class="ticks" style="margin-top:10px">
+      <div><b>✓</b>Unlimited identification and diagnosis</div>
+      <div><b>✓</b>Full care schedules and light meter</div>
+      <div><b>✓</b>Plant sitter sharing</div>
+    </div>
+    <div class="cta" style="margin-top:14px">Continue to the store</div>
+    <div class="legal" style="margin-top:10px">Restore purchases · Price is shown before you buy</div>
+  </div>
+</div>
+<div class="what">A sheet, not a full screen. Price first. Close with X or system back (sheet closes first). Back: Profile.</div></div>
+
+<!-- 14 Gallery -->
+<div class="cell"><span class="tag">Photos</span><h4>14 · Gallery</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><h2 style="font-size:21px">Basil photos<small>12 photos</small></h2></div>
+  <div class="body" style="gap:10px;padding-bottom:110px">
+    <div class="seg"><div class="on">Newest</div><div>Oldest</div></div>
+    <div class="day">Mon 24 Nov</div>
+    <div class="grid3">
+      <div class="th" style="background:linear-gradient(135deg,#9bc9a8,#3f8a66)"><i>07:40</i></div>
+      <div class="th" style="background:linear-gradient(135deg,#b7d9c2,#5d9a78)"><i>19:12</i></div>
+      <div class="th" style="background:linear-gradient(135deg,#d8e7d0,#8fb37f)"><i>21:03</i></div>
+    </div>
+    <div class="day">Sun 23 Nov</div>
+    <div class="grid3">
+      <div class="th" style="background:linear-gradient(135deg,#a7c7d9,#4f7f9c)"><i>09:20</i></div>
+      <div class="th fail" style="background:linear-gradient(135deg,#cfd6dc,#8d98a1)"><b>Retry</b></div>
+      <div class="th" style="background:linear-gradient(135deg,#c2dcb0,#6c9557)"><i>18:45</i></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 18px 26px;background:linear-gradient(transparent,var(--bg) 30%)"><div class="cta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add photo</div></div>
+</div>
+<div class="what">Grid of three, day headers, a date on every photo (FR-A05). Failed upload: red outline and Retry. Add photo in the footer. Back: plant detail.</div></div>
+
+<!-- 15 Viewer -->
+<div class="cell"><span class="tag">Photos</span><h4>15 · Photo viewer</h4>
+<div class="phone">
+  <div class="notch" style="position:absolute;top:0;left:0;right:0;z-index:2;color:#fff"><span>9:41</span><i></i><span>●●● 100</span></div>
+  <div class="viewer">
+    <div class="vnav"><div class="ic"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><span style="font-weight:700;font-size:15px">3 of 12</span><div class="ic"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></div></div>
+    <div class="stage"><div></div></div>
+    <div class="vbtns"><span>‹ Previous</span><span>Next ›</span></div>
+    <div class="vcap">Mon 24 Nov, 07:40 · pinch to zoom</div>
+  </div>
+</div>
+<div class="what">Full screen. Previous and Next sit beside swipe, so moving does not depend on a drag (SC 2.5.7). Back: grid, same position.</div></div>
+
+<!-- 16 Delete -->
+<div class="cell"><span class="tag">Account</span><h4>16 · Delete account</h4>
+<div class="phone">
+  <div class="notch">9:41<i></i><span>●●● 100</span></div>
+  <div class="top"><div class="round"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div><h2 style="font-size:22px">Delete account</h2></div>
+  <div class="body" style="gap:12px">
+    <div class="danger-box"><b>This removes:</b><br>your plants, their history, and all photos. This cannot be undone.</div>
+    <div class="card"><div style="font-weight:700">Export first</div><div class="k" style="margin-top:3px">Download a copy of your data before you delete.</div><div class="cta line" style="min-height:44px;margin-top:10px;font-size:15px">Export my data</div></div>
+    <div class="field"><div class="l">Type your e-mail to confirm</div><div class="v">arsany@</div></div>
+  </div>
+  <div style="padding:12px 18px 26px"><div class="cta" style="background:#d8d4cc;color:var(--muted);box-shadow:none">Delete account</div><div class="legal" style="margin-top:8px">Button enables when the e-mail matches.</div></div>
+</div>
+<div class="what">Full screen, irreversible. Export is offered first. Back: Profile; nothing is deleted until confirmed.</div></div>
+
+</div>
+
+<!-- ============ BACK AND NOTES ============ -->
+<h2>3. Back, scroll and photos at a glance</h2>
+<div class="lanes">
+  <div class="lane">
+    <h3>Back</h3>
+    <div class="step"><span class="n">↩</span><div><b>System back</b><p>Closes the top sheet first, then pops the stack.</p></div></div>
+    <div class="step"><span class="n">↩</span><div><b>On-screen back</b><p>Same as system back, in a fixed header.</p></div></div>
+    <div class="step"><span class="n">↩</span><div><b>Plants root</b><p>First press: "Press back again to leave". Second press within 2 s exits.</p></div></div>
+  </div>
+  <div class="lane">
+    <h3>Scroll</h3>
+    <div class="step"><span class="n">↕</span><div><b>Padding</b><p>Last row always clears the tab bar and the footer button.</p></div></div>
+    <div class="step"><span class="n">↕</span><div><b>Lists</b><p>Virtualised. Pull to refresh; the Refresh button stays for the bench.</p></div></div>
+    <div class="step"><span class="n">↕</span><div><b>Position</b><p>Kept when returning from detail to the list.</p></div></div>
+  </div>
+  <div class="lane">
+    <h3>Photos</h3>
+    <div class="step"><span class="n">▦</span><div><b>Grid</b><p>Three per row, day headers, date on each photo.</p></div></div>
+    <div class="step"><span class="n">▦</span><div><b>Upload</b><p>Queued offline. Progress, then Done or Retry.</p></div></div>
+    <div class="step"><span class="n">▦</span><div><b>Picker</b><p>Approved: expo-image-picker. Added in the build PR, not here.</p></div></div>
+  </div>
+</div>
+
+<h2>4. Decisions (recorded)</h2>
+<div class="lanes">
+  <div class="lane"><div class="step"><span class="n">1</span><div><b>Tabs: three</b><p>Plants, Alerts with a badge, Profile.</p></div></div></div>
+  <div class="lane"><div class="step"><span class="n">2</span><div><b>Gallery: grid</b><p>Three per row, day headers.</p></div></div></div>
+  <div class="lane"><div class="step"><span class="n">3</span><div><b>Photo picker: approved</b><p>expo-image-picker. Dependency added in the build PR after a requirement check.</p></div></div></div>
+  <div class="lane"><div class="step"><span class="n">4</span><div><b>Setup details: one screen</b><p>Split later, with a bench change.</p></div></div></div>
+</div>
+
+<p class="note" style="margin-top:28px">Bench: any label or key change needs Peter's bench check and Ines's review first. The route stack, three-tab bar and sheets need new tests. Nothing here has been run on a device.</p>
+
+</body>
+</html>

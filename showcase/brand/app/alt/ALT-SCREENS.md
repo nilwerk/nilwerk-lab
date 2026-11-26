@@ -136,9 +136,11 @@ Tabs show on Plants, Alerts and Profile and their sub-screens. They hide on setu
 
 **Bench rule:** any label or key change needs Peter's bench check and Ines's review first. Nothing here has been run on a device.
 
-## 6. Open decisions (answers needed)
+## 6. Decisions (answered by Arsany, 26 Nov)
 
-1. **Tabs:** two (today) or three with Alerts and a badge? (Recommended: three.)
-2. **Gallery layout:** grid with day headers, or timeline? (Recommended: grid.)
-3. **Photo picker:** approve `expo-image-picker` as a new dependency, or wait?
-4. **Setup details:** one screen this round (recommended), or split into two later with a bench change?
+1. **Tabs:** three (Plants, Alerts with badge, Profile). Done.
+2. **Gallery layout:** grid with day headers. Done.
+3. **Photo picker:** `expo-image-picker` approved. The dependency is added in the build PR after a requirement check, not in this design PR.
+4. **Setup details:** one screen this round. Done.
+
+Final mockup with all screens and user journeys: `final-mockups.html`.

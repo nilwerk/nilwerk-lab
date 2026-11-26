@@ -67,7 +67,7 @@ No post drafts are added here. Owner approval goes through a Needs Arsany row.
 ## 5. Decisions
 
 1. **Setup steps:** five, matching main (decided by Arsany, 26 Nov). Done.
-2. **Tab bar:** still open. Keep two tabs, or move Alerts and Premium into tabs? Changes navigation for every bench step.
+2. **Tab bar:** three tabs (Plants, Alerts with badge, Profile), decided by Arsany, 26 Nov. Bench tab steps need Peter's check.
 3. **Price visibility:** show the plan price on Profile before Premium is tapped (decided by Arsany, yes). Rule in section 2.
 4. **Lena's role:** approved by Arsany (26 Nov). The role file status is updated in this PR.
 
