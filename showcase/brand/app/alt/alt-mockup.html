@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alternative app design, mock data</title>
+<style>
+  /* Tokens copied from projects/plant-monitor/app/tokens.json (light). Mock data only. */
+  :root{
+    --bg:#f6f4ef; --surface:#ffffff; --ink:#15181d; --muted:#5b616b; --line:#e2ded5; --control:#7d838c;
+    --accent:#0f7a5c; --accentInk:#ffffff; --accentSoft:#e3f2ec;
+    --dry:#b4541a; --drySoft:#fcf2ea; --wet:#1f6aa5; --wetSoft:#e1edf7; --ok:#0f7a5c; --okSoft:#e3f2ec;
+    --danger:#b3261e;
+    --r-sm:6px; --r-md:10px; --r-lg:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 24px;background:#e7e3da;font-family:Inter,system-ui,sans-serif;color:var(--ink)}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 24px}
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+  .cap{font-size:13px;color:var(--muted);margin-top:10px;max-width:390px}
+  .phone{width:390px;height:844px;background:var(--bg);border-radius:36px;border:10px solid #1d2026;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .status{height:44px;flex:none}
+  .screen{flex:1;overflow:hidden;padding:4px 20px 0;display:flex;flex-direction:column;gap:14px}
+  .title{font-size:28px;font-weight:700;letter-spacing:-.5px;margin:6px 0 0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px}
+  .need{background:var(--drySoft);border:1px solid #ebc7ad;border-radius:var(--r-lg);padding:16px}
+  .need .big{font-size:18px;font-weight:700;color:var(--ink)}
+  .need .small{font-size:14px;color:var(--muted);margin-top:4px}
+  .btn{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:var(--r-md);font-weight:600;font-size:16px;margin-top:12px;border:1px solid transparent}
+  .btn.fill{background:var(--accent);color:var(--accentInk)}
+  .btn.line{background:var(--surface);border-color:var(--control);color:var(--ink)}
+  .btn.danger{background:none;color:var(--danger);min-height:48px;text-decoration:underline;font-weight:600}
+  .plant{display:flex;flex-direction:column;gap:8px}
+  .plant-head{display:flex;justify-content:space-between;align-items:baseline}
+  .name{font-size:18px;font-weight:700}
+  .place{font-size:13px;color:var(--muted)}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}
+  .chip.dry{background:var(--drySoft);color:var(--dry)}
+  .chip.ok{background:var(--okSoft);color:var(--ok)}
+  .chip.wet{background:var(--wetSoft);color:var(--wet)}
+  .meter{position:relative;height:8px;background:#ece9e2;border-radius:99px;overflow:visible;margin-top:2px}
+  .meter .fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+  .meter .tick{position:absolute;top:-4px;width:2px;height:16px;background:var(--ink);opacity:.45}
+  .meter-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+  .tabs{height:72px;flex:none;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;font-size:14px;font-weight:600;color:var(--muted)}
+  .tabs .on{color:var(--accent)}
+  .hero{text-align:left;padding-top:4px}
+  .hero .num{font-size:56px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+  .hero .unit{font-size:20px;color:var(--muted);font-weight:600}
+  .next{font-size:16px;line-height:24px}
+  .chart{height:150px;position:relative;border-bottom:1px solid var(--line);display:flex;align-items:flex-end;gap:10px;padding:0 4px}
+  .bar{flex:1;border-radius:6px 6px 0 0;background:var(--wet);opacity:.85}
+  .gap{flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center}
+  .gap span{font-size:11px;color:var(--muted);transform:rotate(-90deg) translate(-6px,0);white-space:nowrap;margin-bottom:6px}
+  .daylabels{display:flex;gap:10px;font-size:11px;color:var(--muted);padding:6px 4px 0;text-align:center}
+  .daylabels div{flex:1}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:12px}
+  .tile .k{font-size:12px;color:var(--muted)}
+  .tile .v{font-size:18px;font-weight:700;margin-top:2px}
+  .back{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+  .circle{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px}
+  .segs{display:flex;gap:6px}
+  .seg{flex:1;height:6px;border-radius:99px;background:var(--line)}
+  .seg.on{background:var(--accent)}
+  .seg.now{background:var(--accent);opacity:.45}
+  .prog{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .opt{display:flex;justify-content:space-between;align-items:center;padding:14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);font-size:16px}
+  .opt.sel{border:2px solid var(--accent)}
+  .done .check{width:56px;height:56px;border-radius:50%;background:var(--okSoft);color:var(--ok);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700}
+  .success{background:var(--okSoft);border-radius:var(--r-lg);padding:16px;display:flex;gap:12px;align-items:center}
+</style>
+</head>
+<body>
+  <h1>Alternative design, mock data</h1>
+  <p class="sub">Layout only. Names, numbers and times are invented. Tokens from the app's tokens.json (light theme). Not a shipped screen.</p>
+
+  <div class="row">
+
+    <!-- 1. My plants -->
+    <div>
+      <div class="phone">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="title">My plants</div>
+          <div class="need">
+            <div class="big">2 plants need water</div>
+            <div class="small">Basil is below its dry limit. Fern is close.</div>
+            <div class="btn fill">Check Basil first</div>
+          </div>
+
+          <div class="card plant">
+            <div class="plant-head"><div class="name">Basil</div><span class="chip dry">Too dry</span></div>
+            <div class="place">Kitchen window · 18 %</div>
+            <div class="meter">
+              <div class="fill" style="width:18%;background:var(--dry)"></div>
+              <div class="tick" style="left:25%"></div>
+              <div class="tick" style="left:70%"></div>
+            </div>
+          </div>
+
+          <div class="card plant">
+            <div class="plant-head"><div class="name">Fern</div><span class="chip dry">Too dry</span></div>
+            <div class="place">Bathroom · 27 %</div>
+            <div class="meter">
+              <div class="fill" style="width:27%;background:var(--dry)"></div>
+              <div class="tick" style="left:25%"></div>
+              <div class="tick" style="left:70%"></div>
+            </div>
+          </div>
+
+          <div class="card plant">
+            <div class="plant-head"><div class="name">Monstera</div><span class="chip ok">OK</span></div>
+            <div class="place">Living room · 62 %</div>
+            <div class="meter">
+              <div class="fill" style="width:62%;background:var(--ok)"></div>
+              <div class="tick" style="left:25%"></div>
+              <div class="tick" style="left:70%"></div>
+            </div>
+          </div>
+          <div class="meter-scale"><span>dry</span><span>healthy band</span><span>wet</span></div>
+        </div>
+        <div class="tabs"><span class="on">Plants</span><span>Profile</span></div>
+      </div>
+      <div class="cap"><b>My plants.</b> One card for the most urgent action (P1). Each row shows its status in text and colour (P7) and a meter with the dry and wet limits (P2).</div>
+    </div>
+
+    <!-- 2. Plant detail -->
+    <div>
+      <div class="phone">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="back"><div class="circle">‹</div><div class="name">Basil</div><div class="circle">⋯</div></div>
+          <div class="hero">
+            <div class="num">18<span class="unit"> %</span></div>
+            <div style="margin-top:8px"><span class="chip dry">Too dry</span></div>
+          </div>
+          <div class="card next">Soil is below the dry limit. Water it.</div>
+          <div class="card" style="padding:12px">
+            <div class="chart">
+              <div class="bar" style="height:30%"></div>
+              <div class="bar" style="height:42%"></div>
+              <div class="bar" style="height:55%"></div>
+              <div class="gap"><span>No reading</span></div>
+              <div class="bar" style="height:38%"></div>
+              <div class="bar" style="height:22%"></div>
+              <div class="bar" style="height:18%"></div>
+            </div>
+            <div class="daylabels"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
+          </div>
+          <div class="grid">
+            <div class="tile"><div class="k">Temperature</div><div class="v">22 °C</div></div>
+            <div class="tile"><div class="k">Humidity</div><div class="v">41 %</div></div>
+            <div class="tile"><div class="k">Light</div><div class="v">Medium</div></div>
+            <div class="tile"><div class="k">Battery</div><div class="v">86 %</div></div>
+          </div>
+          <div class="btn line">Photos</div>
+          <div class="btn danger" style="justify-content:center">Remove plant</div>
+        </div>
+        <div class="tabs"><span class="on">Plants</span><span>Profile</span></div>
+      </div>
+      <div class="cap"><b>Plant detail.</b> One number to read first (P2), one next step from a fixed rule (P1). The Tuesday gap is shown as no reading, never as a dry day.</div>
+    </div>
+
+    <!-- 3. Setup -->
+    <div>
+      <div class="phone">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="title" style="font-size:24px">Connect Wi-Fi</div>
+          <div class="prog"><span>Step 2 of 4</span><span>Time so far 1:12</span></div>
+          <div class="segs"><div class="seg on"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+          <div class="opt sel"><span>Home network</span><span style="color:var(--accent);font-weight:700">✓</span></div>
+          <div class="opt"><span>Guest network</span><span></span></div>
+          <div class="opt"><span>Other network</span><span>›</span></div>
+          <div class="card" style="margin-top:6px">
+            <div style="font-size:13px;color:var(--muted)">Password</div>
+            <div style="font-size:16px;margin-top:4px">••••••••••</div>
+          </div>
+          <div class="btn fill">Continue</div>
+        </div>
+        <div class="tabs"><span>Plants</span><span>Profile</span></div>
+      </div>
+      <div class="cap"><b>Setup.</b> Four segments, one per stage (P2). Clock kept (NFR-03). Same four stages as v3, so the two PRs agree.</div>
+    </div>
+
+    <!-- 4. Done -->
+    <div>
+      <div class="phone">
+        <div class="status"></div>
+        <div class="screen done" style="justify-content:center;align-items:center;text-align:center">
+          <div class="check">✓</div>
+          <div class="title" style="font-size:26px;margin:0">All set!</div>
+          <div class="success" style="width:100%;text-align:left">
+            <div>
+              <div style="font-weight:700">Basil is connected</div>
+              <div style="font-size:14px;color:var(--muted)">Setup time 2:48 (target: 3 minutes or less)</div>
+            </div>
+          </div>
+          <div class="btn fill" style="width:100%">Go to my plants</div>
+        </div>
+        <div class="tabs"><span>Plants</span><span>Profile</span></div>
+      </div>
+      <div class="cap"><b>Done.</b> The primary label names the next screen (P1). The success block uses facts only (P3). Keeps "All set!" and the time text for the bench.</div>
+    </div>
+
+  </div>
+</body>
+</html>
