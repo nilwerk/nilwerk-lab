@@ -34,7 +34,7 @@ def camel(k):
 light = {**parse(block(BASE, ":root {")), **parse(block(STAT, ":root {"))}
 dark = {**light, **parse(block(BASE, ':root[data-theme="dark"]')), **parse(block(STAT, ':root[data-theme="dark"]'))}
 KEEP = ["bg", "surface", "ink", "muted", "line", "rule", "accent", "accent-ink", "accent-soft", "warn", "ok", "ok-soft", "dry", "dry-soft", "wet", "wet-soft",
-        "low", "low-soft", "offline", "offline-soft", "danger", "danger-soft", "danger-ink"]
+        "low", "low-soft", "offline", "offline-soft", "danger", "danger-soft", "danger-ink", "control"]
 colors = {name: {camel(k): tk[k] for k in KEEP if k in tk} for name, tk in (("light", light), ("dark", dark))}
 
 tokens = {
@@ -52,7 +52,7 @@ tokens = {
         "body": {"font": "body", "size": 16, "lineHeight": 24, "letterSpacing": 0},
         "bodyStrong": {"font": "bodyStrong", "size": 16, "lineHeight": 24, "letterSpacing": 0},
         "caption": {"font": "body", "size": 13, "lineHeight": 18, "letterSpacing": 0},
-        "label": {"font": "monoStrong", "size": 12, "lineHeight": 16, "letterSpacing": 1},
+        "label": {"font": "monoStrong", "size": 13, "lineHeight": 18, "letterSpacing": 1},
         "number": {"font": "monoStrong", "size": 40, "lineHeight": 44, "letterSpacing": -1.5},
     },
     "status": {
@@ -63,7 +63,7 @@ tokens = {
         "offline": {"color": "offline", "soft": "offlineSoft", "labelKey": "status.offline", "shape": "ring"},
         "error": {"color": "danger", "soft": "dangerSoft", "labelKey": "status.error", "shape": "cross"},
     },
-    "minTouchTarget": 44,
+    "minTouchTarget": 48,
 }
 (HERE / "tokens.json").write_text(json.dumps(tokens, indent=2) + "\n")
 
@@ -100,7 +100,7 @@ export const colors = {ts_obj(colors)} as const;
 export const spacing = {ts_obj(tokens["spacing"])} as const;
 export const radius = {ts_obj(tokens["radius"])} as const;
 export const fontFamily = {ts_obj(tokens["fontFamily"])} as const;
-export const minTouchTarget = 44;
+export const minTouchTarget = {tokens["minTouchTarget"]};
 
 export interface TextStyleToken {{
   fontFamily: string;
@@ -124,13 +124,13 @@ export const type = {{
   body: typo('body', 16, 24, 0),
   bodyStrong: typo('bodyStrong', 16, 24, 0),
   caption: typo('body', 13, 18, 0),
-  label: typo('monoStrong', 12, 16, 1),
+  label: typo('monoStrong', 13, 18, 1),
   number: typo('monoStrong', 40, 44, -1.5),
 }} as const;
 
 // FR-A07 (push alerts): too dry, too wet, low battery, device offline map to these statuses. Thresholds and clear rules are NOT
 // repeated here: see projects/plant-monitor/docs/requirements-v1.0-delta.md, row FR-A07 (single source). The four edge-AI alert
-// kinds (wetting_unexpected, waterlogged, sensor_out_of_soil, sensor_fault) are an open decision for Leo / 4.A2: see app/README.md.
+// kinds (wetting_unexpected, waterlogged, sensor_out_of_soil, sensor_fault) are an open decision for the app owners: see app/README.md.
 export const statusMeta: Record<PlantStatus, {{ colorKey: keyof typeof colors.light; softKey: keyof typeof colors.light; labelKey: string; shape: string }}> = {{
   ok: {{ colorKey: 'ok', softKey: 'okSoft', labelKey: 'status.ok', shape: 'circle' }},
   dry: {{ colorKey: 'dry', softKey: 'drySoft', labelKey: 'status.dry', shape: 'triangle' }},
