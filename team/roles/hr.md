@@ -49,7 +49,7 @@ Oskar runs this for each new agent. Arsany approves the role first (TEAM.md §8)
 7. **Overview.** Add the agent to `team/overview.html`: tier, node, card. Mark it "pending approval" until
    Arsany approves. Keep the roster in `team/TEAM.md` §2 in step once approved.
 8. **Role map.** Add a row to `skills/ROLE-MAP.md`.
-9. **Confirm understanding.** The agent answers a short quiz on TEAM.md §5 and §4 before its first task. Oskar
+9. **Confirm understanding.** Include the standing PR rule (TEAM.md §7): every finished change goes through a PR without asking each time. The agent answers a short quiz on TEAM.md §5 and §4 before its first task. Oskar
    records the answers in the playbook. A wrong answer means reread, not start.
 10. **First task.** A small, testable task with a clear acceptance check, agreed with Nora. Reviewed by the gates
     (Theo, Ines, Kai) as for every PR.

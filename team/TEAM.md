@@ -118,6 +118,11 @@ The sprint calendar and goals are in the **Sprints** tab; each task's sprint is 
 
 A sprint goal is changed mid-sprint only with Arsany's approval.
 
+**Standing rule: every finished piece of work goes through a PR (owner instruction, 25 Nov 2026).** Any change a
+role makes (code, docs, persona, playbook, overview, design) is opened as a PR when it is ready for review. No
+one needs to ask each time. The PR says what changed, what it touches (bench, tests, other roles) and what needs
+Arsany. Arsany still merges (§5). Work that is only exploration, with no change to the repo, does not need a PR.
+
 ## 8. Learning loop — the agents' living skills
 
 Each role has a playbook at `team/learnings/<role>.md`. It is the role's skill: read before every
