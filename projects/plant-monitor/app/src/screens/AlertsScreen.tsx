@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { StatusChip } from '../ui/StatusChip';
+import { Card, EmptyState } from '../ui/kit';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
@@ -54,18 +55,14 @@ export function AlertsScreen({ onBack, onCount }: { onBack: () => void; onCount?
       {error ? <Button label={t('common.tryAgain')} variant="secondary" onPress={load} /> : null}
       {rows === null && !error ? <Body muted>{t('common.loading')}</Body> : null}
       {rows && rows.length === 0 ? (
-        <View style={{ gap: th.spacing.sm }}>
-          <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('alerts.empty.title')}</Text>
-          <Body muted>{t('alerts.empty.body')}</Body>
-        </View>
+        <EmptyState title={t('alerts.empty.title')} body={t('alerts.empty.body')} />
       ) : null}
       {rows?.map((r) => (
-        <View key={`${r.plantId}-${r.alert.kind}`}
-          style={{ padding: th.spacing.lg, gap: th.spacing.sm, borderRadius: th.radius.lg, borderWidth: 1, borderColor: th.color.line, backgroundColor: th.color.surface }}>
+        <Card key={`${r.plantId}-${r.alert.kind}`}>
           <Text style={{ color: th.color.ink, ...th.type.h3 }}>{r.plantName}</Text>
           <StatusChip kind={CHIP[r.alert.kind]} />
           <Text style={{ color: th.color.ink, ...th.type.body }}>{alertCopy(r.alert)}</Text>
-        </View>
+        </Card>
       ))}
       {rows && rows.length > 0 ? <Button label={t('alerts.refresh')} variant="ghost" onPress={load} /> : null}
     </Screen>

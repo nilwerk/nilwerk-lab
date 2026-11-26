@@ -400,5 +400,7 @@
   "mcp.keys.name.long": "Use at most {max} characters.",
   "profile.price.free": "Free: 0",
   "profile.price.premium": "Premium: 7.99",
-  "profile.price.heading": "Plans"
+  "profile.price.heading": "Plans",
+  "sheet.good": "Good",
+  "sheet.low": "Low"
 }

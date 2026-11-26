@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
+import { Card, SectionTitle } from '../ui/kit';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
@@ -25,9 +26,9 @@ function SetupBlock({ title, text, copy }: { title: string; text: string; copy: 
   return (
     <View style={{ gap: th.spacing.sm }}>
       <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{title}</Text>
-      <View style={{ padding: th.spacing.md, borderRadius: th.radius.md, backgroundColor: th.color.surface, borderWidth: 1, borderColor: th.color.line }}>
+      <Card>
         <Text selectable accessibilityLabel={title} style={{ color: th.color.ink, ...th.type.caption, fontFamily: th.fontFamily.mono }}>{text}</Text>
-      </View>
+      </Card>
       <Button label={t('mcp.setup.copy')} a11yLabel={`${t('mcp.setup.copy')}: ${title}`} variant="secondary" onPress={press} />
       {msg ? <Notice kind={msg.kind} text={msg.text} /> : null}
     </View>
@@ -43,11 +44,11 @@ function CreatedKey({ created, copy, onDone }: { created: CreatedApiKey; copy: C
   };
   return (
     <View accessibilityLabel={t('mcp.created.title')} style={{ gap: th.spacing.sm }}>
-      <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h2 }}>{t('mcp.created.title')}</Text>
+      <SectionTitle>{t('mcp.created.title')}</SectionTitle>
       <Notice kind="info" text={t('mcp.created.warning')} />
-      <View style={{ padding: th.spacing.md, borderRadius: th.radius.md, backgroundColor: th.color.surface, borderWidth: 1, borderColor: th.color.line }}>
+      <Card>
         <Text selectable accessibilityLabel={t('mcp.created.title')} style={{ color: th.color.ink, ...th.type.body, fontFamily: th.fontFamily.mono }}>{created.key}</Text>
-      </View>
+      </Card>
       <Body muted>{t('mcp.created.share')}</Body>
       <Button label={t('mcp.created.copy')} onPress={press} />
       {msg ? <Notice kind={msg.kind} text={msg.text} /> : null}
@@ -167,7 +168,7 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
       {notice ? <Notice kind="error" text={notice} /> : null}
       {created ? <CreatedKey created={created} copy={copy} onDone={() => setCreated(null)} /> : null}
       <View style={{ gap: th.spacing.sm }}>
-        <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h2 }}>{t('mcp.keys.title')}</Text>
+        <SectionTitle>{t('mcp.keys.title')}</SectionTitle>
         {keys.status === 'loading' ? <Body muted>{t('mcp.loading')}</Body> : null}
         {keys.status === 'error' ? (
           <>

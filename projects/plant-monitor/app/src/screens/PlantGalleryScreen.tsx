@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { PlantMeta } from '../ui/PlantMeta';
+import { EmptyState, SectionTitle } from '../ui/kit';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
@@ -53,10 +54,7 @@ export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onB
       {error ? <Button label={t('common.tryAgain')} variant="secondary" onPress={load} /> : null}
       {photos === null && !error ? <Body muted>{t('common.loading')}</Body> : null}
       {photos && photos.length === 0 ? (
-        <View style={{ gap: th.spacing.sm }}>
-          <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('gallery.empty.title')}</Text>
-          <Body muted>{t('gallery.empty.body')}</Body>
-        </View>
+        <EmptyState title={t('gallery.empty.title')} body={t('gallery.empty.body')} />
       ) : null}
       {photos && photos.length > 0 ? (
         <>
@@ -68,7 +66,7 @@ export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onB
           {/* #238 decision: grid of three per row, grouped under a header per day (the order follows the sort) */}
           {dayGroups(sorted).map((g) => (
             <View key={g.day} testID="gallery-day" style={{ gap: th.spacing.sm }}>
-              <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.bodyStrong }}>{g.day}</Text>
+              <SectionTitle>{g.day}</SectionTitle>
               <View testID="gallery-grid" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>
                 {g.photos.map((ph) => (
                   <View key={ph.id} testID="gallery-photo" accessible accessibilityLabel={t('gallery.photoA11y', { date: g.day })}

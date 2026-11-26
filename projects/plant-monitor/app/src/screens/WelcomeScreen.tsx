@@ -2,6 +2,7 @@
 import React from 'react';
 import { Image, Text, View } from 'react-native';
 import { Button, Screen, Body } from '../ui/primitives';
+import { Caption } from '../ui/kit';
 import { useTheme } from '../ui/useTheme';
 import { LegalLine } from '../ui/LegalLine';
 import { t } from '../i18n';
@@ -16,7 +17,7 @@ export function WelcomeScreen({ onCreate, onSignIn, contactEmail }: { onCreate: 
       <Body>{t('welcome.tagline')}</Body>
       <Button label={t('welcome.createAccount')} onPress={onCreate} />
       <Button label={t('welcome.haveAccount')} variant="secondary" onPress={onSignIn} />
-      <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('welcome.privacy')}</Text>
+      <Caption>{t('welcome.privacy')}</Caption>
       <LegalLine contactEmail={contactEmail} />
     </Screen>
   );

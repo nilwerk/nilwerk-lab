@@ -32,6 +32,7 @@ import { createApiKeysClient, unconfiguredApiKeys, type ApiKeysService } from '.
 import { createAnalyticsClient, unconfiguredAnalytics, type AnalyticsService } from './src/analytics/analyticsApi';
 import { PlantsProvider, usePlants } from './src/plants/PlantsContext';
 import { createFakePlants } from './src/plants/fakePlants';
+import { createFakeAnalytics } from './src/analytics/fakeAnalytics';
 import { unconfiguredPlants } from './src/plants/unconfiguredPlants';
 import { createRealPlants } from './src/plants/realPlants';
 import { createFileHandOff } from './src/export/fileHandOff';
@@ -121,8 +122,8 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
 export default function App() {
   const cfg = useMemo(() => readConfig(), []);
   const mock = process.env.EXPO_PUBLIC_MOCK_AUTH === '1';
-  const service = useMemo(() => (mock ? createFakeAuth() : isConfigured(cfg) ? createSupabaseAuth(cfg) : unconfiguredAuth()), [cfg, mock]);
-  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : isConfigured(cfg)
+  const service = useMemo(() => (mock ? createFakeAuth({ premium: process.env.EXPO_PUBLIC_MOCK_PREMIUM === '1' }) : isConfigured(cfg) ? createSupabaseAuth(cfg) : unconfiguredAuth()), [cfg, mock]);
+  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants({ plants: process.env.EXPO_PUBLIC_MOCK_EMPTY === '1' ? [] : undefined }) : isConfigured(cfg)
     ? createRealPlants({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken(), handOff: createFileHandOff(platformHandOffDeps) })
     : unconfiguredPlants()), [cfg, mock, service]);
   // Mock build: fake sensor and fake plant save. Real build on a phone (iOS/Android, Supabase configured): real BLE (4.A3b slice 1, needs the dev build; in Expo Go the native
@@ -140,7 +141,7 @@ export default function App() {
     return { ...base, provisioning: createBleProvisioning({ adapter: createEspAdapter(), claim }) };
   }, [mock, cfg, service]);
   // 4.A6: premium analytics client (proposed endpoint, not deployed); mock build and unconfigured builds report not_configured and fetch nothing.
-  const analytics = useMemo<AnalyticsService>(() => (!mock && isConfigured(cfg)
+  const analytics = useMemo<AnalyticsService>(() => (mock ? createFakeAnalytics() : isConfigured(cfg)
     ? createAnalyticsClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
     : unconfiguredAnalytics), [cfg, mock, service]);
   // 4.A8: MCP key client (FR-P03). The /api-keys edge function is built (4.B2d) but not deployed; mock and unconfigured builds report not_configured and fetch nothing.

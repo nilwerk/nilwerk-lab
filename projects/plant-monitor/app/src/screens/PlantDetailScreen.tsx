@@ -7,6 +7,7 @@ import { StatusChip } from '../ui/StatusChip';
 import { MoistureChart } from '../ui/MoistureChart';
 import { HourlyTable } from '../ui/HourlyTable';
 import { PlantMeta } from '../ui/PlantMeta';
+import { Card, Caption, SectionTitle } from '../ui/kit';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
@@ -32,10 +33,10 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = 
   const l = p?.latest;
   const age = ageParts(l?.ts ?? p?.lastSeenAt ?? null, now());
   const cell = (labelKey: string, valueKey: string, v: string | null) => (
-    <View key={labelKey} style={{ flexBasis: '47%', flexGrow: 1, padding: th.spacing.md, borderRadius: th.radius.md, borderWidth: 1, borderColor: th.color.line, backgroundColor: th.color.surface }}>
-      <Text style={{ color: th.color.muted, ...th.type.caption }}>{t(labelKey)}</Text>
+    <Card key={labelKey}>
+      <Caption>{t(labelKey)}</Caption>
       <Text style={{ color: th.color.ink, ...th.type.h2 }}>{v === null ? t('plant.latest.none') : t(valueKey, { value: v })}</Text>
-    </View>
+    </Card>
   );
 
   return (
@@ -48,7 +49,7 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = 
           <PlantMeta plant={p} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>{plantChips(p).map((c) => <StatusChip key={c} kind={c} />)}</View>
           <Text style={{ color: th.color.muted, ...th.type.caption }}>{t(age.key, age.n === undefined ? undefined : { n: age.n })}</Text>
-          <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('plant.latest.title')}</Text>
+          <SectionTitle>{t('plant.latest.title')}</SectionTitle>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>
             {cell('plant.latest.soil', 'plant.latest.soilValue', fmt(l?.moisturePct, 0))}
             {cell('plant.latest.temp', 'plant.latest.tempValue', fmt(l?.tempC, 1))}

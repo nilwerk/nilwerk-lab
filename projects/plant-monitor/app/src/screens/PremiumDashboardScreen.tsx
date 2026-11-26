@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { DailyLineChart } from '../ui/DailyLineChart';
+import { SectionTitle } from '../ui/kit';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
@@ -95,7 +96,7 @@ function DailySection({ byWindow }: { byWindow: Record<AnalyticsWindow, Analytic
   const data = byWindow[days];
   return (
     <View accessibilityLabel={t('dashboard.daily.title')} style={{ gap: th.spacing.sm }}>
-      <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h2 }}>{t('dashboard.daily.title')}</Text>
+      <SectionTitle>{t('dashboard.daily.title')}</SectionTitle>
       <Body muted>{t('dashboard.daily.intro')}</Body>
       <View style={{ flexDirection: 'row', gap: th.spacing.sm }}>
         {ANALYTICS_WINDOWS.map((w) => (
@@ -119,7 +120,7 @@ function WindowSection({ data }: { data: AnalyticsResponse }) {
   const title = t('dashboard.window.title', { days: data.windowDays });
   return (
     <View accessibilityLabel={title} style={{ gap: th.spacing.sm }}>
-      <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h2 }}>{title}</Text>
+      <SectionTitle>{title}</SectionTitle>
       {data.plants.length === 0 ? <Body muted>{t('dashboard.noPlants')}</Body>
         : windowIsEmpty(data) ? <Body muted>{t('dashboard.noReadings')}</Body>
         : data.plants.map((p) => <PlantRow key={p.plantId} p={p} windowDays={data.windowDays} />)}

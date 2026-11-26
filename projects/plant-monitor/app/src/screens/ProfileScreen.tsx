@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
+import { Card, Caption } from '../ui/kit';
 import { useTheme } from '../ui/useTheme';
 import { LegalLine } from '../ui/LegalLine';
 import { t } from '../i18n';
@@ -46,26 +47,25 @@ export function ProfileScreen({ onPremium, onDelete, onAddSensor, onDashboard, o
     }
   };
 
-  const row = { gap: th.spacing.xs } as const;
   return (
     <Screen title={t('profile.title')}>
       {error ? <Notice kind="error" text={error} /> : null}
-      <View style={row}>
-        <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('profile.email')}</Text>
+      <Card>
+        <Caption>{t('profile.email')}</Caption>
         <Body>{state.user?.email ?? ''}</Body>
-      </View>
-      <View style={row}>
-        <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('profile.plan')}</Text>
+      </Card>
+      <Card>
+        <Caption>{t('profile.plan')}</Caption>
         <Body>{profile ? t(profile.isPremium ? 'profile.plan.premium' : 'profile.plan.free') : t('common.loading')}</Body>
         {/* #238 decision: the plan prices are shown on Profile before Premium is opened. Values are in strings/en.json only. */}
         <View style={{ gap: th.spacing.xs }} accessibilityLabel={t('profile.price.heading')}>
-          <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('profile.price.free')}</Text>
-          <Text style={{ color: th.color.muted, ...th.type.caption }}>{t('profile.price.premium')}</Text>
+          <Caption>{t('profile.price.free')}</Caption>
+          <Caption>{t('profile.price.premium')}</Caption>
         </View>
         {profile && !profile.isPremium ? <Button label={t('profile.whatIsPremium')} variant="ghost" onPress={onPremium} /> : null}
         {profile && profile.isPremium ? <Button label={t('profile.dashboard')} variant="secondary" onPress={onDashboard} /> : null}
         {profile && profile.isPremium ? <Button label={t('profile.connectAi')} variant="secondary" onPress={onConnectAi} /> : null}
-      </View>
+      </Card>
       <Field label={t('profile.displayName')} value={name} onChangeText={(v) => { setName(v); setSaved(false); }} error={nameErr ? t(nameErr.key, nameErr.params) : null} />
       <Button label={t('profile.displayName.save')} variant="secondary" onPress={save} busy={busy} disabled={!profile || !!nameErr} />
       {saved ? <Notice kind="info" text={t('profile.displayName.saved')} /> : null}

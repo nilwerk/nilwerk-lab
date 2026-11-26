@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { StatusChip } from '../ui/StatusChip';
+import { EmptyState } from '../ui/kit';
 import { useTheme } from '../ui/useTheme';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
@@ -32,8 +33,7 @@ export function PlantsScreen({ onOpen, onAlerts, onCount }: { onOpen: (plantId: 
       {plants === null && !error ? <Body muted>{t('common.loading')}</Body> : null}
       {plants && plants.length === 0 ? (
         <View style={{ gap: th.spacing.sm }}>
-          <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('plants.empty.title')}</Text>
-          <Body muted>{t('plants.empty.body')}</Body>
+          <EmptyState title={t('plants.empty.title')} body={t('plants.empty.body')} />
         </View>
       ) : null}
       {plants && plants.length > 0 ? <Button label={t('plants.alerts.button')} variant="secondary" onPress={onAlerts} /> : null}
