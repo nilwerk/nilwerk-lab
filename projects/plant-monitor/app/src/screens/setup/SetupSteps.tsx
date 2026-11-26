@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Body, Button, Choice, Field, Notice, Screen } from '../../ui/primitives';
 import { useTheme } from '../../ui/useTheme';
-import { Row, Stack, Type } from '../../ui/layout';
+import { Row, Column, Type } from '../../ui/kit';
 import { t } from '../../i18n';
 import { parseLabel, advertisedName } from '../../provisioning/label';
 import { LOCATION_TYPES, SOIL_TYPES, type DiscoveredDevice, type LocationType, type PlantDetails, type ProvisioningErrorCode, type SoilType, type WifiNetwork } from '../../provisioning/types';
@@ -165,6 +165,7 @@ export function PhotoStep({ time, cancelled, supported = true, onTake, onPick, o
 }
 
 export function DetailsStep({ time, busy, error, onSave, onBack }: { time: string; busy: boolean; error: boolean; onSave: (d: PlantDetails) => void; onBack?: () => void }) {
+  const th = useTheme();
   const [d, setD] = useState<PlantDetails>({ name: '', location: 'house', area: '', soil: 'potting', species: '', city: '' });
   const [shown, setShown] = useState(false);
   const set = <K extends keyof PlantDetails>(k: K, v: PlantDetails[K]) => setD((p) => ({ ...p, [k]: v }));
@@ -175,15 +176,15 @@ export function DetailsStep({ time, busy, error, onSave, onBack }: { time: strin
     <Screen title={t('setup.details.title')} onBack={onBack}>
       <Progress n={5} time={time} />
       <Field label={t('setup.details.name')} value={d.name} onChangeText={(v) => set('name', v)} error={e('name')} />
-      <Stack gap="sm" accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.location')}>
+      <Column gap="sm" accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.location')}>
         <Body muted>{t('setup.details.location')}</Body>
         {LOCATION_TYPES.map((l: LocationType) => <Choice key={l} label={t(`setup.location.${l}`)} selected={d.location === l} onPress={() => set('location', l)} />)}
-      </Stack>
+      </Column>
       <Field label={t('setup.details.area')} value={d.area} onChangeText={(v) => set('area', v)} error={e('area')} />
-      <Stack gap="sm" accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.soil')}>
+      <Column gap="sm" accessibilityRole="radiogroup" accessibilityLabel={t('setup.details.soil')}>
         <Body muted>{t('setup.details.soil')}</Body>
         {SOIL_TYPES.map((s: SoilType) => <Choice key={s} label={t(`setup.soil.${s}`)} selected={d.soil === s} onPress={() => set('soil', s)} />)}
-      </Stack>
+      </Column>
       <Field label={t('setup.details.species')} value={d.species} onChangeText={(v) => set('species', v)} error={e('species')} />
       <Field label={t('setup.details.city')} value={d.city} onChangeText={(v) => set('city', v)} error={e('city')} />
       {error ? <Notice kind="error" text={t('setup.details.saveError')} /> : null}

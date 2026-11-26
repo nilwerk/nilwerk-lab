@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { Card, Caption } from '../ui/kit';
-import { Stack } from '../ui/layout';
+import { Column } from '../ui/kit';
 import { LegalLine } from '../ui/LegalLine';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
@@ -56,10 +56,10 @@ export function ProfileScreen({ onPremium, onDelete, onAddSensor, onDashboard, o
         <Caption>{t('profile.plan')}</Caption>
         <Body>{profile ? t(profile.isPremium ? 'profile.plan.premium' : 'profile.plan.free') : t('common.loading')}</Body>
         {/* #238 decision: the plan prices are shown on Profile before Premium is opened. Values are in strings/en.json only. */}
-        <Stack gap="xs" accessibilityLabel={t('profile.price.heading')}>
+        <Column gap="xs" accessibilityLabel={t('profile.price.heading')}>
           <Caption>{t('profile.price.free')}</Caption>
           <Caption>{t('profile.price.premium')}</Caption>
-        </Stack>
+        </Column>
         {profile && !profile.isPremium ? <Button label={t('profile.whatIsPremium')} variant="ghost" onPress={onPremium} /> : null}
         {profile && profile.isPremium ? <Button label={t('profile.dashboard')} variant="secondary" onPress={onDashboard} /> : null}
         {profile && profile.isPremium ? <Button label={t('profile.connectAi')} variant="secondary" onPress={onConnectAi} /> : null}

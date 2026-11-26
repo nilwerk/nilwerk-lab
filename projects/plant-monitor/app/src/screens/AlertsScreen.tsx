@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { StatusChip } from '../ui/StatusChip';
 import { Card, EmptyState } from '../ui/kit';
-import { Stack, Type } from '../ui/layout';
+import { Column, Type } from '../ui/kit';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { alertsForPlant, type RuleAlert } from '../plants/alerts';
@@ -55,7 +55,7 @@ export function AlertsScreen({ onBack, onCount }: { onBack: () => void; onCount?
       {rows && rows.length === 0 ? (
         <EmptyState title={t('alerts.empty.title')} body={t('alerts.empty.body')} />
       ) : null}
-      <Stack>
+      <Column>
         {rows?.map((r) => (
           <Card key={`${r.plantId}-${r.alert.kind}`}>
             <Type variant="h3" header>{r.plantName}</Type>
@@ -63,7 +63,7 @@ export function AlertsScreen({ onBack, onCount }: { onBack: () => void; onCount?
             <Type>{alertCopy(r.alert)}</Type>
           </Card>
         ))}
-      </Stack>
+      </Column>
       {rows && rows.length > 0 ? <Button label={t('alerts.refresh')} variant="ghost" onPress={load} /> : null}
     </Screen>
   );

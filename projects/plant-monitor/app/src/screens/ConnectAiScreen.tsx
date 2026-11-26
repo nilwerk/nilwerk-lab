@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { Card, SectionTitle } from '../ui/kit';
-import { ListRow, Stack, Type } from '../ui/layout';
+import { ListRow, Column, Type } from '../ui/kit';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
 import { ApiKeysError, type ApiKeyInfo, type ApiKeysService, type CreatedApiKey } from '../mcp/apiKeysApi';
@@ -22,14 +22,14 @@ function SetupBlock({ title, text, copy }: { title: string; text: string; copy: 
     try { await copy(text); setMsg({ kind: 'info', text: t('mcp.setup.copied') }); } catch { setMsg({ kind: 'error', text: t('mcp.setup.copyError') }); }
   };
   return (
-    <Stack>
+    <Column>
       <Type variant="h3" header>{title}</Type>
       <Card>
         <Type variant="caption" mono selectable accessibilityLabel={title}>{text}</Type>
       </Card>
       <Button label={t('mcp.setup.copy')} a11yLabel={`${t('mcp.setup.copy')}: ${title}`} variant="secondary" onPress={press} />
       {msg ? <Notice kind={msg.kind} text={msg.text} /> : null}
-    </Stack>
+    </Column>
   );
 }
 
@@ -40,7 +40,7 @@ function CreatedKey({ created, copy, onDone }: { created: CreatedApiKey; copy: C
     try { await copy(created.key); setMsg({ kind: 'info', text: t('mcp.created.copied') }); } catch { setMsg({ kind: 'error', text: t('mcp.created.copyError') }); }
   };
   return (
-    <Stack accessibilityLabel={t('mcp.created.title')}>
+    <Column accessibilityLabel={t('mcp.created.title')}>
       <SectionTitle>{t('mcp.created.title')}</SectionTitle>
       <Notice kind="info" text={t('mcp.created.warning')} />
       <Card>
@@ -50,7 +50,7 @@ function CreatedKey({ created, copy, onDone }: { created: CreatedApiKey; copy: C
       <Button label={t('mcp.created.copy')} onPress={press} />
       {msg ? <Notice kind={msg.kind} text={msg.text} /> : null}
       <Button label={t('mcp.created.done')} variant="secondary" onPress={onDone} />
-    </Stack>
+    </Column>
   );
 }
 
@@ -58,7 +58,7 @@ function KeyRow({ k, confirming, busy, onAsk, onCancel, onConfirm }: { k: ApiKey
   const revoked = k.revokedAt !== null;
   return (
     <ListRow padded accessibilityLabel={t('mcp.keys.row', { name: k.name, prefix: k.prefix })}>
-      <Stack gap="xs">
+      <Column gap="xs">
         <Type variant="bodyStrong">{k.name}</Type>
         <Type variant="caption" tone="muted" mono>{`${k.prefix}...`}</Type>
         <Type variant="caption" tone={revoked ? 'danger' : 'ok'}>{revoked ? t('mcp.keys.revoked') : t('mcp.keys.active')}</Type>
@@ -71,7 +71,7 @@ function KeyRow({ k, confirming, busy, onAsk, onCancel, onConfirm }: { k: ApiKey
             <Button label={t('mcp.keys.revoke.no')} variant="secondary" disabled={busy} onPress={onCancel} />
           </>
         ) : null}
-      </Stack>
+      </Column>
     </ListRow>
   );
 }
@@ -150,11 +150,11 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
   );
   if (plan === 'free') return (
     <Screen title={title} onBack={onBack}>
-      <Stack accessibilityLabel={t('mcp.locked.title')}>
+      <Column accessibilityLabel={t('mcp.locked.title')}>
         <Type variant="h2">{t('mcp.locked.title')}</Type>
         <Body>{t('mcp.locked.body')}</Body>
         <Button label={t('profile.whatIsPremium')} variant="secondary" onPress={onPremium} />
-      </Stack>
+      </Column>
     </Screen>
   );
 
@@ -164,7 +164,7 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
       <Body muted>{t('mcp.intro')}</Body>
       {notice ? <Notice kind="error" text={notice} /> : null}
       {created ? <CreatedKey created={created} copy={copy} onDone={() => setCreated(null)} /> : null}
-      <Stack>
+      <Column>
         <SectionTitle>{t('mcp.keys.title')}</SectionTitle>
         {keys.status === 'loading' ? <Body muted>{t('mcp.loading')}</Body> : null}
         {keys.status === 'error' ? (
@@ -184,7 +184,7 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
             <Button label={t('mcp.keys.create')} onPress={create} busy={creating} disabled={!!nameErr || creating} />
           </>
         ) : null}
-      </Stack>
+      </Column>
       <SetupBlock title={t('mcp.setup.claude.title')} text={claudeSetupText()} copy={copy} />
       <SetupBlock title={t('mcp.setup.generic.title')} text={genericSetupText()} copy={copy} />
       <Body muted>{t('mcp.setup.hint')}</Body>

@@ -1,10 +1,10 @@
 // S41 Premium dashboard (task 4.A6, daily line chart 4.A6b). Requirements: FR-P01 (30- and 90-day line chart from the daily series (4.A6b),
 // aggregates, trends, watering events, plant comparison), FR-P04 (premium only: the plan is read first and free accounts never trigger the analytics call; the server still answers 403 premium_required and that shows the upgrade state too), NFR-06 (own plants only).
 import React, { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { DailyLineChart } from '../ui/DailyLineChart';
-import { Caption, SectionTitle } from '../ui/kit';
-import { BarMeter, ListRow, RangeMeter, Row, Stack, Type } from '../ui/layout';
+import { BarRow, Caption, Card, ListItem, RangeMeter, SectionTitle, Stack, StatusWord, WrapRow } from '../ui/kit';
 import { t } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
 import type { AnalyticsService } from '../analytics/analyticsApi';
@@ -14,24 +14,17 @@ import { ANALYTICS_WINDOWS, fmtPct, fmtSigned, fmtVolt, windowIsEmpty, type Anal
 type Plan = 'checking' | 'premium' | 'free' | 'planError';
 type Data = { status: 'idle' } | { status: 'loading' } | { status: 'error' } | { status: 'ready'; byWindow: Record<AnalyticsWindow, AnalyticsResponse> };
 
-/** One bar of the trend graph (FR-P01): a week's soil mean on a 0-100 scale, with its value written out. */
-function WeekRow({ name, value }: { name: string; value: number }) {
-  return (
-    <Row>
-      <Type variant="caption" tone="muted" width={84}>{name}</Type>
-      <BarMeter percent={value} />
-      <Type variant="caption" right width={56}>{`${fmtPct(value)} %`}</Type>
-    </Row>
-  );
-}
+const clampPct = (n: number): number => Math.min(100, Math.max(0, n));
 
 /** FR-P01 trend graph: first-week mean against last-week mean. Both values come from the response (no daily series is invented). */
 function TrendGraph({ first, last, label }: { first: number; last: number; label: string }) {
   return (
-    <Stack gap="xs" accessibilityRole="image" accessibilityLabel={label}>
-      <WeekRow name={t('dashboard.trend.first')} value={first} />
-      <WeekRow name={t('dashboard.trend.last')} value={last} />
-    </Stack>
+    <View accessibilityRole="image" accessibilityLabel={label}>
+      <Stack gap="xs">
+        <BarRow label={t('dashboard.trend.first')} value={first} valueText={`${fmtPct(first)} %`} />
+        <BarRow label={t('dashboard.trend.last')} value={last} valueText={`${fmtPct(last)} %`} />
+      </Stack>
+    </View>
   );
 }
 
@@ -44,28 +37,26 @@ function completeTrend(tr: PlantAnalytics['trend']): { change: number; first: nu
 function PlantRow({ p, windowDays }: { p: PlantAnalytics; windowDays: AnalyticsWindow }) {
   const trend = completeTrend(p.trend);
   return (
-    <ListRow padded accessibilityLabel={`${p.name} ${windowDays}`}>
-      <Stack gap="xs">
-        <Type variant="bodyStrong">{p.name}</Type>
-        <Caption>{t('dashboard.plant.readings', { count: p.readingCount })}</Caption>
-        {p.soilPct ? (
-          <>
-            <Body>{t('dashboard.plant.soil', { mean: fmtPct(p.soilPct.mean), min: fmtPct(p.soilPct.min), max: fmtPct(p.soilPct.max) })}</Body>
-            <RangeMeter lo={p.soilPct.min} hi={p.soilPct.max} mark={p.soilPct.mean}
-              label={t('dashboard.range.label', { min: fmtPct(p.soilPct.min), max: fmtPct(p.soilPct.max), mean: fmtPct(p.soilPct.mean) })} />
-          </>
-        ) : <Body muted>{t('dashboard.plant.noSoil')}</Body>}
-        {p.batteryMv ? <Body>{t('dashboard.plant.battery', { mean: fmtVolt(p.batteryMv.mean), min: fmtVolt(p.batteryMv.min), max: fmtVolt(p.batteryMv.max) })}</Body> : null}
-        <Body>{t('dashboard.plant.watering', { count: p.wateringEvents })}</Body>
-        {trend ? (
-          <>
-            <Body>{t('dashboard.plant.trend', { change: fmtSigned(trend.change), first: fmtPct(trend.first), last: fmtPct(trend.last) })}</Body>
-            <TrendGraph first={trend.first} last={trend.last}
-              label={t('dashboard.trend.label', { first: fmtPct(trend.first), last: fmtPct(trend.last) })} />
-          </>
-        ) : <Body muted>{t('dashboard.plant.noTrend')}</Body>}
-      </Stack>
-    </ListRow>
+    <ListItem testID={`plant-row-${p.plantId}`}>
+      <SectionTitle>{p.name}</SectionTitle>
+      <Caption>{t('dashboard.plant.readings', { count: p.readingCount })}</Caption>
+      {p.soilPct ? (
+        <>
+          <Body>{t('dashboard.plant.soil', { mean: fmtPct(p.soilPct.mean), min: fmtPct(p.soilPct.min), max: fmtPct(p.soilPct.max) })}</Body>
+          <RangeMeter min={p.soilPct.min} max={p.soilPct.max} mean={p.soilPct.mean}
+            label={t('dashboard.range.label', { min: fmtPct(p.soilPct.min), max: fmtPct(p.soilPct.max), mean: fmtPct(p.soilPct.mean) })} />
+        </>
+      ) : <Body muted>{t('dashboard.plant.noSoil')}</Body>}
+      {p.batteryMv ? <Body>{t('dashboard.plant.battery', { mean: fmtVolt(p.batteryMv.mean), min: fmtVolt(p.batteryMv.min), max: fmtVolt(p.batteryMv.max) })}</Body> : null}
+      <Body>{t('dashboard.plant.watering', { count: p.wateringEvents })}</Body>
+      {trend ? (
+        <>
+          <Body>{t('dashboard.plant.trend', { change: fmtSigned(trend.change), first: fmtPct(trend.first), last: fmtPct(trend.last) })}</Body>
+          <TrendGraph first={trend.first} last={trend.last}
+            label={t('dashboard.trend.label', { first: fmtPct(trend.first), last: fmtPct(trend.last) })} />
+        </>
+      ) : <Body muted>{t('dashboard.plant.noTrend')}</Body>}
+    </ListItem>
   );
 }
 
@@ -74,37 +65,35 @@ function DailySection({ byWindow }: { byWindow: Record<AnalyticsWindow, Analytic
   const [days, setDays] = useState<AnalyticsWindow>(30);
   const data = byWindow[days];
   return (
-    <Stack accessibilityLabel={t('dashboard.daily.title')}>
+    <Card>
       <SectionTitle>{t('dashboard.daily.title')}</SectionTitle>
       <Body muted>{t('dashboard.daily.intro')}</Body>
-      <Row>
+      <WrapRow>
         {ANALYTICS_WINDOWS.map((w) => (
           <Button key={w} label={t('dashboard.daily.switch', { days: w })} variant={w === days ? 'primary' : 'secondary'} onPress={() => setDays(w)} />
         ))}
-      </Row>
+      </WrapRow>
       {data.plants.length === 0 ? <Body muted>{t('dashboard.noPlants')}</Body>
         : windowIsEmpty(data) ? <Body muted>{t('dashboard.noReadings')}</Body>
         : data.plants.map((p) => (
-          <ListRow key={p.plantId} padded>
-            <Stack gap="xs">
-              <Type variant="bodyStrong">{p.name}</Type>
-              {p.daily === null ? <Body muted>{t('dashboard.daily.notAvailable')}</Body> : <DailyLineChart daily={p.daily} />}
-            </Stack>
-          </ListRow>
+          <ListItem key={p.plantId}>
+            <Caption>{p.name}</Caption>
+            {p.daily === null ? <Body muted>{t('dashboard.daily.notAvailable')}</Body> : <DailyLineChart daily={p.daily} />}
+          </ListItem>
         ))}
-    </Stack>
+    </Card>
   );
 }
 
 function WindowSection({ data }: { data: AnalyticsResponse }) {
   const title = t('dashboard.window.title', { days: data.windowDays });
   return (
-    <Stack accessibilityLabel={title}>
+    <Card>
       <SectionTitle>{title}</SectionTitle>
       {data.plants.length === 0 ? <Body muted>{t('dashboard.noPlants')}</Body>
         : windowIsEmpty(data) ? <Body muted>{t('dashboard.noReadings')}</Body>
         : data.plants.map((p) => <PlantRow key={p.plantId} p={p} windowDays={data.windowDays} />)}
-    </Stack>
+    </Card>
   );
 }
 
@@ -147,11 +136,11 @@ export function PremiumDashboardScreen({ analytics, onBack, onPremium }: { analy
   );
   if (plan === 'free') return (
     <Screen title={title} onBack={onBack}>
-      <Stack accessibilityLabel={t('dashboard.upgrade.title')}>
-        <Type variant="h2">{t('dashboard.upgrade.title')}</Type>
+      <Card>
+        <SectionTitle>{t('dashboard.upgrade.title')}</SectionTitle>
         <Body>{t('dashboard.upgrade.body')}</Body>
         <Button label={t('profile.whatIsPremium')} variant="secondary" onPress={onPremium} />
-      </Stack>
+      </Card>
     </Screen>
   );
 

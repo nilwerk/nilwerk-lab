@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { PlantMeta } from '../ui/PlantMeta';
 import { Caption, EmptyState, SectionTitle } from '../ui/kit';
-import { Frame, GridCell, Row, Stack, Type } from '../ui/layout';
+import { Frame, GridCell, Row, Column, Type } from '../ui/kit';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { fmtDay } from '../plants/format';
@@ -63,7 +63,7 @@ export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onB
           </Row>
           {/* #238 decision: grid of three per row, grouped under a header per day (the order follows the sort) */}
           {dayGroups(sorted).map((g) => (
-            <Stack key={g.day} testID="gallery-day">
+            <Column key={g.day} testID="gallery-day">
               <SectionTitle>{g.day}</SectionTitle>
               <Row wrap testID="gallery-grid">
                 {g.photos.map((ph) => (
@@ -72,7 +72,7 @@ export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onB
                   </GridCell>
                 ))}
               </Row>
-            </Stack>
+            </Column>
           ))}
         </>
       ) : null}

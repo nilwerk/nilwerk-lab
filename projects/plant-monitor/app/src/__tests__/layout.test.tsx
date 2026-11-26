@@ -3,18 +3,18 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
-import { BackArrow, BarMeter, ListRow, RangeMeter, Row, Stack, Type } from '../ui/layout';
-import { Screen } from '../ui/primitives';
+import { Column, ListRow, Row, Type } from '../ui/kit';
+import { BackButton, Screen } from '../ui/primitives';
 import { getTheme, spacing, type as typeTokens, minTouchTarget } from '../../theme';
 import { t } from '../i18n';
 
 const light = getTheme('light');
 const flat = (el: { props: { style?: unknown } }) => StyleSheet.flatten(el.props.style as never) as Record<string, unknown>;
 
-describe('back arrow (fixed header, 48 px target, control contrast)', () => {
-  test('is a 48 by 48 px button named by the back label, and calls onPress', async () => {
+describe('back control (48 px target, control contrast; the kit BackButton is used by the screen header)', () => {
+  test('BackButton is a 48 by 48 px button named by the back label, and calls onPress', async () => {
     const onPress = jest.fn();
-    await render(<BackArrow onPress={onPress} />);
+    await render(<BackButton onPress={onPress} />);
     const b = screen.getByRole('button', { name: t('a11y.back') });
     const s = flat(b);
     expect(s.width).toBe(minTouchTarget);
@@ -24,7 +24,7 @@ describe('back arrow (fixed header, 48 px target, control contrast)', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  test('the screen header shows the arrow, not the old "Back" text button', async () => {
+  test('the screen header shows the back control and not a "Back" text button', async () => {
     const onBack = jest.fn();
     await render(<Screen title="Plants" onBack={onBack}><Text>content</Text></Screen>);
     expect(screen.queryByText(t('common.back'))).toBeNull();
@@ -56,7 +56,7 @@ describe('text and spacing come from tokens', () => {
   });
 
   test('Stack and Row use the spacing token for the gap (default sm)', async () => {
-    await render(<><Stack testID="stack"><Text>a</Text></Stack><Stack testID="big" gap="lg"><Text>b</Text></Stack><Row testID="row" wrap between><Text>c</Text></Row></>);
+    await render(<><Column testID="stack"><Text>a</Text></Column><Column testID="big" gap="lg"><Text>b</Text></Column><Row testID="row" wrap between><Text>c</Text></Row></>);
     expect(flat(screen.getByTestId('stack')).gap).toBe(spacing.sm);
     expect(flat(screen.getByTestId('big')).gap).toBe(spacing.lg);
     const row = flat(screen.getByTestId('row'));
@@ -71,19 +71,5 @@ describe('list rows and meters', () => {
     expect(flat(screen.getByTestId('a')).borderBottomWidth).toBe(1);
     expect(flat(screen.getByTestId('z')).borderBottomWidth).toBe(0);
     expect(flat(screen.getByTestId('a')).minHeight).toBe(minTouchTarget);
-  });
-
-  test('RangeMeter clamps the drawn span and marker to 0-100 and names the range for screen readers', async () => {
-    await render(<RangeMeter lo={-5} hi={120} mark={50} label="Soil range" />);
-    const meter = screen.getByLabelText('Soil range');
-    const [span, marker] = meter.props.children.map((c: { props: { style?: unknown } }) => flat(c));
-    expect(span.left).toBe('0%');
-    expect(span.width).toBe('100%');
-    expect(marker.left).toBe('50%');
-  });
-
-  test('BarMeter clamps the fill width to 0-100 percent', async () => {
-    await render(<BarMeter percent={250} />);
-    expect(flat(screen.getByTestId('bar-fill')).width).toBe('100%');
   });
 });

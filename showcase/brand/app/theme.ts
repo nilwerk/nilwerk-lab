@@ -39,7 +39,8 @@ export const colors = {
     danger: "#b3261e",
     dangerSoft: "#f9e2e0",
     dangerInk: "#ffffff",
-    control: "#7d838c"
+    control: "#7d838c",
+    scrim: "#00000059"
   },
   dark: {
     bg: "#101317",
@@ -64,7 +65,8 @@ export const colors = {
     danger: "#e27163",
     dangerSoft: "#3b1d1b",
     dangerInk: "#1a0b0a",
-    control: "#7b818a"
+    control: "#7b818a",
+    scrim: "#00000059"
   }
 } as const;
 
@@ -81,6 +83,7 @@ export const radius = {
   sm: 6,
   md: 10,
   lg: 14,
+  xl: 22,
   pill: 999
 } as const;
 export const fontFamily = {

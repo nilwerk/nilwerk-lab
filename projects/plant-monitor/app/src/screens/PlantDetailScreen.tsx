@@ -7,7 +7,7 @@ import { MoistureChart } from '../ui/MoistureChart';
 import { HourlyTable } from '../ui/HourlyTable';
 import { PlantMeta } from '../ui/PlantMeta';
 import { Card, Caption, SectionTitle } from '../ui/kit';
-import { Row, Type } from '../ui/layout';
+import { Row, Type } from '../ui/kit';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { ageParts, plantChips } from '../plants/status';

@@ -6,7 +6,7 @@ import { Pressable } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { StatusChip } from '../ui/StatusChip';
 import { Card, Caption, EmptyState } from '../ui/kit';
-import { Row, Stack, Type } from '../ui/layout';
+import { Row, Column, Type } from '../ui/kit';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { countOpenAlertPlants, plantChips } from '../plants/status';
@@ -32,7 +32,7 @@ export function PlantsScreen({ onOpen, onAlerts, onCount }: { onOpen: (plantId: 
       {plants === null && !error ? <Body muted>{t('common.loading')}</Body> : null}
       {plants && plants.length === 0 ? <EmptyState title={t('plants.empty.title')} body={t('plants.empty.body')} /> : null}
       {plants && plants.length > 0 ? <Button label={t('plants.alerts.button')} variant="secondary" onPress={onAlerts} /> : null}
-      <Stack>{plants?.map((p) => <PlantRow key={p.id} plant={p} onOpen={() => onOpen(p.id)} />)}</Stack>
+      <Column>{plants?.map((p) => <PlantRow key={p.id} plant={p} onOpen={() => onOpen(p.id)} />)}</Column>
       {plants && plants.length > 0 ? <Button label={t('plants.refresh')} variant="ghost" onPress={load} /> : null}
     </Screen>
   );
@@ -50,10 +50,10 @@ function PlantRow({ plant, onOpen }: { plant: PlantSummary; onOpen: () => void }
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onOpen}>
       <Card>
         <Row between align="flex-start" gap="md">
-          <Stack gap="xs">
+          <Column gap="xs">
             <Type variant="h3" flex>{plant.name}</Type>
             <Caption>{plant.area ?? t('plants.noArea')}</Caption>
-          </Stack>
+          </Column>
           <Type variant="bodyStrong">{value}</Type>
         </Row>
         <Row wrap>{chips.map((c) => <StatusChip key={c} kind={c} />)}</Row>
