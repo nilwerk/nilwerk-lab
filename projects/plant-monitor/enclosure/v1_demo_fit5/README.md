@@ -14,7 +14,7 @@ The owner's bound is 5 mm per part. The round-2 model used WIRING heights up to 
 ## Owner decisions (28 Nov)
 - **Stack heights accepted as they are.** J1 with jumper and J3 with Dupont plug at about 12 mm (WIRING typical) are **accepted by the owner**, with the **0.2 mm clearance** to the lid underside (1.8 mm short of the 2.0 mm margin) noted as accepted. The fit check row stays NOT MET; the acceptance is a decision, not a geometry pass.
 - **Battery stays under the board.** The model's placement is correct for the demo (A-100 option a, as in round 2).
-- **BH1750 light window: NOT MOVED, needs the as-built chip position.** The model already puts the window at WIRING's chip centre (x 49, y 8.5 doc; body centre x 48.5, y 8.3), 0.5 mm off the body centre. The repo has no measured as-built chip position (WIRING section 6 lists the sensor chip centre as a caliper item). To place the window over the as-built sensor, the owner needs to measure the chip centre from the pin edge and a side edge and send it. Until then the window stays where it is; no geometry change was made in this round.
+- **BH1750 light window: doubled, not moved (owner, 28 Nov).** Circular opening **5.0 mm -> 10.0 mm** diameter, same centre (x 49, y 8.5 doc, the WIRING chip centre; body centre 48.5 / 8.3). The collar grows **7.4 -> 12.4 mm** OD so the wall stays 1.2 mm; a 5 mm collar could not hold a 10 mm hole. Clearance to the sensor: 1.0 mm vertical (collar bottom 21.8, chip top 20.8, both ASSUMED heights); lateral 3.5 mm in X and 2.0 mm in Y from the window edge to the 17 x 14 breakout edge (chip centre UNVERIFIED). The as-built chip position is still a caliper item.
 
 ## Changes (round 2 -> round 3)
 | Item | Round 2 | Round 3 | Basis |

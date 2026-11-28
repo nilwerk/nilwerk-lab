@@ -174,7 +174,7 @@ def test_lid_openings(lid):
     zt = P.Z_TOP + P.LID_T / 2
     bx, by = P.BH_XYDOC[0], P.cy(P.BH_XYDOC[1])
     assert not solid_at(lid, bx, by, zt) and not solid_at(lid, bx, by, P.Z_TOP - 3)           # light window and collar bore
-    assert solid_at(lid, bx + 3.1, by, P.Z_TOP - 3)                                           # collar wall around it
+    assert solid_at(lid, bx + P.BH_WIN_D / 2 + 0.6, by, P.Z_TOP - 3)                          # collar wall around it (1.2 mm, mid-wall)
     ax, ay = P.AHT_XYDOC[0], P.cy(P.AHT_XYDOC[1])
     for i in range(P.VENT_N):
         assert not solid_at(lid, ax + (i - (P.VENT_N - 1) / 2) * P.VENT_PITCH, ay, zt)

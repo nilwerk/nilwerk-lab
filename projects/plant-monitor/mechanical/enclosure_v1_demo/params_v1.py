@@ -157,7 +157,7 @@ CABLE_W, CABLE_H = 9.0, 6.0       # 3-wire ribbon + strain relief tie [ASSUMED]
 CABLE_Z = Z_PB_TOP + 5.5          # slot centre: 5.5 above the board top (J3 plug, ASSUMED)
 # lid features
 BTN_TUBE_OD, BTN_HOLE_D, BTN_PRESS_H, BTN_GAP = 5.0, 2.2, 5.1, 1.0   # pin guide tube; button top 5.1 above perfboard top ASSUMED
-BH_WIN_D, BH_COLLAR_OD, BH_COLLAR_GAP = 5.0, 7.4, 1.0               # light window d 5 (chip centre offset UNVERIFIED), collar down to 1 mm above the chip top
+BH_WIN_D, BH_COLLAR_OD, BH_COLLAR_GAP = 10.0, 12.4, 1.0             # light window d 10 (owner 28 Nov: doubled from 5.0; chip centre offset UNVERIFIED); collar OD = window + 2 x 1.2 wall; collar down to 1 mm above the chip top
 LIGHT_SKIN = 0.0                  # mm of lid left over the window as a diffuser skin (0 = open hole); a skin changes the lux reading: not calibrated
 VENT_N, VENT_W, VENT_L, VENT_PITCH = 4, 1.6, 10.0, 3.6
 LED_WIN = (14.0, 5.0)             # TP4056 charge LED window over the module: LED position NOT measured (OPEN)
