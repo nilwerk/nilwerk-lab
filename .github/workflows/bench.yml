@@ -519,7 +519,7 @@ jobs:
           fi
           # A second process on the port (a leftover reader) makes esptool fail with "Serial data stream stopped".
           # Stop here with a clear message instead. Only the PIDs are printed, never the port contents.
-          holders="$(for fd in /proc/[0-9]*/fd/*; do [ "$(readlink "$fd" 2>/dev/null)" = "$BENCH_ESP_PORT" ] && echo "$fd"; done | cut -d/ -f3 | sort -u | tr '\n' ' ')"
+          holders="$(for fd in /proc/[0-9]*/fd/*; do if [ "$(readlink "$fd" 2>/dev/null)" = "$BENCH_ESP_PORT" ]; then echo "$fd"; fi; done | cut -d/ -f3 | sort -u | tr '\n' ' ')"
           if [ -n "$holders" ]; then
             echo "::error::a. firmware flash: port ${BENCH_ESP_PORT} is busy, held by PID(s) ${holders}(stale reader?), not flashing"
             exit 1
@@ -619,7 +619,7 @@ jobs:
           [ -f "${build}/flasher_args.json" ] || fail "firmware artifact not found (step 1 did not provide build-setup/flasher_args.json)"
           [ -e "$BENCH_ESP_PORT" ] || fail "not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
           # A second process on the port (a leftover reader) breaks esptool. Stop with a clear message instead.
-          holders="$(for fd in /proc/[0-9]*/fd/*; do [ "$(readlink "$fd" 2>/dev/null)" = "$BENCH_ESP_PORT" ] && echo "$fd"; done | cut -d/ -f3 | sort -u | tr '\n' ' ')"
+          holders="$(for fd in /proc/[0-9]*/fd/*; do if [ "$(readlink "$fd" 2>/dev/null)" = "$BENCH_ESP_PORT" ]; then echo "$fd"; fi; done | cut -d/ -f3 | sort -u | tr '\n' ' ')"
           [ -z "$holders" ] || fail "port ${BENCH_ESP_PORT} is busy, held by PID(s) ${holders}(stale reader?), not flashing"
           esptool="$(command -v esptool.py || command -v esptool || true)"
           [ -n "$esptool" ] || fail "not configured: nothing tested (esptool not installed on the runner)"
