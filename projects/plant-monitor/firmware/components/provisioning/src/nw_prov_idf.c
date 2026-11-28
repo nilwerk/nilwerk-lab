@@ -10,7 +10,7 @@
 
 #include "esp_event.h"
 #include "esp_http_client.h"
-#include "esp_crt_bundle.h"
+#include "nw_ingest_ca.h"
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_netif.h"
@@ -63,7 +63,7 @@ static void io_wifi_start(void *ctx, const char *ssid, const char *pass)
     ESP_LOGI(TAG, "NWSETUP wifi joining");
 }
 
-/* ---- io: POST /device-claim in a one-shot task (esp_http_client_perform blocks). TLS: ESP-IDF certificate bundle. ---- */
+/* ---- io: POST /device-claim in a one-shot task (esp_http_client_perform blocks). TLS: pinned CA (NFR-06, ADR-004, F-01), not the bundle. ---- */
 typedef struct { char *body; size_t len; } post_job_t;
 
 static void post_task(void *arg)
@@ -75,12 +75,15 @@ static void post_task(void *arg)
         .url = CONFIG_PLANT_API_BASE_URL "/device-claim",
         .method = HTTP_METHOD_POST,
         .timeout_ms = NW_GLUE_HTTP_TIMEOUT_MS,
-        .crt_bundle_attach = esp_crt_bundle_attach,   /* pinned-CA decision (NFR-06 / ADR-004) is open: bundle for now [verify] */
+        .cert_pem = NW_INGEST_CA_PEM,                 /* the only trust anchor for the claim POST (same root as the upload) */
         .transport_type = HTTP_TRANSPORT_OVER_SSL,
     };
     int status = -1;
     int terr = (int)ESP_FAIL;              /* transport error code, logged only when no HTTP status was read (init failure keeps ESP_FAIL) */
-    esp_http_client_handle_t c = esp_http_client_init(&cfg);
+    /* Fail closed: an empty pin sends nothing (no fallback to the bundle). */
+    esp_http_client_handle_t c = NULL;
+    if (NW_INGEST_CA_PEM[0] == '\0') ESP_LOGE(TAG, "NWSETUP no pinned CA: claim not sent (NFR-06)");
+    else c = esp_http_client_init(&cfg);
     if (c) {
         esp_http_client_set_header(c, "Content-Type", "application/json");
         esp_err_t oe = esp_http_client_open(c, (int)job->len);
