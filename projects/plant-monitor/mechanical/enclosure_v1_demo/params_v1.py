@@ -1,4 +1,7 @@
-"""Enclosure v1 DEMO housing (4.E5), COMPACT round 2 (EXTRA from Arsany, 2026-11-16). All mm. Single source of truth.
+"""Enclosure v1 DEMO housing (4.E5), round 3 = fit for 5 mm parts (Arsany, 28 Nov, A-094: parts on the perfboard are at most 5 mm high).
+Built on the COMPACT round 2 (EXTRA from Arsany, 2026-11-16). All mm. Single source of truth.
+Round 3 changes: part heights 12 mm (J1/J3) and 6.8 mm (SuperMini) replaced by the owner's 5 mm bound (kept as WIRING values for
+stress rows); lid plate lowered to the seam + 2.0 mm skirt; box height 31.4 -> 29.6 mm. Round-2 source stays in git history.
 Housing for the v1 function demo: 70 x 50 mm perfboard (NOT the custom PCB, NOT enclosure v3 / 4.E3, which is stopped).
 Frame: CAD X right, Y up, Z up from the underside of the tray floor. Perfboard lower-left corner = (0, 0), so a
 WIRING.md hole/doc position (x, y_doc) (origin top left, y down) maps to CAD (x, BOARD_W_Y - y_doc) via cy().
@@ -30,15 +33,19 @@ PB_L, PB_W, PB_T = 70.0, 50.0, 2.0
 # Component bodies on the board, WIRING.md section 5 (doc frame: x right, y DOWN from the top edge, component side up).
 # (x0, y0, x1, y1, height above perfboard top, status). Footprints of TP4056/BH1750/AHT20 are MEASURED, positions are Emil's layout plan
 # (grid count UNVERIFIED), SuperMini size is UNVERIFIED, heights are typical values (UNVERIFIED) from WIRING.md.
+# Heights: OWNER bound (Arsany 28 Nov, A-094): every part on the perfboard is at most 5 mm high. This is a bound, not a caliper
+# measurement per part: the per-part value is still open (A-094 measurement list). Round-2 WIRING typical heights kept for stress rows.
+PART_H_OWNER = 5.0
+PART_H_WIRING = {"SuperMini": 6.8, "TP4056": 5.6, "BH1750": 5.7, "AHT20": 5.5, "J1": 12.0, "J3": 12.0, "R1R2": 7.0, "Rp": 7.0}
 PARTS = {
-    "SuperMini": (4.5, 2.0, 27.0, 20.0, 6.8, "WIRING"),      # 22.5 x 18 UNVERIFIED; top = USB-C 2.5 header + 1.0 PCB + 3.3
-    "TP4056":    (0.0, 33.0, 28.0, 50.0, 5.6, "WIRING"),     # 28 x 17 MEASURED; height 0.3 Kapton + 2.0 + 3.3 UNVERIFIED
-    "BH1750":    (40.0, 1.3, 57.0, 15.3, 5.7, "WIRING"),     # 17 x 14 MEASURED; height UNVERIFIED
-    "AHT20":     (49.5, 35.0, 64.5, 45.0, 5.5, "WIRING"),    # 15 x 10 MEASURED; height UNVERIFIED
-    "J1":        (4.5, 19.9, 7.1, 25.0, 12.0, "WIRING"),     # 2-pin header + jumper shunt, tallest item (about 12)
-    "J3":        (37.5, 45.0, 45.2, 48.2, 12.0, "WIRING"),   # 3-pin header + Dupont plug (about 12)
-    "R1R2":      (8.3, 25.3, 30.0, 29.8, 7.0, "WIRING"),     # standing resistors
-    "Rp":        (45.9, 22.7, 52.0, 27.2, 7.0, "WIRING"),    # pull-ups, only if needed
+    "SuperMini": (4.5, 2.0, 27.0, 20.0, PART_H_OWNER, "OWNER"),  # 22.5 x 18 UNVERIFIED; WIRING stack top 6.8 (conflicts with the 5 mm bound)
+    "TP4056":    (0.0, 33.0, 28.0, 50.0, PART_H_OWNER, "OWNER"), # 28 x 17 MEASURED; height OWNER bound
+    "BH1750":    (40.0, 1.3, 57.0, 15.3, PART_H_OWNER, "OWNER"), # 17 x 14 MEASURED; height OWNER bound
+    "AHT20":     (49.5, 35.0, 64.5, 45.0, PART_H_OWNER, "OWNER"),# 15 x 10 MEASURED; height OWNER bound
+    "J1":        (4.5, 19.9, 7.1, 25.0, PART_H_OWNER, "OWNER"),  # 2-pin header + jumper shunt; WIRING about 12 (stress row)
+    "J3":        (37.5, 45.0, 45.2, 48.2, PART_H_OWNER, "OWNER"),# 3-pin header + Dupont plug; WIRING about 12 (stress row)
+    "R1R2":      (8.3, 25.3, 30.0, 29.8, PART_H_OWNER, "OWNER"), # standing resistors
+    "Rp":        (45.9, 22.7, 52.0, 27.2, PART_H_OWNER, "OWNER"),# pull-ups, only if needed
 }
 ANT_KEEPOUT_DOC = (27.0, 0.0, 40.0, 22.0)    # WIRING.md: antenna zone x 27-40, y 0-22 (doc frame); no metal/wire/part/cell/screw
 ANT_END_DOC = (27.0, 2.0, 27.0, 20.0)        # SuperMini antenna end edge
@@ -79,10 +86,8 @@ STANDOFF_H = FLOOR_TO_BOARD_CELL  # uniform floor-to-board gap (round 1: 5.0); t
 Z_FLOOR = FLOOR
 Z_PB_BOT = Z_FLOOR + STANDOFF_H   # 13.8
 Z_PB_TOP = Z_PB_BOT + PB_T        # 15.8
-TALLEST = max(v[4] for v in PARTS.values())          # 12.0 (J1 / J3)
+TALLEST = max(v[4] for v in PARTS.values())          # 5.0 (owner bound)
 LID_MARGIN = 2.0                  # clearance tallest part to lid underside; heights are unmeasured so +-2 mm [ASSUMED margin]
-Z_TOP = Z_PB_TOP + TALLEST + LID_MARGIN             # lid plate underside, 29.8
-Z_LID_TOP = Z_TOP + LID_T                           # lid plate top, 31.4
 # USB-C centres above the perfboard top (WIRING stack): SuperMini 2.5 header + 1.0 PCB + 1.65 half connector; TP4056 0.3 + 2.0 + 1.65
 USB_SM_Z = Z_PB_TOP + 2.5 + 1.0 + 1.65
 USB_TP_Z = Z_PB_TOP + 0.3 + 2.0 + 1.65
@@ -90,8 +95,13 @@ PLUG_W, PLUG_H = 14.0, 8.0        # opening for the cable plug overmold [ASSUMED
 SPLIT_RIM = 1.0                   # solid rim of the base wall above the highest USB-C opening
 # Parting plane above BOTH openings with a rim: both openings are fully in the base, the lid carries no USB-C cut
 Z_SPLIT = round(math.ceil(round((max(USB_SM_Z, USB_TP_Z) + PLUG_H / 2 + SPLIT_RIM) / LAYER, 6)) * LAYER, 3)   # 26.0
-LID_SHELL_H = Z_LID_TOP - Z_SPLIT                   # lid above the parting plane: 5.4 (round 1: 11.0)
+LID_SKIRT = 2.0                   # lid skirt below the lid plate, down to the seam (round 3, ASSUMED design value: hat look, alignment, splash lip)
+# Lid plate underside: clears the tallest part by LID_MARGIN, and sits at least LID_SKIRT above the seam. With 5 mm parts the seam governs.
+Z_TOP = max(Z_PB_TOP + TALLEST + LID_MARGIN, Z_SPLIT + LID_SKIRT)   # 28.0 (round 2: 29.8)
+Z_LID_TOP = Z_TOP + LID_T                           # lid plate top, 29.6 (round 2: 31.4)
+LID_SHELL_H = Z_LID_TOP - Z_SPLIT                   # lid above the parting plane: 3.6 (round 2: 5.4, round 1: 11.0)
 LID_SHELL_H_R1 = 24.2 - 13.2                        # round 1 value (enclosure/v1_demo, 24.2 total, split 13.2) for the comparison
+MAX_PART_H = Z_TOP - LID_MARGIN - Z_PB_TOP          # tallest part the current lid clears with LID_MARGIN: 10.2 mm
 
 # ---- plan layout (CAD frame) ----
 STRIP_TOP, STRIP_BOT = 8.0, 11.0  # beyond the board edge (+FIT): top = screw bosses; bottom = bosses, cell stop, strain relief, soil plug / cable [ASSUMED plug 10 mm long]
@@ -156,6 +166,6 @@ HATCH = (7.0, 11.0)               # lid opening over J1 for tweezers / fingernai
 
 STATUS = {   # parameter -> status, for the README table and a test that ASSUMED values never PASS
     "perfboard 70 x 50 x 2": "MEASURED", "TP4056 28 x 17 x 2": "MEASURED", "BH1750 17 x 14 x 2": "MEASURED", "AHT20 15 x 10 x 2": "MEASURED",
-    "SuperMini 22.5 x 18": "UNVERIFIED", "component heights": "WIRING/ASSUMED", "cell 51 x 34.5 x 6.3": "BRIEF",
+    "SuperMini 22.5 x 18": "UNVERIFIED", "part heights <= 5 mm": "OWNER (A-094, bound; per part UNVERIFIED)", "cell 51 x 34.5 x 6.3": "BRIEF",
     "solder-side pin tips 4 mm": "WIRING (UNVERIFIED)",
 }
