@@ -26,6 +26,8 @@ describe('signed-out flow', () => {
     expect(await screen.findByText('Know when your plants are thirsty. Set up a sensor in under 3 minutes.')).toBeTruthy();
     expect(screen.getByRole('header', { name: 'Plant Monitor' })).toBeTruthy();
     expect(screen.getByLabelText('Plant Monitor logo')).toBeTruthy();
+    // hero size on the Welcome screen: 180 px square, with the theme radius
+    expect(screen.getByLabelText('Plant Monitor logo').props.style).toEqual(expect.objectContaining({ width: 180, height: 180 }));
     expect(screen.getByRole('button', { name: 'Create account' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'I already have an account' })).toBeTruthy();
   });
