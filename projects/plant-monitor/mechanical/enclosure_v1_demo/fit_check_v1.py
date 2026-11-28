@@ -122,7 +122,7 @@ def main():
     gw = P.Z_TOP - (P.Z_PB_TOP + P.PART_H_WIRING["SuperMini"])
     row("Stress: SuperMini at WIRING stack height (6.8 mm above the perfboard top) to lid underside", f"{gw:.1f} mm clearance (WIRING 6.8 conflicts with the owner bound 5 mm)", f">= {P.LID_MARGIN} margin", gw >= P.LID_MARGIN - 1e-9, "WIRING.md typical, UNVERIFIED", "if the WIRING stack is right the lid still clears; the owner measurement settles it", unsure=True)
     gj = P.Z_TOP - (P.Z_PB_TOP + P.PART_H_WIRING["J1"])
-    row("NOT MET if WIRING height is right: J1/J3 headers at 12 mm to lid underside", f"{gj:.1f} mm clearance (needs {P.LID_MARGIN} mm); J1 and J3 would hit the lid by {P.LID_MARGIN - gj:.1f} mm", f">= {P.LID_MARGIN} margin", True, "WIRING typical 12 mm, UNVERIFIED; owner bound says at most 5 mm", "the 5 mm bound is load-bearing: a 12 mm header needs the lid raised by about 2 mm, or the header cut down (Arsany to measure). Owner decision (28 Nov): stack heights accepted as they are; J1 and J3 at about 12 mm accepted, with the 0.2 mm clearance noted as accepted", unsure=True)
+    row("ACCEPTED (A-158): J1/J3 headers at about 12 mm above the perfboard top to lid underside, 0.2 mm clearance", f"{gj:.1f} mm clearance (needs {P.LID_MARGIN} mm); J1 and J3 would hit the lid by {P.LID_MARGIN - gj:.1f} mm", f">= {P.LID_MARGIN} margin", True, "WIRING typical 12 mm, UNVERIFIED; owner bound says at most 5 mm", "the 5 mm bound is load-bearing: a 12 mm header needs the lid raised by about 2 mm, or the header cut down (Arsany to measure). Owner confirmed A-158 (Done): J1 and J3 at about 12 mm above the perfboard top are accepted, including the 0.2 mm lid clearance. The numbers stay as computed; the 5 mm bound stays the planned value", unsure=True)
     for n in ("SuperMini", "TP4056", "BH1750", "AHT20"):
         g = P.Z_TOP - (P.Z_PB_TOP + P.PARTS[n][4])
         row(f"Part top to lid underside: {n}", f"{g:.1f} mm (height {P.PARTS[n][4]} owner bound)", ">= 2.0", g >= 2.0, "OWNER bound 5 mm (A-094); per-part UNVERIFIED", unsure=True)
@@ -150,7 +150,20 @@ def main():
     # BOOT/RESET
     row("BOOT / RESET pin guide tubes", f"tube end z {guide_bottom:.1f} over assumed button top z {P.Z_PB_TOP + P.BTN_PRESS_H:.1f}, pitch {abs(P.BTN_YDOC[1] - P.BTN_YDOC[0]):.1f} mm, tube d {P.BTN_TUBE_OD}", "pitch >= tube OD + 1.6; gap > 0", abs(P.BTN_YDOC[1] - P.BTN_YDOC[0]) >= P.BTN_TUBE_OD + 1.6, "WIRING: key centres UNVERIFIED, which key is BOOT UNVERIFIED", "both keys reachable from the top; the pin travel (1.0 mm gap + key stroke) is not tested; button height ASSUMED", unsure=True)
     # BH1750
-    row("BH1750 light window", f"window d {P.BH_WIN_D}, collar OD {P.BH_COLLAR_OD}, open hole (skin {P.LIGHT_SKIN} mm)", "window >= 4 mm over the chip, chip centre UNVERIFIED", P.BH_WIN_D >= 4.0, "WIRING: chip centre about x 49, y 8.5 UNVERIFIED", f"open hole is not splash-proof (v1 indoor demo); a diffuser skin changes the lux reading. Owner 28 Nov: window doubled from 5.0 to {P.BH_WIN_D}, collar wall 1.2 mm kept; window edge to the 17 x 14 breakout edge: {(17.0 - P.BH_WIN_D) / 2:.1f} mm in X, {(14.0 - P.BH_WIN_D) / 2:.1f} mm in Y (chip centre UNVERIFIED); collar bottom 1.0 mm above the chip top", unsure=True)
+    _wx, _wy = P.BH_XYDOC; _r = P.BH_WIN_D / 2.0; _bx0, _by0, _bx1, _by1 = P.PARTS["BH1750"][:4]
+    _eL, _eR = (_wx - _r) - _bx0, _bx1 - (_wx + _r)
+    _eT, _eB = (_wy - _r) - _by0, _by1 - (_wy + _r)
+    _minx, _miny = min(_eL, _eR), min(_eT, _eB)
+    row("BH1750 light window", f"window d {P.BH_WIN_D} at doc ({_wx}, {_wy}); edges from the 17 x 14 body: X {_eL:.1f} left / {_eR:.1f} right (min {_minx:.1f}), Y {_eT:.1f} top / {_eB:.1f} bottom (min {_miny:.1f}); collar OD {P.BH_COLLAR_OD}, open hole (skin {P.LIGHT_SKIN} mm)", "window inside the body with >= 1.0 mm edge (ASSUMED), chip centre UNVERIFIED", min(_minx, _miny) >= 1.0, "WIRING: window centre x 49, y 8.5 (doc); body 17 x 14 MEASURED", "owner 28 Nov: window doubled from 5.0 to 10.0; chip centre inside the breakout is UNVERIFIED; an open hole is not splash-proof (v1 indoor demo); a diffuser skin changes the lux reading", unsure=True)
+    # lid features near the BH1750 collar: vents, hold-down pins (CAD frame, from the same parameters as the model)
+    _cx, _cy = P.BH_XYDOC[0], P.cy(P.BH_XYDOC[1]); _Rc = P.BH_COLLAR_OD / 2.0
+    _ax, _ay = P.AHT_XYDOC[0], P.cy(P.AHT_XYDOC[1])
+    _vents = [(_ax + (k - (P.VENT_N - 1) / 2) * P.VENT_PITCH - P.VENT_W / 2, _ay - P.VENT_L / 2, _ax + (k - (P.VENT_N - 1) / 2) * P.VENT_PITCH + P.VENT_W / 2, _ay + P.VENT_L / 2) for k in range(P.VENT_N)]
+    _gap_vent = min(rect_dist(x0, y0, x1, y1, _cx, _cy) for x0, y0, x1, y1 in _vents) - _Rc
+    _pins = [(x, y) for x, y in E.hold_xy()]
+    _gap_pin = min(math.hypot(x - _cx, y - _cy) for x, y in _pins) - _Rc - P.HOLD_D / 2
+    _gap_pin_vent = min(rect_dist(x0, y0, x1, y1, x, y) for x, y in _pins for x0, y0, x1, y1 in _vents) - P.HOLD_D / 2
+    row("BH1750 collar vs AHT20 vents and hold-down pins", f"collar to vents {_gap_vent:.1f} mm; collar to nearest pin {_gap_pin:.1f} mm; pin to nearest vent {_gap_pin_vent:.1f} mm", "all > 0 (no overlap)", min(_gap_vent, _gap_pin, _gap_pin_vent) > 0, "geometry from the model; WIRING positions UNVERIFIED", "checks the lid plan only; the pins and collar hang below the lid, so the plan gap is the relevant one", unsure=True)
     row("BH1750 outside the antenna keep-out", f"BH1750 body x {P.PARTS['BH1750'][0]}-{P.PARTS['BH1750'][2]} vs keep-out x {P.ANT_KEEPOUT_DOC[0]}-{P.ANT_KEEPOUT_DOC[2]}", "x0 >= 40", P.PARTS["BH1750"][0] >= P.ANT_KEEPOUT_DOC[2], "WIRING layout UNVERIFIED", unsure=True)
     # AHT20 vents
     d_tp = math.hypot(max(0, P.PARTS["AHT20"][0] - P.PARTS["TP4056"][2]), max(0, P.PARTS["TP4056"][1] - P.PARTS["AHT20"][3]))

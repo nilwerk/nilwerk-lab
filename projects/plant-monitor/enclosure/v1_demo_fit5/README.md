@@ -12,9 +12,9 @@ Round 2 exports stay in `enclosure/v1_demo_compact/` (not overwritten). Enclosur
 The owner's bound is 5 mm per part. The round-2 model used WIRING heights up to 12 mm (J1 and J3 headers), so its lid sat 29.8 mm up. With 5 mm parts the lid can come down, but the USB-C openings still set the minimum height: the parting plane must stay above both openings (24.95 mm top + 1.05 mm rim = 26.0 mm). So the seam, not the parts, now governs the lid.
 
 ## Owner decisions (28 Nov)
-- **Stack heights accepted as they are.** J1 with jumper and J3 with Dupont plug at about 12 mm (WIRING typical) are **accepted by the owner**, with the **0.2 mm clearance** to the lid underside (1.8 mm short of the 2.0 mm margin) noted as accepted. The fit check row stays NOT MET; the acceptance is a decision, not a geometry pass.
+- **J1 and J3 at about 12 mm above the perfboard top: ACCEPTED (A-158).** The owner confirmed A-158 (Done): these heights are accepted, including the **0.2 mm** lid clearance (1.8 mm short of the 2.0 mm margin). The numbers are unchanged; the 5 mm bound stays the planned value.
 - **Battery stays under the board.** The model's placement is correct for the demo (A-100 option a, as in round 2).
-- **BH1750 light window: doubled, not moved (owner, 28 Nov).** Circular opening **5.0 mm -> 10.0 mm** diameter, same centre (x 49, y 8.5 doc, the WIRING chip centre; body centre 48.5 / 8.3). The collar grows **7.4 -> 12.4 mm** OD so the wall stays 1.2 mm; a 5 mm collar could not hold a 10 mm hole. Clearance to the sensor: 1.0 mm vertical (collar bottom 21.8, chip top 20.8, both ASSUMED heights); lateral 3.5 mm in X and 2.0 mm in Y from the window edge to the 17 x 14 breakout edge (chip centre UNVERIFIED). The as-built chip position is still a caliper item.
+- **BH1750 light window: doubled, not moved (owner, 28 Nov).** Circular opening **5.0 mm -> 10.0 mm** diameter, centre at the WIRING chip centre (doc x 49, y 8.5). The collar grows **7.4 -> 12.4 mm** OD so the wall stays 1.2 mm. Edges from the 17 x 14 body (doc): X 4.0 left / 3.0 right (min 3.0); Y 2.2 top / 1.8 bottom (min 1.8). Vertical clearance to the chip is 1.0 mm (collar bottom 21.8 vs chip top 20.8, ASSUMED heights). Chip centre inside the breakout is UNVERIFIED; the as-built position is still a caliper item. Row 41 stays OPEN.
 
 ## Changes (round 2 -> round 3)
 | Item | Round 2 | Round 3 | Basis |
@@ -42,6 +42,8 @@ The owner's bound is 5 mm per part. The round-2 model used WIRING heights up to 
 | J3, with Dupont plug | highest point incl. plug | perfboard top | bound 5.0; stress 12 |
 | TP4056 with USB-C, BH1750, AHT20 | highest point | perfboard top | bound 5.0 |
 | Floor to perfboard underside (trimmed pins, wires) | lowest point under the board | perfboard underside | 12.2 = cell cavity 7.2 + pin tips 4.0 (UNVERIFIED) + margin 1.0 |
+
+**Lid features near the BH1750 collar (plan, from the model; positions WIRING, UNVERIFIED):** collar to nearest AHT20 vent 20.4 mm; collar to nearest hold-down pin 12.1 mm; hold-down pin to nearest vent 4.0 mm. No overlap (fit check row 42, OPEN).
 
 ## Clearances (mm, from the model)
 | What | Value | Need | Status |

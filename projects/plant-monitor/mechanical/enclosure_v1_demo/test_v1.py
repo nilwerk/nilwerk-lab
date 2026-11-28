@@ -12,7 +12,7 @@ import fit_check_v1 as F
 HERE = os.path.dirname(os.path.abspath(__file__))
 COMPACT_README = pathlib.Path(HERE).resolve().parents[1] / "enclosure" / "v1_demo_compact" / "README.md"
 EXPECTED_PASS = 7
-EXPECTED_NOT_MET = 4
+EXPECTED_NOT_MET = 3
 
 
 @pytest.fixture(scope="module")
