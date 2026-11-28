@@ -23,6 +23,21 @@ The owner's bound is 5 mm per part. The round-2 model used WIRING heights up to 
 | Screw | M2 x 8 | **M2 x 6** (formula: need 5.4) | ASSUMED head and insert, nothing ordered |
 | Board, cell cradle, USB-C, BH1750, AHT20, soil exit, J1 hatch, antenna keep-out | round 2 | unchanged | |
 
+## Height reference (one frame for every stack height)
+- **Frame:** all heights in this README are measured from the **perfboard top** (z = 0 at the top face, the component side), unless a row says "lid underside" or "floor". The lid clearance is then: lid underside z 28.0 minus perfboard top 15.8 = 12.2 mm of room above the board top.
+- **Planned bound (used for the model):** 5.0 mm above the perfboard top for every part (owner bound, A-094).
+- **Typical values, not measured (UNVERIFIED):** WIRING.md section 5 gives the SuperMini top (USB-C) as 8.8 mm. That figure starts at the perfboard underside (2.0 mm board + 6.8 mm), so it is **6.8 mm above the perfboard top**. The 6.8 mm is used only as the stress row (SuperMini at WIRING stack height). It is a typical value, not a measurement.
+- J1 with jumper and J3 with Dupont plug: WIRING typical about 12 mm above the perfboard top. Stress row only.
+
+## Owner caliper inputs still needed (height above the perfboard top, mm)
+| Part | Point to measure | Reference | Used in model now |
+|---|---|---|---|
+| SuperMini, with USB-C | highest point incl. USB-C connector | perfboard top | bound 5.0; stress 6.8 |
+| J1, with jumper | highest point incl. shunt | perfboard top | bound 5.0; stress 12 |
+| J3, with Dupont plug | highest point incl. plug | perfboard top | bound 5.0; stress 12 |
+| TP4056 with USB-C, BH1750, AHT20 | highest point | perfboard top | bound 5.0 |
+| Floor to perfboard underside (trimmed pins, wires) | lowest point under the board | perfboard underside | 4.0 typical (UNVERIFIED) |
+
 ## Clearances (mm, from the model)
 | What | Value | Need | Status |
 |---|---|---|---|
