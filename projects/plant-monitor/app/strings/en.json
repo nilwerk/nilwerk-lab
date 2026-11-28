@@ -371,6 +371,7 @@
   "mcp.keys.name": "Key name",
   "mcp.keys.nameDefault": "My AI assistant",
   "mcp.keys.create": "Create key",
+  "mcp.comingSoon": "Coming in a later version",
   "mcp.keys.active": "Active",
   "mcp.keys.revoked": "Revoked",
   "mcp.keys.row": "{name}, starts with {prefix}",

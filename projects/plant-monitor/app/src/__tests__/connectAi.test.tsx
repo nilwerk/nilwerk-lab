@@ -33,9 +33,10 @@ const authWith = (isPremium: boolean | 'error') => ({
 });
 
 const frame = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } };
-const mount = async (auth: ReturnType<typeof authWith>, apiKeys: ApiKeysService, copy = jest.fn(async () => undefined)) => {
+// keysAvailable defaults to true here so the create and revoke flows below stay covered; the v1 tests at the end mount with it off.
+const mount = async (auth: ReturnType<typeof authWith>, apiKeys: ApiKeysService, copy = jest.fn(async () => undefined), keysAvailable = true) => {
   const onPremium = jest.fn();
-  await render(<SafeAreaProvider initialMetrics={frame}><AuthProvider service={auth}><ConnectAiScreen apiKeys={apiKeys} onBack={() => undefined} onPremium={onPremium} copy={copy} /></AuthProvider></SafeAreaProvider>);
+  await render(<SafeAreaProvider initialMetrics={frame}><AuthProvider service={auth}><ConnectAiScreen apiKeys={apiKeys} onBack={() => undefined} onPremium={onPremium} copy={copy} keysAvailable={keysAvailable} /></AuthProvider></SafeAreaProvider>);
   return { onPremium, copy };
 };
 
@@ -279,5 +280,41 @@ describe('connect your AI: setup text (FR-P03)', () => {
     await fireEvent.press(screen.getByRole('button', { name: t('mcp.keys.create') }));
     await screen.findByText(SECRET);
     expect(screen.getByText(claudeSetupText())).toBeTruthy(); // still the placeholder text
+  });
+});
+
+describe('connect your AI: v1 actions coming in a later version (owner decision)', () => {
+  // Generate and revoke are disabled in v1: they show "Coming in a later version" and call nothing on the server.
+  test('premium: no Create key action; a disabled "Coming in a later version" button; pressing it creates nothing', async () => {
+    const b = backend();
+    await mount(authWith(true), b, undefined, false);
+    await waitFor(() => expect(screen.getByRole('button', { name: t('mcp.comingSoon') })).toBeTruthy());
+    expect(screen.queryByRole('button', { name: t('mcp.keys.create') })).toBeNull();
+    const generate = screen.getByRole('button', { name: t('mcp.comingSoon') });
+    expect(generate.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }));
+    fireEvent.press(generate);
+    expect(b.create).not.toHaveBeenCalled();
+  });
+
+  test('premium with an active key: revoke is disabled and says "Coming in a later version"; no revoke request, no confirm', async () => {
+    const b = backend([info()]);
+    await mount(authWith(true), b, undefined, false);
+    expect(await screen.findByText('My AI assistant')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: t('mcp.keys.revoke.a11y', { name: 'My AI assistant' }) })).toBeTruthy();
+    const revoke = screen.getByRole('button', { name: t('mcp.keys.revoke.a11y', { name: 'My AI assistant' }) });
+    expect(revoke.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }));
+    expect(screen.getAllByText(t('mcp.comingSoon'))).toHaveLength(2);   // revoke button (name) and the disabled generate button
+    fireEvent.press(revoke);
+    expect(screen.queryByText(t('mcp.keys.revoke.confirm', { name: 'My AI assistant' }))).toBeNull();
+    expect(b.revoke).not.toHaveBeenCalled();
+  });
+
+  test('the list still reads the user keys (no key is created or revoked); the setup text stays available', async () => {
+    const b = backend([info()]);
+    const { copy } = await mount(authWith(true), b, undefined, false);
+    expect(await screen.findByText(t('mcp.setup.claude.title'))).toBeTruthy();
+    expect(b.list).toHaveBeenCalledTimes(1);
+    expect(b.create).not.toHaveBeenCalled();
+    expect(copy).not.toHaveBeenCalled();
   });
 });
