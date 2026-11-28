@@ -277,6 +277,7 @@
   "plant.meta.soil": "Soil type",
   "plant.meta.a11y": "Location: {location}. Room or area: {room}. Soil type: {soil}.",
   "plant.photos.button": "Photos",
+  "plant.tips.button": "Care tips",
   "hourly.title": "Hourly readings, last 7 days",
   "hourly.col.time": "Time",
   "hourly.col.soil": "Soil %",

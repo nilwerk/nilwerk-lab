@@ -1,5 +1,5 @@
 // S21 Plant detail. Requirements: FR-A06 (latest values = last report, 7-day hourly chart and hourly table), FR-A04 (location type, room, soil type shown), FR-A05 (entry to the photo gallery), FR-A08 (entry to remove, A-022), FR-A07 (dry/wet thresholds drawn on the chart), NFR-06.
-// Care tips rows (S42) are a later slice.
+// FR-P02 (care tips entry: the tips screen reads the stored tips of this plant), FR-P04 (the entry is shown to every account; the tips screen itself shows the upgrade notice to free accounts and reads nothing), NFR-06 (the tips screen reads own rows only, under RLS).
 import React, { useCallback, useEffect, useState } from 'react';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { StatusChip } from '../ui/StatusChip';
@@ -15,7 +15,7 @@ import { PlantsError, type PlantDetail, type PlantSummary } from '../plants/type
 
 const fmt = (v: number | null | undefined, digits: number) => (v === null || v === undefined ? null : v.toFixed(digits));
 
-export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = () => new Date() }: { plantId: string; onBack: () => void; onRemove: (d: PlantDetail) => void; onGallery: (p: PlantSummary) => void; now?: () => Date }) {
+export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, onTips, now = () => new Date() }: { plantId: string; onBack: () => void; onRemove: (d: PlantDetail) => void; onGallery: (p: PlantSummary) => void; onTips?: (p: PlantSummary) => void; now?: () => Date }) {
   const svc = usePlants();
   const [detail, setDetail] = useState<PlantDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +62,7 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, now = 
           <MoistureChart points={detail.hourly} dry={p.dryThresholdPct} wet={p.wetThresholdPct} />
           <HourlyTable points={detail.hourly} />
           <Button label={t('plant.photos.button')} variant="primary" onPress={() => onGallery(p)} />
+          {onTips ? <Button label={t('plant.tips.button')} variant="secondary" onPress={() => onTips(p)} /> : null}
           <Button label={t('plant.remove.button')} variant="danger" onPress={() => onRemove(detail)} />
         </>
       ) : null}
