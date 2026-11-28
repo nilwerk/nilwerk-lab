@@ -1,3 +1,5 @@
+> **Round 3 (28 Nov, fit for 5 mm parts):** source updated in place (round-2 values in git history). Round-3 exports, renders, README and fit check: `enclosure/v1_demo_fit5/`. Round-2 exports stay in `enclosure/v1_demo_compact/`. The round-2 text below is kept as the record of round 2.
+
 # Plant Monitor v1 demo housing (4.E5)
 > **Round 2 (compact, 2026-11-16):** round-1 parameters were overwritten in place in this folder (round-1 source = commit `5f195cf`). The text below describes round 1 (exports in `enclosure/v1_demo/`, unchanged). Round 2 numbers and checks: `enclosure/v1_demo_compact/README.md`. Battery placement under the right half is accepted for the demo: A-100 option a, a known deviation from WIRING section 5 (left half). Fit-check tally 7 / 0 / 3 / 51.
 

@@ -1,4 +1,4 @@
-"""Fit check for the v1 demo housing (4.E5), compact round 2. Run: python fit_check_v1.py [--md out.md]. Exit 1 on any FAIL.
+"""Fit check for the v1 demo housing (4.E5), round 3 (fit for 5 mm parts, owner A-094, 28 Nov). Run: python fit_check_v1.py [--md out.md]. Exit 1 on any FAIL.
 PASS = geometry check against MEASURED / RULE inputs only. Anything resting on an ASSUMED, WIRING-typical (UNVERIFIED) or BRIEF value is OPEN, never PASS.
 OPEN rows are reported, never counted as PASS, never fail the run. A row marked 'NOT MET' is a requirement the design cannot meet as briefed: OPEN, with the reason."""
 import sys, os, math
@@ -117,10 +117,15 @@ def main():
     # ---------- heights (all unmeasured) ----------
     tall = max(P.PARTS.items(), key=lambda kv: kv[1][4])
     gap = P.Z_TOP - (P.Z_PB_TOP + tall[1][4])
-    row("Tallest part to lid underside (lid limit)", f"{gap:.1f} mm ({tall[0]} {tall[1][4]} mm assumed; lid underside z {P.Z_TOP:.1f})", f">= {P.LID_MARGIN} margin", gap >= P.LID_MARGIN - 1e-9, "WIRING heights, UNVERIFIED", "J1 with jumper and J3 with Dupont plug are the tallest; heights to be measured", unsure=True)
+    row("Tallest part to lid underside (lid limit)", f"{gap:.1f} mm ({tall[0]} {tall[1][4]} mm owner bound; lid underside z {P.Z_TOP:.1f}; max part height with {P.LID_MARGIN} mm margin {P.MAX_PART_H:.1f} mm)", f">= {P.LID_MARGIN} margin", gap >= P.LID_MARGIN - 1e-9, "OWNER bound 5 mm (A-094, 28 Nov); per-part height UNVERIFIED", "the owner's bound is not a caliper measurement of each part: J1 with jumper and J3 with Dupont plug still to be measured", unsure=True)
+    # stress rows: the round-2 WIRING typical heights, kept to show what the owner's 5 mm bound is worth
+    gw = P.Z_TOP - (P.Z_PB_TOP + P.PART_H_WIRING["SuperMini"])
+    row("Stress: SuperMini at WIRING stack height (6.8 mm above the perfboard top) to lid underside", f"{gw:.1f} mm clearance (WIRING 6.8 conflicts with the owner bound 5 mm)", f">= {P.LID_MARGIN} margin", gw >= P.LID_MARGIN - 1e-9, "WIRING.md typical, UNVERIFIED", "if the WIRING stack is right the lid still clears; the owner measurement settles it", unsure=True)
+    gj = P.Z_TOP - (P.Z_PB_TOP + P.PART_H_WIRING["J1"])
+    row("NOT MET (accepted, A-158): J1/J3 headers at about 12 mm above the perfboard top to lid underside, 0.2 mm clearance", f"{gj:.1f} mm clearance (needs {P.LID_MARGIN} mm); J1 and J3 would hit the lid by {P.LID_MARGIN - gj:.1f} mm", f">= {P.LID_MARGIN} margin", True, "WIRING typical 12 mm, UNVERIFIED; owner bound says at most 5 mm", "the 5 mm bound is load-bearing: a 12 mm header needs the lid raised by about 2 mm, or the header cut down (Arsany to measure). A-158 answer (owner): asked whether the height answer also covers the 0.2 mm lid clearance, the owner wrote \"Yes\" (original words: \"the height is fine\"). The row stays counted as NOT MET (accepted) so the unmet margin shows; the numbers are unchanged", unsure=True)
     for n in ("SuperMini", "TP4056", "BH1750", "AHT20"):
         g = P.Z_TOP - (P.Z_PB_TOP + P.PARTS[n][4])
-        row(f"Part top to lid underside: {n}", f"{g:.1f} mm (height {P.PARTS[n][4]} assumed)", ">= 2.0", g >= 2.0, "WIRING height UNVERIFIED", unsure=True)
+        row(f"Part top to lid underside: {n}", f"{g:.1f} mm (height {P.PARTS[n][4]} owner bound)", ">= 2.0", g >= 2.0, "OWNER bound 5 mm (A-094); per-part UNVERIFIED", unsure=True)
     tubes = None
     for x, y in E.btn_xy():
         c = E._cyl(x, y, P.Z_PB_TOP, P.Z_TOP + 1, P.BTN_TUBE_OD + 0.2)
@@ -129,10 +134,10 @@ def main():
     row("Interference lid vs part boxes (assumed heights)", f"{ov:.3f} mm3 (BOOT/RESET guide tubes excluded)", "0", ov < 1e-6, "ASSUMED heights", "the guide tubes enter the SuperMini envelope by design: the box height 6.8 is the USB-C top, the keys are lower (assumed 5.1)", unsure=True)
     row("BOOT/RESET guide tubes vs SuperMini keys", f"tube end z {P.Z_PB_TOP + P.BTN_PRESS_H + P.BTN_GAP:.1f} vs key top z {P.Z_PB_TOP + P.BTN_PRESS_H:.1f} (assumed)", "gap >= 0.5", P.BTN_GAP >= 0.5, "key height ASSUMED", unsure=True)
     # ---------- lid height (round 2 target: about half the round-1 shell) ----------
-    row("Lid shell above the parting plane", f"{P.LID_SHELL_H:.1f} mm (round 1: {P.LID_SHELL_H_R1:.1f}; {P.LID_SHELL_H / P.LID_SHELL_H_R1 * 100:.0f} %)", f"about half: <= {P.LID_SHELL_H_R1 / 2 + 0.5:.1f}", P.LID_SHELL_H <= P.LID_SHELL_H_R1 / 2 + 0.5, "round 2 target (Arsany 2026-11-16)", "limited by: parting plane above the SuperMini USB-C top (+ rim) and the lid underside set by the tallest part", unsure=True)
+    row("Lid shell above the parting plane", f"{P.LID_SHELL_H:.1f} mm (round 2: 5.4; round 1: {P.LID_SHELL_H_R1:.1f}; {P.LID_SHELL_H / P.LID_SHELL_H_R1 * 100:.0f} % of round 1)", f"about half of round 1: <= {P.LID_SHELL_H_R1 / 2 + 0.5:.1f}", P.LID_SHELL_H <= P.LID_SHELL_H_R1 / 2 + 0.5, "round 2 target (Arsany 2026-11-16); round 3 skirt ASSUMED", "round 3: the parting plane (above the USB-C tops) now governs the lid, not the parts: lid = seam + skirt 2.0 + plate 1.6", unsure=True)
     guide_bottom = P.Z_PB_TOP + P.BTN_PRESS_H + P.BTN_GAP
     lid_low = min(guide_bottom, P.Z_SPLIT, P.Z_PB_TOP + P.BTN_PRESS_H + P.BTN_GAP, P.Z_PB_TOP + P.HOLD_GAP)
-    row("Lid part depth incl. hanging pins/guides (print height)", f"{P.Z_LID_TOP - lid_low:.1f} mm (round 1: 15.3; hold-down pins at z {P.Z_PB_TOP + P.HOLD_GAP:.1f} set the lowest point)", "report only", True, "geometry", "the part shell above the seam halves (5.4 vs 11.0); the lid part keeps the same depth because its hold-down pins reach down to the board", unsure=True)
+    row("Lid part depth incl. hanging pins/guides (print height)", f"{P.Z_LID_TOP - lid_low:.1f} mm (round 1: 15.3; hold-down pins at z {P.Z_PB_TOP + P.HOLD_GAP:.1f} set the lowest point)", "report only", True, "geometry", "round 3: the shell above the seam is 3.6 mm (round 2: 5.4, round 1: 11.0); the lid part depth is set by its hold-down pins, which reach down to the board", unsure=True)
     # ---------- openings ----------
     for nm, ydoc, zc, src in (("SuperMini USB-C (flash/serial)", P.USB_SM_YDOC, P.USB_SM_Z, "centre z from WIRING stack, UNVERIFIED"), ("TP4056 USB-C (charge)", P.USB_TP_YDOC, P.USB_TP_Z, "centre z from WIRING stack, UNVERIFIED")):
         yc = P.cy(ydoc)
@@ -140,12 +145,25 @@ def main():
         free = not tray.val().isInside(probe) and not lid.val().isInside(probe)
         row(f"Opening reaches {nm}", f"opening {P.PLUG_W} x {P.PLUG_H} mm at y {yc:.1f}, z {zc:.2f}; wall-to-connector gap {(P.PARTS['SuperMini'][0] if 'Super' in nm else P.PARTS['TP4056'][0]) - P.IX0:.1f} mm", "wall open at the connector centre", free, src, "plug overmold size ASSUMED 14 x 8; connector centre height and the SuperMini 4.5 mm setback UNVERIFIED", unsure=True)
     top_open = max(P.USB_SM_Z, P.USB_TP_Z) + P.PLUG_H / 2
-    row("Both USB-C openings fully in the base (parting plane above them)", f"split z {P.Z_SPLIT}; highest opening top {top_open:.2f}; rim {P.Z_SPLIT - top_open:.2f} mm", f"rim >= {P.SPLIT_RIM} mm", P.Z_SPLIT - top_open >= P.SPLIT_RIM - 1e-9, "geometry; openings from WIRING stack", "the lid carries no USB-C cut in round 2", unsure=True)
+    row("Both USB-C openings fully in the base (parting plane above them)", f"split z {P.Z_SPLIT}; highest opening top {top_open:.2f}; rim {P.Z_SPLIT - top_open:.2f} mm", f"rim >= {P.SPLIT_RIM} mm", P.Z_SPLIT - top_open >= P.SPLIT_RIM - 1e-9, "geometry; openings from WIRING stack", "the lid carries no USB-C cut (rounds 2 and 3)", unsure=True)
     row("USB-C openings do not overlap each other", f"gap {abs(P.cy(P.USB_SM_YDOC) - P.cy(P.USB_TP_YDOC)) - P.PLUG_W:.1f} mm", ">= 1.6 (wall)", abs(P.cy(P.USB_SM_YDOC) - P.cy(P.USB_TP_YDOC)) - P.PLUG_W >= 1.6, "WIRING positions UNVERIFIED", unsure=True)
     # BOOT/RESET
     row("BOOT / RESET pin guide tubes", f"tube end z {guide_bottom:.1f} over assumed button top z {P.Z_PB_TOP + P.BTN_PRESS_H:.1f}, pitch {abs(P.BTN_YDOC[1] - P.BTN_YDOC[0]):.1f} mm, tube d {P.BTN_TUBE_OD}", "pitch >= tube OD + 1.6; gap > 0", abs(P.BTN_YDOC[1] - P.BTN_YDOC[0]) >= P.BTN_TUBE_OD + 1.6, "WIRING: key centres UNVERIFIED, which key is BOOT UNVERIFIED", "both keys reachable from the top; the pin travel (1.0 mm gap + key stroke) is not tested; button height ASSUMED", unsure=True)
     # BH1750
-    row("BH1750 light window", f"window d {P.BH_WIN_D}, collar OD {P.BH_COLLAR_OD}, open hole (skin {P.LIGHT_SKIN} mm)", "window >= 4 mm over the chip, chip centre UNVERIFIED", P.BH_WIN_D >= 4.0, "WIRING: chip centre about x 49, y 8.5 UNVERIFIED", "an open hole is not splash-proof (v1 indoor demo); a diffuser skin changes the lux reading", unsure=True)
+    _wx, _wy = P.BH_XYDOC; _r = P.BH_WIN_D / 2.0; _bx0, _by0, _bx1, _by1 = P.PARTS["BH1750"][:4]
+    _eL, _eR = (_wx - _r) - _bx0, _bx1 - (_wx + _r)
+    _eT, _eB = (_wy - _r) - _by0, _by1 - (_wy + _r)
+    _minx, _miny = min(_eL, _eR), min(_eT, _eB)
+    row("BH1750 light window", f"window d {P.BH_WIN_D} at doc ({_wx}, {_wy}); edges from the 17 x 14 body: X {_eL:.1f} left / {_eR:.1f} right (min {_minx:.1f}), Y {_eT:.1f} top / {_eB:.1f} bottom (min {_miny:.1f}); collar OD {P.BH_COLLAR_OD}, open hole (skin {P.LIGHT_SKIN} mm)", "window inside the body with >= 1.0 mm edge (ASSUMED), chip centre UNVERIFIED", min(_minx, _miny) >= 1.0, "WIRING: window centre x 49, y 8.5 (doc); body 17 x 14 MEASURED", "owner 28 Nov: window doubled from 5.0 to 10.0; chip centre inside the breakout is UNVERIFIED; an open hole is not splash-proof (v1 indoor demo); a diffuser skin changes the lux reading", unsure=True)
+    # lid features near the BH1750 collar: vents, hold-down pins (CAD frame, from the same parameters as the model)
+    _cx, _cy = P.BH_XYDOC[0], P.cy(P.BH_XYDOC[1]); _Rc = P.BH_COLLAR_OD / 2.0
+    _ax, _ay = P.AHT_XYDOC[0], P.cy(P.AHT_XYDOC[1])
+    _vents = [(_ax + (k - (P.VENT_N - 1) / 2) * P.VENT_PITCH - P.VENT_W / 2, _ay - P.VENT_L / 2, _ax + (k - (P.VENT_N - 1) / 2) * P.VENT_PITCH + P.VENT_W / 2, _ay + P.VENT_L / 2) for k in range(P.VENT_N)]
+    _gap_vent = min(rect_dist(x0, y0, x1, y1, _cx, _cy) for x0, y0, x1, y1 in _vents) - _Rc
+    _pins = [(x, y) for x, y in E.hold_xy()]
+    _gap_pin = min(math.hypot(x - _cx, y - _cy) for x, y in _pins) - _Rc - P.HOLD_D / 2
+    _gap_pin_vent = min(rect_dist(x0, y0, x1, y1, x, y) for x, y in _pins for x0, y0, x1, y1 in _vents) - P.HOLD_D / 2
+    row("BH1750 collar vs AHT20 vents and hold-down pins", f"collar to vents {_gap_vent:.1f} mm; collar to nearest pin {_gap_pin:.1f} mm; pin to nearest vent {_gap_pin_vent:.1f} mm", "all > 0 (no overlap)", min(_gap_vent, _gap_pin, _gap_pin_vent) > 0, "geometry from the model; WIRING positions UNVERIFIED", "checks the lid plan only; the pins and collar hang below the lid, so the plan gap is the relevant one", unsure=True)
     row("BH1750 outside the antenna keep-out", f"BH1750 body x {P.PARTS['BH1750'][0]}-{P.PARTS['BH1750'][2]} vs keep-out x {P.ANT_KEEPOUT_DOC[0]}-{P.ANT_KEEPOUT_DOC[2]}", "x0 >= 40", P.PARTS["BH1750"][0] >= P.ANT_KEEPOUT_DOC[2], "WIRING layout UNVERIFIED", unsure=True)
     # AHT20 vents
     d_tp = math.hypot(max(0, P.PARTS["AHT20"][0] - P.PARTS["TP4056"][2]), max(0, P.PARTS["TP4056"][1] - P.PARTS["AHT20"][3]))
@@ -192,7 +210,7 @@ def main():
     row("Plastic over the antenna", f"PETG lid {P.LID_T} mm, air gap about {P.Z_TOP - (P.Z_PB_TOP + P.PARTS['SuperMini'][4]):.1f} mm", "plastic only, no metal, no carbon-filled filament", True, "design: PETG black/grey/white only; RF effect of a 1.6 mm PETG wall NOT measured", "all printed parts are plain PETG; the only metal is the M2 screws/inserts, outside the keep-out", unsure=True)
     # ---------- fasteners ----------
     sl, need = P.screw_len()
-    row("Lid screw length", f"M2 x {sl} (need >= {need:.1f} mm for 3 mm engagement)", "standard length >= need", sl >= need, "geometry; head 4.0 x 1.3 and insert depth ASSUMED", "buy M2 x 8 pan head + M2 x 4 heat-set inserts: Arsany decides; nothing ordered", unsure=True)
+    row("Lid screw length", f"M2 x {sl} (need >= {need:.1f} mm for 3 mm engagement)", "standard length >= need", sl >= need, "geometry; head 4.0 x 1.3 and insert depth ASSUMED", "fastener length from the formula above (round 2 was M2 x 8); fastener and insert purchase is Arsany's decision, nothing ordered", unsure=True)
     row("Screw posts: boss x lid post alignment", f"{len(P.BOSS_XY)} bosses, spigot d {P.SPIGOT_D} in d {P.SPIGOT_D + 2 * P.SPIGOT_CLEAR:.1f}", "spigot clearance 0.2 per side (standard 0.2-0.4)", 0.2 <= P.SPIGOT_CLEAR <= 0.4, "RULE s3 (clearance range)", "printed fit OPEN until Prototype 1", unsure=True)
     return ROWS
 

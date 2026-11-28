@@ -12,7 +12,7 @@ import fit_check_v1 as F
 HERE = os.path.dirname(os.path.abspath(__file__))
 COMPACT_README = pathlib.Path(HERE).resolve().parents[1] / "enclosure" / "v1_demo_compact" / "README.md"
 EXPECTED_PASS = 7
-EXPECTED_NOT_MET = 3
+EXPECTED_NOT_MET = 4
 
 
 @pytest.fixture(scope="module")
@@ -58,17 +58,23 @@ def test_measured_inputs_are_the_ones_arsany_gave():
 
 def test_all_heights_flagged_not_measured():
     for n, v in P.PARTS.items():
-        assert v[5] == "WIRING", n          # no part height is measured yet
+        assert v[5] == "OWNER", n           # owner bound (A-094), no part height is measured yet
 
 
-def test_derived_levels_round2():
+def test_derived_levels_round3():
     assert P.STANDOFF_H == pytest.approx(12.2)
     assert P.Z_PB_BOT == pytest.approx(13.8) and P.Z_PB_TOP == pytest.approx(15.8)
-    assert P.Z_TOP == pytest.approx(29.8) and P.Z_LID_TOP == pytest.approx(31.4)
+    assert P.Z_TOP == pytest.approx(28.0) and P.Z_LID_TOP == pytest.approx(29.6)
     assert P.Z_SPLIT == pytest.approx(26.0)
-    assert P.LID_SHELL_H == pytest.approx(5.4)
+    assert P.LID_SHELL_H == pytest.approx(3.6)
     assert P.LID_SHELL_H <= P.LID_SHELL_H_R1 / 2 + 0.5                       # about half of round 1
-    assert P.screw_len()[0] == 8
+    assert P.screw_len()[0] == 6
+
+def test_lid_clears_owner_5mm_parts_with_margin():
+    assert max(v[4] for v in P.PARTS.values()) == pytest.approx(5.0)         # owner bound, A-094
+    assert P.Z_TOP - (P.Z_PB_TOP + 5.0) >= P.LID_MARGIN                      # >= 2.0 mm above every part
+    assert P.Z_TOP >= P.Z_SPLIT + P.LID_SKIRT - 1e-9                         # lid plate sits on the skirt above the seam
+    assert P.MAX_PART_H == pytest.approx(10.2)
 
 
 def test_both_usb_openings_fully_in_the_base():
@@ -168,7 +174,7 @@ def test_lid_openings(lid):
     zt = P.Z_TOP + P.LID_T / 2
     bx, by = P.BH_XYDOC[0], P.cy(P.BH_XYDOC[1])
     assert not solid_at(lid, bx, by, zt) and not solid_at(lid, bx, by, P.Z_TOP - 3)           # light window and collar bore
-    assert solid_at(lid, bx + 3.1, by, P.Z_TOP - 3)                                           # collar wall around it
+    assert solid_at(lid, bx + P.BH_WIN_D / 2 + 0.6, by, P.Z_TOP - 3)                          # collar wall around it (1.2 mm, mid-wall)
     ax, ay = P.AHT_XYDOC[0], P.cy(P.AHT_XYDOC[1])
     for i in range(P.VENT_N):
         assert not solid_at(lid, ax + (i - (P.VENT_N - 1) / 2) * P.VENT_PITCH, ay, zt)
@@ -185,7 +191,8 @@ def test_screw_posts_line_up(tray, lid):
     for x, y in P.boss_xy():
         assert not solid_at(tray, x, y, P.Z_SPLIT - 3.0)                                       # insert hole open from the top
         assert solid_at(tray, x + 2.6, y, P.Z_SPLIT - 3.0)                                     # boss wall
-        assert not solid_at(lid, x, y, P.Z_SPLIT + 3.0) and solid_at(lid, x + 2.0, y, P.Z_SPLIT + 3.0)   # clearance hole through the post
+        zm = P.Z_SPLIT + P.LID_SKIRT / 2                                                             # mid height of the lid post (round 3 skirt)
+        assert not solid_at(lid, x, y, zm) and solid_at(lid, x + 2.0, y, zm)                         # clearance hole through the post
         assert solid_at(lid, x + 2.0, y, P.Z_SPLIT - 0.5)                                      # spigot enters the boss counterbore
         assert not solid_at(tray, x + 2.0, y, P.Z_SPLIT - 0.5)                                 # counterbore free for it
 

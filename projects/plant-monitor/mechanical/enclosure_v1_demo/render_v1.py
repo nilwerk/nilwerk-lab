@@ -11,7 +11,7 @@ import params_v1 as P
 import enclosure_v1 as E
 import render as R           # mechanical/render.py: scene(), GREY
 
-OUT = pathlib.Path(__file__).resolve().parents[2] / "enclosure" / "v1_demo_compact"
+OUT = pathlib.Path(__file__).resolve().parents[2] / "enclosure" / "v1_demo_fit5"
 REN = OUT / "renders"
 GREY = np.array([0.55, 0.57, 0.60])
 AMBER = np.array([0.95, 0.65, 0.1]); GREEN = np.array([0.05, 0.45, 0.30]); BOARD = np.array([0.10, 0.35, 0.22])
@@ -60,11 +60,11 @@ def main():
     scene([(tray, GREY), (lid, GREY * 1.1)], REN / "v1_demo_hero.png",
             f"Plant Monitor v1 demo housing: base + lid, {dims} (PETG grey, left: two USB-C openings)", elev=38, azim=-62)
     scene([(tray, GREY), (cell, AMBER), (pb, BOARD), (parts, GREEN), (moved(lid, 34), GREY * 1.1)],
-            REN / "v1_demo_exploded.png", "Exploded: base with cradle, LiPo under the board (amber), perfboard + part boxes (green, heights ASSUMED), lid with pin guides and collar", elev=30, azim=-62)
+            REN / "v1_demo_exploded.png", "Exploded: base, LiPo under the board (amber), perfboard with 5 mm part boxes (green), lid", elev=30, azim=-62)
     fig, axs = plt.subplots(2, 1, figsize=(11, 6.2), dpi=150)
     for ax, ydoc, nm in ((axs[0], P.BH_XYDOC[1], "BH1750 / SuperMini USB-C row"), (axs[1], P.USB_TP_YDOC, "TP4056 USB-C / AHT20 vent row")):
         y0 = P.cy(ydoc)
-        section(ax, [(tray, "#555a60"), (lid, "#7d848b"), (pb, "#0f7a5c"), (parts, "#7fc9a8")], y0, f"Section y = {y0:.1f} ({nm}); green = perfboard and part boxes (heights ASSUMED)")
+        section(ax, [(tray, "#555a60"), (lid, "#7d848b"), (pb, "#0f7a5c"), (parts, "#7fc9a8")], y0, f"Section y = {y0:.1f} ({nm}); green = perfboard and part boxes (5 mm owner bound)")
     axs[1].set_xlabel("X mm")
     fig.savefig(REN / "v1_demo_section.png", bbox_inches="tight", facecolor="white"); plt.close(fig)
     # plan view
@@ -107,7 +107,7 @@ def main():
         yc = P.cy(ydoc); ax.add_patch(Rectangle((P.OX0 - 0.5, yc - P.PLUG_W / 2), 2.4, P.PLUG_W, fc="#ffd84d", ec="#333")); ax.text(P.OX0 - 1.5, yc, nm, fontsize=6, rotation=90, ha="right", va="center")
     ax.add_patch(Rectangle((P.J3_XYDOC[0] - P.CABLE_W / 2, P.OY0 - 0.5), P.CABLE_W, 2.4, fc="#ffd84d", ec="#333")); ax.text(P.J3_XYDOC[0], P.OY0 - 2.0, "soil cable exit", fontsize=6, ha="center", va="top")
     ax.set_xlim(P.OX0 - 8, P.OX1 + 3); ax.set_ylim(P.OY0 - 6, P.OY1 + 3); ax.set_aspect("equal")
-    ax.set_title(f"v1 demo housing plan, round 2 compact (lid off): outer {P.OX1 - P.OX0:.1f} x {P.OY1 - P.OY0:.1f} mm, inner height {P.Z_TOP - P.Z_FLOOR:.1f} mm, lid shell {P.LID_SHELL_H:.1f} mm; perfboard 70 x 50 in green; part positions per WIRING.md (UNVERIFIED)", fontsize=8)
+    ax.set_title(f"v1 demo housing plan, round 3 fit for 5 mm parts (lid off): outer {P.OX1 - P.OX0:.1f} x {P.OY1 - P.OY0:.1f} mm, inner height {P.Z_TOP - P.Z_FLOOR:.1f} mm, lid shell {P.LID_SHELL_H:.1f} mm; perfboard 70 x 50 in green; part positions per WIRING.md (UNVERIFIED)", fontsize=8)
     fig.savefig(REN / "v1_demo_plan.png", bbox_inches="tight", facecolor="white"); plt.close(fig)
     print("renders in", REN)
 
