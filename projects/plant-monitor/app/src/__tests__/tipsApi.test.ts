@@ -26,7 +26,7 @@ describe('tips request (FR-P02, NFR-06)', () => {
     const q = new URL(url).searchParams;
     expect(url.startsWith('https://example.invalid/rest/v1/tips?')).toBe(true);
     expect(q.get('plant_id')).toBe(`eq.${PLANT}`);
-    expect(q.get('guardrail_version')).toBe(`eq.${GUARDRAIL_VERSION_EXPECTED}`);
+    expect(q.get('guardrail_version')).toBeNull();   // no version filter: the newest row decides, then the version is checked
     expect(q.get('expires_at')).toBe(`gt.${NOW.toISOString()}`);
     expect(q.get('order')).toBe('generated_at.desc');
     expect(q.get('limit')).toBe('1');
@@ -39,6 +39,11 @@ describe('tips request (FR-P02, NFR-06)', () => {
     const f = jest.fn();
     await expect(client(f, null).fetchPlantTips(PLANT)).rejects.toMatchObject({ code: 'unauthorized' });
     expect(f).not.toHaveBeenCalled();
+  });
+
+  test('newest unexpired row is under another guardrail version: error, not an older g1.1 row (same as mcp_get_tips)', async () => {
+    const newer = { ...goodRow, guardrail_version: 'g1.2' };
+    await expect(client(jest.fn(async () => resp(200, [newer]))).fetchPlantTips(PLANT)).rejects.toMatchObject({ code: 'bad_response' });
   });
 
   test('no row (no tips stored yet, or all expired): null, which the screen shows as the empty state', async () => {

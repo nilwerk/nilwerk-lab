@@ -1,9 +1,11 @@
 // Client for the care tips of one plant (task 4.A7). Reads public.tips through PostgREST with the user's JWT, as the other app reads do
-// (plants/plantsRest.ts). Requirements: FR-P02 (only current, unexpired, current-guardrail rows; the answer is checked before it is shown),
+// (plants/plantsRest.ts). Requirements: FR-P02 (the newest unexpired row; it is refused unless it is under the current guardrail version, and it is checked before it is shown),
 // FR-P04 (the screen checks the plan first; the table policy tips_select_own_premium returns no rows to a free account), NFR-06 (RLS: own rows only).
-// Filters mirror mcp_get_tips (docs/interfaces/db-schema.sql / cloud/supabase/migrations/20261123000010_mcp_read_rpcs.sql).
+// Same order as mcp_get_tips (cloud/supabase/migrations/20261123000010_mcp_read_rpcs.sql): the newest unexpired row of any guardrail version,
+// then the version check (a newer row under another version is an error, never a silent fall back to an older row). The plant-ownership
+// check that mcp_get_tips does in SQL is done by RLS here.
 // NOT run against a live backend (no project exists, A-025); unit-tested with a fake fetch only.
-import { GUARDRAIL_VERSION_EXPECTED, parseTipsRow, type PlantTips } from './tipsModel';
+import { parseTipsRow, type PlantTips } from './tipsModel';
 
 export type TipsErrorCode = 'unauthorized' | 'network' | 'server' | 'bad_response' | 'unknown' | 'not_configured';
 
@@ -34,7 +36,6 @@ export const tipsUrl = (baseUrl: string, plantId: string, nowIso: string): strin
   const q = new URLSearchParams({
     select: 'generated_at,content,guardrail_version',
     plant_id: `eq.${plantId}`,
-    guardrail_version: `eq.${GUARDRAIL_VERSION_EXPECTED}`,
     expires_at: `gt.${nowIso}`,
     order: 'generated_at.desc',
     limit: '1',

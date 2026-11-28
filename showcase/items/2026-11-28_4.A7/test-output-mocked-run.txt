@@ -1,36 +1,38 @@
-PASS src/__tests__/plantTips.test.tsx
-  care tips: entitlement gate (FR-P04)
-    ✓ free account sees the upgrade message and no tips are read; no tip text is shown (178 ms)
-    ✓ plan cannot be read: error message and nothing is read (fails closed) (6 ms)
-  care tips: states (FR-P02)
-    ✓ loading: shows the loading line until the read answers; no tip before that (6 ms)
-    ✓ empty: no stored tips says "No tips yet for this plant." and lists nothing (5 ms)
-    ✓ empty: a stored row with no items is shown as the same empty state (8 ms)
-    ✓ error: shows the honest error copy (no cause named) and no tips; Try again reads again and then shows them (11 ms)
-    ✓ ready: shows each stored tip text and its category label, the plant name and the generated date (9 ms)
-
 PASS src/__tests__/tipsApi.test.ts
   tips request (FR-P02, NFR-06)
-    ✓ reads the newest current row of this plant with the user token, filtered like mcp_get_tips (8 ms)
-    ✓ no signed-in session: unauthorized, nothing is requested (1 ms)
+    ✓ reads the newest current row of this plant with the user token, filtered like mcp_get_tips (15 ms)
+    ✓ no signed-in session: unauthorized, nothing is requested (2 ms)
+    ✓ newest unexpired row is under another guardrail version: error, not an older g1.1 row (same as mcp_get_tips) (1 ms)
     ✓ no row (no tips stored yet, or all expired): null, which the screen shows as the empty state (1 ms)
     ✓ a row whose items are all absent: null (empty state), not an error (1 ms)
-    ✓ 401 answer maps to unauthorized
+    ✓ 401 answer maps to unauthorized (1 ms)
     ✓ 403 answer maps to unknown (1 ms)
-    ✓ 500 answer maps to server
+    ✓ 500 answer maps to server (1 ms)
     ✓ object body answer maps to bad_response (1 ms)
-    ✓ invalid json answer maps to bad_response
+    ✓ invalid json answer maps to bad_response (1 ms)
     ✓ network failure maps to network (1 ms)
     ✓ tipsUrl encodes the plant id and trims the base url (1 ms)
   stored tips must match the contract (FR-P02, same rule as the MCP server)
-    ✓ a row stored under another guardrail version is refused
+    ✓ a row stored under another guardrail version is refused (1 ms)
     ✓ one bad item fails the whole row (1 ms)
-    ✓ text longer than the contract maximum is refused
-    ✓ missing content, or a bad generated_at, is refused
+    ✓ text longer than the contract maximum is refused (1 ms)
+    ✓ missing content, or a bad generated_at, is refused (1 ms)
     ✓ extra fields on an item (such as an internal reason) are not returned to the screen (1 ms)
 
+PASS src/__tests__/plantTips.test.tsx
+  care tips: entitlement gate (FR-P04)
+    ✓ free account sees the upgrade message and no tips are read; no tip text is shown (280 ms)
+    ✓ premium with zero rows (RLS returns nothing, no tips stored): empty state shown, no error, no upgrade notice (9 ms)
+    ✓ plan cannot be read: error message and nothing is read (fails closed) (7 ms)
+  care tips: states (FR-P02)
+    ✓ loading: shows the loading line until the read answers; no tip before that (7 ms)
+    ✓ empty: no stored tips says "No tips yet for this plant." and lists nothing (6 ms)
+    ✓ empty: a stored row with no items is shown as the same empty state (6 ms)
+    ✓ error: shows the honest error copy (no cause named) and no tips; Try again reads again and then shows them (13 ms)
+    ✓ ready: shows each stored tip text and its category label, the plant name and the generated date (8 ms)
+
 Test Suites: 2 passed, 2 total
-Tests:       23 passed, 23 total
+Tests:       25 passed, 25 total
 Snapshots:   0 total
-Time:        1.223 s
+Time:        1.819 s
 Ran all test suites matching src/__tests__/plantTips.test.tsx|src/__tests__/tipsApi.test.ts.

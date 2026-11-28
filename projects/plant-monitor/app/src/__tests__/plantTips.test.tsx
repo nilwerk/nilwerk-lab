@@ -49,6 +49,16 @@ describe('care tips: entitlement gate (FR-P04)', () => {
     expect(onPremium).toHaveBeenCalled();
   });
 
+  test('premium with zero rows (RLS returns nothing, no tips stored): empty state shown, no error, no upgrade notice', async () => {
+    const tips = tipsStub(async () => null);
+    await mountScreen(svcWith(true), tips);
+    expect(await screen.findByText(t('tips.empty'))).toBeTruthy();
+    expect(tips.fetchPlantTips).toHaveBeenCalledWith(PLANT_ID);
+    expect(screen.queryByText(t('tips.error'))).toBeNull();
+    expect(screen.queryByText(t('tips.upgrade.title'))).toBeNull();
+    expect(screen.queryByText(t('tips.profileError'))).toBeNull();
+  });
+
   test('plan cannot be read: error message and nothing is read (fails closed)', async () => {
     const tips = tipsStub(async () => tipsFixture);
     await mountScreen(svcWith('error'), tips);

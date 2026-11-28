@@ -397,7 +397,7 @@
   "mcp.keys.name.required": "Give the key a name.",
   "mcp.keys.name.long": "Use at most {max} characters.",
   "tips.title": "Care tips",
-  "tips.intro": "Care tips for {plantName}, as stored for this plant. Check the soil yourself before you act on a tip.",
+  "tips.intro": "Care tips for {plantName}, as stored for this plant.",
   "tips.loading": "Loading tips...",
   "tips.empty": "No tips yet for this plant.",
   "tips.error": "Could not load the care tips. Try again.",
