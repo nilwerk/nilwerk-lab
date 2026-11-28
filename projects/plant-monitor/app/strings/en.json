@@ -403,5 +403,20 @@
   "profile.price.heading": "Plans",
   "sheet.good": "Good",
   "sheet.low": "Low",
-  "plant.reading.soilLabel": "Soil moisture now"
+  "plant.reading.soilLabel": "Soil moisture now",
+  "tips.title": "Care tips",
+  "tips.intro": "Care tips for {plantName}, as stored for this plant.",
+  "tips.loading": "Loading tips...",
+  "tips.empty": "No tips yet for this plant.",
+  "tips.error": "Could not load the care tips. Try again.",
+  "tips.generated": "Generated {date}",
+  "tips.category.watering": "Watering",
+  "tips.category.light": "Light",
+  "tips.category.temperature": "Temperature",
+  "tips.category.feeding": "Feeding",
+  "tips.category.safety": "Safety",
+  "tips.category.other": "Other",
+  "tips.profileError": "Could not check your plan. Nothing was loaded. Try again.",
+  "tips.upgrade.title": "Premium feature",
+  "tips.upgrade.body": "Care tips for each plant are part of Premium. Free accounts do not load any tips."
 }

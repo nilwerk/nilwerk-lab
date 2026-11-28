@@ -113,10 +113,10 @@ flowchart LR
   DB -- "L-09 insert trigger / cron scan" --> ALR
   ALR -- "L-10 push request" --> PUSH
   PUSH -. "notification" .-> MOB
-  MOB -- "L-11 get tips (JWT)" --> TIP
+  MOB -- "L-11 read tips (JWT, RLS, premium)" --> DB
   TIP -- "L-12 forecast + geocode" --> WX
   TIP -- "L-13 prompt, guarded output" --> LLM
-  TIP -- "L-14 read plant, readings; write tips" --> DB
+  TIP -- "L-14 read plant, readings; write tips (service role)" --> DB
   MOB -- "L-15 charts (JWT, premium)" --> ANA
   ANA -- "L-16 aggregate queries" --> DB
   AIA -- "L-17 MCP over HTTPS, personal API key" --> MCP
@@ -166,10 +166,10 @@ Contracts are written in 2.4 (`docs/interfaces/`); this table fixes the style an
 | L-08 | App -> edge fn | HTTPS JSON: claim, release, delete account, export, key mgmt | user JWT | OpenAPI | FR-A01, FR-A08, NFR-07 |
 | L-09 | DB -> alert engine | insert trigger + pg_cron scan (offline detection) | internal | alert rules doc | FR-A07 |
 | L-10 | Alert -> Expo Push | HTTPS | access token (secret) | payload with no sensitive data | FR-A07 |
-| L-11 | App -> tips | HTTPS | user JWT + premium check | OpenAPI `/tips` | FR-P02 |
+| L-11 | App -> tips (read) | HTTPS, PostgREST on `public.tips` | user JWT; RLS `tips_select_own_premium` (own rows, premium only) | `db-schema.sql` table `tips` (no `/tips` edge function) | FR-P02, FR-P04 |
 | L-12 | Tips -> weather | HTTPS REST | none/API key | provider adapter interface | FR-P02, Q-13 |
 | L-13 | Tips -> Claude API | HTTPS, structured JSON output | API key in Supabase secret | prompt + output schema + rule list | FR-P02, Q-13 |
-| L-14, L-16, L-18 | Edge fn -> DB | SQL | scoped role / RPC | schema | FR-P01..P03 |
+| L-14, L-16, L-18 | Edge fn -> DB | SQL | scoped role / RPC (tips writes: service role only) | schema | FR-P01..P03 |
 | L-15 | App -> analytics | HTTPS | JWT + premium | OpenAPI `/analytics` | FR-P01 |
 | L-17 | AI assistant -> MCP | MCP, Streamable HTTP | `Bearer <personal API key>` (hash stored, revocable) | `interfaces/mcp-tools.json` | FR-P03, NFR-06 |
 | L-20 | Hub HA bridge -> HA | MQTT 3.1.1/5, HA discovery topics (broker is the hub's Mosquitto, or a bridge to the user's HA broker) | hub-local credentials | `interfaces/ha-discovery.md` | FR-I01 |
