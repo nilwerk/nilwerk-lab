@@ -25,6 +25,8 @@ import { PlantsScreen } from './src/screens/PlantsScreen';
 import { PlantDetailScreen } from './src/screens/PlantDetailScreen';
 import { PlantRemovedScreen, RemovePlantScreen, type RemoveOutcome } from './src/screens/RemovePlantScreen';
 import { PlantGalleryScreen } from './src/screens/PlantGalleryScreen';
+import { PlantTipsScreen } from './src/screens/PlantTipsScreen';
+import { createTipsClient, unconfiguredTips, type TipsService } from './src/tips/tipsApi';
 import { AlertsScreen } from './src/screens/AlertsScreen';
 import { PremiumDashboardScreen } from './src/screens/PremiumDashboardScreen';
 import { ConnectAiScreen } from './src/screens/ConnectAiScreen';
@@ -47,7 +49,7 @@ import { createEspAdapter } from './src/provisioning/espAdapter';
 import { createFetchClaimApi } from './src/provisioning/claimApi';
 import type { SetupServices } from './src/provisioning/types';
 
-type Route = 'welcome' | AuthMode | 'plants' | 'alerts' | 'setup' | 'plant' | 'gallery' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium' | 'dashboard' | 'connectAi';
+type Route = 'welcome' | AuthMode | 'plants' | 'alerts' | 'setup' | 'plant' | 'gallery' | 'tips' | 'remove' | 'removed' | 'profile' | 'delete' | 'premium' | 'dashboard' | 'connectAi';
 type Removed = RemoveOutcome;
 
 /** Service used when no Supabase config is present: every call reports "not configured" instead of crashing. */
@@ -56,20 +58,21 @@ function unconfiguredAuth(): AuthService {
   return { getSession: async () => null, onChange: () => () => undefined, signUp: no, signIn: no, signOut: no, getProfile: no, updateDisplayName: no, deleteAccount: no, getAccessToken: async () => null };
 }
 
-export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnalytics, apiKeys = unconfiguredApiKeys }: { contactEmail: string; banner?: string; setup: SetupServices; analytics?: AnalyticsService; apiKeys?: ApiKeysService }) {
+export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnalytics, apiKeys = unconfiguredApiKeys, tips = unconfiguredTips }: { contactEmail: string; banner?: string; setup: SetupServices; analytics?: AnalyticsService; apiKeys?: ApiKeysService; tips?: TipsService }) {
   const { state } = useAuth();
   const th = useTheme();
   const [route, setRoute] = useState<Route>('welcome');
   const [plantId, setPlantId] = useState<string | null>(null);
   const [toRemove, setToRemove] = useState<PlantDetail | null>(null);
   const [gallery, setGallery] = useState<PlantSummary | null>(null);
+  const [tipsFor, setTipsFor] = useState<PlantSummary | null>(null);
   const [removed, setRemoved] = useState<Removed | null>(null);
   const signedOut = state.status === 'signedOut';
   useEffect(() => { if (signedOut) setOpenAlerts(0); }, [signedOut]);
   // Alerts badge: cached. Written by the plant list and the alerts screen when they load; not re-read on every navigation.
   const [openAlerts, setOpenAlerts] = useState(0);
   // a signed-out user starts again at the welcome screen, so the next sign-in lands on the plants tab
-  useEffect(() => { if (signedOut) { setRoute('welcome'); setPlantId(null); setToRemove(null); setGallery(null); setRemoved(null); } }, [signedOut]);
+  useEffect(() => { if (signedOut) { setRoute('welcome'); setPlantId(null); setToRemove(null); setGallery(null); setTipsFor(null); setRemoved(null); } }, [signedOut]);
 
   if (state.status === 'loading') {
     return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: th.color.bg }}><ActivityIndicator accessibilityLabel={t('common.loading')} color={th.color.accent} /></View>;
@@ -94,9 +97,12 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
     screen = <PremiumScreen contactEmail={contactEmail} onBack={() => setRoute('profile')} />;
   } else if (route === 'plant' && plantId) {
     screen = <PlantDetailScreen plantId={plantId} onBack={() => setRoute('plants')} onRemove={(d) => { setToRemove(d); setRoute('remove'); }}
-      onGallery={(p) => { setGallery(p); setRoute('gallery'); }} />;
+      onGallery={(p) => { setGallery(p); setRoute('gallery'); }} onTips={(p) => { setTipsFor(p); setRoute('tips'); }} />;
   } else if (route === 'gallery' && gallery) {
     screen = <PlantGalleryScreen plant={gallery} onBack={() => setRoute('plant')} />;
+  } else if (route === 'tips' && tipsFor) {
+    // FR-P04: the tips screen checks the plan itself; free accounts see the upgrade notice and no tips are read.
+    screen = <PlantTipsScreen tips={tips} plantId={tipsFor.id} plantName={tipsFor.name} onBack={() => setRoute('plant')} onPremium={() => setRoute('premium')} />;
   } else if (route === 'remove' && toRemove) {
     screen = <RemovePlantScreen plant={toRemove.plant} onCancel={() => setRoute('plant')}
       onRemoved={(r) => { setRemoved(r); setToRemove(null); setPlantId(null); setRoute('removed'); }} />;
@@ -144,6 +150,10 @@ export default function App() {
   const analytics = useMemo<AnalyticsService>(() => (mock ? createFakeAnalytics() : isConfigured(cfg)
     ? createAnalyticsClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
     : unconfiguredAnalytics), [cfg, mock, service]);
+  // 4.A7: care tips client (FR-P02). Reads the tips table as the user under RLS; the mock build and unconfigured builds report not_configured and fetch nothing.
+  const tips = useMemo<TipsService>(() => (!mock && isConfigured(cfg)
+    ? createTipsClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
+    : unconfiguredTips), [cfg, mock, service]);
   // 4.A8: MCP key client (FR-P03). The /api-keys edge function is built (4.B2d) but not deployed; mock and unconfigured builds report not_configured and fetch nothing.
   const apiKeys = useMemo<ApiKeysService>(() => (!mock && isConfigured(cfg)
     ? createApiKeysClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
@@ -155,7 +165,7 @@ export default function App() {
     <AuthProvider service={service}>
       <PlantsProvider service={plants}>
         <StatusBar style="auto" />
-        <Root contactEmail={cfg.contactEmail} banner={mock ? t('app.mockBanner') : undefined} setup={setup} analytics={analytics} apiKeys={apiKeys} />
+        <Root contactEmail={cfg.contactEmail} banner={mock ? t('app.mockBanner') : undefined} setup={setup} analytics={analytics} apiKeys={apiKeys} tips={tips} />
       </PlantsProvider>
     </AuthProvider>
     </SafeAreaProvider>

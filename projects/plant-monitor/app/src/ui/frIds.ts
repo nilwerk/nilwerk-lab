@@ -7,7 +7,7 @@ export const SCREEN_FR = {
   profile: ['FR-A01', 'FR-P04', 'NFR-06'],   // S03 Profile (plan mirrors profiles.is_premium; own row only under RLS)
   deleteAccount: ['FR-A01', 'NFR-07'],       // S04 Delete account (DELETE /account, 0 rows remain)
   plants: ['FR-A06', 'FR-A02', 'NFR-06'],     // S20 Plant list with status chips (no device cap)
-  plantDetail: ['FR-A06', 'FR-A04', 'FR-A08'],  // S21 Plant detail: latest values, 7-day chart + hourly table (FR-D02 in HourlyTable), metadata (FR-A04), entry to photos and remove
+  plantDetail: ['FR-A06', 'FR-A04', 'FR-A08', 'FR-P02', 'FR-P04', 'NFR-06'],  // S21 Plant detail: latest values, 7-day chart + hourly table (FR-D02 in HourlyTable), metadata (FR-A04), entry to photos, care tips (FR-P02, FR-P04) and remove
   plantGallery: ['FR-A05', 'NFR-06'],         // S23 Photo gallery: unlimited dated photos, newest/oldest first
   removePlant: ['FR-A08', 'A-022', 'NFR-07'],   // S24b/S24c Remove plant (delete_plant), keep/release sensor
   setup: ['FR-A03', 'FR-D03', 'FR-A04', 'FR-A05', 'NFR-03'], // S10-S16 device setup (A-023: no hub step); FR-D02/D07/A02 also cited in SetupSteps
