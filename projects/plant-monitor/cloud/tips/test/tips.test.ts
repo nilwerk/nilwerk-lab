@@ -194,6 +194,20 @@ test("rule-based mode ignores an assistant entirely (TIPS_MODE default, A-029)",
   const r = await run(plant(), read(10), mild, { assistant: { propose: () => { called++; return Promise.resolve([]); } } });
   assert.equal(called, 0); assert.equal(r.mode, "rule_based"); assert.ok(r.tips.every((t) => t.source === "rules"));
 });
+test("A-156: live LLM is OFF by default; the assistant is called only with mode 'live' AND an injected assistant", async () => {
+  let called = 0;
+  const spy = { propose: () => { called++; return Promise.resolve([evil("leaf", "general", "Wipe the leaves with a damp cloth.")]); } };
+  const dflt = await run(plant({ locationType: "house" }), read(50), mild, { assistant: spy });   // no mode given
+  assert.equal(dflt.mode, "rule_based"); assert.equal(called, 0, "default: no LLM call");
+  assert.ok(!dflt.tips.some((t) => t.source === "llm"));
+  const rb = await run(plant({ locationType: "house" }), read(50), mild, { mode: "rule_based", assistant: spy });
+  assert.equal(rb.mode, "rule_based"); assert.equal(called, 0, "explicit rule_based: no LLM call");
+  const noAssistant = await run(plant({ locationType: "house" }), read(50), mild, { mode: "live" });   // live without a provider: nothing to call
+  assert.equal(noAssistant.mode, "live"); assert.ok(!noAssistant.tips.some((t) => t.source === "llm"));
+  assert.equal(called, 0);
+  const live = await run(plant({ locationType: "house" }), read(50), mild, { mode: "live", assistant: spy });   // positive control: the spy does fire when live is set
+  assert.equal(called, 1, "explicit live with an assistant: exactly one call"); assert.ok(live.tips.some((t) => t.source === "llm"));
+});
 test("a harmless assistant tip passes through, marked source=llm", async () => {
   const r = await run(plant({ locationType: "house" }), read(50), mild, { mode: "live", assistant: llm([evil("leaf", "general", "Wipe the leaves with a damp cloth.")]) });
   assert.equal(r.tips.find((t) => t.id === "llm-leaf")?.source, "llm");

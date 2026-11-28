@@ -229,6 +229,15 @@ test("FR-P03: a key created by the function authenticates against the MCP server
   if (!after.ok) assert.equal(after.response.status, 401);
 });
 
+/** The MCP server's key check (mcp.ts authenticate) against the real mcp_resolve_key function. */
+const mcpAccepts = (key: string) => authenticate(new Request("http://x/mcp", { method: "POST", headers: { authorization: `Bearer ${key}` } }), {
+  rpc: (name, args) => {
+    assert.equal(name, "mcp_resolve_key");
+    const r = psql(url!, "select public.mcp_resolve_key(:'h')::text;", { h: String(args.p_key_hash) });
+    return Promise.resolve(r.ok ? { data: r.out === "" ? null : r.out, error: null } : { data: null, error: { message: r.err } });
+  },
+});
+
 test("revoke twice: both 204, and the first revoked_at is kept", db, async () => {
   const first = q(`select revoked_at::text from public.api_keys where id = :'id'`, { id: idP1 });
   assert.notEqual(first, "");
@@ -272,4 +281,20 @@ test("500 on a database failure (no database text in the body)", db, async () =>
   const r = await handleApiKeys(post({ name: "n" }, "jwt-p"), broken);
   const text = await r.text();
   assert.equal(r.status, 500); assert.deepEqual(JSON.parse(text), { error: "internal" }); assert.ok(!text.includes("no_such_table"));
+});
+
+// Last on purpose: it creates a key for P, and the list test above asserts P's exact key names.
+test("FR-P03 (F-06): DELETE /api-keys/{id} revokes the key in the database; the first and the second use after it are refused with 401", db, async () => {
+  const made = await handleApiKeys(post({ name: "Revoke me" }, "jwt-p"), dbDeps());
+  assert.equal(made.status, 201);
+  const { id, key } = await made.json() as { id: string; key: string };
+  assert.equal((await mcpAccepts(key)).ok, true, "before the DELETE the key is accepted (the test is not vacuous)");
+  const r = await handleApiKeys(del(id, "jwt-p"), dbDeps());
+  assert.equal(r.status, 204);
+  assert.equal(q(`select revoked_at is not null from public.api_keys where id = :'id'`, { id }), "t", "the row is revoked, not only the response");
+  for (const use of ["first", "second"]) {
+    const after = await mcpAccepts(key);
+    assert.equal(after.ok, false, `${use} use after the revoke must be refused`);
+    if (!after.ok) assert.equal(after.response.status, 401, `${use} use after the revoke`);
+  }
 });

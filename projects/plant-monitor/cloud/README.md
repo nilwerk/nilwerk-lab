@@ -82,6 +82,7 @@ rows of user B on each table (`test/rls_isolation.sql`); retention/roll-up (`tes
 hourly roll-up 12 months); the Architect's `db-schema.test.sql` on the migrated DB; the edge functions end to end against that DB (`test/functions/api.test.ts`: claim, hash-only storage, 96-sample batch, replay idempotency, token isolation A vs B, revoked/released tokens, API roles locked out of the functions); `test/openapi_check.py` (code == OpenAPI; needs PyYAML) and Node >= 22.6.
 `test/mutation.sh` is the mutation check: 17 one-line mutants of the token-hash, auth, claim and idempotency logic, each must make the tests fail (`NW_ONLY=api test.sh` is its quick mode). A stub `auth` schema and the roles
 `anon/authenticated/service_role` replace what Supabase provides (`test/stub_auth.sql`, `test/grants.sql`).
+**Not verified offline (F-03, FR-A05, NFR-06):** the `plant-photos` owner-folder policy in `supabase/migrations/20261107000003_storage.sql` never runs in these tests, because the local stack has no `storage` schema and the migration skips its policy there. Nothing here proves that a user can read or write only `<uid>/...` photo paths. This needs a live check on `nilwerk-cloud` with two throwaway users: upload under each user's folder, then confirm the other user gets no access.
 
 ## Run the full stack locally
 Needs Docker and the [Supabase CLI](https://supabase.com/docs/guides/cli): `cd projects/plant-monitor/cloud && supabase start && supabase db reset`
