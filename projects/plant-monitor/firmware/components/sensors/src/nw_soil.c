@@ -1,26 +1,23 @@
-/* Soil probe calibration and measurement. FR-D01 (moisture 0-100 %), NFR-02, NFR-12 (IO3 supply low unless measuring). */
+/* Soil probe calibration and measurement. FR-D10 (2-point dry/wet calibration), FR-D01 (moisture 0-100 %), NFR-02 (accuracy after calibration),
+ * NFR-12 (IO3 supply low unless measuring). */
 #include "nw_soil.h"
-
-static int iabs(int v) { return v < 0 ? -v : v; }
 
 nw_err_t nw_soil_normalise(const nw_soil_cal_t *cal, int raw, nw_soil_t *out)
 {
     if (!cal || !out) return NW_ERR_ARG;
-    if (iabs(cal->dry_raw - cal->wet_raw) < NW_SOIL_MIN_SPAN_COUNTS) return NW_ERR_CAL;
+    /* Direction (owner bench, 28 Nov; A-094, A-154): this probe reads LOW in dry air (about 15-25 counts) and HIGH in water (about 360).
+     * So dry_raw must be the lower count. A swapped pair has a negative span and is refused, never silently inverted. */
+    if (cal->wet_raw - cal->dry_raw < NW_SOIL_MIN_SPAN_COUNTS) return NW_ERR_CAL;
     out->raw = raw;
     out->flags = 0;
     if (raw <= 0 || raw >= 4095) out->flags |= NW_SOIL_F_RAIL;
-    /* pct = (raw - dry) / (wet - dry); works whichever of dry/wet is the larger count. Clamp first, flag the side. */
-    int dry_side = (cal->dry_raw > cal->wet_raw) ? (raw > cal->dry_raw) : (raw < cal->dry_raw);
-    int wet_side = (cal->dry_raw > cal->wet_raw) ? (raw < cal->wet_raw) : (raw > cal->wet_raw);
+    /* pct = (raw - dry) / (wet - dry) x 100 with dry < wet. Clamp first, flag the end that was hit. */
     int v = raw;
-    if (dry_side) { v = cal->dry_raw; out->flags |= NW_SOIL_F_CLAMPED_DRY; }
-    if (wet_side) { v = cal->wet_raw; out->flags |= NW_SOIL_F_CLAMPED_WET; }
-    long long num = (long long)(v - cal->dry_raw) * 1000;
-    long long den = (long long)(cal->wet_raw - cal->dry_raw);
-    /* num and den always have the same sign after clamping (dry>wet: both <= 0), so C truncation rounds to nearest */
-    long long p = (num + den / 2) / den;
-    out->pct_x10 = (int)p;
+    if (raw < cal->dry_raw) { v = cal->dry_raw; out->flags |= NW_SOIL_F_CLAMPED_DRY; }
+    if (raw > cal->wet_raw) { v = cal->wet_raw; out->flags |= NW_SOIL_F_CLAMPED_WET; }
+    long long num = (long long)(v - cal->dry_raw) * 1000;   /* 0 .. span x 1000, never negative after clamping */
+    long long den = (long long)(cal->wet_raw - cal->dry_raw); /* > 0 */
+    out->pct_x10 = (int)((num + den / 2) / den);             /* rounds to nearest 0.1 % */
     return NW_OK;
 }
 

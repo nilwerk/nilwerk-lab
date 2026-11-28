@@ -1,6 +1,7 @@
-/* Capacitive soil probe: two-point calibration to 0-100 % relative moisture (FR-D01, NFR-02, FR-D10 later).
+/* Capacitive soil probe: two-point calibration to 0-100 % relative moisture (FR-D10 procedure, FR-D01, NFR-02).
  * Calibration points are raw 12-bit ADC counts, as in docs/interfaces/device-report.schema.json (cal.dry_raw/wet_raw).
- * Works for either direction (analog v1.2 probe: dry reads high; the custom-board oscillator: dry reads high frequency). */
+ * Direction: on the dev-kit analog probe the raw count is LOW in dry air and HIGH in water, so dry_raw < wet_raw is required
+ * (owner bench 28 Nov, A-094/A-154). nw_soil_normalise refuses a swapped pair with NW_ERR_CAL. */
 #ifndef NW_SOIL_H
 #define NW_SOIL_H
 #include "nw_hal.h"

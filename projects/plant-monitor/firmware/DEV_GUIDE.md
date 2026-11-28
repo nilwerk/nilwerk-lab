@@ -294,7 +294,7 @@ You need the wiring first: WO-005 steps 2 and 3 (DevKit) or [`v1/WIRING.md`](../
 
 Right after the boot messages of ESP-IDF, one start line:
 ```
-I (<ms>) plant_monitor: NWBENCH start board=devkit wake=1 cal_dry=2800 cal_wet=1200 divider=100000/100000 (CALIBRATION IS A PLACEHOLDER UNTIL SET ON THE BENCH)
+I (<ms>) plant_monitor: NWBENCH start board=devkit wake=1 cal_dry=20 cal_wet=360 divider=100000/100000 (CALIBRATION IS A PLACEHOLDER UNTIL SET ON THE BENCH)
 ```
 (SuperMini: `board=v1_supermini`.) On the v1 build there must be **no** `NWSETUP` line.
 
@@ -312,8 +312,8 @@ About 60 s later the board restarts and prints `NWBENCH start ... wake=2 ...` an
 
 | Field | Sensor | Healthy looks like | Source |
 |---|---|---|---|
-| `soil_raw` | capacitive probe, 12-bit ADC counts | a number between 0 and 4095; **higher in dry air, lower in water**; steady within about 30 counts | issue #68 step 8 |
-| `soil_pct`, `soil_flags` | calibrated 0 to 100 % | meaningless until you set the dry/wet numbers (defaults 2800/1200 are placeholders); `soil_flags` `0x01`/`0x02` = clamped at an end, `0x04` = raw 0 or 4095 (stuck at a rail: report it) | issue #68 step 8.5, `v1/FIRMWARE-BENCH.md` S4 |
+| `soil_raw` | capacitive probe, 12-bit ADC counts | a number between 0 and 4095; **lower in dry air (15-25 counts), higher in water (about 360)**; steady within about 30 counts | issue #68 step 8 |
+| `soil_pct`, `soil_flags` | calibrated 0 to 100 % | meaningless until you set the dry/wet numbers (defaults 20/360 are the owner's air and water readings of 28 Nov, not a per-soil calibration; dry must stay below wet); `soil_flags` `0x01`/`0x02` = clamped at an end, `0x04` = raw 0 or 4095 (stuck at a rail: report it) | issue #68 step 8.5, `v1/FIRMWARE-BENCH.md` S4 |
 | `temp_c`, `rh_pct` | AHT20 | plausible room values; breath raises `rh_pct` by 10 %RH or more within 10 s; a finger nearby raises `temp_c` by 0.5 degC or more in 20 s | issue #68 step 6 |
 | `lux`, `lux_raw` | BH1750 | room light: `lux_raw` is not 65535 and `lux` above 0; covered: below 5; torch 5 cm away: above 100 | issue #68 step 7 |
 | `vbat_mv`, `vbat_adc_mv`, `vbat_plausible` | battery divider on GPIO0 | with a cell: within 50 mV of your multimeter; `vbat_plausible=1` for 3.0 to 4.25 V. **On USB only (v1, J1 open) the divider sees USB 5 V: about 5000 mV and `vbat_plausible=0` is correct, it is not a battery reading** | issue #68 step 10, `v1/FIRMWARE-BENCH.md` S3 |

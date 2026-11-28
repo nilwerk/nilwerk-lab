@@ -85,14 +85,14 @@ forbid() {  # forbid <name> <extended regex that must match no line>
 
 # Boot lines (from main/main.c, expected values from the mock constants in main/sim_mock_hal.c)
 check "mock banner (labelled MOCK)"       '^NWSIMMOCK sensors=MOCK fixed values, NOT sensor data'
-check "boot line, v1 board, wake 1"       'NWBENCH start board=v1_supermini wake=1 cal_dry=2800 cal_wet=1200 divider=100000/100000'
+check "boot line, v1 board, wake 1"       'NWBENCH start board=v1_supermini wake=1 cal_dry=20 cal_wet=360 divider=100000/100000'
 for i in 0 1 2 3 4; do
     check "reading i=$i, all drivers err=0" "^NWBENCH wake=1 i=$i .*err=soil:0,aht:0,bh:0,bat:0\$"
 done
 # Sensor code path: the drivers decode the mock inputs to the expected values (every reading must show them)
 check "AHT20 decode: 23.45 C, 41.25 %RH"  'temp_c=23\.45 rh_pct=41\.25'
 check "BH1750 decode: raw 300 -> 250.0 lx" 'lux=250\.0 lux_raw=300'
-check "soil normalise: raw 2000 -> 50.0 %" 'soil_raw=2000 soil_pct=50\.0 soil_flags=0x00'
+check "soil normalise: raw 190 -> 50.0 %" 'soil_raw=190 soil_pct=50\.0 soil_flags=0x00'
 check "battery: 2100 mV pin -> 4200 mV, plausible" 'vbat_mv=4200 vbat_adc_mv=2100 vbat_plausible=1 divider_na=21000'
 check "sleep call reached"                'NWBENCH sleep s=60 '
 # Forbidden lines
