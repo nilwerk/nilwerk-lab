@@ -161,4 +161,14 @@ if(Python3_FOUND)
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_bench_soil_power.py)
   add_test(NAME bench_soil_power_on_selftest
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_bench_soil_power.py --selftest)
+  # Soil direction and calibration defaults: dry 20 < wet 360 (task 4.F5, FR-D10, FR-D01, NFR-02)
+  add_test(NAME soil_direction_defaults
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_soil_direction.py)
+  add_test(NAME soil_direction_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_soil_direction.py --selftest)
+  # Upload TLS pinned to the ADR-004 CA, not the bundle (task 4.F5, security checklist 5.9 F-01, NFR-06)
+  add_test(NAME upload_tls_pin
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_upload_tls_pin.py)
+  add_test(NAME upload_tls_pin_selftest
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_upload_tls_pin.py --selftest)
 endif()

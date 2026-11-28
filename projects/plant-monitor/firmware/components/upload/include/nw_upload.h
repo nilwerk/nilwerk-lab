@@ -93,7 +93,7 @@ typedef struct {
 
 typedef struct {
     void *ctx;
-    /* POST url, headers Authorization: <auth> and Content-Type: application/json, body. Over TLS with the pinned CA / bundle.
+    /* POST url, headers Authorization: <auth> and Content-Type: application/json, body. Over TLS with the pinned CA (ADR-004).
      * Returns 0 when an HTTP answer was received (filled into resp, valid until the next call), negative on any transport
      * failure (DNS, TLS, connect, timeout). */
     int (*post)(void *ctx, const char *url, const char *auth, const char *body, size_t len, nw_upload_http_resp_t *resp);

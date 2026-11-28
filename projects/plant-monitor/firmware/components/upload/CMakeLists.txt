@@ -1,5 +1,5 @@
 # Hourly upload (task 4.F3). nw_upload.c (response table, backoff) and nw_cycle.c (one wake: credentials check, sample mapping, cadence, report/outage
-# state) are pure C and also built by test/host without ESP-IDF. nw_upload_idf.c (Wi-Fi, SNTP, esp_http_client with the certificate bundle) is
+# state) are pure C and also built by test/host without ESP-IDF. nw_upload_idf.c (Wi-Fi, SNTP, esp_http_client with the pinned CA, nw_ingest_ca.h) is
 # IDF-only and compiled only with CONFIG_PLANT_UPLOAD (default off). NOT COMPILED by its author (slice 3): the first compile is CI's upload build step.
 set(srcs "src/nw_upload.c" "src/nw_cycle.c")
 if(CONFIG_PLANT_UPLOAD)

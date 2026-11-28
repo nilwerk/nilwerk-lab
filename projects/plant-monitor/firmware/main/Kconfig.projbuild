@@ -16,17 +16,19 @@ menu "Plant Monitor"
 
     config PLANT_SOIL_DRY_RAW
         int "Soil probe raw counts in dry air (calibration point, 12-bit)"
-        default 2800
+        default 20
         range 0 4095
         help
-            PLACEHOLDER, UNVERIFIED: no probe has been measured. Replace with the bench value (WO-firmware-4.F1).
+            Dry end of the 2-point calibration (FR-D10). Default 20 = owner bench reading in air (15-25 counts, 28 Nov).
+            Must be LOWER than the wet point: the probe reads low when dry. Still a placeholder for NFR-02: set per soil type.
 
     config PLANT_SOIL_WET_RAW
         int "Soil probe raw counts in water (calibration point, 12-bit)"
-        default 1200
+        default 360
         range 0 4095
         help
-            PLACEHOLDER, UNVERIFIED: no probe has been measured. Replace with the bench value (WO-firmware-4.F1).
+            Wet end of the 2-point calibration (FR-D10). Default 360 = owner bench reading in water (28 Nov).
+            Must be HIGHER than the dry point. Still a placeholder for NFR-02: set per soil type.
 
     config PLANT_SIM_MOCK_SENSORS
         bool "SIMULATOR ONLY: mocked sensor values instead of I2C/ADC (QEMU, no hardware)"

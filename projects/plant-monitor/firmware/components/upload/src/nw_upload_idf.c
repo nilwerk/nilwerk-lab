@@ -8,7 +8,6 @@
 #include <sys/time.h>
 #include <time.h>
 
-#include "esp_crt_bundle.h"
 #include "esp_event.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -19,6 +18,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "nvs_flash.h"
+#include "nw_ingest_ca.h"
 #include "nw_prov_store_nvs.h"
 
 static const char *TAG = "nw_upload";
@@ -129,17 +129,22 @@ static bool sntp_sync(void)
     return e == ESP_OK;
 }
 
-/* ---- HTTPS POST: nw_upload_io_t.post. TLS with the ESP-IDF certificate bundle, https only (nw_upload_build_url refused anything else), no redirects. ---- */
+/* ---- HTTPS POST: nw_upload_io_t.post. TLS with the PINNED CA (ADR-004, F-01), https only (nw_upload_build_url refused anything else), no redirects. ---- */
 static char s_resp[RESP_BUF_BYTES];
 
 static int io_post(void *ctx, const char *url, const char *auth, const char *body, size_t len, nw_upload_http_resp_t *resp)
 {
     (void)ctx;
+    /* Fail closed: without a pinned CA nothing is sent (no fallback to the certificate bundle, no skipped verification). */
+    if (NW_INGEST_CA_PEM[0] == '\0') {
+        ESP_LOGE(TAG, "no pinned CA in nw_ingest_ca.h: upload refused (ADR-004)");
+        return -1;
+    }
     esp_http_client_config_t cfg = {
         .url = url,
         .method = HTTP_METHOD_POST,
         .timeout_ms = CONFIG_PLANT_UPLOAD_HTTP_TIMEOUT_MS,
-        .crt_bundle_attach = esp_crt_bundle_attach,
+        .cert_pem = NW_INGEST_CA_PEM,                  /* the only trust anchor for the ingest host */
         .transport_type = HTTP_TRANSPORT_OVER_SSL,
         .disable_auto_redirect = true,                 /* the contract only knows 200; a redirect must not carry the bearer token elsewhere */
     };

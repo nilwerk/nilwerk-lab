@@ -98,35 +98,42 @@ static void test_bh1750_flow(void) {
     fk_init(&f, &h); CHECK_EQ(nw_bh1750_read(&h, &r), NW_ERR_IO);
 }
 
-/* ---------- soil calibration (FR-D01, NFR-02) ---------- */
+/* ---------- soil calibration (FR-D10, FR-D01, NFR-02) ----------
+ * Direction (owner bench, 28 Nov): raw is LOW in dry air (15-25 counts) and HIGH in water (about 360). Calibration defaults 20 / 360. */
 static void test_soil_normalise(void) {
-    nw_soil_t r; nw_soil_cal_t c = {2800, 1200};           /* analog probe: dry high, wet low */
-    CHECK_EQ(nw_soil_normalise(&c, 2800, &r), NW_OK); CHECK_EQ(r.pct_x10, 0); CHECK_EQ(r.flags, 0);
-    CHECK_EQ(nw_soil_normalise(&c, 1200, &r), NW_OK); CHECK_EQ(r.pct_x10, 1000); CHECK_EQ(r.flags, 0);
-    nw_soil_normalise(&c, 2000, &r); CHECK_EQ(r.pct_x10, 500);
-    nw_soil_normalise(&c, 2400, &r); CHECK_EQ(r.pct_x10, 250);
-    nw_soil_normalise(&c, 1600, &r); CHECK_EQ(r.pct_x10, 750);
-    nw_soil_normalise(&c, 2799, &r); CHECK_EQ(r.pct_x10, 1);   /* 0.0625 -> 0.1 % after rounding */
-    nw_soil_normalise(&c, 3000, &r); CHECK_EQ(r.pct_x10, 0);   CHECK_EQ(r.flags, NW_SOIL_F_CLAMPED_DRY);
-    nw_soil_normalise(&c, 1000, &r); CHECK_EQ(r.pct_x10, 1000); CHECK_EQ(r.flags, NW_SOIL_F_CLAMPED_WET);
-    nw_soil_normalise(&c, 4095, &r); CHECK_EQ(r.pct_x10, 0);   CHECK(r.flags & NW_SOIL_F_RAIL); CHECK(r.flags & NW_SOIL_F_CLAMPED_DRY);
-    nw_soil_normalise(&c, 0, &r);    CHECK_EQ(r.pct_x10, 1000); CHECK(r.flags & NW_SOIL_F_RAIL); CHECK(r.flags & NW_SOIL_F_CLAMPED_WET);
-    /* opposite direction (wet reads high), same formula */
-    nw_soil_cal_t c2 = {1000, 3000};
-    nw_soil_normalise(&c2, 2000, &r); CHECK_EQ(r.pct_x10, 500);
-    nw_soil_normalise(&c2, 3500, &r); CHECK_EQ(r.pct_x10, 1000); CHECK_EQ(r.flags, NW_SOIL_F_CLAMPED_WET);
-    nw_soil_normalise(&c2, 900, &r);  CHECK_EQ(r.pct_x10, 0);    CHECK_EQ(r.flags, NW_SOIL_F_CLAMPED_DRY);
+    nw_soil_t r; nw_soil_cal_t c = {20, 360};
+    CHECK_EQ(nw_soil_normalise(&c, 20, &r), NW_OK); CHECK_EQ(r.pct_x10, 0); CHECK_EQ(r.flags, 0);
+    CHECK_EQ(nw_soil_normalise(&c, 360, &r), NW_OK); CHECK_EQ(r.pct_x10, 1000); CHECK_EQ(r.flags, 0);
+    nw_soil_normalise(&c, 190, &r); CHECK_EQ(r.pct_x10, 500);                /* midpoint */
+    nw_soil_normalise(&c, 100, &r); CHECK_EQ(r.pct_x10, 235);                /* 80/340 = 23.5 % */
+    nw_soil_normalise(&c, 300, &r); CHECK_EQ(r.pct_x10, 824);                /* 280/340 = 82.35 % */
+    nw_soil_normalise(&c, 25, &r);  CHECK_EQ(r.pct_x10, 15);                 /* owner air reading: 1.5 %, not clamped */
+    CHECK_EQ(r.flags, 0);
+    nw_soil_normalise(&c, 15, &r);  CHECK_EQ(r.pct_x10, 0); CHECK_EQ(r.flags, NW_SOIL_F_CLAMPED_DRY);
+    nw_soil_normalise(&c, 400, &r); CHECK_EQ(r.pct_x10, 1000); CHECK_EQ(r.flags, NW_SOIL_F_CLAMPED_WET);
+    nw_soil_normalise(&c, 4095, &r); CHECK_EQ(r.pct_x10, 1000); CHECK(r.flags & NW_SOIL_F_RAIL); CHECK(r.flags & NW_SOIL_F_CLAMPED_WET);
+    nw_soil_normalise(&c, 0, &r);    CHECK_EQ(r.pct_x10, 0);    CHECK(r.flags & NW_SOIL_F_RAIL); CHECK(r.flags & NW_SOIL_F_CLAMPED_DRY);
+    /* direction: wetter (higher count) must never read drier; checked on every count from dry to wet */
+    int prev = -1;
+    for (int raw = 20; raw <= 360; raw++) {
+        nw_soil_normalise(&c, raw, &r);
+        CHECK(r.pct_x10 >= prev && r.pct_x10 >= 0 && r.pct_x10 <= 1000);
+        prev = r.pct_x10;
+    }
+    /* a swapped pair (dry above wet, e.g. the old 2800/1200 placeholders) is refused, not inverted */
+    nw_soil_cal_t swapped = {360, 20}; CHECK_EQ(nw_soil_normalise(&swapped, 190, &r), NW_ERR_CAL);
+    nw_soil_cal_t old_placeholder = {2800, 1200}; CHECK_EQ(nw_soil_normalise(&old_placeholder, 2000, &r), NW_ERR_CAL);
     /* bad calibration */
-    nw_soil_cal_t bad = {2000, 2000}; CHECK_EQ(nw_soil_normalise(&bad, 2000, &r), NW_ERR_CAL);
-    nw_soil_cal_t near = {2000, 1951}; CHECK_EQ(nw_soil_normalise(&near, 2000, &r), NW_ERR_CAL);   /* span 49 < 50 */
-    nw_soil_cal_t ok = {2000, 1950};   CHECK_EQ(nw_soil_normalise(&ok, 1975, &r), NW_OK); CHECK_EQ(r.pct_x10, 500);
+    nw_soil_cal_t bad = {200, 200};    CHECK_EQ(nw_soil_normalise(&bad, 200, &r), NW_ERR_CAL);
+    nw_soil_cal_t near = {100, 149};   CHECK_EQ(nw_soil_normalise(&near, 120, &r), NW_ERR_CAL);   /* span 49 < 50 */
+    nw_soil_cal_t ok = {100, 150};     CHECK_EQ(nw_soil_normalise(&ok, 125, &r), NW_OK); CHECK_EQ(r.pct_x10, 500);
     CHECK_EQ(nw_soil_normalise(NULL, 1, &r), NW_ERR_ARG);
 }
 static void test_soil_measure(void) {
-    fake_t f; nw_hal_t h; fk_init(&f, &h); nw_soil_t r; nw_soil_cal_t c = {2800, 1200};
-    int raws[5] = {2000, 2010, 1990, 2005, 1995};
+    fake_t f; nw_hal_t h; fk_init(&f, &h); nw_soil_t r; nw_soil_cal_t c = {20, 360};
+    int raws[5] = {190, 200, 180, 195, 185};
     for (int i = 0; i < 5; i++) fk_push_adc(&f, NW_ADC_SOIL, raws[i], 0, true);
-    CHECK_EQ(nw_soil_measure(&h, &c, &r), NW_OK); CHECK_EQ(r.raw, 2000); CHECK_EQ(r.pct_x10, 500);
+    CHECK_EQ(nw_soil_measure(&h, &c, &r), NW_OK); CHECK_EQ(r.raw, 190); CHECK_EQ(r.pct_x10, 500);
     CHECK_EQ(f.adc_reads[NW_ADC_SOIL], 5);
     CHECK_EQ(f.soil_on, 0);                                  /* NFR-12: supply off after the measurement */
     CHECK_EQ(f.soil_toggles, 2);                             /* on once, off once */
@@ -135,11 +142,11 @@ static void test_soil_measure(void) {
     /* ADC error: still powers off */
     fk_init(&f, &h); f.adc_fail = 1; CHECK_EQ(nw_soil_measure(&h, &c, &r), NW_ERR_IO); CHECK_EQ(f.soil_on, 0); CHECK_EQ(f.soil_toggles, 2);
     /* bad calibration: powered off, error reported after the read */
-    fk_init(&f, &h); for (int i = 0; i < 5; i++) fk_push_adc(&f, NW_ADC_SOIL, 2000, 0, true);
+    fk_init(&f, &h); for (int i = 0; i < 5; i++) fk_push_adc(&f, NW_ADC_SOIL, 190, 0, true);
     nw_soil_cal_t bad = {1000, 1000}; CHECK_EQ(nw_soil_measure(&h, &bad, &r), NW_ERR_CAL); CHECK_EQ(f.soil_on, 0);
     /* averaging rounds to nearest */
-    fk_init(&f, &h); int r2[5] = {2000, 2000, 2000, 2000, 2003}; for (int i = 0; i < 5; i++) fk_push_adc(&f, NW_ADC_SOIL, r2[i], 0, true);
-    nw_soil_measure(&h, &c, &r); CHECK_EQ(r.raw, 2001);
+    fk_init(&f, &h); int r2[5] = {190, 190, 190, 190, 193}; for (int i = 0; i < 5; i++) fk_push_adc(&f, NW_ADC_SOIL, r2[i], 0, true);
+    nw_soil_measure(&h, &c, &r); CHECK_EQ(r.raw, 191);
 }
 
 /* ---------- battery (FR-D01, NFR-01, NFR-12) ---------- */

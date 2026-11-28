@@ -23,7 +23,7 @@
 #define SIM_MOCK_AHT20_TEMP_X100 2345   /* MOCK 23.45 degC */
 #define SIM_MOCK_AHT20_RH_X100   4125   /* MOCK 41.25 %RH */
 #define SIM_MOCK_BH1750_RAW      300    /* MOCK raw 300 -> 250.0 lux (raw / 1.2) */
-#define SIM_MOCK_SOIL_RAW        2000   /* MOCK 12-bit counts, between the placeholder dry 2800 and wet 1200 -> 50.0 % */
+#define SIM_MOCK_SOIL_RAW        190    /* MOCK 12-bit counts, halfway between dry 20 and wet 360 -> 50.0 % */
 #define SIM_MOCK_BAT_ADC_MV      2100   /* MOCK pin voltage; with the 100k/100k divider -> 4200 mV cell, plausible */
 
 /* Encodes the MOCK temperature and humidity as the AHT20 frame the driver expects (datasheet formulas, inverted). */
