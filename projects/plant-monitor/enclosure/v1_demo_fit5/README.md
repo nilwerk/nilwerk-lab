@@ -11,6 +11,11 @@ Round 2 exports stay in `enclosure/v1_demo_compact/` (not overwritten). Enclosur
 ## Why this round
 The owner's bound is 5 mm per part. The round-2 model used WIRING heights up to 12 mm (J1 and J3 headers), so its lid sat 29.8 mm up. With 5 mm parts the lid can come down, but the USB-C openings still set the minimum height: the parting plane must stay above both openings (24.95 mm top + 1.05 mm rim = 26.0 mm). So the seam, not the parts, now governs the lid.
 
+## Owner decisions (28 Nov)
+- **Stack heights accepted as they are.** J1 with jumper and J3 with Dupont plug at about 12 mm (WIRING typical) are **accepted by the owner**, with the **0.2 mm clearance** to the lid underside (1.8 mm short of the 2.0 mm margin) noted as accepted. The fit check row stays NOT MET; the acceptance is a decision, not a geometry pass.
+- **Battery stays under the board.** The model's placement is correct for the demo (A-100 option a, as in round 2).
+- **BH1750 light window: NOT MOVED, needs the as-built chip position.** The model already puts the window at WIRING's chip centre (x 49, y 8.5 doc; body centre x 48.5, y 8.3), 0.5 mm off the body centre. The repo has no measured as-built chip position (WIRING section 6 lists the sensor chip centre as a caliper item). To place the window over the as-built sensor, the owner needs to measure the chip centre from the pin edge and a side edge and send it. Until then the window stays where it is; no geometry change was made in this round.
+
 ## Changes (round 2 -> round 3)
 | Item | Round 2 | Round 3 | Basis |
 |---|---|---|---|
