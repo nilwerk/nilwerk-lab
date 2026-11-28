@@ -1,5 +1,6 @@
 # Plant Monitor v1 (function demo) - wiring guide
 
+Status 2026-11-28: as-built record and bench list added (sections 10-12); sections 1-9 unchanged.
 Author: Emil (PCB Designer) - 2026-11-14 - branch `agent/pcb/v1-wiring`. Revision 2 closes Theo's review conditions C1-C5 (PR #101): cell facts and R_PROG (2.6), antenna-safe routes (4), divider on the switched side of J1 (2.7), flash with J1 open (2.3), J2 defined (8).
 Audience: Arsany (builds it), Yara (3D designer, housing data in sections 5 and 6), Mira (firmware, pins unchanged).
 
@@ -322,6 +323,7 @@ Order of assembly: solder everything except the SuperMini first (steps 1-3), the
 7. Is the red/black JST-PH lead separate from the AA holder (photos 1-2 show it attached)? Do not cut the holder lead without asking.
 8. Small parts: on hand per Arsany: 100 nF, resistors 10 / 330 / 2 k / 5.1 k / 10 k / 100 k / 1 M, slide switches, female headers, tactile buttons. Not seen: jumper shunt (use a slide switch as J1, 2.3), 4.7 k (use 5.1 k), Kapton, hookup wire. Is the 100 kOhm 1 % pair (R1/R2) among the 100 k parts, and are they 1 %?
 9. Soil AOUT in air/water voltage (4.5), before the firmware calibration.
+10. **OPEN, charge current (added 2026-11-28):** owner answered 1000 mA max charge against the 1100 mA in item 2 / 2.6; R_PROG marking and cell limit to confirm. Full question, exact check and datasheet pages in section 12, item 1.
 
 ## 9. Evidence
 - Photos 1.jpg-3.jpg read directly (TP4056 pads, BH1750 5 pins, AHT20 4 pins, soil sensor cable colours black/red/yellow and JST + Dupont ends, perfboard hole count).
@@ -331,3 +333,87 @@ Order of assembly: solder everything except the SuperMini first (steps 1-3), the
 - `gen_wiring.py --check` verifies: no two parts on one hole, every wire route and both buses stay out of the antenna keep-out (geometric, with its own negative self-test), the tables and both SVGs equal what this script generates. **CI does not run it:** CI skips `projects/plant-monitor/v1/`; run it locally (author has, see the PR comment).
 - Cell facts (size, 1000 mAh minimum, 1C = 1100 mA, PCM) are read from `hardware/power-budget/power-budget.md` section 8 and `hardware/bom/cell-decision-A034.md`, not re-read from the cell datasheet today.
 - Not done: no datasheet for CAT6219, DW01, TP4056 module, GY-302, AHT20 or the cell was read today; nothing was measured; no hardware was touched.
+
+---
+
+## 10. As-built record (owner report, 2026-11-28, A-094)
+
+Author: Emil (PCB Designer) - 2026-11-28 - branch `agent/pcb/4.P6-as-built`. Nothing here is a new design value; no section above was changed by this record.
+**Source of the wiring:** the owner reports the perfboard is wired (SuperMini, AHT20, BH1750, soil probe with its cable to the bottom of the box, TP4056 with the 1000 mAh LiPo).
+The owner's photo of the as-built layout is **not in the repo** and was not available to me in this session. So the connection list below is the planned wire table (section 4.1, W01-W23)
+**carried over as "as built, per owner", not checked hole by hole.** Every hole position and pin number stays **OPEN** until the photo or a continuity check confirms it.
+
+### 10.1 Connections (SuperMini pin -> part, pin number)
+
+| Net | SuperMini pin (hole) | Goes to (part, pin) | Plan ref | Status 2026-11-28 |
+|---|---|---|---|---|
+| 5V_IN | 5V (c1 r7) | J1 pin A (c1 r8) | W01 | OPEN: wired per plan, not verified |
+| 5V_SW | - | J1 pin A to R1 top (c2 r10) | W02 | OPEN |
+| VBAT | - | TP4056 OUT+ to J1 pin B (c1 r9) | W03 | OPEN |
+| GND | G (c2 r7) | GND bus (row 11) | W05 | OPEN |
+| 3V3 | 3V3 (c3 r7) | 3V3 bus (row 10) | W06 | OPEN |
+| I2C_SDA | GPIO6 (c2 r1) | BH1750 SDA, AHT20 SDA (breakout pin order UNVERIFIED, section 8 item 6) | W13-W15 | OPEN |
+| I2C_SCL | GPIO7 (c3 r1) | BH1750 SCL, AHT20 SCL | W16-W18 | OPEN |
+| BAT_SENS | GPIO0 (c8 r7) | R1/R2 midpoint (c6 r10) | W19 | OPEN |
+| SOIL_PWR | GPIO3 (c5 r7) | J3 VCC (pin 2, c15 r18) | W20 | OPEN |
+| SOIL_OUT | GPIO4 (c4 r7) | J3 AOUT (pin 3, c16 r18) | W21 | OPEN |
+| BOOT_N | GPIO9 (c5 r1) | on-board BOOT key only | - | nothing wired (as planned) |
+| BATT+ / BATT- | - | J_BAT red/black to TP4056 B+ / B- | W22, W23 | OPEN (polarity meter check 2.5 not yet recorded) |
+| GND (soil) | - | J3 GND (pin 1, c14 r18) to GND bus | W12 | OPEN |
+
+Also OPEN as-built facts: BH1750 ADDR tied low (W09), I2C pull-ups fitted or not (4.3), value and marking of the two 100 kOhm divider resistors, the TP4056 R_PROG marking (10.4 item 1), J1 type used (shunt or slide switch, 2.3), and whether the red/black lead is a separate pigtail (section 8 item 7).
+
+### 10.2 Owner's measured values (as reported, not checked by me)
+
+| Item | Owner value | Status | What it means for the repo |
+|---|---|---|---|
+| LiPo max charge current | **1000 mA** (owner's answer) | measured/answered by owner, method not stated | Differs from the repo value 1100 mA (1C) in sections 1 and 2.6. **OPEN, see 10.4 item 1.** |
+| Soil probe raw ADC, in air | **15 to 25 counts** | owner-reported raw value | **Direction is opposite to the firmware placeholders** (`PLANT_SOIL_DRY_RAW` 2800, `PLANT_SOIL_WET_RAW` 1200, FIRMWARE-BENCH section 1), and far below the expected dry voltage in 4.5. **OPEN, see 10.4 item 3.** |
+| Soil probe raw ADC, in water | **about 360 counts** | owner-reported raw value | Span air to water is about 340 counts, **below the S5 pass limit of 500 counts** (FIRMWARE-BENCH S5). Not a pass; S5 must be re-run. |
+| Parts height on the perfboard (max) | **5 mm** | owner-reported, reference point not stated | Conflicts with the stacked-height estimate in section 5 (SuperMini top about 8.8 mm, J1 with jumper about 12 mm, both typical and UNVERIFIED). Which parts and which reference (perfboard top?) is OPEN. |
+
+Soil raw values have no unit conversion yet. Only as a rough check: if the counts are 12-bit over a 2.5 V full scale (assumption, 4.5 UNVERIFIED), 20 counts is about 0.01 V and 360 counts about 0.2 V. The sensor's typical output in 4.5 (about 1.2 V to 3.0 V) is not what the owner reports. Do not calibrate or change attenuation from these numbers (playbook rule 17).
+
+### 10.3 Requirement mapping (corrected)
+
+The bench checks in section 11 cite these IDs. Two corrections to the request as given:
+- **FR-D02 is hourly reporting** (24 +/- 1 reports per day, `tests/acceptance-matrix.md`), **not soil**. The soil requirements are **FR-D10** (2-point dry/wet calibration on raw ADC counts) and **FR-D01** (five values incl. relative moisture 0-100 %, `docs/requirements-v1.0-delta.md`), with accuracy in **NFR-02** (`layout-4P2.md` names NFR-02 and FR-D10 for the soil probe).
+- **NFR-01** = battery life (best and typical >= 3 months, worst > 1 month). Battery reading plausibility is in **FR-D01** (3.0 to 4.25 V) and the low-battery warning in **FR-D06** (below 3.4 V, clear at 3.5 V).
+- **NFR-12** (deep-sleep, <= 50 uA) is in the acceptance matrix only; its status is pending A-089 (`pcb/gerber/README.md`). The soil-supply sleep check in section 11 is a function check cited under NFR-12 with that caveat.
+
+---
+
+## 11. Bench run for the owner: measure list and bring-up checklist (next run)
+
+Convention for this list: one numbered list, decision-relevant items first (playbook rule 16). Each item gives the expected value, the **stop threshold** (stop and report the reading, do not work around it, rule 17), and the decision it unlocks. Values marked **[proposed]** are not agreed. Serial steps are not repeated here: run them as written in `FIRMWARE-BENCH.md` (S1 to S8). Battery read on the cell (FIRMWARE-BENCH S9) is **not run** until Mira writes that procedure.
+
+| # | Check (owner, multimeter first) | PASS | FAIL / stop threshold | Decision it unlocks | Req |
+|---|---|---|---|---|---|
+| 1 | **Charge current, before any charge.** Read the R_PROG marking (10.4 item 1). Then first charge, J1 open, supervised: series meter on B+ | Marking read and written down. Start current recorded | Start current above **700 mA** (WIRING 2.6 step 5), or the chip or cell hot: stop, disconnect USB. Marking unreadable: charge only while watched | Whether the R_PROG swap is needed (Arsany and Nora decide; not Emil) | NFR-01 basis, cell safety (no ID) |
+| 2 | **Cell polarity** (2.5), cell unplugged: red probe on the plug contact called plus | Positive 3.0 to 4.2 V | Negative reading: do not plug in; report | Connecting the pigtail | safety (no ID) |
+| 3 | **Cell voltage at J1 pin B** (VBAT), J1 open, before charge and after charge | 3.0 to 4.2 V; after charge at most 4.25 V | Below 3.0 V or above 4.25 V: stop, report | Charge and battery-read checks | FR-D01 (3.0 to 4.25 V) |
+| 4 | **Isolation with USB on the SuperMini** (WIRING 7 step 6), J1 open, meter on VBAT | VBAT unchanged, no rise | VBAT rises: stop; J_BAT must be unplugged for flashing | Flash procedure | safety (no ID) |
+| 5 | **I2C scan** (FIRMWARE-BENCH S2 `aht:0 bh:0`) | Both 0x38 and 0x23 found | Any `-1` (no ACK): WIRING 7 step 7 | Pull-up decision (4.3) | FR-D01 |
+| 6 | **Soil AOUT in air, in volts** (FIRMWARE-BENCH S4) | At or below about 2.4 V | Above about 2.4 V: STOP soil steps, report voltage | Clipping at the dry end (4.5) | FR-D10 |
+| 7 | **Soil air then water** (FIRMWARE-BENCH S5), 5 lines each, with multimeter volts | Raw span between air and water **at least 500 counts**, direction recorded | Span below 500 counts: report the table; Mira sets the calibration, not this run | Whether the probe is usable at all, and the owner's 15-25 / 360 values | FR-D10, FR-D01 (relative moisture 0-100 %) |
+| 8 | **Soil supply in sleep** (FIRMWARE-BENCH S7), meter on J3 VCC | At most **0.05 V** during sleep | Above 0.05 V: FAIL for NFR-12 (function check, not current) | Sleep check on the soil stage | NFR-12 (status pending A-089) |
+| 9 | **Perfboard part height**, caliper, tallest point above the perfboard top with everything fitted | Measured value recorded with the reference point written | Above 5 mm: report the owner value is wrong; state which parts | Enclosure fit check (`enclosure/v1_demo_compact` uses typical values; A-094 items 2 and 4 still open) | mechanical, no ID |
+| 10 | **Brown-out** (WIRING 7 step 11): watch for resets during Wi-Fi connect at a low cell | Lowest cell voltage with a stable run recorded | Reset at a cell above 3.5 V: report | Low-battery warning level | FR-D06 (3.4 V, clear 3.5 V) |
+
+Not run in this list and not decided here: the battery ADC-versus-multimeter comparison (S9 needs a procedure from Mira; a [proposed] limit of 0.05 V on the cell voltage is not set); the NFR-01 battery life (needs a current measurement, 5.4); the deep-sleep current (NFR-12 current, 5.2).
+
+---
+
+## 12. Open items (not decided; recorded for the owner and Arsany)
+
+1. **OPEN, charge current (TP4056 R_PROG and cell limit).** Nothing in this record changes a design value.
+   - **Question for Arsany:** (a) confirm the cell's maximum charge current: the owner answered **1000 mA**, the repo says **1100 mA = 1C** (A-034 listing and the repo file, datasheet limit not confirmed). (b) confirm the R_PROG value on the module (the 3-digit marking). (c) decide the target: the repo proposes 0.5C (about 500 mA, 2.33 kOhm, section 2.6). Emil does not decide this.
+   - **Exact check (unpowered, USB and cell unplugged):** loupe on the small SMD resistor between the TP4056 PROG pin (pin 2) and GND (B- / OUT- pad); read the marking; cross-check with the meter in ohm mode. Write the marking down. Read the marking, do not swap anything yet.
+   - **Formula (datasheet, this copy):** I_BAT = 1200 / R_PROG (kOhm) in mA, from V_PROG = 1.0 V typ at 1.2 kOhm (electrical table, page 4).
+   - **Datasheet pages to read:** TP4056, NanJing Top Power copy (PartsPlan doc `139dc9754a0f4d74fb80db1a55fd4ad281597b31dd2925b9f2c5e0fb284406eb`): **page 4** (electrical table: I_BAT at R_PROG = 1.2 kOhm **950 / 1000 / 1050 mA** min/typ/max; at 2.4 kOhm 450 / 500 / 550 mA; C/10 termination at 1.2 kOhm 120 / 130 / 140 mA), **page 7** ("charge current setting", the formula), **page 8** (R_PROG versus current table). Page 16 (demo board) lists 1.2 kOhm = 1000 mA and 2 kOhm = 600 mA. This copy is in Chinese (text_language_hint zh); the English edition may differ, so cite this copy's own pages.
+   - **Consequence to note:** at the default 1.2 kOhm the datasheet minimum is 950 mA, which is at the 1000 mA owner limit with no margin. The repo's "+-15 %" tolerance in 2.6 is not what this copy gives (+-5 % at 1.2 kOhm). Both points go to Arsany with the question, and 2.6 stays as written until he decides.
+2. **OPEN, soil raw polarity and scale.** Owner: 15-25 counts in air, about 360 in water. Firmware placeholders: dry 2800, wet 1200. Need: the ADC pin and attenuation used, the counts-to-volts check with the multimeter at J3 AOUT (FIRMWARE-BENCH S4 and S5), and whether the probe output is inverted for this board. Mira and Emil to check; firmware not changed here.
+3. **OPEN, part height 5 mm versus the stack estimate.** Reference point of the owner's 5 mm, and the parts it covers (USB-C, J1 jumper, headers). The enclosure fit check uses typical heights (A-094 items 2 and 4); Yara needs the caliper list (section 6) before the next fit check. Lead informed through Nora.
+4. **OPEN, as-built hole check.** Photo of the as-built layout to be put in the repo (or confirmed by Nora) so the 10.1 table can be checked hole by hole. No photo was reviewed here.
+
+**Repo facts checked in this record:** requirement IDs by grep (FR-D02 = hourly report, soil = FR-D10/NFR-02); pin map unchanged (`board.h` lines 23-28 as in section 3); wire table unchanged (generated section 4.1).
