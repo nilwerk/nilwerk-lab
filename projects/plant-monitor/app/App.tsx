@@ -30,8 +30,9 @@ import { PremiumDashboardScreen } from './src/screens/PremiumDashboardScreen';
 import { ConnectAiScreen } from './src/screens/ConnectAiScreen';
 import { createApiKeysClient, unconfiguredApiKeys, type ApiKeysService } from './src/mcp/apiKeysApi';
 import { createAnalyticsClient, unconfiguredAnalytics, type AnalyticsService } from './src/analytics/analyticsApi';
-import { PlantsProvider } from './src/plants/PlantsContext';
+import { PlantsProvider, usePlants } from './src/plants/PlantsContext';
 import { createFakePlants } from './src/plants/fakePlants';
+import { createFakeAnalytics } from './src/analytics/fakeAnalytics';
 import { unconfiguredPlants } from './src/plants/unconfiguredPlants';
 import { createRealPlants } from './src/plants/realPlants';
 import { createFileHandOff } from './src/export/fileHandOff';
@@ -64,6 +65,9 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
   const [gallery, setGallery] = useState<PlantSummary | null>(null);
   const [removed, setRemoved] = useState<Removed | null>(null);
   const signedOut = state.status === 'signedOut';
+  useEffect(() => { if (signedOut) setOpenAlerts(0); }, [signedOut]);
+  // Alerts badge: cached. Written by the plant list and the alerts screen when they load; not re-read on every navigation.
+  const [openAlerts, setOpenAlerts] = useState(0);
   // a signed-out user starts again at the welcome screen, so the next sign-in lands on the plants tab
   useEffect(() => { if (signedOut) { setRoute('welcome'); setPlantId(null); setToRemove(null); setGallery(null); setRemoved(null); } }, [signedOut]);
 
@@ -101,16 +105,16 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
   } else if (route === 'profile') {
     screen = <ProfileScreen contactEmail={contactEmail} onPremium={() => setRoute('premium')} onDelete={() => setRoute('delete')} onAddSensor={() => setRoute('setup')} onDashboard={() => setRoute('dashboard')} onConnectAi={() => setRoute('connectAi')} />;
   } else if (route === 'alerts') {
-    screen = <AlertsScreen onBack={() => setRoute('plants')} />;
+    screen = <AlertsScreen onBack={() => setRoute('plants')} onCount={setOpenAlerts} />;
   } else {
-    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onAlerts={() => setRoute('alerts')} />;
+    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onAlerts={() => setRoute('alerts')} onCount={setOpenAlerts} />;
   }
-  const tab: Tab | null = !signedIn ? null : route === 'profile' ? 'profile' : route === 'plants' || route === 'alerts' || route === 'welcome' || route === 'signUp' || route === 'signIn' ? 'plants' : null;
+  const tab: Tab | null = !signedIn ? null : route === 'profile' ? 'profile' : route === 'alerts' ? 'alerts' : route === 'plants' || route === 'welcome' || route === 'signUp' || route === 'signIn' ? 'plants' : null;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: th.color.bg }}>
       {banner ? <Notice kind="info" text={banner} /> : null}
       {screen}
-      {tab ? <TabBar active={tab} onSelect={setRoute} /> : null}
+      {tab ? <TabBar active={tab} onSelect={setRoute} openAlerts={openAlerts} /> : null}
     </SafeAreaView>
   );
 }
@@ -118,8 +122,8 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
 export default function App() {
   const cfg = useMemo(() => readConfig(), []);
   const mock = process.env.EXPO_PUBLIC_MOCK_AUTH === '1';
-  const service = useMemo(() => (mock ? createFakeAuth() : isConfigured(cfg) ? createSupabaseAuth(cfg) : unconfiguredAuth()), [cfg, mock]);
-  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants() : isConfigured(cfg)
+  const service = useMemo(() => (mock ? createFakeAuth({ premium: process.env.EXPO_PUBLIC_MOCK_PREMIUM === '1' }) : isConfigured(cfg) ? createSupabaseAuth(cfg) : unconfiguredAuth()), [cfg, mock]);
+  const plants = useMemo<PlantsService>(() => (mock ? createFakePlants({ plants: process.env.EXPO_PUBLIC_MOCK_EMPTY === '1' ? [] : undefined }) : isConfigured(cfg)
     ? createRealPlants({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken(), handOff: createFileHandOff(platformHandOffDeps) })
     : unconfiguredPlants()), [cfg, mock, service]);
   // Mock build: fake sensor and fake plant save. Real build on a phone (iOS/Android, Supabase configured): real BLE (4.A3b slice 1, needs the dev build; in Expo Go the native
@@ -137,7 +141,7 @@ export default function App() {
     return { ...base, provisioning: createBleProvisioning({ adapter: createEspAdapter(), claim }) };
   }, [mock, cfg, service]);
   // 4.A6: premium analytics client (proposed endpoint, not deployed); mock build and unconfigured builds report not_configured and fetch nothing.
-  const analytics = useMemo<AnalyticsService>(() => (!mock && isConfigured(cfg)
+  const analytics = useMemo<AnalyticsService>(() => (mock ? createFakeAnalytics() : isConfigured(cfg)
     ? createAnalyticsClient({ baseUrl: cfg.supabaseUrl, publishableKey: cfg.supabasePublishableKey, getAccessToken: () => service.getAccessToken() })
     : unconfiguredAnalytics), [cfg, mock, service]);
   // 4.A8: MCP key client (FR-P03). The /api-keys edge function is built (4.B2d) but not deployed; mock and unconfigured builds report not_configured and fetch nothing.

@@ -35,3 +35,8 @@ export function ageParts(iso: string | null, now: Date): { key: string; n?: numb
   if (min < 1440) return { key: 'plant.updated.hours', n: Math.floor(min / 60) };
   return { key: 'plant.updated.days', n: Math.floor(min / 1440) };
 }
+
+/** Badge count for the Alerts tab: plants with a state other than OK or "no sensor". Pure, computed from the loaded list. */
+export function countOpenAlertPlants(plants: Array<Pick<PlantSummary, 'deviceId' | 'openAlerts'>>): number {
+  return plants.filter((p) => plantChips(p).some((c) => c !== 'ok' && c !== 'noSensor')).length;
+}

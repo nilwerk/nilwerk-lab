@@ -61,7 +61,7 @@ const [loaded] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, Inter_
 | offline | `#5b616b` / `#a2a7af` | ring | `status.offline` | no recent report |
 | error | `#b3261e` / `#e27163` | cross | `status.error` | failures, destructive actions |
 
-Rules: never colour alone (label + shape); touch targets at least 44 pt; text sizes from the typography scale; body text on `bg` or `surface` only; status colour as text only on its own soft background or on `bg` / `surface` (all pairs AA, see `../check_status_contrast.py`).
+Rules: never colour alone (label + shape); touch targets at least 48 pt (minTouchTarget in tokens.json, the Android minimum; 44 pt is the iOS minimum); text sizes from the typography scale; body text on `bg` or `surface` only; status colour as text only on its own soft background or on `bg` / `surface` (all pairs AA, see `../check_status_contrast.py`).
 
 ## Alerts to statuses (FR-A07)
 

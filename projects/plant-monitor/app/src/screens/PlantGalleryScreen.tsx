@@ -2,10 +2,10 @@
 // No limit on the number of photos: every photo is rendered (plain map, no windowed list, so the test with 60 photos sees all of them).
 // Not in this slice: upload ("+ Add", 4.A3 camera/library), full-screen view, long-press delete, signed image URLs (the mock has no image bytes).
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { PlantMeta } from '../ui/PlantMeta';
-import { useTheme } from '../ui/useTheme';
+import { Caption, EmptyState, SectionTitle } from '../ui/kit';
+import { Frame, GridCell, Row, Column, Type } from '../ui/kit';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { fmtDay } from '../plants/format';
@@ -19,8 +19,18 @@ export function sortPhotos(photos: PlantPhoto[], order: PhotoOrder): PlantPhoto[
   return [...photos].sort((a, b) => dir * (Date.parse(a.takenAt) - Date.parse(b.takenAt)));
 }
 
+/** Photos (already sorted) grouped by their day, keeping the order of the sort. */
+export function dayGroups(photos: PlantPhoto[]): Array<{ day: string; photos: PlantPhoto[] }> {
+  const out: Array<{ day: string; photos: PlantPhoto[] }> = [];
+  for (const ph of photos) {
+    const day = fmtDay(ph.takenAt);
+    const last = out[out.length - 1];
+    if (last && last.day === day) last.photos.push(ph); else out.push({ day, photos: [ph] });
+  }
+  return out;
+}
+
 export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onBack: () => void }) {
-  const th = useTheme();
   const svc = usePlants();
   const [photos, setPhotos] = useState<PlantPhoto[] | null>(null);
   const [order, setOrder] = useState<PhotoOrder>('newest');
@@ -42,32 +52,28 @@ export function PlantGalleryScreen({ plant, onBack }: { plant: PlantSummary; onB
       {error ? <Button label={t('common.tryAgain')} variant="secondary" onPress={load} /> : null}
       {photos === null && !error ? <Body muted>{t('common.loading')}</Body> : null}
       {photos && photos.length === 0 ? (
-        <View style={{ gap: th.spacing.sm }}>
-          <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('gallery.empty.title')}</Text>
-          <Body muted>{t('gallery.empty.body')}</Body>
-        </View>
+        <EmptyState title={t('gallery.empty.title')} body={t('gallery.empty.body')} />
       ) : null}
       {photos && photos.length > 0 ? (
         <>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm, alignItems: 'center' }}>
-            <Text testID="gallery-count" style={{ color: th.color.muted, ...th.type.caption, flexGrow: 1 }}>{t('gallery.count', { n: photos.length })}</Text>
+          <Row wrap>
+            <Type testID="gallery-count" tone="muted" variant="caption" flex>{t('gallery.count', { n: photos.length })}</Type>
             <Button label={t('gallery.sortNewest')} variant={order === 'newest' ? 'secondary' : 'ghost'} onPress={() => setOrder('newest')} />
             <Button label={t('gallery.sortOldest')} variant={order === 'oldest' ? 'secondary' : 'ghost'} onPress={() => setOrder('oldest')} />
-          </View>
-          <View testID="gallery-grid" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: th.spacing.sm }}>
-            {sorted.map((ph) => {
-              const day = fmtDay(ph.takenAt);
-              return (
-                <View key={ph.id} testID="gallery-photo" accessible accessibilityLabel={t('gallery.photoA11y', { date: day })}
-                  style={{ flexBasis: '47%', flexGrow: 1, gap: th.spacing.xs }}>
-                  <View style={{ aspectRatio: 1, borderRadius: th.radius.md, borderWidth: 1, borderColor: th.color.line, backgroundColor: th.color.surface, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: th.color.muted, ...th.type.caption }}>{day}</Text>
-                  </View>
-                  <Text style={{ color: th.color.ink, ...th.type.caption }}>{t('gallery.takenOn', { date: day })}</Text>
-                </View>
-              );
-            })}
-          </View>
+          </Row>
+          {/* #238 decision: grid of three per row, grouped under a header per day (the order follows the sort) */}
+          {dayGroups(sorted).map((g) => (
+            <Column key={g.day} testID="gallery-day">
+              <SectionTitle>{g.day}</SectionTitle>
+              <Row wrap testID="gallery-grid">
+                {g.photos.map((ph) => (
+                  <GridCell key={ph.id} testID="gallery-photo" accessibilityLabel={t('gallery.photoA11y', { date: g.day })}>
+                    <Frame><Caption>{g.day}</Caption></Frame>
+                  </GridCell>
+                ))}
+              </Row>
+            </Column>
+          ))}
         </>
       ) : null}
     </Screen>

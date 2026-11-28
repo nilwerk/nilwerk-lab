@@ -38,7 +38,9 @@ export const colors = {
     offlineSoft: "#e9e7e1",
     danger: "#b3261e",
     dangerSoft: "#f9e2e0",
-    dangerInk: "#ffffff"
+    dangerInk: "#ffffff",
+    control: "#7d838c",
+    scrim: "#00000059"
   },
   dark: {
     bg: "#101317",
@@ -62,7 +64,9 @@ export const colors = {
     offlineSoft: "#22262c",
     danger: "#e27163",
     dangerSoft: "#3b1d1b",
-    dangerInk: "#1a0b0a"
+    dangerInk: "#1a0b0a",
+    control: "#7b818a",
+    scrim: "#00000059"
   }
 } as const;
 
@@ -79,6 +83,7 @@ export const radius = {
   sm: 6,
   md: 10,
   lg: 14,
+  xl: 22,
   pill: 999
 } as const;
 export const fontFamily = {
@@ -89,7 +94,7 @@ export const fontFamily = {
   mono: "JetBrainsMono_400Regular",
   monoStrong: "JetBrainsMono_600SemiBold"
 } as const;
-export const minTouchTarget = 44;
+export const minTouchTarget = 48;
 
 export interface TextStyleToken {
   fontFamily: string;
@@ -113,13 +118,13 @@ export const type = {
   body: typo('body', 16, 24, 0),
   bodyStrong: typo('bodyStrong', 16, 24, 0),
   caption: typo('body', 13, 18, 0),
-  label: typo('monoStrong', 12, 16, 1),
+  label: typo('monoStrong', 13, 18, 1),
   number: typo('monoStrong', 40, 44, -1.5),
 } as const;
 
 // FR-A07 (push alerts): too dry, too wet, low battery, device offline map to these statuses. Thresholds and clear rules are NOT
 // repeated here: see projects/plant-monitor/docs/requirements-v1.0-delta.md, row FR-A07 (single source). The four edge-AI alert
-// kinds (wetting_unexpected, waterlogged, sensor_out_of_soil, sensor_fault) are an open decision for Leo / 4.A2: see app/README.md.
+// kinds (wetting_unexpected, waterlogged, sensor_out_of_soil, sensor_fault) are an open decision for the app owners: see app/README.md.
 export const statusMeta: Record<PlantStatus, { colorKey: keyof typeof colors.light; softKey: keyof typeof colors.light; labelKey: string; shape: string }> = {
   ok: { colorKey: 'ok', softKey: 'okSoft', labelKey: 'status.ok', shape: 'circle' },
   dry: { colorKey: 'dry', softKey: 'drySoft', labelKey: 'status.dry', shape: 'triangle' },

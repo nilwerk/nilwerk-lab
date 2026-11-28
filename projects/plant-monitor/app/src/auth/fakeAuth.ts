@@ -4,6 +4,8 @@ import { AuthError, type AuthService, type AuthUser, type Profile } from './type
 interface Account { id: string; email: string; password: string; profile: Profile }
 
 export interface FakeAuthOptions {
+  /** mock build only: new accounts start on the Premium plan (EXPO_PUBLIC_MOCK_PREMIUM=1) */
+  premium?: boolean;
   needsConfirmation?: boolean;
   failNext?: AuthError;
   deleteFails?: boolean;
@@ -28,7 +30,7 @@ export function createFakeAuth(opts: FakeAuthOptions = {}): AuthService & { acco
       maybeFail();
       const e = email.trim().toLowerCase();
       if (accounts.some((a) => a.email === e)) throw new AuthError('email_taken');
-      const acc: Account = { id: `user-${accounts.length + 1}`, email: e, password, profile: { displayName: displayName?.trim() || null, isPremium: false } };
+      const acc: Account = { id: `user-${accounts.length + 1}`, email: e, password, profile: { displayName: displayName?.trim() || null, isPremium: opts.premium === true } };
       accounts.push(acc);
       if (opts.needsConfirmation) return { user: null, needsConfirmation: true };
       current = { id: acc.id, email: acc.email };

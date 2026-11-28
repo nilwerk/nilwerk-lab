@@ -1,10 +1,10 @@
 // S30 Alerts list (4.A5; S31 alert detail is not built). Requirements: FR-A07 (alerts for too dry, too wet, low battery, offline; push delivery is NOT built), FR-D06 (low battery 3.4 V), FR-A06 (reached from the plant list).
 // Rules: src/plants/alerts.ts (pure, unit-tested). Data: the plants service, so in the mock build every plant, reading and alert is MOCK (the shell shows app.mockBanner).
 import React, { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
 import { StatusChip } from '../ui/StatusChip';
-import { useTheme } from '../ui/useTheme';
+import { Card, EmptyState } from '../ui/kit';
+import { Column, Type } from '../ui/kit';
 import { t } from '../i18n';
 import { usePlants } from '../plants/PlantsContext';
 import { alertsForPlant, type RuleAlert } from '../plants/alerts';
@@ -25,8 +25,7 @@ export function alertCopy(a: RuleAlert): string {
   }
 }
 
-export function AlertsScreen({ onBack }: { onBack: () => void }) {
-  const th = useTheme();
+export function AlertsScreen({ onBack, onCount }: { onBack: () => void; onCount?: (n: number) => void }) {
   const svc = usePlants();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,11 +37,13 @@ export function AlertsScreen({ onBack }: { onBack: () => void }) {
       const now = new Date();
       // plants without a sensor cannot raise alerts (alertsForPlant returns none), so they are not fetched
       const details = await Promise.all(plants.filter((p) => p.deviceId !== null).map((p) => svc.getPlantDetail(p.id)));
-      setRows(details.flatMap((d) => alertsForPlant(d.plant, d.hourly, now).map((alert) => ({ plantId: d.plant.id, plantName: d.plant.name, alert }))));
+      const next = details.flatMap((d) => alertsForPlant(d.plant, d.hourly, now).map((alert) => ({ plantId: d.plant.id, plantName: d.plant.name, alert })));
+      setRows(next);
+      onCount?.(new Set(next.map((r) => r.plantId)).size);
     } catch (e) {
       setError(t(e instanceof PlantsError && e.code === 'not_configured' ? 'plants.error.notConnected' : 'alerts.error.load'));
     }
-  }, [svc]);
+  }, [svc, onCount]);
   useEffect(() => { load(); }, [load]);
 
   return (
@@ -52,19 +53,17 @@ export function AlertsScreen({ onBack }: { onBack: () => void }) {
       {error ? <Button label={t('common.tryAgain')} variant="secondary" onPress={load} /> : null}
       {rows === null && !error ? <Body muted>{t('common.loading')}</Body> : null}
       {rows && rows.length === 0 ? (
-        <View style={{ gap: th.spacing.sm }}>
-          <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h3 }}>{t('alerts.empty.title')}</Text>
-          <Body muted>{t('alerts.empty.body')}</Body>
-        </View>
+        <EmptyState title={t('alerts.empty.title')} body={t('alerts.empty.body')} />
       ) : null}
-      {rows?.map((r) => (
-        <View key={`${r.plantId}-${r.alert.kind}`}
-          style={{ padding: th.spacing.lg, gap: th.spacing.sm, borderRadius: th.radius.lg, borderWidth: 1, borderColor: th.color.line, backgroundColor: th.color.surface }}>
-          <Text style={{ color: th.color.ink, ...th.type.h3 }}>{r.plantName}</Text>
-          <StatusChip kind={CHIP[r.alert.kind]} />
-          <Text style={{ color: th.color.ink, ...th.type.body }}>{alertCopy(r.alert)}</Text>
-        </View>
-      ))}
+      <Column>
+        {rows?.map((r) => (
+          <Card key={`${r.plantId}-${r.alert.kind}`}>
+            <Type variant="h3" header>{r.plantName}</Type>
+            <StatusChip kind={CHIP[r.alert.kind]} />
+            <Type>{alertCopy(r.alert)}</Type>
+          </Card>
+        ))}
+      </Column>
       {rows && rows.length > 0 ? <Button label={t('alerts.refresh')} variant="ghost" onPress={load} /> : null}
     </Screen>
   );

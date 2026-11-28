@@ -4,12 +4,23 @@ import { Pressable, ScrollView, Text, TextInput, View, type TextInputProps } fro
 import { useTheme } from './useTheme';
 import { t } from '../i18n';
 
+/** Back arrow in a 48 px round control (the same on every screen). The label is the shared a11y.back string. */
+export function BackButton({ onPress }: { onPress: () => void }) {
+  const th = useTheme();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.back')} onPress={onPress}
+      style={{ width: th.minTouchTarget, height: th.minTouchTarget, borderRadius: th.radius.pill, borderWidth: 1, borderColor: th.color.control, backgroundColor: th.color.surface, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: th.color.ink, ...th.type.h2 }}>{'\u2039'}</Text>
+    </Pressable>
+  );
+}
+
 export function Screen({ title, children, onBack }: { title: string; children: React.ReactNode; onBack?: () => void }) {
   const th = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: th.color.bg }} accessibilityLabel={t('a11y.screenTitle', { title })}>
       <ScrollView contentContainerStyle={{ padding: th.spacing.lg, gap: th.spacing.lg }} keyboardShouldPersistTaps="handled">
-        {onBack ? <Button label={t('common.back')} a11yLabel={t('a11y.back')} variant="ghost" onPress={onBack} /> : null}
+        {onBack ? <BackButton onPress={onBack} /> : null}
         <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h1 }}>{title}</Text>
         {children}
       </ScrollView>
@@ -32,8 +43,8 @@ export function Button({ label, onPress, variant = 'primary', disabled, busy, a1
   const look = {
     primary: { bg: c.accent, fg: c.accentInk, border: c.accent },
     danger: { bg: c.danger, fg: c.dangerInk, border: c.danger },
-    secondary: { bg: c.surface, fg: c.ink, border: c.line },
-    ghost: { bg: 'transparent', fg: c.accent, border: 'transparent' },
+    secondary: { bg: c.surface, fg: c.ink, border: c.control },
+    ghost: { bg: 'transparent', fg: c.ink, border: 'transparent' }, // accent is a fill only; text is ink
   }[variant];
   const off = disabled || busy;
   return (
@@ -64,7 +75,7 @@ export function Field({ label, error, ...input }: { label: string; error?: strin
         {...input}
         style={{
           minHeight: th.minTouchTarget, paddingHorizontal: th.spacing.md, borderRadius: th.radius.md, borderWidth: 1,
-          borderColor: error ? th.color.danger : th.color.line, backgroundColor: th.color.surface, color: th.color.ink, ...th.type.body,
+          borderColor: error ? th.color.danger : th.color.control, backgroundColor: th.color.surface, color: th.color.ink, ...th.type.body,
         }}
       />
       {error ? <Text accessibilityRole="alert" style={{ color: th.color.danger, ...th.type.caption }}>{error}</Text> : null}
@@ -92,7 +103,7 @@ export function Choice({ label, a11yLabel, selected, onPress }: { label: string;
       accessibilityLabel={a11yLabel ?? label}
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={{ minHeight: th.minTouchTarget, justifyContent: 'center', paddingHorizontal: th.spacing.md, borderRadius: th.radius.md, borderWidth: selected ? 2 : 1, borderColor: selected ? th.color.accent : th.color.line, backgroundColor: selected ? th.color.accentSoft : th.color.surface }}
+      style={{ minHeight: th.minTouchTarget, justifyContent: 'center', paddingHorizontal: th.spacing.md, borderRadius: th.radius.md, borderWidth: selected ? 2 : 1, borderColor: selected ? th.color.accent : th.color.control, backgroundColor: selected ? th.color.accentSoft : th.color.surface }}
     >
       <Text style={{ color: th.color.ink, ...(selected ? th.type.bodyStrong : th.type.body) }}>{selected ? `✓ ${label}` : label}</Text>
     </Pressable>
