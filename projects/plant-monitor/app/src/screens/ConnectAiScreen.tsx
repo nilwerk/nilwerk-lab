@@ -1,6 +1,7 @@
 // S42 Connect your AI (task 4.A8). Requirements: FR-P03 (create / revoke a personal MCP key, copy-paste setup text for Claude and other MCP clients),
 // FR-P04 (premium only: the plan is read first and free accounts never trigger a key request; the server still answers 403 premium_required and that shows the locked state too),
 // NFR-06 (own keys only; the key is shown once, kept in memory only, never stored or listed again).
+// v1 (owner decision): the generate and revoke actions are off unless keysAvailable is set; they show "Coming in a later version" and call nothing.
 import React, { useCallback, useEffect, useState } from 'react';
 import { Body, Button, Field, Notice, Screen } from '../ui/primitives';
 import { Card, SectionTitle } from '../ui/kit';
@@ -54,7 +55,7 @@ function CreatedKey({ created, copy, onDone }: { created: CreatedApiKey; copy: C
   );
 }
 
-function KeyRow({ k, confirming, busy, onAsk, onCancel, onConfirm }: { k: ApiKeyInfo; confirming: boolean; busy: boolean; onAsk: () => void; onCancel: () => void; onConfirm: () => void }) {
+function KeyRow({ k, available, confirming, busy, onAsk, onCancel, onConfirm }: { k: ApiKeyInfo; available: boolean; confirming: boolean; busy: boolean; onAsk: () => void; onCancel: () => void; onConfirm: () => void }) {
   const revoked = k.revokedAt !== null;
   return (
     <ListRow padded accessibilityLabel={t('mcp.keys.row', { name: k.name, prefix: k.prefix })}>
@@ -63,7 +64,8 @@ function KeyRow({ k, confirming, busy, onAsk, onCancel, onConfirm }: { k: ApiKey
         <Type variant="caption" tone="muted" mono>{`${k.prefix}...`}</Type>
         <Type variant="caption" tone={revoked ? 'danger' : 'ok'}>{revoked ? t('mcp.keys.revoked') : t('mcp.keys.active')}</Type>
         <Type variant="caption" tone="muted">{k.lastUsedAt ? t('mcp.keys.lastUsed', { date: k.lastUsedAt.slice(0, 10) }) : t('mcp.keys.neverUsed')}</Type>
-        {!revoked && !confirming ? <Button label={t('mcp.keys.revoke')} a11yLabel={t('mcp.keys.revoke.a11y', { name: k.name })} variant="danger" onPress={onAsk} /> : null}
+        {!revoked && !available ? <Button label={t('mcp.comingSoon')} a11yLabel={t('mcp.keys.revoke.a11y', { name: k.name })} variant="danger" disabled onPress={onAsk} /> : null}
+        {!revoked && available && !confirming ? <Button label={t('mcp.keys.revoke')} a11yLabel={t('mcp.keys.revoke.a11y', { name: k.name })} variant="danger" onPress={onAsk} /> : null}
         {!revoked && confirming ? (
           <>
             <Notice kind="error" text={t('mcp.keys.revoke.confirm', { name: k.name })} />
@@ -77,7 +79,7 @@ function KeyRow({ k, confirming, busy, onAsk, onCancel, onConfirm }: { k: ApiKey
 }
 
 /** FR-P04: the plan comes from the server (profiles.is_premium via getProfile); no key request is made until it says premium. */
-export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }: { apiKeys: ApiKeysService; onBack: () => void; onPremium: () => void; copy?: CopyText }) {
+export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText, keysAvailable = false }: { apiKeys: ApiKeysService; onBack: () => void; onPremium: () => void; copy?: CopyText; keysAvailable?: boolean }) {
   const { service } = useAuth();
   const [plan, setPlan] = useState<Plan>('checking');
   const [keys, setKeys] = useState<Keys>({ status: 'loading' });
@@ -111,7 +113,7 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
 
   const nameErr = validateKeyName(name);
   const create = async () => {
-    if (nameErr || creating) return;
+    if (!keysAvailable || nameErr || creating) return;
     setCreating(true); setNotice(null);
     try {
       const c = await apiKeys.create(name.trim());
@@ -127,6 +129,7 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
     }
   };
   const revoke = async (id: string) => {
+    if (!keysAvailable) return;
     setRevoking(true); setNotice(null);
     try {
       await apiKeys.revoke(id);
@@ -175,13 +178,15 @@ export function ConnectAiScreen({ apiKeys, onBack, onPremium, copy = copyText }:
         ) : null}
         {keys.status === 'ready' && items.length === 0 ? <Body muted>{t('mcp.keys.none')}</Body> : null}
         {items.map((k) => (
-          <KeyRow key={k.id} k={k} confirming={confirmId === k.id} busy={revoking}
+          <KeyRow key={k.id} k={k} available={keysAvailable} confirming={confirmId === k.id} busy={revoking}
             onAsk={() => { setConfirmId(k.id); setNotice(null); }} onCancel={() => setConfirmId(null)} onConfirm={() => revoke(k.id)} />
         ))}
         {keys.status === 'ready' ? (
           <>
-            <Field label={t('mcp.keys.name')} value={name} maxLength={60} onChangeText={setName} error={nameErr ? t(nameErr.key, nameErr.params) : null} />
-            <Button label={t('mcp.keys.create')} onPress={create} busy={creating} disabled={!!nameErr || creating} />
+            <Field label={t('mcp.keys.name')} value={name} maxLength={60} editable={keysAvailable} onChangeText={setName} error={nameErr ? t(nameErr.key, nameErr.params) : null} />
+            {keysAvailable
+              ? <Button label={t('mcp.keys.create')} onPress={create} busy={creating} disabled={!!nameErr || creating} />
+              : <Button label={t('mcp.comingSoon')} variant="secondary" disabled onPress={create} />}
           </>
         ) : null}
       </Column>

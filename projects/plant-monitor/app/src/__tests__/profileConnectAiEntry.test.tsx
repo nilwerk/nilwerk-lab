@@ -37,14 +37,16 @@ describe('profile entry to Connect your AI (FR-P03, FR-P04)', () => {
     expect(k.list).not.toHaveBeenCalled();
   });
 
-  test('premium journey: profile -> Connect your AI -> Create key shows the key once', async () => {
+  test('premium journey: profile -> Connect your AI shows the v1 notice; the generate action is disabled and creates no key (owner decision)', async () => {
     const k = keys();
     await mountRoot(true, k);
     await fireEvent.press(await screen.findByRole('tab', { name: t('nav.profile') }));
     await fireEvent.press(await screen.findByRole('button', { name: t('profile.connectAi') }));
     expect(await screen.findByRole('header', { name: t('mcp.title') })).toBeTruthy();
-    await fireEvent.press(await screen.findByRole('button', { name: t('mcp.keys.create') }));
-    expect(await screen.findByText(SECRET)).toBeTruthy();
-    expect(k.create).toHaveBeenCalledTimes(1);
+    const generate = await screen.findByRole('button', { name: t('mcp.comingSoon') });
+    expect(generate.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }));
+    await fireEvent.press(generate);
+    expect(screen.queryByText(SECRET)).toBeNull();
+    expect(k.create).not.toHaveBeenCalled();
   });
 });
