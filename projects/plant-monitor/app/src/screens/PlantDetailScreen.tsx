@@ -49,7 +49,7 @@ export function PlantDetailScreen({ plantId, onBack, onRemove, onGallery, onTips
           {/* hero reading: the soil value with its status word beside it; the other readings follow in the grid */}
           <Row between wrap>
             <Type variant="number">{fmt(l?.moisturePct, 0) === null ? t('plant.latest.none') : t('plant.latest.soilValue', { value: fmt(l?.moisturePct, 0) ?? '' })}</Type>
-            <Row gap="xs">{plantChips(p).map((c) => <StatusChip key={c} kind={c} />)}</Row>
+            <Row gap="xs" wrap testID="plant-chips">{plantChips(p).map((c) => <StatusChip key={c} kind={c} />)}</Row>
           </Row>
           <Caption>{t('plant.reading.soilLabel')}</Caption>
           <SectionTitle>{t('plant.latest.title')}</SectionTitle>

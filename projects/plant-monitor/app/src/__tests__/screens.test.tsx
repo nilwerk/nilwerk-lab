@@ -89,11 +89,14 @@ describe('signed-in flow', () => {
 
   test('profile edit saves the name; sign out returns to welcome', async () => {
     const svc = await signedIn();
-    await waitFor(() => expect(screen.getByLabelText('Display name').props.value).toBe('Sam'));
+    await waitFor(() => expect(screen.getByText('Sam')).toBeTruthy());
+    expect(screen.queryByLabelText('Display name')).toBeNull();
+    await tap('Edit display name');
     await type('Display name', 'Samira');
     await tap('Save name');
     expect(await screen.findByText('Name saved.')).toBeTruthy();
     expect(svc.accounts[0].profile.displayName).toBe('Samira');
+    expect(screen.queryByRole('button', { name: 'Save name' })).toBeNull();
     await tap('Sign out');
     expect(await screen.findByRole('header', { name: 'Plant Monitor' })).toBeTruthy();
   });

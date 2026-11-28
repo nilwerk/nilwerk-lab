@@ -1,6 +1,6 @@
 // Small themed building blocks. Colours/spacing only from theme.ts tokens, text only via t() (playbook: no inline values, no inline strings).
 import React from 'react';
-import { Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from './useTheme';
 import { t } from '../i18n';
 
@@ -15,11 +15,13 @@ export function BackButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-export function Screen({ title, children, onBack }: { title: string; children: React.ReactNode; onBack?: () => void }) {
+/** refresh: pull down at the top of the scroll view reloads the screen (the refreshing flag drives the spinner). */
+export function Screen({ title, children, onBack, refresh }: { title: string; children: React.ReactNode; onBack?: () => void; refresh?: { refreshing: boolean; onRefresh: () => void } }) {
   const th = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: th.color.bg }} accessibilityLabel={t('a11y.screenTitle', { title })}>
-      <ScrollView contentContainerStyle={{ padding: th.spacing.lg, gap: th.spacing.lg }} keyboardShouldPersistTaps="handled">
+      <ScrollView testID="screen-scroll" contentContainerStyle={{ padding: th.spacing.lg, gap: th.spacing.lg }} keyboardShouldPersistTaps="handled"
+        refreshControl={refresh ? <RefreshControl refreshing={refresh.refreshing} onRefresh={refresh.onRefresh} /> : undefined}>
         {onBack ? <BackButton onPress={onBack} /> : null}
         <Text accessibilityRole="header" style={{ color: th.color.ink, ...th.type.h1 }}>{title}</Text>
         {children}

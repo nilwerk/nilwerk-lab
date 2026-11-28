@@ -220,7 +220,6 @@
   "nav.alerts": "Alerts",
   "nav.alertsBadge": "{label}, {n} open",
   "plants.title": "My plants",
-  "plants.refresh": "Refresh",
   "plants.empty.title": "No plants yet",
   "plants.empty.body": "Add your first sensor to see your plants here. There is no limit on plants or sensors.",
   "plants.error.load": "Could not load your plants. Check your connection and try again.",
@@ -230,7 +229,6 @@
   "plants.row.a11y": "{name}, {area}, {status}, soil moisture {value}",
   "plants.row.a11yNoArea": "{name}, {status}, soil moisture {value}",
   "plants.noArea": "No area set",
-  "plants.alerts.button": "View alerts",
   "alerts.title": "Alerts",
   "alerts.intro": "Worked out from the last 7 days of readings. Push notifications are not built yet, so alerts show on this screen only.",
   "alerts.empty.title": "No alerts right now",
@@ -419,5 +417,7 @@
   "tips.category.other": "Other",
   "tips.profileError": "Could not check your plan. Nothing was loaded. Try again.",
   "tips.upgrade.title": "Premium feature",
-  "tips.upgrade.body": "Care tips for each plant are part of Premium. Free accounts do not load any tips."
+  "tips.upgrade.body": "Care tips for each plant are part of Premium. Free accounts do not load any tips.",
+  "profile.displayName.edit": "Edit display name",
+  "profile.displayName.none": "Not set"
 }

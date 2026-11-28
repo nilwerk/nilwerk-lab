@@ -1,6 +1,6 @@
 // S20 Plant list. Requirements: FR-A06 (list with status chips), FR-A02 (no cap on plants/devices), NFR-06 (own rows only under RLS).
 // "+ Add" / "Add your first sensor" (S10, FR-A03) is 4.A3 and not wired here.
-// "View alerts" opens the alerts list (4.A5, FR-A07); it is the only way to reach alerts for now.
+// Alerts are reached from the footer tab (4.A5, FR-A07). Pull down at the top of the list to refresh (owner feedback 28 Nov).
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable } from 'react-native';
 import { Body, Button, Notice, Screen } from '../ui/primitives';
@@ -14,26 +14,29 @@ import { PlantsError, type PlantSummary } from '../plants/types';
 
 export const loadErrorKey = (e: unknown) => (e instanceof PlantsError && e.code === 'not_configured' ? 'plants.error.notConnected' : 'plants.error.load');
 
-export function PlantsScreen({ onOpen, onAlerts, onCount }: { onOpen: (plantId: string) => void; onAlerts: () => void; onCount?: (n: number) => void }) {
+export function PlantsScreen({ onOpen, onCount }: { onOpen: (plantId: string) => void; onCount?: (n: number) => void }) {
   const svc = usePlants();
   const [plants, setPlants] = useState<PlantSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
     try { const ps = await svc.listPlants(); setPlants(ps); onCount?.(countOpenAlertPlants(ps)); } catch (e) { setError(t(loadErrorKey(e))); }
   }, [svc, onCount]);
   useEffect(() => { load(); }, [load]);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try { await load(); } finally { setRefreshing(false); }
+  }, [load]);
 
   return (
-    <Screen title={t('plants.title')}>
+    <Screen title={t('plants.title')} refresh={{ refreshing, onRefresh }}>
       {error ? <Notice kind="error" text={error} /> : null}
       {error ? <Button label={t('common.tryAgain')} variant="secondary" onPress={load} /> : null}
       {plants === null && !error ? <Body muted>{t('common.loading')}</Body> : null}
       {plants && plants.length === 0 ? <EmptyState title={t('plants.empty.title')} body={t('plants.empty.body')} /> : null}
-      {plants && plants.length > 0 ? <Button label={t('plants.alerts.button')} variant="secondary" onPress={onAlerts} /> : null}
       <Column>{plants?.map((p) => <PlantRow key={p.id} plant={p} onOpen={() => onOpen(p.id)} />)}</Column>
-      {plants && plants.length > 0 ? <Button label={t('plants.refresh')} variant="ghost" onPress={load} /> : null}
     </Screen>
   );
 }
