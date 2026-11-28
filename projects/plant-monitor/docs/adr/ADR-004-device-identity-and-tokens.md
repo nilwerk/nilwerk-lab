@@ -16,5 +16,5 @@ Required behaviour: the device trusts only the pinned CA bundle defined for this
 - Shared API key: violates NFR-06.
 
 ## Consequences
-+ Simple and revocable. - Token readable from flash of a physical unit (no flash encryption planned; see risk O-3).
++ Simple and revocable. - Token readable from flash of a physical unit (no flash encryption planned; see open question Q-H6 in `docs/architecture.md` section 10.4).
 - **Owner decision A-155 (2026-11-28, Arsany, NFR-06):** the device token stored in flash without flash encryption is an **accepted risk for the v1 demo**, because all three units are owned by Arsany. **Flash encryption becomes a required task before the first customer unit** (open point Q-H6 in `docs/architecture.md` section 10.4). No customer unit ships without it.
