@@ -5,6 +5,7 @@ import { StyleSheet, Text } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { Column, ListRow, Row, Type } from '../ui/kit';
 import { BackButton, Screen } from '../ui/primitives';
+import { Logo } from '../ui/layout';
 import { getTheme, spacing, type as typeTokens, minTouchTarget } from '../../theme';
 import { t } from '../i18n';
 
@@ -71,5 +72,14 @@ describe('list rows and meters', () => {
     expect(flat(screen.getByTestId('a')).borderBottomWidth).toBe(1);
     expect(flat(screen.getByTestId('z')).borderBottomWidth).toBe(0);
     expect(flat(screen.getByTestId('a')).minHeight).toBe(minTouchTarget);
+  });
+});
+
+describe('logo size', () => {
+  test('the logo is 96 px square by default and takes a size prop (the Welcome screen uses 180)', async () => {
+    await render(<Logo source={{ uri: 'logo.png' }} label="default logo" />);
+    expect(flat(screen.getByLabelText('default logo'))).toEqual(expect.objectContaining({ width: 96, height: 96 }));
+    await render(<Logo source={{ uri: 'logo.png' }} label="hero logo" size={180} />);
+    expect(flat(screen.getByLabelText('hero logo'))).toEqual(expect.objectContaining({ width: 180, height: 180, borderRadius: light.radius.lg }));
   });
 });

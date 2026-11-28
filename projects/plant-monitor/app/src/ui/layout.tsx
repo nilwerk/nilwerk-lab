@@ -3,13 +3,13 @@ import React from 'react';
 import { Image, View, type ImageSourcePropType } from 'react-native';
 import { useTheme } from './useTheme';
 
-/** The app logo, centred, at a fixed size with the theme radius. The label is the screen-reader name. */
-export function Logo({ source, label }: { source: ImageSourcePropType; label: string }) {
+/** The app logo, centred, with the theme radius. size is a square edge in px (default 96). The label is the screen-reader name. */
+export const LOGO_SIZE = 96;
+export function Logo({ source, label, size = LOGO_SIZE }: { source: ImageSourcePropType; label: string; size?: number }) {
   const th = useTheme();
   return (
     <View style={{ alignItems: 'center' }}>
-      <Image source={source} accessibilityLabel={label} style={{ width: LOGO_SIZE, height: LOGO_SIZE, borderRadius: th.radius.lg }} />
+      <Image source={source} accessibilityLabel={label} style={{ width: size, height: size, borderRadius: th.radius.lg }} />
     </View>
   );
 }
-const LOGO_SIZE = 96;
