@@ -490,7 +490,10 @@ jobs:
           # failure seen in run 45184412853: that APK was a complete zip (unzip -t OK, sha256 matched the upload).
           # The device rejected its AndroidManifest.xml during parsing; that cause is still open.
           unzip -tq "$apk" >/dev/null 2>&1 || fail "APK is not a valid zip archive (truncated or corrupt download): $apk"
-          unzip -l "$apk" | grep -q 'AndroidManifest.xml' || fail "APK has no AndroidManifest.xml"
+          # The listing goes into a variable first: piping unzip into grep -q makes unzip die of SIGPIPE, and under
+          # pipefail that reads as a missing manifest (it did, every time, for the run 46137004171 APK).
+          listing="$(unzip -l "$apk")" || fail "APK listing failed"
+          grep -q 'AndroidManifest.xml' <<<"$listing" || fail "APK has no AndroidManifest.xml"
           echo "APK sha256=$(sha256sum "$apk" | cut -d' ' -f1) size=$(stat -c %s "$apk")"
           echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
           echo "2. app APK: saved to the runner workspace from run ${GITHUB_RUN_ID} (commit ${GITHUB_SHA})"
@@ -519,7 +522,7 @@ jobs:
           fi
           # A second process on the port (a leftover reader) makes esptool fail with "Serial data stream stopped".
           # Stop here with a clear message instead. Only the PIDs are printed, never the port contents.
-          holders="$(for fd in /proc/[0-9]*/fd/*; do [ "$(readlink "$fd" 2>/dev/null)" = "$BENCH_ESP_PORT" ] && echo "$fd"; done | cut -d/ -f3 | sort -u | tr '\n' ' ')"
+          holders="$(for fd in /proc/[0-9]*/fd/*; do if [ "$(readlink "$fd" 2>/dev/null)" = "$BENCH_ESP_PORT" ]; then echo "$fd"; fi; done | cut -d/ -f3 | sort -u | tr '\n' ' ')"
           if [ -n "$holders" ]; then
             echo "::error::a. firmware flash: port ${BENCH_ESP_PORT} is busy, held by PID(s) ${holders}(stale reader?), not flashing"
             exit 1
@@ -619,7 +622,7 @@ jobs:
           [ -f "${build}/flasher_args.json" ] || fail "firmware artifact not found (step 1 did not provide build-setup/flasher_args.json)"
           [ -e "$BENCH_ESP_PORT" ] || fail "not configured: nothing tested (no device at ${BENCH_ESP_PORT})"
           # A second process on the port (a leftover reader) breaks esptool. Stop with a clear message instead.
-          holders="$(for fd in /proc/[0-9]*/fd/*; do [ "$(readlink "$fd" 2>/dev/null)" = "$BENCH_ESP_PORT" ] && echo "$fd"; done | cut -d/ -f3 | sort -u | tr '\n' ' ')"
+          holders="$(for fd in /proc/[0-9]*/fd/*; do if [ "$(readlink "$fd" 2>/dev/null)" = "$BENCH_ESP_PORT" ]; then echo "$fd"; fi; done | cut -d/ -f3 | sort -u | tr '\n' ' ')"
           [ -z "$holders" ] || fail "port ${BENCH_ESP_PORT} is busy, held by PID(s) ${holders}(stale reader?), not flashing"
           esptool="$(command -v esptool.py || command -v esptool || true)"
           [ -n "$esptool" ] || fail "not configured: nothing tested (esptool not installed on the runner)"
