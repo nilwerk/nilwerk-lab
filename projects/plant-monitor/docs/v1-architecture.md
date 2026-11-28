@@ -47,7 +47,7 @@ Status as written in each ADR file (`projects/plant-monitor/docs/adr/`). Files A
 | 003 | Supabase EU as the standalone backend; ingest as an edge function | Accepted | `ADR-003-supabase-backend-and-ingest.md` |
 | 004 | Per-device bearer token, stored hashed | Accepted for G2 review; addendum 2026-11-28 (A-155, pinned CA) | `ADR-004-device-identity-and-tokens.md` |
 | 005 | React Native (Expo) + TypeScript, supabase-js under RLS | Accepted | `ADR-005-mobile-app-expo.md` |
-| 006 | Tips = weather API + Claude API + deterministic safety rules | Proposed for G2 | `ADR-006-tips-engine-claude-with-guardrails.md` |
+| 006 | Tips = weather API + LLM API + deterministic safety rules | Proposed for G2 | `ADR-006-tips-engine-claude-with-guardrails.md` |
 | 007 | MCP server as an edge function with personal API keys | Accepted for G2 review | `ADR-007-mcp-server.md` |
 | 008 | Premium is a server-side per-user flag, no payments | Accepted | `ADR-008-premium-flag.md` |
 | 009 | OTA via ingest manifest, dual slot, rollback; models in own partition | Accepted for G2 review | `ADR-009-ota-and-model-updates.md` |
