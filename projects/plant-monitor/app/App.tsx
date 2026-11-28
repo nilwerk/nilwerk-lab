@@ -113,7 +113,7 @@ export function Root({ contactEmail, banner, setup, analytics = unconfiguredAnal
   } else if (route === 'alerts') {
     screen = <AlertsScreen onBack={() => setRoute('plants')} onCount={setOpenAlerts} />;
   } else {
-    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onAlerts={() => setRoute('alerts')} onCount={setOpenAlerts} />;
+    screen = <PlantsScreen onOpen={(id) => { setPlantId(id); setRoute('plant'); }} onCount={setOpenAlerts} />;
   }
   const tab: Tab | null = !signedIn ? null : route === 'profile' ? 'profile' : route === 'alerts' ? 'alerts' : route === 'plants' || route === 'welcome' || route === 'signUp' || route === 'signIn' ? 'plants' : null;
   return (
