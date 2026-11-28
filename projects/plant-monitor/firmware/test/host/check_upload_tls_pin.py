@@ -57,12 +57,27 @@ def check(src, hdr):
         elif info.upper() != PINNED_SHA256.upper(): e.append(f"NW_INGEST_CA_PEM fingerprint {info} is not the pinned GTS Root R4 fingerprint")
     return e
 
+PROV_SRC = root / "components/provisioning/src/nw_prov_idf.c"
+PROV_HDR = root / "components/provisioning/include/nw_ingest_ca.h"
+
+def check_prov(src, hdr_prov, hdr_upload):
+    """Device claim POST (nw_prov_idf.c, NFR-06 / ADR-004): same pin, same root, same check as the upload."""
+    e = []
+    for bad in FORBIDDEN:
+        if bad in src: e.append(f"nw_prov_idf.c contains '{bad}' (claim POST must use the pinned root)")
+    if "cert_pem = NW_INGEST_CA_PEM" not in src: e.append("nw_prov_idf.c does not set cfg.cert_pem = NW_INGEST_CA_PEM")
+    if '#include "nw_ingest_ca.h"' not in src: e.append("nw_prov_idf.c does not include nw_ingest_ca.h")
+    if "NW_INGEST_CA_PEM[0] == '\\0'" not in src: e.append("nw_prov_idf.c has no empty-pin refusal")
+    if hdr_prov != hdr_upload: e.append("provisioning copy of nw_ingest_ca.h differs from the upload copy (must be identical)")
+    return e
+
 def load():
     return ((root / "components/upload/src/nw_upload_idf.c").read_text(),
-            (root / "components/upload/include/nw_ingest_ca.h").read_text())
+            (root / "components/upload/include/nw_ingest_ca.h").read_text(),
+            PROV_SRC.read_text(), PROV_HDR.read_text())
 
 def main():
-    src, hdr = load()
+    src, hdr, psrc, phdr = load()
     if "--selftest" in sys.argv:
         muts = [("src", "        .cert_pem = NW_INGEST_CA_PEM,", "        .crt_bundle_attach = esp_crt_bundle_attach,", "bundle restored"),
                 ("src", "    if (NW_INGEST_CA_PEM[0] == '\\0') {", "    if (0) {", "empty pin no longer refuses"),
@@ -70,23 +85,29 @@ def main():
                 ("src", '#include "nw_ingest_ca.h"', '#include "esp_crt_bundle.h"', "pin header not included"),
                 ("hdr", '    "MIICCTCCAY6gAwIBAgINAgPlwGjvYxqccpBQUjAKBggqhkjOPQQDAzBHMQswCQYD\\n" \\', '    "MIICCTCCAY6gAwIBAgINAgPlwGjvYxqccpBQUjAKBggqhkjOPQQDAzBHMQswCQY0\\n" \\', "one base64 character changed (fingerprint/parse)"),
                 ("hdr", '    "-----END CERTIFICATE-----\\n"', '    "-----END CERTIFICATE-----\\n" \\\n    "junk\\n"', "junk line after the certificate"),
-                ("hdr", '#define NW_INGEST_CA_PEM \\', '#define NW_INGEST_CA_PEM_OLD \\', "macro renamed")]
+                ("hdr", '#define NW_INGEST_CA_PEM \\', '#define NW_INGEST_CA_PEM_OLD \\', "macro renamed"),
+                ("psrc", "        .cert_pem = NW_INGEST_CA_PEM,", "        .crt_bundle_attach = esp_crt_bundle_attach,", "claim POST back on the bundle"),
+                ("phdr", "    \"-----END CERTIFICATE-----\\n\"", "    \"-----END CERTIFICATE-----\\n\" \\\n    \"junk\\n\"", "claim header differs from upload copy")]
         bad = 0
         for where, old, new, what in muts:
             s, h = src, hdr
-            tgt = s if where == "src" else h
+            ps, ph = psrc, phdr
+            tgt = {"src": s, "hdr": h, "psrc": ps, "phdr": ph}[where]
             if old not in tgt: print("SELFTEST invalid mutant:", what); bad += 1; continue
             tgt = tgt.replace(old, new, 1)
             if where == "src": s = tgt
-            else: h = tgt
-            if not check(s, h): print("SELFTEST survived:", what); bad += 1
+            elif where == "hdr": h = tgt
+            elif where == "psrc": ps = tgt
+            else: ph = tgt
+            errs = check(s, h) + check_prov(ps, ph, h)
+            if not errs: print("SELFTEST survived:", what); bad += 1
         if bad: sys.exit(1)
         print(f"selftest ok: {len(muts)} mutants flagged")
         return
-    errs = check(src, hdr)
+    errs = check(src, hdr) + check_prov(psrc, phdr, hdr)
     for x in errs: print("FAIL:", x)
     if errs: sys.exit(1)
-    print("upload TLS pinned to the ADR-004 CA: ok (GTS Root R4 PEM parses, fingerprint matches)")
+    print("upload and claim POST pinned to the ADR-004 root (GTS Root R4 PEM parses, fingerprint matches): ok")
 
 if __name__ == "__main__":
     main()
