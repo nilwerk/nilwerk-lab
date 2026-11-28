@@ -33,10 +33,10 @@ The owner's bound is 5 mm per part. The round-2 model used WIRING heights up to 
 | Part | Point to measure | Reference | Used in model now |
 |---|---|---|---|
 | SuperMini, with USB-C | highest point incl. USB-C connector | perfboard top | bound 5.0; stress 6.8 |
-| J1, with jumper | highest point incl. shunt | perfboard top | bound 5.0; stress 12 |
+| J1, with jumper | highest point incl. shunt | perfboard top | bound 5.0; stress 12 (WIRING about 12 is an assumption about the board-top reference until the caliper reading is in) |
 | J3, with Dupont plug | highest point incl. plug | perfboard top | bound 5.0; stress 12 |
 | TP4056 with USB-C, BH1750, AHT20 | highest point | perfboard top | bound 5.0 |
-| Floor to perfboard underside (trimmed pins, wires) | lowest point under the board | perfboard underside | 4.0 typical (UNVERIFIED) |
+| Floor to perfboard underside (trimmed pins, wires) | lowest point under the board | perfboard underside | 12.2 = cell cavity 7.2 + pin tips 4.0 (UNVERIFIED) + margin 1.0 |
 
 ## Clearances (mm, from the model)
 | What | Value | Need | Status |
