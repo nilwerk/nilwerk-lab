@@ -1,0 +1,87 @@
+FAIL src/__tests__/plantTips.test.tsx
+  ● care tips: entitlement gate (FR-P04) › free account sees the upgrade message and no tips are read; no tip text is shown
+
+    Unable to find an element with text: Premium feature
+
+    <RNCSafeAreaProvider>
+      <View
+        accessibilityLabel="Care tips screen"
+      >
+        <RCTScrollView>
+          <View>
+            <View
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "busy": false,
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+            >
+              <Text>
+                Back
+              </Text>
+            </View>
+            <Text
+              accessibilityRole="header"
+            >
+              Care tips
+            </Text>
+            <Text>
+              Care tips for Basil, as stored for this plant. Check the soil yourself before you act on a tip.
+            </Text>
+            <View
+              accessibilityLabel="Care tips"
+            >
+              <View>
+                <Text>
+                  Watering
+                </Text>
+                <Text>
+                  Water when the top 2 cm of soil is dry.
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Light
+                </Text>
+                <Text>
+                  Bright indirect light suits this plant.
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Safety
+                </Text>
+                <Text>
+                  Keep out of reach of pets.
+                </Text>
+              </View>
+              <Text>
+                Generated 2026-11-24
+              </Text>
+            </View>
+          </View>
+        </RCTScrollView>
+      </View>
+    </RNCSafeAreaProvider>
+
+      41 |     const tips = tipsStub(async () => tipsFixture);
+      42 |     const { onPremium } = await mountScreen(svcWith(false), tips);
+    > 43 |     expect(await screen.findByText(t('tips.upgrade.title'))).toBeTruthy();
+         |                         ^
+      44 |     expect(screen.getByText(t('tips.upgrade.body'))).toBeTruthy();
+      45 |     expect(tips.fetchPlantTips).not.toHaveBeenCalled();
+      46 |     expect(screen.queryByText(tipsFixture.items[0].text)).toBeNull();
+
+      at Object.findByText (src/__tests__/plantTips.test.tsx:43:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 6 passed, 7 total
+Snapshots:   0 total
+Time:        2.098 s
+Ran all test suites matching src/__tests__/plantTips.test.tsx.

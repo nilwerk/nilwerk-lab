@@ -1,0 +1,36 @@
+PASS src/__tests__/plantTips.test.tsx
+  care tips: entitlement gate (FR-P04)
+    ✓ free account sees the upgrade message and no tips are read; no tip text is shown (178 ms)
+    ✓ plan cannot be read: error message and nothing is read (fails closed) (6 ms)
+  care tips: states (FR-P02)
+    ✓ loading: shows the loading line until the read answers; no tip before that (6 ms)
+    ✓ empty: no stored tips says "No tips yet for this plant." and lists nothing (5 ms)
+    ✓ empty: a stored row with no items is shown as the same empty state (8 ms)
+    ✓ error: shows the honest error copy (no cause named) and no tips; Try again reads again and then shows them (11 ms)
+    ✓ ready: shows each stored tip text and its category label, the plant name and the generated date (9 ms)
+
+PASS src/__tests__/tipsApi.test.ts
+  tips request (FR-P02, NFR-06)
+    ✓ reads the newest current row of this plant with the user token, filtered like mcp_get_tips (8 ms)
+    ✓ no signed-in session: unauthorized, nothing is requested (1 ms)
+    ✓ no row (no tips stored yet, or all expired): null, which the screen shows as the empty state (1 ms)
+    ✓ a row whose items are all absent: null (empty state), not an error (1 ms)
+    ✓ 401 answer maps to unauthorized
+    ✓ 403 answer maps to unknown (1 ms)
+    ✓ 500 answer maps to server
+    ✓ object body answer maps to bad_response (1 ms)
+    ✓ invalid json answer maps to bad_response
+    ✓ network failure maps to network (1 ms)
+    ✓ tipsUrl encodes the plant id and trims the base url (1 ms)
+  stored tips must match the contract (FR-P02, same rule as the MCP server)
+    ✓ a row stored under another guardrail version is refused
+    ✓ one bad item fails the whole row (1 ms)
+    ✓ text longer than the contract maximum is refused
+    ✓ missing content, or a bad generated_at, is refused
+    ✓ extra fields on an item (such as an internal reason) are not returned to the screen (1 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       23 passed, 23 total
+Snapshots:   0 total
+Time:        1.223 s
+Ran all test suites matching src/__tests__/plantTips.test.tsx|src/__tests__/tipsApi.test.ts.
