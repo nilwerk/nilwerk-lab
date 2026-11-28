@@ -490,7 +490,10 @@ jobs:
           # failure seen in run 45184412853: that APK was a complete zip (unzip -t OK, sha256 matched the upload).
           # The device rejected its AndroidManifest.xml during parsing; that cause is still open.
           unzip -tq "$apk" >/dev/null 2>&1 || fail "APK is not a valid zip archive (truncated or corrupt download): $apk"
-          unzip -l "$apk" | grep -q 'AndroidManifest.xml' || fail "APK has no AndroidManifest.xml"
+          # The listing goes into a variable first: piping unzip into grep -q makes unzip die of SIGPIPE, and under
+          # pipefail that reads as a missing manifest (it did, every time, for the run 46137004171 APK).
+          listing="$(unzip -l "$apk")" || fail "APK listing failed"
+          grep -q 'AndroidManifest.xml' <<<"$listing" || fail "APK has no AndroidManifest.xml"
           echo "APK sha256=$(sha256sum "$apk" | cut -d' ' -f1) size=$(stat -c %s "$apk")"
           echo "BENCH_APK_PATH=${apk}" >> "$GITHUB_ENV"
           echo "2. app APK: saved to the runner workspace from run ${GITHUB_RUN_ID} (commit ${GITHUB_SHA})"
