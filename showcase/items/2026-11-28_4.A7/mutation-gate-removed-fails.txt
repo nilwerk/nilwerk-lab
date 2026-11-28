@@ -1,72 +1,71 @@
+Mutation check (premium gate removed), run on the app code head 28ef31b
+Change: projects/plant-monitor/app/src/screens/PlantTipsScreen.tsx, the plan check no longer returns free accounts; every account reads tips.
+Command: npx jest src/__tests__/plantTips.test.tsx
+Result: the free-account test fails, as expected. File restored afterwards; the suite is green again (see test-output-mocked-run.txt).
+
 FAIL src/__tests__/plantTips.test.tsx
   ● care tips: entitlement gate (FR-P04) › free account sees the upgrade message and no tips are read; no tip text is shown
 
     Unable to find an element with text: Premium feature
 
-    <RNCSafeAreaProvider>
-      <View
-        accessibilityLabel="Care tips screen"
-      >
-        <RCTScrollView>
-          <View>
-            <View
-              accessibilityLabel="Go back"
-              accessibilityRole="button"
-              accessibilityState={
-                {
-                  "busy": false,
-                  "disabled": false,
-                }
-              }
-              accessible={true}
-            >
-              <Text>
-                Back
-              </Text>
-            </View>
-            <Text
-              accessibilityRole="header"
-            >
-              Care tips
-            </Text>
-            <Text>
-              Care tips for Basil, as stored for this plant. Check the soil yourself before you act on a tip.
-            </Text>
-            <View
-              accessibilityLabel="Care tips"
-            >
-              <View>
-                <Text>
-                  Watering
-                </Text>
-                <Text>
-                  Water when the top 2 cm of soil is dry.
-                </Text>
-              </View>
-              <View>
-                <Text>
-                  Light
-                </Text>
-                <Text>
-                  Bright indirect light suits this plant.
-                </Text>
-              </View>
-              <View>
-                <Text>
-                  Safety
-                </Text>
-                <Text>
-                  Keep out of reach of pets.
-                </Text>
-              </View>
-              <Text>
-                Generated 2026-11-24
-              </Text>
-            </View>
-          </View>
-        </RCTScrollView>
-      </View>
-    </RNCSafeAreaProvider>
+    [36m<RNCSafeAreaProvider>[39m
+      [36m<View[39m
+        [33maccessibilityLabel[39m=[32m"Care tips screen"[39m
+      [36m>[39m
+        [36m<RCTScrollView>[39m
+          [36m<View>[39m
+            [36m<View[39m
+              [33maccessibilityLabel[39m=[32m"Go back"[39m
+              [33maccessibilityRole[39m=[32m"button"[39m
+              [33maccessible[39m=[32m{true}[39m
+            [36m>[39m
+              [36m<Text>[39m
+                [0m‹[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+            [36m<Text[39m
+              [33maccessibilityRole[39m=[32m"header"[39m
+            [36m>[39m
+              [0mCare tips[0m
+            [36m</Text>[39m
+            [36m<Text>[39m
+              [0mCare tips for Basil, as stored for this plant.[0m
+            [36m</Text>[39m
+            [36m<View[39m
+              [33maccessibilityLabel[39m=[32m"Care tips"[39m
+            [36m>[39m
+              [36m<View>[39m
+                [36m<Text>[39m
+                  [0mWatering[0m
+                [36m</Text>[39m
+                [36m<Text>[39m
+                  [0mWater when the top 2 cm of soil is dry.[0m
+                [36m</Text>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<Text>[39m
+                  [0mLight[0m
+                [36m</Text>[39m
+                [36m<Text>[39m
+                  [0mBright indirect light suits this plant.[0m
+                [36m</Text>[39m
+              [36m</View>[39m
+              [36m<View>[39m
+                [36m<Text>[39m
+                  [0mSafety[0m
+                [36m</Text>[39m
+                [36m<Text>[39m
+                  [0mKeep out of reach of pets.[0m
+                [36m</Text>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mGenerated 2026-11-24[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</RCTScrollView>[39m
+      [36m</View>[39m
+    [36m</RNCSafeAreaProvider>[39m
 
       41 |     const tips = tipsStub(async () => tipsFixture);
       42 |     const { onPremium } = await mountScreen(svcWith(false), tips);
@@ -81,7 +80,7 @@ FAIL src/__tests__/plantTips.test.tsx
       at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 Test Suites: 1 failed, 1 total
-Tests:       1 failed, 6 passed, 7 total
+Tests:       1 failed, 7 passed, 8 total
 Snapshots:   0 total
-Time:        2.098 s
+Time:        2.844 s
 Ran all test suites matching src/__tests__/plantTips.test.tsx.
