@@ -260,6 +260,7 @@ For **2.8 (risk register)**:
 - O-3 OTA integrity: ESP-IDF secure boot / signed images are not planned; decide whether SHA-256 over TLS is enough for the demo (recommended) and document the gap vs CE/RED later.
 - O-4 BLE provisioning on iOS and Android with Expo: the maintained ESP provisioning library needs a dev build (not Expo Go); verify on both platforms in week 1 (FR-D03, NFR-03).
 - O-5 Privacy/EU (NFR-07): Claude API and Expo Push are processed outside the EU. Send only pseudonymous plant data and the city name, no user identity; confirm acceptable with Arsany and mention in privacy notes. See A-1.
+  **Owner decision A-156 (2026-11-28, Arsany, NFR-07, FR-P04): live LLM tips are OFF.** Tips stay rule-based (`baselineTips` plus guardrails) until an EU-hosted or DPA-covered provider is chosen. The only code path that sends plant context to an LLM is live mode in `projects/plant-monitor/cloud/tips/engine.ts`: the gate is `mode === "live"` (line 103), the context is built at line 104 and sent through `assist` at line 105. The default mode is `rule_based` (line 101).
 - O-6 Weather API licence (Q-13 "free"): some free tiers are non-commercial only; confirm the provider's terms fit a sales demo (and later client use) in 2.6.
 - O-7 LLM safety (FR-P02): rule layer must be unit-tested with adversarial model outputs; model output must be schema-validated before display. Owner Sana/Ines.
 - O-8 Edge-AI domain gap (Req §5): public probes differ from ours; FR-E01/E02 acceptance is on public data only, real-unit check in week 4.
